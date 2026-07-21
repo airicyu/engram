@@ -1,0 +1,3 @@
+{"patch_id":"p101","dream_run_id":"dream-2026-07-18T23:20:00+08:00","ts":"2026-07-18T23:20:00+08:00","event_refs":["e000010"],"type":"semantic","node":"acme","facet":"what","operation":"append","content":"Added note about rate limits on public REST."}
+{"patch_id":"p102","dream_run_id":"dream-2026-07-18T23:20:00+08:00","ts":"2026-07-18T23:20:00+08:00","event_refs":["e000010"],"type":"semantic","node":"ghost-node","facet":"what","operation":"append","content":"This node does not exist and should DLQ"}
+{"patch_id":"p103","dream_run_id":"dream-2026-07-18T23:20:00+08:00","ts":"2026-07-18T23:20:00+08:00","event_refs":["e000010"],"type":"chain","level":"day","id":"2026-07-18","content":"Follow-up: rate limit discussion continued."}
