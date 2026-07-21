@@ -1,6 +1,6 @@
 # Engram API Documentation
 
-HTTP API for the Engram MVP memory prototype: **ingest → dream (extract + apply) → activate**.
+HTTP API for the Engram memory prototype: **ingest → dream extract (draft) → approve → activate**.
 
 ## Quick start
 
@@ -17,10 +17,13 @@ curl -s -X POST http://localhost:8787/ingest \
   -H 'content-type: application/json' \
   -d '{"raw":"今天和同事討論了…","source":"api"}'
 curl -s -X POST http://localhost:8787/dream/run
+# poll /status until dream_status=pending_review
+curl -s http://localhost:8787/dream/pending
+curl -s -X POST http://localhost:8787/dream/approve
 curl -s 'http://localhost:8787/activate'
 ```
 
-## Web UI (0.2.0)
+## Web UI
 
 ```bash
 # terminal 1 — API
@@ -55,9 +58,12 @@ No authentication in the prototype. All times use timezone `Asia/Taipei`.
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/` | Service discovery |
-| `GET` | `/status` | Lock, L1, DLQ, dream status |
-| `POST` | `/ingest` | Append L0 event + update L1 |
-| `POST` | `/dream/run` | Extract patches → apply → clear L1 |
+| `GET` | `/status` | Lock, L1, DLQ, dream status, pending summary |
+| `POST` | `/ingest` | Append L0 event + update L1 pool |
+| `POST` | `/dream/run` | Extract → materialize draft → pending_review (async 202) |
+| `GET` | `/dream/pending` | Active pending report + patches (`present: false` if none) |
+| `POST` | `/dream/approve` | `commitDraft` → L2, clear scope S |
+| `POST` | `/dream/discard` | Drop pending + draft; L1/L2 unchanged |
 | `GET` | `/activate` | Activation packet (optional `?q=`) |
 
 Full request/response schemas, error codes, and semantics: **[api.md](./api.md)**.
@@ -67,25 +73,19 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 | Layer | Role |
 |-------|------|
 | **L0** | Append-only event log (`log/events.jsonl`) |
-| **L1** | Short-term memory until next dream (`short-term-memory/`) |
-| **L0.5** | Extracted patches (`dream/patches.jsonl`) |
+| **L1** | Short-term mem pool (`short-term-memory/pool.jsonl`); cleared by event-id scope S on approve |
+| **L0.5 intent** | Patches + report (`dream/patches.jsonl`, `dream/reports/`) |
+| **L0.5 draft** | Staged L2 projection (`dream/draft/{run_id}/`) — not live until approve |
 | **L2** | Long-term node understanding (`nodes/{id}/understand/what.md`) |
-| **chain** | Day-level memory chain (`memory-chain/days/`) |
-| **candidates** | Proposed nodes / low-confidence attribution (`candidates/`) |
+| **chain** | World timeline days (`memory-chain/days/`) — occurrence dates only |
+| **candidates** | Low-confidence attribution etc. (`candidates/`) — not the primary create-node path |
 
-**Single-thread rule:** ingest and dream cannot run concurrently. Dream holds a lock; ingest returns `409` while dream is running.
+**Lock rule:** ingest is blocked only while extract/materialize/commit holds the dream lock. **`pending_review` allows ingest** (new events ∉ frozen S).
 
 ## What the API does *not* expose (prototype)
 
-These require manual edits under `ENGRAM_HOME` (or future APIs):
+These require manual steps (or future APIs):
 
-- Approve `candidates/nodes.yaml` → create `nodes/{id}/`
-- Review / settle `dream/dead-letter.jsonl`
-- Reset store (use `bun run reset` in `server/`)
-
-Clients and skills should **not** write memory files directly; use the HTTP API for all operational changes.
-
-## Related docs
-
-- Server README: [../server/README.md](../server/README.md)
-- Prototype design: [../roadmap/mvp/docs/prototype.md](../roadmap/mvp/docs/prototype.md)
+- Settle `dead-letter.jsonl`
+- Node merge / fusion
+- Wipe store → `cd server && bun run reset` (destructive; confirm first)

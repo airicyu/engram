@@ -44,7 +44,7 @@ pending 期間
   → 新 ingest → 新 event 進 pool，id ∉ S
   → 不自動併入本輪 pending（要納入 = supersede 重夢）
 
-approve 且 apply 全成功
+approve 且 **commitDraft** 全成功
   → 只從 L1 pool **刪除 id ∈ S 的條目**
   → id ∉ S 的留下
 

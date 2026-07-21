@@ -2,9 +2,9 @@
 
 ← [changelog](../../changelog.md) · current: [version](../../version.md) · 下游：[0.4.0 未來視](../0.4.0/INDEX.md)
 
-> **狀態：** **方向、API 與 design-review 定案已 lock**（2026-07-19）；**未實作**。  
+> **狀態：** **已實作（0.3.0）** — 見 `version.md`／`changelog.md`。  
 > **本版做：** dream 人審閘門、L0.5 draft staging、L1 mem pool（按 event 範圍清）、occurrence／encoding（**world timeline**）。  
-> **本版不做：** 未來視 chain → [0.4.0](../0.4.0/INDEX.md)（做法留白，0.3 完成後再討論）。
+> **本版不做：** 未來視 chain → [0.4.0](../0.4.0/INDEX.md)（做法留白，完成後再討論）。
 
 ## 產品句
 
@@ -170,4 +170,4 @@ Extract 失敗：`phase: "extract"`，同上。
 
 ---
 
-**狀態：** agreed — design locked — ready to implement — 2026-07-19
+**狀態：** implemented — 0.3.0 shipped — 2026-07-21

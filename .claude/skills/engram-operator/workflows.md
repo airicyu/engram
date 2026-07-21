@@ -1,91 +1,35 @@
-# Engram Operator Workflows
+# Engram operator workflows
 
-All steps use HTTP only. Base: `${ENGRAM_URL:-http://localhost:8787}`.
+## Capture → Extract → Approve → Recall
 
-## 0. Preflight
+1. `GET /status` — confirm server up
+2. `POST /ingest` with `{ "raw": "…" }` (repeat as needed)
+3. `POST /dream/run` → 202; poll `/status` until `dream_status=pending_review` (or `dream_job.status=failed`)
+4. `GET /dream/pending` — read report; check timeline / new nodes
+5. If wrong → `POST /dream/run` again (**supersede**) or `POST /dream/discard`
+6. If OK → `POST /dream/approve`
+7. `GET /activate?q=…` — verify L2／chain
 
-1. `GET /status` (or `engram-api.sh status`)
-2. If connection fails → ask user to start server: `cd server && bun run start`
-3. Note `lock`, `lock_stale`, `l1_empty`, `dream_status`, `pending_dlq_count`, `dream_job`
+## Pending 期間仍可 ingest
 
-## 1. Capture memory (ingest)
+New events enter the pool but are **outside** frozen S. Approve clears only S; new events remain for the next dream.
 
-When the user wants to record something:
+## Review 禁止事項
 
-1. Optionally ask for `node_refs` if they mention a known node id
-2. **Check [api-reference.md](api-reference.md) for field names** — the required field is `raw` (NOT `content`, `text`, or `message`)
-3. `POST /ingest` with `{ "raw": "…", "source": "claude-skill", "node_refs": [...] }`
-4. Confirm `event_id` returned (NOT `id`)
-5. Optionally `GET /status` — expect `l1_empty: false`
+Do **not** hand-edit L1／L2／draft to “fix” a pending dream. Only supersede／approve／discard.
 
-**While `lock: true`:** ingest returns `409`. Wait for dream to finish or report the conflict.
+## Empty patches
 
-## 2. Run dream
+Pending with no patches is valid. Approve clears S with **no** L2 write (confirm discarding short-term only).
 
-When the user wants to consolidate short-term memory into L2 / chain / candidates:
+## Future chain.id
 
-1. `GET /status` — if `lock: true` with `lock_stale: false`, a dream is already running; wait or inform user
-2. `POST /dream/run` — **returns immediately** (async, 202 Accepted)
-3. Interpret response:
-   - `202` + `job_id` + `status: "started"` — dream submitted successfully
-   - `409` — another dream job already running; poll `/status` for completion
-4. **Poll** `GET /status` → `dream_job`:
-   - `status: "running"` — still in progress (Claude Code extract + apply)
-   - `status: "completed"` → summarize `result.applied`, `result.skipped`, `result.dead_letter`
-   - `status: "failed"` → report `dream_job.error`; **L1 preserved**; safe to retry
-5. After `completed`: `GET /status` — expect `l1_empty: true`
-6. `GET /activate` — show before/after context if useful
+Approve returns `409 future_chain_id`. Pending stays. Fix via supersede, or wait／discard.
 
-### Resume behavior
+## Extract failure
 
-If a prior run wrote patches but apply did not finish:
+`dream_job.status=failed`, `phase: extract|materialize`. No pending. L1 unchanged. Retry `/dream/run`.
 
-- Next `POST /dream/run` may resume with `result.resumed: true`, `result.extract_status: "skipped_resume"`
-- No duplicate L0.5 append for same `dream_run_id`
+## l1_clear_pending
 
-### Stale lock recovery
-
-If the server crashed mid-dream, the lock file persists. After 30 minutes:
-
-- `GET /status` shows `lock: true, lock_stale: true`
-- Next `POST /dream/run` auto-breaks the stale lock and proceeds
-
-## 3. Read memory (activate)
-
-When the user asks what Engram knows:
-
-1. `GET /activate` — no query → all nodes (prototype ≤3)
-2. `GET /activate?q=keyword` — scoped retrieval
-3. Present:
-   - `dream_status` and `sources`
-   - `l1.summary` if `l1.present`
-   - `chain.content` for today
-   - `nodes[]` with `what_current` and `match_reason`
-
-If `sources` contains `gap`, nothing matched the query.
-
-## 4. Daily loop (typical)
-
-```
-ingest (throughout day)
-  → status (optional)
-  → dream/run (end of day or on demand)
-  → activate (verify L2 / chain)
-```
-
-## 5. Error handling
-
-| Situation | Action |
-|-----------|--------|
-| `dream_locked` on ingest | Dream in progress; retry ingest after dream completes |
-| `dream_job.status: "failed"` | Show `dream_job.error`; suggest retry `dream/run`; do not edit data files |
-| `lock_stale: true` | Server crashed; next `POST /dream/run` auto-recovers |
-| `dead_letter_pending` | Report count; patches need manual DLQ review (no API) |
-| `propose_node` in candidates | Tell user to approve manually under `candidates/nodes.yaml` |
-| User wants empty store | Confirm destructively, then `cd server && bun run reset` |
-
-## 6. What not to do
-
-- Do not read `data/` to answer "what's in memory" — use `/activate`
-- Do not write yaml/md under `ENGRAM_HOME` to fix failed patches
-- Do not run `fixture:apply --seed` unless user explicitly wants test fixtures
+Commit succeeded but clearing S failed. Call approve again — only retries clear. Do not supersede as if still pending.

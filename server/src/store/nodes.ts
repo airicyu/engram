@@ -40,64 +40,6 @@ export function extractCurrentSection(md: string): string {
   return match[1].trim();
 }
 
-export async function readWhatFile(nodeId: string): Promise<string> {
-  const path = whatPath(nodeId);
-  if (!(await exists(path))) {
-    return "## Current\n\n\n## History\n";
-  }
-  return readFile(path, "utf8");
-}
-
-export async function writeWhatFile(nodeId: string, content: string): Promise<void> {
-  const dir = homePath("nodes", nodeId, "understand");
-  await mkdir(dir, { recursive: true });
-  await writeFile(whatPath(nodeId), content, "utf8");
-}
-
-export async function applySemanticWhat(opts: {
-  nodeId: string;
-  operation: "append" | "revise" | "resolve_open";
-  content: string;
-  patchId: string;
-  eventRefs: string[];
-  date: string;
-}): Promise<void> {
-  if (!(await nodeExists(opts.nodeId))) {
-    throw new Error(`node does not exist: ${opts.nodeId}`);
-  }
-
-  let file = await readWhatFile(opts.nodeId);
-  if (!file.includes("## Current")) {
-    file = `## Current\n\n${file.trim()}\n\n## History\n`;
-  }
-  if (!file.includes("## History")) {
-    file = file.trimEnd() + "\n\n## History\n";
-  }
-
-  const current = extractCurrentSection(file);
-  const historyMatch = file.match(/## History\s*\n([\s\S]*)$/);
-  let historyBody = historyMatch ? historyMatch[1] : "";
-
-  const refs = opts.eventRefs.join(",");
-  const stamp = `### ${opts.date} · patch:${opts.patchId} · events:[${refs}]\n`;
-
-  let newCurrent: string;
-  if (opts.operation === "revise" || opts.operation === "resolve_open") {
-    if (current.trim()) {
-      historyBody = `${stamp}${current.trim()}\n\n` + historyBody;
-    }
-    newCurrent = opts.content.trim();
-  } else {
-    // append
-    newCurrent = current.trim()
-      ? `${current.trim()}\n\n${opts.content.trim()}`
-      : opts.content.trim();
-  }
-
-  const out = `## Current\n\n${newCurrent}\n\n## History\n${historyBody.startsWith("\n") ? historyBody : "\n" + historyBody}`;
-  await writeWhatFile(opts.nodeId, out.endsWith("\n") ? out : out + "\n");
-}
-
 export async function seedNode(
   nodeId: string,
   meta: { kind: string; aliases?: string[]; what?: string },

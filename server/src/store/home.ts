@@ -1,4 +1,6 @@
+import { access, mkdir, writeFile } from "node:fs/promises";
 import { ensureL1SummaryFile } from "./l1";
+import { ensureDreamDirs } from "./dream-runs";
 import { join } from "node:path";
 import { stringify } from "yaml";
 import { config } from "../config";
@@ -23,6 +25,9 @@ export async function ensureEngramHome(): Promise<void> {
     "dream",
     "dream/dead-letter-archive",
     "dream/reviews",
+    "dream/runs",
+    "dream/draft",
+    "dream/reports",
     "short-term-memory",
     "short-term-memory/nodes",
     "memory-chain",
@@ -61,11 +66,6 @@ export async function ensureEngramHome(): Promise<void> {
     await writeFile(patchesPath, "", "utf8");
   }
 
-  const appliedPath = homePath("dream", "applied.yaml");
-  if (!(await exists(appliedPath))) {
-    await writeFile(appliedPath, stringify({ applied: [] }), "utf8");
-  }
-
   const dlqPath = homePath("dream", "dead-letter.jsonl");
   if (!(await exists(dlqPath))) {
     await writeFile(dlqPath, "", "utf8");
@@ -82,4 +82,5 @@ export async function ensureEngramHome(): Promise<void> {
   }
 
   await ensureL1SummaryFile();
+  await ensureDreamDirs();
 }

@@ -406,6 +406,21 @@ body {
   color: var(--ink-muted);
 }
 
+.pending-panel {
+  margin: 1.25rem 0;
+}
+
+.pending-panel h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.pending-meta {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
 .consolidate-actions {
   display: flex;
   flex-wrap: wrap;

@@ -109,7 +109,7 @@
           data-scene="consolidate"
           hidden
         >
-          <p class="scene-lead">該整理短時記憶了嗎？</p>
+          <p class="scene-lead">先 extract 出報告，人審後再寫入長期記憶。</p>
           <div class="status-panel" id="status-panel">
             <dl class="status-grid">
               <div>
@@ -131,9 +131,24 @@
             </dl>
             <p class="status-advice" id="status-advice"></p>
           </div>
+
+          <div class="pending-panel" id="pending-panel" hidden>
+            <h2>待審報告</h2>
+            <p class="pending-meta" id="pending-meta"></p>
+            <pre class="md-block" id="pending-report"></pre>
+            <div class="consolidate-actions">
+              <button type="button" class="btn primary" id="dream-approve">
+                Approve
+              </button>
+              <button type="button" class="btn ghost" id="dream-discard">
+                Discard
+              </button>
+            </div>
+          </div>
+
           <div class="consolidate-actions">
             <button type="button" class="btn primary" id="dream-run">
-              Run dream
+              Extract
             </button>
             <button type="button" class="btn ghost" id="refresh-status">
               刷新狀態
@@ -141,7 +156,7 @@
           </div>
           <p class="form-msg" id="dream-msg" role="status"></p>
           <div class="dream-result" id="dream-result" hidden>
-            <h2>上次結果</h2>
+            <h2>狀態</h2>
             <pre class="md-block" id="dream-result-body"></pre>
           </div>
         </section>

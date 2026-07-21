@@ -11,7 +11,10 @@ Usage: engram-api.sh <command> [args]
 Commands:
   status              GET /status
   ingest <text> [src] POST /ingest (source defaults to claude-skill)
-  dream               POST /dream/run
+  dream               POST /dream/run (extract → pending)
+  pending             GET /dream/pending
+  approve             POST /dream/approve
+  discard             POST /dream/discard
   activate [q]        GET /activate (optional query)
   root                GET /
 
@@ -35,6 +38,15 @@ case "$cmd" in
     ;;
   dream)
     curl -sS -X POST "$BASE/dream/run"
+    ;;
+  pending)
+    curl -sS "$BASE/dream/pending"
+    ;;
+  approve)
+    curl -sS -X POST "$BASE/dream/approve" -H 'content-type: application/json' -d '{}'
+    ;;
+  discard)
+    curl -sS -X POST "$BASE/dream/discard" -H 'content-type: application/json' -d '{}'
     ;;
   activate)
     if [[ -n "${1:-}" ]]; then

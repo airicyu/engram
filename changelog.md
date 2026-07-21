@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.3.0 — Dream approve + world timeline (2026-07-21)
+
+Human review gate before L2 writes; L1 mem pool cleared by event-id scope; memory-chain uses occurrence days.
+
+### Added
+
+- **`GET /dream/pending`**, **`POST /dream/approve`**, **`POST /dream/discard`**
+- **L0.5 draft staging** — `dream/draft/{run_id}/` + `manifest.yaml`; `dream/runs/{id}.yaml`; reports under `dream/reports/`
+- **L1 mem pool** — `short-term-memory/pool.jsonl` indexed by L0 event id; approve clears only frozen scope **S**
+- **`pending_review`** status; ingest allowed while pending (blocked only under dream lock)
+- **Supersede** — new `/dream/run` replaces the unique pending
+- **World timeline** — `chain.id` = occurrence day; approve blocks future `chain.id` (`409 future_chain_id`)
+- **`propose_node` → live node** on approve (same-run create + semantic allowed)
+- Consolidate **minimal UI** — Extract / report / Approve / Discard
+- Empty patches may pending; approve clears S with no L2 write
+
+### Changed
+
+- `POST /dream/run` = extract + materialize only (no auto-apply / no resume-apply)
+- Extract input = full scope S (cross-day L0), not “today only”
+- `/status` exposes `dream_pending`, `l1_clear_pending`, job `phase`
+
+### Removed / cancelled
+
+- Per-patch live apply as the main path; resume-apply of unapplied patches
+- Candidates-as-create-node gate (attribution candidates remain for low-confidence episodic)
+
+### Out of scope
+
+- Future-sight chain (0.4.0), node merge, full review UI, L1 capacity/forgetting
+
+---
+
 ## 0.2.0 — Web UI (2026-07-18)
 
 Browser workbench for the 0.1.0 memory loop: **Capture → Consolidate → Recall**, without changing the memory contract.

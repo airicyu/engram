@@ -2,7 +2,12 @@ import { config } from "./config";
 import { ensureEngramHome } from "./store/home";
 import { handleIngest } from "./api/ingest";
 import { handleStatus } from "./api/status";
-import { handleDreamRun } from "./api/dream";
+import {
+  handleDreamRun,
+  handleDreamPending,
+  handleDreamApprove,
+  handleDreamDiscard,
+} from "./api/dream";
 import { handleActivate } from "./api/activate";
 import { logError, logInfo, withRequestLog } from "./log";
 
@@ -18,6 +23,9 @@ const server = Bun.serve({
           endpoints: [
             "POST /ingest",
             "POST /dream/run",
+            "GET /dream/pending",
+            "POST /dream/approve",
+            "POST /dream/discard",
             "GET /activate",
             "GET /status",
           ],
@@ -51,6 +59,36 @@ const server = Bun.serve({
 
     "/dream/run": {
       POST: withRequestLog(() => handleDreamRun()),
+    },
+
+    "/dream/pending": {
+      GET: withRequestLog(() => handleDreamPending()),
+    },
+
+    "/dream/approve": {
+      POST: withRequestLog(async (req) => {
+        let body: { dream_run_id?: string } = {};
+        try {
+          const text = await req.text();
+          if (text.trim()) body = JSON.parse(text) as { dream_run_id?: string };
+        } catch {
+          return Response.json({ error: "invalid JSON body" }, { status: 400 });
+        }
+        return handleDreamApprove(body);
+      }),
+    },
+
+    "/dream/discard": {
+      POST: withRequestLog(async (req) => {
+        let body: { dream_run_id?: string } = {};
+        try {
+          const text = await req.text();
+          if (text.trim()) body = JSON.parse(text) as { dream_run_id?: string };
+        } catch {
+          return Response.json({ error: "invalid JSON body" }, { status: 400 });
+        }
+        return handleDreamDiscard(body);
+      }),
     },
 
     "/activate": {
