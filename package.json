@@ -1,0 +1,9 @@
+{
+  "name": "engram",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --cwd server dev",
+    "dev:ui": "bun run --cwd web dev"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "engram-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts",
+    "reset": "bun run src/cli/reset.ts",
+    "fixture:apply": "bun run src/cli/fixture-apply.ts",
+    "test:phases": "bun run src/cli/self-test.ts"
+  },
+  "dependencies": {
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.8.2"
+  }
+}
