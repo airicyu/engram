@@ -6,20 +6,32 @@ dream_run_id (must use on every patch): {{DREAM_RUN_ID}}
 
 ## Task
 
-Compare L1 (`summary` + `node_notes`) and today's events against l2_current (what Current for each known node). Propose structured patches that integrate pending short-term experience into long-term memory.
+Compare L1 (scope `S` — may span **multiple calendar days**) and the corresponding L0 events against `l2_current` (what Current for each known node). Propose structured patches that distill short-term experience into long-term memory.
+
+This run does **not** write L2 directly. Patches become a **draft** for human review; only approve commits them.
+
+## Timeline rules (STRICT)
+
+1. **Memory-chain = world timeline.** `chain.id` = the calendar day the event **occurred** (already happened), Asia/Taipei `YYYY-MM-DD` — not merely the ingest/encoding day.
+2. **Encoding** = L0 `ts` day (when the user wrote it into Engram). If occurrence day ≠ encoding day, you may note the backfill in report-worthy content; do **not** duplicate the same fact as two chain days unless encoding needs a short meta line.
+3. **Same-day rule:** if occurrence day = encoding day, emit **only** the occurrence `chain` patch (no separate encoding chain).
+4. **Future days:** if the text mentions a future calendar day (deadline, plan), do **NOT** emit `chain.id` for that future day. Leave it out of memory-chain (0.4.0 will handle future sight). Prefer a `semantic` fact if useful (e.g. "deadline is 2026-07-31").
+5. **Relative dates:** resolve against Asia/Taipei and event `ts`. If uncertain, omit chain backfill rather than guessing.
 
 ## Output rules (STRICT)
 
 1. Reply with **ONLY** a JSON array of patch objects. No prose, no markdown fences, no commentary before or after the array.
-2. The array MUST contain at least one patch. Every object MUST match exactly one schema below — no extra fields, no missing required fields, no alternate field names.
-3. Allowed `type` values for this task: `semantic` | `chain` | `propose_node` | `episodic`. Do **not** emit `dlq_review`.
-4. `patch_id` must be unique within the array (e.g. `p001`, `p002`, …).
-5. `dream_run_id` on every patch MUST equal `{{DREAM_RUN_ID}}`.
-6. `ts` MUST be ISO-8601 with `+08:00` offset (Asia/Taipei).
-7. `event_refs` MUST list event `id` values from context when the patch is grounded in events.
-8. For `semantic` and `episodic`, `node` MUST already exist in `existing_nodes`. For unknown entities, emit `propose_node` first (same array); do not reference a node id that is not in `existing_nodes` unless you are proposing it via `propose_node.proposed_id` in the same run.
-9. Vs L2 Current: supplementary fact → `semantic.operation: "append"`; clearly overturns Current → `"revise"`; resolving an open question → `"resolve_open"`.
-10. Do not write any files under ENGRAM_HOME. Do not call Write/Edit tools. Read the context file only. stdout JSON is the only deliverable.
+2. The array **may be empty** `[]` when nothing is worth writing to L2 (human approve will still clear scope S).
+3. Every object MUST match exactly one schema below — no extra fields, no missing required fields, no alternate field names.
+4. Allowed `type` values: `semantic` | `chain` | `propose_node` | `episodic`. Do **not** emit `dlq_review`.
+5. `patch_id` must be unique within the array (e.g. `p001`, `p002`, …).
+6. `dream_run_id` on every patch MUST equal `{{DREAM_RUN_ID}}`.
+7. `ts` MUST be ISO-8601 with `+08:00` offset (Asia/Taipei).
+8. `event_refs` MUST list event `id` values from context `scope` / `events` when grounded.
+9. **New nodes:** emit `propose_node` to **create** a live node on approve (same run may then `semantic` / `episodic` that `proposed_id`). Put `propose_node` before patches that reference the new id. Do **not** use candidates as the "create node" path.
+10. For `semantic` / `episodic` on an id not in `existing_nodes`, you MUST also emit `propose_node` for that id in this same array.
+11. Vs L2 Current: supplementary fact → `semantic.operation: "append"`; clearly overturns Current → `"revise"`; resolving an open question → `"resolve_open"`.
+12. Do not write any files under ENGRAM_HOME. Do not call Write/Edit tools. Read the context file only. stdout JSON is the only deliverable.
 
 ## Schema specification
 
@@ -37,59 +49,51 @@ Top-level output: `Patch[]` — a JSON array. Each element is a discriminated ob
 
 ### `type: "semantic"`
 
-Update L2 **what** for an **existing** node.
+Update L2 **what** for an existing node **or** a node created via `propose_node` in this same array.
 
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
-| `node` | string | yes | Must be in `existing_nodes` |
+| `node` | string | yes | In `existing_nodes` or `propose_node.proposed_id` this run |
 | `facet` | string | yes | Must be exactly `"what"` |
 | `operation` | string | yes | `"append"` \| `"revise"` \| `"resolve_open"` |
 | `content` | string | yes | Non-empty text to apply |
 
-**Forbidden on semantic:** `proposed_id`, `kind`, `reason`, `level`, `confidence`, `role`, `date`.
-
 ### `type: "chain"`
 
-Day-level summary chain entry.
+Day-level **occurrence** entry on the world timeline.
 
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
 | `level` | string | yes | Must be exactly `"day"` |
-| `id` | string | yes | Calendar day `YYYY-MM-DD` (Asia/Taipei) |
+| `id` | string | yes | Occurrence day `YYYY-MM-DD` ≤ today (Asia/Taipei). **Never** a future day. |
 | `content` | string | yes | Non-empty day summary |
-
-**Forbidden on chain:** `node`, `facet`, `operation`, `proposed_id`, `confidence`.
 
 ### `type: "propose_node"`
 
-Propose a **new** node id not yet in `existing_nodes`. This is **not** a semantic patch — use the fields below, not `node` + `content`.
+Create a **new** live node on approve (draft-staged). Not a candidate-only proposal.
 
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
-| `proposed_id` | string | yes | New node id to create (e.g. `engram`) |
+| `proposed_id` | string | yes | New node id (e.g. `engram`) |
 | `kind` | string | yes | Entity kind (e.g. `project`, `org`, `person`, `theme`) |
 | `reason` | string | yes | Why this node should exist |
 | `aliases` | string[] | no | Alternate names; default `[]` |
 | `evidence_event_refs` | string[] | no | Supporting event ids; default `[]` |
 | `seed_facets` | object | no | `{ "what"?: string }` — optional seed L2 what text |
 
-**Forbidden on propose_node:** `node`, `content`, `facet`, `operation`, `level`, `confidence`, `role`, `date`.
-
 ### `type: "episodic"`
 
-Attribute an event/experience to an **existing** node.
+Attribute an experience to a node. Low confidence (`< 0.6`) → attribution candidate only.
 
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
-| `node` | string | yes | Must be in `existing_nodes` |
+| `node` | string | yes | Existing or same-run `propose_node` id |
 | `role` | string | yes | `"primary"` \| `"mention"` |
-| `confidence` | number | yes | `0`..`1` inclusive; `< 0.6` = uncertain |
+| `confidence` | number | yes | `0`..`1` inclusive |
 | `date` | string | yes | Calendar date `YYYY-MM-DD` (Asia/Taipei) |
 | `content` | string | yes | Non-empty episodic description |
 
-**Forbidden on episodic:** `proposed_id`, `kind`, `facet`, `operation`, `level`.
-
-## Valid examples (one object per type)
+## Valid examples
 
 ```json
 [
@@ -102,9 +106,9 @@ Attribute an event/experience to an **existing** node.
     "proposed_id": "engram",
     "kind": "project",
     "aliases": [],
-    "reason": "New project mentioned in today's events; no existing node.",
+    "reason": "New project mentioned; no existing node.",
     "evidence_event_refs": ["e000001"],
-    "seed_facets": { "what": "Long-term memory system (initial version built 2026-07-19)." }
+    "seed_facets": { "what": "Long-term memory system." }
   },
   {
     "patch_id": "p002",
@@ -113,8 +117,8 @@ Attribute an event/experience to an **existing** node.
     "event_refs": ["e000001"],
     "type": "chain",
     "level": "day",
-    "id": "2026-07-19",
-    "content": "Built the first version of engram."
+    "id": "2026-07-17",
+    "content": "Confirmed requirements (backfilled; encoded later)."
   },
   {
     "patch_id": "p003",
@@ -122,24 +126,12 @@ Attribute an event/experience to an **existing** node.
     "ts": "2026-07-19T03:13:37+08:00",
     "event_refs": ["e000001"],
     "type": "semantic",
-    "node": "acme",
+    "node": "engram",
     "facet": "what",
     "operation": "append",
-    "content": "Supplementary fact about Acme."
-  },
-  {
-    "patch_id": "p004",
-    "dream_run_id": "{{DREAM_RUN_ID}}",
-    "ts": "2026-07-19T03:13:37+08:00",
-    "event_refs": ["e000001"],
-    "type": "episodic",
-    "node": "acme",
-    "role": "mention",
-    "confidence": 0.85,
-    "date": "2026-07-19",
-    "content": "Acme came up while discussing API design."
+    "content": "Deadline discussed as 2026-07-31 (future; not a chain day)."
   }
 ]
 ```
 
-When `existing_nodes` is empty, typical output is `propose_node` + `chain` only (no `semantic`/`episodic` until the node exists).
+When nothing should enter L2, return `[]`.

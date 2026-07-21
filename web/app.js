@@ -5,12 +5,16 @@ const API = "/api";
  *   lock: boolean,
  *   l1_empty: boolean,
  *   pending_dlq_count: number,
- *   dream_status: string
+ *   dream_status: string,
+ *   dream_pending?: { dream_run_id: string, scope_count: number, patch_count: number } | null,
+ *   dream_job?: object | null,
  * }} Status */
 
 const state = {
   /** @type {Status | null} */
   status: null,
+  /** @type {{ present: boolean, dream_run_id?: string|null, scope?: string[], report?: string|null, draft_summary?: object|null } | null} */
+  pending: null,
   scene: "capture",
   dreaming: false,
   pollTimer: null,
@@ -71,12 +75,18 @@ function renderStatusLight() {
 
 function adviceFor(status) {
   if (!status) return "無法取得狀態。確認 server 是否在 :8787 運行。";
-  if (status.lock) return "Dream 進行中——請稍候，勿寫入。";
+  if (status.lock) return "Extract／commit 進行中——請稍候。pending_review 期間仍可 Capture。";
+  if (status.dream_status === "pending_review") {
+    return "有待審 dream：讀報告後 Approve（寫入 L2 並清本輪 L1）或 Discard／再次 Extract（取代）。";
+  }
+  if (status.dream_status === "l1_clear_pending") {
+    return "已 commit 但 L1 清理未完成——再按一次 Approve 只重試清 L1。";
+  }
   if (status.dream_status === "dream_incomplete") {
-    return "上次整理未完成（L1 仍保留）。可重試 Run dream。";
+    return "上次 extract／materialize 失敗（L1 仍保留）。可重試 Extract。";
   }
   if (status.dream_status === "dead_letter_pending") {
-    return `有 ${status.pending_dlq_count} 筆 DLQ 待人工處理；仍可繼續 dream。`;
+    return `有 ${status.pending_dlq_count} 筆 DLQ 待人工處理；仍可繼續 extract。`;
   }
   if (status.l1_empty) {
     if (status.dream_status === "never_dreamed") {
@@ -84,31 +94,63 @@ function adviceFor(status) {
     }
     return "L1 已空——沒有需要整理的短時記憶。";
   }
-  return "L1 有內容，可以 Run dream 整理到長期記憶。";
+  return "L1 有內容，可以 Extract 產出待審報告。";
+}
+
+function renderPendingPanel() {
+  const panel = $("pending-panel");
+  const p = state.pending;
+  if (!p?.present) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  const ds = p.draft_summary;
+  const meta = [
+    p.dream_run_id ? `run ${p.dream_run_id}` : null,
+    p.scope ? `scope ${p.scope.length}` : null,
+    ds ? `draft ${ds.entry_count} paths` : null,
+    Array.isArray(p.patches) ? `patches ${p.patches.length}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  $("pending-meta").textContent = meta;
+  const report = $("pending-report");
+  report.textContent = p.report?.trim() || "（無報告）";
+  report.classList.toggle("is-empty", !p.report?.trim());
 }
 
 function renderConsolidate() {
   const s = state.status;
   $("st-dream").textContent = s ? s.dream_status : "—";
   $("st-lock").textContent = s ? String(s.lock) : "—";
-  $("st-l1").textContent = s
-    ? s.l1_empty
-      ? "empty"
-      : "present"
-    : "—";
+  $("st-l1").textContent = s ? (s.l1_empty ? "empty" : "present") : "—";
   $("st-dlq").textContent = s ? String(s.pending_dlq_count) : "—";
   $("status-advice").textContent = adviceFor(s);
+  renderPendingPanel();
 
   const btn = /** @type {HTMLButtonElement} */ ($("dream-run"));
-  btn.disabled = !s || s.lock || state.dreaming || s.l1_empty;
+  const pending = s?.dream_status === "pending_review";
+  const clearRetry = s?.dream_status === "l1_clear_pending";
+  btn.disabled = !s || s.lock || state.dreaming || (s.l1_empty && !pending && !clearRetry);
   if (s?.lock || state.dreaming) {
-    btn.textContent = "Dreaming…";
+    btn.textContent = "Extracting…";
+  } else if (pending) {
+    btn.textContent = "Extract（取代）";
   } else {
-    btn.textContent = "Run dream";
+    btn.textContent = "Extract";
   }
+
+  const approve = /** @type {HTMLButtonElement} */ ($("dream-approve"));
+  const discard = /** @type {HTMLButtonElement} */ ($("dream-discard"));
+  const canReview = !!(pending || clearRetry) && !s?.lock && !state.dreaming;
+  if (approve) approve.disabled = !canReview && !clearRetry;
+  if (discard) discard.disabled = !pending || !!s?.lock || state.dreaming;
+  if (approve && clearRetry) approve.disabled = !!s?.lock || state.dreaming;
 }
 
 function applyCaptureLock() {
+  // Only lock capture while extract/commit holds the dream lock — not during pending_review
   const locked = !!(state.status?.lock || state.dreaming);
   const raw = /** @type {HTMLTextAreaElement} */ ($("capture-raw"));
   const refs = /** @type {HTMLInputElement} */ ($("capture-refs"));
@@ -119,16 +161,31 @@ function applyCaptureLock() {
   $("capture-lock-hint").hidden = !locked;
 }
 
+async function refreshPending() {
+  const { ok, data } = await api("/dream/pending");
+  if (!ok) {
+    state.pending = null;
+    return;
+  }
+  state.pending = data;
+}
+
 async function refreshStatus() {
   const { ok, data } = await api("/status");
   if (!ok || data?.error === "engram_unreachable") {
     state.status = null;
+    state.pending = null;
     renderStatusLight();
     renderConsolidate();
     applyCaptureLock();
     return false;
   }
   state.status = data;
+  if (data.dream_status === "pending_review" || data.dream_status === "l1_clear_pending") {
+    await refreshPending();
+  } else {
+    state.pending = { present: false };
+  }
   renderStatusLight();
   renderConsolidate();
   applyCaptureLock();
@@ -139,7 +196,8 @@ async function refreshStatus() {
 function schedulePoll() {
   if (state.pollTimer) clearTimeout(state.pollTimer);
   const locked = !!(state.status?.lock || state.dreaming);
-  const ms = locked ? 2000 : 8000;
+  const pending = state.status?.dream_status === "pending_review";
+  const ms = locked ? 2000 : pending ? 5000 : 8000;
   state.pollTimer = setTimeout(async () => {
     await refreshStatus();
   }, ms);
@@ -170,8 +228,7 @@ async function refreshL1() {
   const el = $("l1-content");
   const { ok, data } = await api("/activate");
   if (!ok) {
-    el.textContent =
-      data?.message || data?.error || "無法載入 L1";
+    el.textContent = data?.message || data?.error || "無法載入 L1";
     el.classList.add("is-empty");
     return;
   }
@@ -247,78 +304,113 @@ async function onCapture(e) {
   await Promise.all([refreshStatus(), refreshL1()]);
 }
 
-function formatDreamResult(data, httpStatus) {
-  if (httpStatus === 502 || data?.extract_status === "failed") {
-    return [
-      `extract failed · dream_status=${data.dream_status ?? "?"}`,
-      `dream_run_id: ${data.dream_run_id ?? "—"}`,
-      "",
-      data.error || "Extract failed; L1 preserved — safe to retry.",
-    ].join("\n");
-  }
-  if (data?.error === "dream_locked") {
-    return data.message || "Dream already in progress.";
-  }
-  const lines = [
-    `dream_run_id: ${data.dream_run_id ?? "—"}`,
-    `extract_status: ${data.extract_status ?? "—"}`,
-    `resumed: ${data.resumed ?? false}`,
-    "",
-    `applied (${(data.applied ?? []).length}): ${(data.applied ?? []).join(", ") || "—"}`,
-    `skipped (${(data.skipped ?? []).length}): ${(data.skipped ?? []).join(", ") || "—"}`,
-    `dead_letter (${(data.dead_letter ?? []).length}): ${(data.dead_letter ?? []).join(", ") || "—"}`,
-  ];
-  return lines.join("\n");
-}
-
 async function onDreamRun() {
   const msg = $("dream-msg");
   const result = $("dream-result");
   const body = $("dream-result-body");
 
   if (state.status?.lock || state.dreaming) {
-    setMsg(msg, "Dream 已在進行中。", "error");
+    setMsg(msg, "Extract 已在進行中。", "error");
     return;
   }
-  if (state.status?.l1_empty) {
-    setMsg(msg, "L1 為空，無需 dream。", "error");
+  if (state.status?.l1_empty && state.status?.dream_status !== "pending_review") {
+    setMsg(msg, "L1 為空，無需 extract。", "error");
     return;
   }
 
   state.dreaming = true;
   applyCaptureLock();
   renderConsolidate();
-  setMsg(msg, "Dream 執行中（可能需要數分鐘）…");
+  setMsg(msg, "Extract 執行中（可能需要數分鐘）…");
 
   const { ok, status, data } = await api("/dream/run", { method: "POST" });
 
-  state.dreaming = false;
-  result.hidden = false;
-  body.textContent = formatDreamResult(data, status);
-
   if (status === 409) {
-    setMsg(msg, data?.message || "dream_locked", "error");
-  } else if (status === 502 || data?.extract_status === "failed") {
-    setMsg(
-      msg,
-      "整理未完成（502）— L1 保留，可重試。",
-      "error",
-    );
-  } else if (!ok) {
-    setMsg(msg, data?.message || data?.error || `失敗 (${status})`, "error");
-  } else {
-    const dlq = (data.dead_letter ?? []).length;
-    setMsg(
-      msg,
-      dlq
-        ? `完成，但有 ${dlq} 筆進 DLQ。`
-        : `完成 · applied ${(data.applied ?? []).length}`,
-      dlq ? "error" : "ok",
-    );
+    state.dreaming = false;
+    result.hidden = false;
+    body.textContent = data?.message || data?.error || "rejected";
+    setMsg(msg, data?.message || data?.error || "dream rejected", "error");
+    await refreshStatus();
+    return;
   }
 
+  if (!ok) {
+    state.dreaming = false;
+    result.hidden = false;
+    body.textContent = JSON.stringify(data, null, 2);
+    setMsg(msg, data?.message || data?.error || `失敗 (${status})`, "error");
+    await refreshStatus();
+    return;
+  }
+
+  setMsg(msg, "已提交 — 等待 pending_review…", "ok");
+  body.textContent = `job_id: ${data.job_id}\n${data.message || ""}`;
+  result.hidden = false;
+
+  // Poll until lock clears / pending_review or failed
+  const start = Date.now();
+  while (Date.now() - start < 10 * 60 * 1000) {
+    await new Promise((r) => setTimeout(r, 1500));
+    await refreshStatus();
+    if (!state.status?.lock) break;
+  }
+  state.dreaming = false;
+  renderConsolidate();
+
+  if (state.status?.dream_status === "pending_review") {
+    setMsg(msg, "待審報告已就緒。", "ok");
+  } else if (state.status?.dream_job?.status === "failed") {
+    setMsg(
+      msg,
+      `失敗（${state.status.dream_job.phase || "?"}）：${state.status.dream_job.error || ""}`,
+      "error",
+    );
+  }
+  if (state.scene === "capture") await refreshL1();
+}
+
+async function onDreamApprove() {
+  const msg = $("dream-msg");
+  setMsg(msg, "Approve 中…");
+  const { ok, status, data } = await api("/dream/approve", {
+    method: "POST",
+    body: "{}",
+  });
+  if (status === 409) {
+    setMsg(msg, data?.message || data?.error || "無法 approve", "error");
+    await refreshStatus();
+    return;
+  }
+  if (!ok) {
+    setMsg(msg, data?.message || data?.error || `失敗 (${status})`, "error");
+    return;
+  }
+  const note = data.empty_patches
+    ? "已批准：無 L2 寫入，已清本輪 L1。"
+    : data.l1_clear_pending
+      ? "已 commit；L1 清理未完成，請再 Approve 一次。"
+      : `已寫入 ${data.committed?.length ?? 0} 個路徑並清本輪 L1。`;
+  setMsg(msg, note, data.l1_clear_pending ? "error" : "ok");
+  $("dream-result").hidden = false;
+  $("dream-result-body").textContent = JSON.stringify(data, null, 2);
   await refreshStatus();
   if (state.scene === "capture") await refreshL1();
+}
+
+async function onDreamDiscard() {
+  const msg = $("dream-msg");
+  setMsg(msg, "Discard 中…");
+  const { ok, status, data } = await api("/dream/discard", {
+    method: "POST",
+    body: "{}",
+  });
+  if (!ok) {
+    setMsg(msg, data?.message || data?.error || `失敗 (${status})`, "error");
+    await refreshStatus();
+    return;
+  }
+  setMsg(msg, "已丟棄 pending（L1／L2 未改）。", "ok");
+  await refreshStatus();
 }
 
 function renderRecallPacket(data) {
@@ -407,6 +499,8 @@ function bind() {
   $("refresh-l1").addEventListener("click", () => refreshL1());
   $("refresh-status").addEventListener("click", () => refreshStatus());
   $("dream-run").addEventListener("click", onDreamRun);
+  $("dream-approve").addEventListener("click", onDreamApprove);
+  $("dream-discard").addEventListener("click", onDreamDiscard);
   $("recall-form").addEventListener("submit", onRecall);
 }
 

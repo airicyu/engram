@@ -3,18 +3,20 @@ import { parse, stringify } from "yaml";
 import { homePath } from "./home";
 
 export type DreamJobStatus = "running" | "completed" | "failed";
+export type DreamJobPhase = "extract" | "materialize" | "pending_review";
 
 export interface DreamJobState {
   status: DreamJobStatus;
   dream_run_id: string;
   started_at: string;
   completed_at?: string;
+  phase?: DreamJobPhase;
   result?: {
-    applied: string[];
-    skipped: string[];
-    dead_letter: string[];
+    scope: string[];
+    patch_count: number;
+    superseded: string | null;
     extract_status: string;
-    resumed: boolean;
+    phase: string;
   };
   error?: string;
 }

@@ -2,12 +2,12 @@ import { readSummary, readAllNodeNotes, isL1Empty } from "../store/l1";
 import { readDay } from "../store/chain";
 import { listNodeIds, readWhatCurrent } from "../store/nodes";
 import { taipeiDate } from "../store/events";
-import { computeDreamStatus } from "../dream/run";
+import { computeDreamStatus, type DreamStatus } from "../dream/run";
 
 export interface ActivationPacket {
   query: string | null;
   sources: Array<"L1" | "L2" | "chain" | "gap">;
-  dream_status: "ok" | "dead_letter_pending" | "dream_incomplete" | "never_dreamed";
+  dream_status: DreamStatus;
   l1: {
     summary: string;
     node_notes: Record<string, string>;

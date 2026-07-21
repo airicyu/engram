@@ -182,7 +182,7 @@ export function parsePatch(raw: unknown): Patch {
 
 export function parsePatchArray(raw: unknown): Patch[] {
   if (!Array.isArray(raw)) throw new Error("expected JSON array of patches");
-  if (raw.length === 0) throw new Error("patch array must not be empty");
+  // Empty array allowed (0.3 #29): pending_review with no L2 writes; approve clears S only.
   return raw.map((item, i) => {
     try {
       return parsePatch(item);

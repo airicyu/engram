@@ -4,6 +4,8 @@ Base URL: `http://localhost:8787` (override with `PORT`).
 
 All timestamps and dates use **Asia/Taipei**.
 
+**Empty reads:** endpoints that mean “no content right now” return **200** with an empty body shape (`present: false`, `null`, `[]`) — **not 404**. 404 is only for unknown paths/methods.
+
 ---
 
 ## `GET /`
@@ -18,6 +20,9 @@ Service discovery.
   "endpoints": [
     "POST /ingest",
     "POST /dream/run",
+    "GET /dream/pending",
+    "POST /dream/approve",
+    "POST /dream/discard",
     "GET /activate",
     "GET /status"
   ]
@@ -38,7 +43,13 @@ Snapshot of store health, dream state, and async job status.
   "lock": false,
   "l1_empty": false,
   "pending_dlq_count": 0,
-  "dream_status": "ok",
+  "dream_status": "pending_review",
+  "dream_pending": {
+    "dream_run_id": "dream-2026-07-21T22:00:00+08:00",
+    "scope_count": 2,
+    "patch_count": 3
+  },
+  "l1_clear_pending": null,
   "dream_job": null
 }
 ```
@@ -46,40 +57,31 @@ Snapshot of store health, dream state, and async job status.
 | Field | Type | Meaning |
 |-------|------|---------|
 | `engram_home` | string | Resolved `ENGRAM_HOME` path |
-| `lock` | boolean | `true` while a dream run holds the lock |
-| `lock_stale` | boolean? | Present only when `lock: true`; `true` if lock is older than 30 min (server crash recovery) |
-| `l1_empty` | boolean | `true` when short-term memory has been cleared |
-| `pending_dlq_count` | number | Patches in dead-letter queue awaiting review |
+| `lock` | boolean | `true` while extract／materialize／approve commit holds the lock |
+| `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
+| `l1_empty` | boolean | `true` when L1 mem pool has no entries |
+| `pending_dlq_count` | number | Legacy DLQ count |
 | `dream_status` | enum | See [Dream status](#dream-status) |
-| `dream_job` | object? | Current async dream job state, or `null` if no job is/was running |
+| `dream_pending` | object? | Active pending summary, or `null` |
+| `l1_clear_pending` | object? | Commit succeeded but scope clear failed — retry approve |
+| `dream_job` | object? | Last／current async extract job |
 
 **`dream_job` object:**
 
-```json
-{
-  "status": "running",
-  "dream_run_id": "dream-2026-07-18T23:10:00+08:00",
-  "started_at": "2026-07-18T23:10:00.000Z",
-  "completed_at": null,
-  "result": null,
-  "error": null
-}
-```
-
-| Field | Type | Meaning |
-|-------|------|---------|
-| `status` | `"running"` \| `"completed"` \| `"failed"` | Current job state |
-| `dream_run_id` | string | Dream run identifier |
-| `started_at` | string | ISO timestamp when job was submitted |
-| `completed_at` | string? | ISO timestamp when job finished (completed/failed only) |
-| `result` | object? | Dream result (applied, skipped, dead_letter, extract_status, resumed) — completed only |
-| `error` | string? | Error message — failed only |
+| Field | Meaning |
+|-------|---------|
+| `status` | `"running"` \| `"completed"` \| `"failed"` |
+| `phase` | `"extract"` \| `"materialize"` \| `"pending_review"` |
+| `result` | On success: `scope`, `patch_count`, `superseded`, `phase` |
+| `error` | On failure |
 
 ---
 
 ## `POST /ingest`
 
-Append one event to L0 and update L1 short-term memory.
+Append one event to L0 and the L1 mem pool (indexed by event id).
+
+**Allowed during `pending_review`** (no dream lock). Rejected only while lock is held (extract／commit).
 
 **Request body**
 
@@ -92,207 +94,148 @@ Append one event to L0 and update L1 short-term memory.
 }
 ```
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `raw` | yes | Non-empty string; trimmed before storage |
-| `source` | no | Provenance label; default `"api"` |
-| `node_refs` | no | Node IDs; also appends to `nodes/{id}/notes.md` in L1 |
-| `idempotency_key` | no | Stored on event; dedup not enforced in prototype |
+**Response `201`:** `{ "event_id": "e000001" }`
 
-**Response `201`**
-
-```json
-{ "event_id": "e000001" }
-```
-
-Event IDs are sequential: `e000001`, `e000002`, …
-
-**Errors**
-
-| Status | Body | When |
-|--------|------|------|
-| `400` | `{ "error": "raw is required" }` | Missing or blank `raw` |
-| `409` | `{ "error": "dream_locked", "message": "Dream in progress; ingest rejected" }` | Dream lock held |
-| `500` | `{ "error": "..." }` | Internal failure |
+**Errors:** `400` missing `raw`; `409` `dream_locked`.
 
 ---
 
 ## `POST /dream/run`
 
-Submit a dream job. The dream runs **asynchronously** in the background — the endpoint returns immediately with `202 Accepted`. Poll `GET /status` to track progress via the `dream_job` field.
+Async **extract → materialize draft → unique pending**. Does **not** write L2.
 
-If a previous run wrote patches but apply did not finish and L1 is still present, **resumes apply only** (skips extract) for that `dream_run_id`.
+- Empty L1 pool → **409** `nothing_to_dream`
+- Existing pending → **supersede** (discard old intent+draft; new extract on current pool)
+- Scope **S** = all event ids in the pool at call time
+- Extract input = L0 events for S (may span days) + L1 view for S + existing L2
 
-**Request body:** none
-
-**Response `202` (job submitted)**
+**Response `202`**
 
 ```json
 {
-  "job_id": "dream-2026-07-18T23:10:00+08:00",
+  "job_id": "dream-2026-07-21T22:00:00+08:00",
   "status": "started",
-  "message": "Dream job submitted and running in background. Poll GET /status for progress."
+  "message": "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dream/pending then approve or discard."
 }
 ```
-
-**Response `200` (legacy sync — may be removed)**
-
-```json
-{
-  "dream_run_id": "dream-2026-07-18T23:10:00+08:00",
-  "applied": ["p1", "p2"],
-  "skipped": [],
-  "dead_letter": [],
-  "extract_status": "ok",
-  "resumed": false
-}
-```
-
-| Field | Meaning |
-|-------|---------|
-| `dream_run_id` | ISO timestamp id, e.g. `dream-2026-07-18T23:10:00+08:00` |
-| `applied` | `patch_id` values successfully applied |
-| `skipped` | Already applied or already in DLQ |
-| `dead_letter` | `patch_id` values sent to dead-letter queue |
-| `extract_status` | `"ok"` or `"skipped_resume"` |
-| `resumed` | `true` when apply resumed without re-extracting |
-
-**Response `502` (extract failed — legacy sync, may be removed)**
-
-```json
-{
-  "extract_status": "failed",
-  "dream_status": "dream_incomplete",
-  "dream_run_id": "dream-2026-07-18T23:10:00+08:00",
-  "error": "human-readable message"
-}
-```
-
-On extract failure in async mode: the `dream_job.status` in `/status` will be `"failed"` with the error message. **L1 is preserved**, no new L0.5 patches committed. Retry with another `POST /dream/run`.
 
 **Errors**
 
-| Status | Body | When |
-|--------|------|------|
-| `409` | `{ "error": "dream_locked", "message": "Dream already running. Check /status for progress." }` | Another dream job in progress |
-| `500` | `{ "error": "..." }` | Unexpected failure |
+| Status | error | When |
+|--------|-------|------|
+| `409` | `nothing_to_dream` | L1 pool empty |
+| `409` | `dream_locked` | Another extract／commit in progress |
 
-### Patch types applied by dream
+On extract／materialize failure: `dream_job.status=failed` + `phase`; **no** pending; L1 unchanged.
 
-| Type | Apply behavior |
-|------|----------------|
-| `semantic` (`facet: what`) | Update `nodes/{id}/understand/what.md` |
-| `chain` (`level: day`) | Append/merge day chain file |
-| `propose_node` | Upsert `candidates/nodes.yaml` |
-| `episodic` (confidence &lt; 0.6) | Upsert `candidates/attribution.yaml` |
-| `episodic` (confidence ≥ 0.6) | Not applied in prototype (skipped at apply layer) |
-
-Patches targeting unknown nodes → individual patch goes to DLQ; other patches still apply. L1 is cleared after apply pass completes.
+**Cancelled (0.3):** auto-apply after extract; resume-apply of unapplied patches.
 
 ---
 
-## `GET /activate`
+## `GET /dream/pending`
 
-Assemble an activation packet for retrieval / context injection.
+Always **200**. No pending → empty shape (not 404).
 
-**Query parameters**
+**Empty**
 
-| Param | Required | Description |
-|-------|----------|-------------|
-| `q` | no | Keyword filter for node matching |
+```json
+{
+  "present": false,
+  "dream_run_id": null,
+  "scope": [],
+  "report": null,
+  "patches": [],
+  "draft_summary": null
+}
+```
+
+**Present:** `present: true` plus filled fields; optional `draft_summary: { entry_count, chain_days }`.
+
+---
+
+## `POST /dream/approve`
+
+Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
+
+1. If `l1_clear_pending` → **only retry clear S**
+2. Else require active pending
+3. Reject future `chain.id` → **409** `future_chain_id` + `rejected_chain_ids` (pending／draft／L1／L2 unchanged)
+4. Empty patches → no L2 write; still clear S
+5. Else `commitDraft` → live L2; then clear S
+6. Clear S failure → run `committed` + `l1_clear_pending`; next approve retries clear only
 
 **Response `200`**
 
 ```json
 {
-  "query": "acme",
-  "sources": ["L1", "chain", "L2"],
-  "dream_status": "ok",
-  "l1": {
-    "summary": "- [2026-07-18T20:00:00+08:00] (e000001) …",
-    "node_notes": { "alice": "- […] note line" },
-    "present": true
-  },
-  "chain": {
-    "day_id": "2026-07-18",
-    "content": "## 2026-07-18\n…"
-  },
-  "nodes": [
-    {
-      "node": "alice",
-      "what_current": "…",
-      "match_reason": "keyword"
-    }
-  ]
+  "dream_run_id": "dream-…",
+  "committed": ["nodes/acme/understand/what.md"],
+  "cleared_scope": ["e000001", "e000002"],
+  "l1_clear_pending": false,
+  "empty_patches": false
 }
 ```
 
-| Field | Meaning |
-|-------|---------|
-| `query` | Echo of `q`, or `null` |
-| `sources` | Which layers contributed: `L1`, `L2`, `chain`, `gap` |
-| `dream_status` | Same enum as `/status` |
-| `l1.present` | `false` when L1 has been cleared after dream |
-| `nodes[].match_reason` | `all_nodes` \| `keyword` \| `node_refs_l1` \| `what_content` |
+**Errors:** `409` `no_pending` \| `dream_run_mismatch` \| `future_chain_id` \| `dream_locked`; `500` commit failure (L2 unchanged, L1 kept).
 
-**Node matching rules**
+---
 
-- No `q`: include all nodes that have L2 current or L1 notes (prototype ≤3 nodes).
-- With `q`: match node id substring, L1 node notes, or `what_current` content (case-insensitive).
-- `gap` in `sources` when query provided but nothing matched and L1/chain are empty.
+## `POST /dream/discard`
+
+Drop pending intent + draft. L1／L2 unchanged. Body optional `dream_run_id`.
+
+**Response `200`:** `{ "dream_run_id": "…", "discarded": true }`
+
+---
+
+## `GET /activate`
+
+Activation packet (unchanged shape). `dream_status` includes 0.3 values (`pending_review`, `l1_clear_pending`, …).
 
 ---
 
 ## Dream status
 
-`dream_status` appears on `/status` and `/activate`.
-
 | Value | Meaning |
 |-------|---------|
-| `never_dreamed` | No patches have been written yet |
-| `dream_incomplete` | Extract failed with L1 retained, or unapplied patches exist while L1 present |
-| `dead_letter_pending` | One or more patches in DLQ |
-| `ok` | Normal steady state |
-
-**Recommended client flow when `dream_incomplete`:**
-
-1. `GET /status` — confirm `l1_empty: false`
-2. `POST /dream/run` — retry (may resume apply if patches already exist)
-3. If `502` persists, inspect server logs / Claude Code extract output
+| `never_dreamed` | No successful extract recorded |
+| `pending_review` | Unique pending run awaiting approve／discard／supersede |
+| `l1_clear_pending` | Commit done; scope clear failed — retry approve |
+| `dream_incomplete` | Last extract／materialize failed; L1 retained |
+| `dead_letter_pending` | Legacy DLQ non-empty |
+| `ok` | Steady state |
 
 ---
 
-## Error envelope
+## Patch types (materialize → draft → commit)
 
-Most errors return:
+| Type | On approve |
+|------|------------|
+| `propose_node` | Create live node under `nodes/{id}/` (seed what／meta) |
+| `semantic` (`facet: what`) | Update `nodes/{id}/understand/what.md` |
+| `chain` (`level: day`) | Append `memory-chain/days/{id}.md` — **occurrence** day; future ids blocked at approve |
+| `episodic` (confidence &lt; 0.6) | Attribution candidate |
+| `episodic` (≥ 0.6) | No-op (chronology not in prototype) |
 
-```json
-{ "error": "message" }
-```
-
-Dream-lock conflicts use:
-
-```json
-{ "error": "dream_locked", "message": "…" }
-```
+Same-run order: create new nodes first, then semantic／episodic for those ids.
 
 ---
 
 ## Typical session flow
 
 ```
-POST /ingest  (one or more times)
+POST /ingest  (one or more; also OK during pending_review)
      ↓
-GET  /status  (optional: confirm L1 not empty, lock false)
+POST /dream/run  → 202
      ↓
-POST /dream/run  → 202 Accepted (async, returns immediately)
+GET  /status  until dream_status=pending_review (or dream_job failed)
      ↓
-GET  /status  (poll for dream_job.status → "completed" or "failed")
+GET  /dream/pending  (read report)
      ↓
-GET  /activate?q=…   (before/after comparison)
+POST /dream/approve   OR   POST /dream/discard   OR   POST /dream/run (supersede)
+     ↓
+GET  /activate?q=…
 ```
-
-**Concurrency:** Only one dream job at a time. `POST /dream/run` returns `409` if a job is already running. If the lock is stale (>30 min, e.g., server crash), it is automatically broken and a new job is accepted.
 
 ---
 
@@ -305,11 +248,11 @@ curl -s "$BASE/status" | jq .
 
 curl -s -X POST "$BASE/ingest" \
   -H 'content-type: application/json' \
-  -d '{"raw":"記得明天要跟 Alice 對齊 Acme 整合","source":"claude-skill","node_refs":["alice"]}' | jq .
+  -d '{"raw":"早兩天確認了需求","source":"api"}' | jq .
 
 curl -s -X POST "$BASE/dream/run" | jq .
-# 202: { "job_id": "dream-...", "status": "started", "message": "..." }
-# Then poll: curl -s "$BASE/status" | jq .dream_job
-
-curl -s "$BASE/activate?q=alice" | jq .
+# poll
+curl -s "$BASE/status" | jq '{dream_status,dream_job,dream_pending}'
+curl -s "$BASE/dream/pending" | jq '{present,dream_run_id,scope}'
+curl -s -X POST "$BASE/dream/approve" -H 'content-type: application/json' -d '{}' | jq .
 ```

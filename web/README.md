@@ -1,4 +1,4 @@
-# Engram Web (0.2.0)
+# Engram Web (0.3.0)
 
 Minimal operator UI for **Capture → Consolidate → Recall**. Talks only to the HTTP API (never touches `ENGRAM_HOME`).
 
@@ -29,8 +29,8 @@ Open **http://localhost:8788**
 
 | Scene | What it does |
 |-------|----------------|
-| **Capture** | `POST /ingest` · show today's L1 via `GET /activate` |
-| **Consolidate** | `GET /status` · `POST /dream/run` with result summary |
+| **Capture** | `POST /ingest` · show L1 via `GET /activate` |
+| **Consolidate** | Extract → pending report → Approve／Discard；`GET /status` |
 | **Recall** | `GET /activate?q=` · L1 → day chain → nodes |
 
-Status light polls `/status` (faster while `lock: true`). Capture is disabled during dream.
+Status light polls `/status` (faster while `lock: true`). Capture is disabled only while the dream lock is held — **not** during `pending_review`.

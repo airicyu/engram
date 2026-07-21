@@ -1,5 +1,5 @@
 import { appendEvent, nextEventId, taipeiNowIso } from "../store/events";
-import { appendSummary, appendNodeNotes } from "../store/l1";
+import { appendPoolEntry } from "../store/l1";
 import { isLocked } from "../store/lock";
 
 export interface IngestBody {
@@ -35,14 +35,12 @@ export async function handleIngest(body: IngestBody): Promise<{ event_id: string
     idempotency_key: body.idempotency_key,
   });
 
-  const summaryLine = `- [${ts}] (${event_id}) ${body.raw.trim()}`;
-  await appendSummary(summaryLine);
-
-  if (node_refs?.length) {
-    for (const nodeId of node_refs) {
-      await appendNodeNotes(nodeId, summaryLine);
-    }
-  }
+  await appendPoolEntry({
+    id: event_id,
+    ts,
+    raw: body.raw.trim(),
+    node_refs,
+  });
 
   return { event_id };
 }
