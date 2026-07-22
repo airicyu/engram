@@ -9,7 +9,7 @@
 2. memory chain：當日 days/（MVP）；後期再加本週 weeks/、視需要 months/
 3. query 相關 top-K nodes：INDEX + understand（Current）+ chronology/recent
 4. 沿 links 擴展 1 hop（高 strength 優先 — favor routing；後期）
-5. 必要時 tool：search events / read node / 讀 L0 / 讀 L0.5 patches
+5. 必要時 tool：search events / read node / 讀 L0 / 讀 L1.5 patches
 ```
 
 衝突時：**L1 優先於 L2**（更新鮮）。  

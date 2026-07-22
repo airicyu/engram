@@ -4,6 +4,7 @@ import { pendingDlqCount } from "../store/dlq";
 import { computeDreamStatus, pendingRunSummary } from "../dream/run";
 import { getL1ClearPendingRun } from "../store/dream-runs";
 import { readDreamJob } from "../store/dream-job";
+import { countActiveAnchors } from "../store/future-sight";
 import { config } from "../config";
 
 export async function handleStatus(): Promise<object> {
@@ -19,6 +20,7 @@ export async function handleStatus(): Promise<object> {
     lock,
     l1_empty: await isL1Empty(),
     pending_dlq_count: await pendingDlqCount(),
+    future_sight_active_count: await countActiveAnchors(),
     dream_status,
     dream_pending: dream_pending
       ? {

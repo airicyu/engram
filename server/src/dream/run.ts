@@ -24,6 +24,7 @@ import {
   materializeDraft,
   commitDraft,
 } from "../store/draft";
+import { sweepExpiredFutureSight, staleFutureAnchorIds } from "../store/future-sight";
 import {
   DreamRunMismatchError,
   discardPending,
@@ -57,7 +58,10 @@ export class NothingToDreamError extends Error {
 }
 
 export function makeDreamRunId(nowIso = taipeiNowIso()): string {
-  return `dream-${nowIso}`;
+  // Second-precision ISO alone collides when two runs start in the same second
+  // (appendPatchesIfNew would reuse the prior run's patches).
+  const uniq = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  return `dream-${nowIso}-${uniq}`;
 }
 
 function pickRunner(): AgentRunner {
@@ -361,6 +365,10 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   if (rejected.length > 0) {
     throw new FutureChainIdError(rejected);
   }
+  const stale = staleFutureAnchorIds(patches);
+  if (stale.length > 0) {
+    throw new StaleFutureAnchorError(stale);
+  }
 
   let committed: string[] = [];
   const empty_patches = patches.length === 0;
@@ -385,6 +393,13 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   }
 
   await removeDraft(pending.id).catch(() => {});
+
+  // Lazy sweep after successful approve (best-effort)
+  try {
+    await sweepExpiredFutureSight();
+  } catch (e) {
+    logError("future-sight sweep after approve failed", e, { dream_run_id: pending.id });
+  }
 
   return {
     dream_run_id: pending.id,
@@ -417,6 +432,15 @@ export class FutureChainIdError extends Error {
     super(`future chain.id blocked: ${ids.join(", ")}`);
     this.name = "FutureChainIdError";
     this.rejected_chain_ids = ids;
+  }
+}
+
+export class StaleFutureAnchorError extends Error {
+  rejected_future_ids: string[];
+  constructor(ids: string[]) {
+    super(`stale future anchor blocked: ${ids.join(", ")}`);
+    this.name = "StaleFutureAnchorError";
+    this.rejected_future_ids = ids;
   }
 }
 

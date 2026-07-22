@@ -52,8 +52,8 @@ export function buildDreamReport(opts: {
   }
 
   const chains = patches.filter((p): p is Extract<Patch, { type: "chain" }> => p.type === "chain");
-  const future = futureChainIds(patches, today);
-  const occurrence = chains.filter((p) => !future.includes(p.id));
+  const misfiled = futureChainIds(patches, today);
+  const occurrence = chains.filter((p) => !misfiled.includes(p.id));
 
   lines.push("## Timeline (proposed)");
   lines.push("");
@@ -76,21 +76,44 @@ export function buildDreamReport(opts: {
     }
   }
 
-  lines.push("## Future mentions (not memory-chain; → 0.4.0)");
+  const futures = patches.filter(
+    (p): p is Extract<Patch, { type: "future" }> => p.type === "future",
+  );
+  lines.push("## Proposed future-sight");
   lines.push("");
-  if (future.length === 0) {
-    lines.push("_None detected in chain patches._");
+  if (futures.length === 0) {
+    lines.push("_None._");
   } else {
     lines.push(
-      "> These `chain.id` values are **after today** and will be **blocked at approve** (`409 future_chain_id`). Supersede to fix, or wait until the day is no longer future.",
+      "> Near-horizon anchors — will write `future-sight/active/` on approve. " +
+        "`anchor_end` must be ≥ today or approve returns `409 stale_future_anchor`.",
     );
     lines.push("");
-    for (const id of future) {
-      const patch = chains.find((c) => c.id === id);
-      lines.push(`- **${id}** — ${patch?.content.trim() ?? "(no content)"}`);
+    for (const f of futures) {
+      const range =
+        f.anchor_start === f.anchor_end
+          ? f.anchor_start
+          : `${f.anchor_start} → ${f.anchor_end}`;
+      const nodes = f.node_refs?.length ? ` · nodes:[${f.node_refs.join(", ")}]` : "";
+      lines.push(`- **\`${f.id}\`** (${range})${nodes} — ${f.content.trim()}`);
     }
   }
   lines.push("");
+
+  if (misfiled.length > 0) {
+    lines.push("## Misfiled future chain.id (blocked at approve)");
+    lines.push("");
+    lines.push(
+      "> These `chain.id` values are **after today** and will be **blocked** (`409 future_chain_id`). " +
+        "Supersede and emit `type: future` instead.",
+    );
+    lines.push("");
+    for (const id of misfiled) {
+      const patch = chains.find((c) => c.id === id);
+      lines.push(`- **${id}** — ${patch?.content.trim() ?? "(no content)"}`);
+    }
+    lines.push("");
+  }
 
   const creates = patches.filter(
     (p): p is Extract<Patch, { type: "propose_node" }> => p.type === "propose_node",

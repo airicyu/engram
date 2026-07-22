@@ -22,9 +22,9 @@ short-term-memory/
 
 `dream run` = extract → apply 連跑（詳 [dream.md](./dream.md)）：
 
-1. extract — L1 + events + 相關 L2 Current → L0.5 patches  
+1. extract — L1 + events + 相關 L2 Current → L1.5 patches  
 2. apply — 逐筆寫入；失敗進 DLQ、繼續；**跑完清空 L1**  
-3. L0、L0.5 不動  
+3. L0、L1.5 不動  
 
 ### MVP 夜間寫入
 

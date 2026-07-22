@@ -37,6 +37,8 @@ export async function ensureEngramHome(): Promise<void> {
     "memory-chain/years",
     "candidates",
     "nodes",
+    "future-sight",
+    "future-sight/active",
     "archive",
   ];
 

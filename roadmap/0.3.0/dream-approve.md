@@ -6,7 +6,7 @@
 
 ## 問題
 
-現行：`POST /dream/run` = extract → L0.5 → **立刻 per-patch apply → clear L1**。  
+現行：`POST /dream/run` = extract → L1.5 → **立刻 per-patch apply → clear L1**。  
 人無法在寫入前審 AI 對事實／日期的判斷；半失敗還會留下已改過的 L2。
 
 ## 目標流程
@@ -15,7 +15,7 @@
 L1 累積（日間 ingest）
     ↓
 dream extract
-    → L0.5 intent：patches.jsonl + report.md
+    → L1.5 intent：patches.jsonl + report.md
     → materialize → dream/draft/{run_id}/（L2 投影，未生效）
     ↓
 人 review（多輪 = 多次 supersede 重 extract）
@@ -33,7 +33,7 @@ discard / supersede
 2. **未 approve 的 run 可被 supersede：** 丟棄舊 intent + draft；以當前 L1 重 extract。
 3. **Approve 是唯一 commit 至 L2 的門。** `commitDraft` 原子執行；失敗則 L2 不變、L1 全留、可重試。
 
-## L0.5：intent + draft
+## L1.5：intent + draft
 
 | 層 | 內容 | 誰寫 | 誰讀 |
 |----|------|------|------|
@@ -50,7 +50,7 @@ discard / supersede
 
 | 題 | 決定 |
 |----|------|
-| L0.5 執行模型 | **draft staging**（見 [INDEX L0.5](./INDEX.md#l0503-重新定義)）；廢除 per-patch 直寫 L2 |
+| L1.5 執行模型 | **draft staging**（見 [INDEX L1.5](./INDEX.md#l1503-重新定義)）；廢除 per-patch 直寫 L2 |
 | Pending 如何「改寫」 | **supersede**：新 extract + 新 draft；不原地修同一 pending |
 | Approve commit 失敗 | **L2 不變**；L1 全留（含 S）；可重試 `approve`；無 L2 半失敗狀態 |
 | Materialize 失敗 | job `failed` + `phase: materialize`；不進 pending；清 draft；L1 不動（INDEX #22） |
@@ -80,7 +80,7 @@ discard / supersede
 
 ## 人機交互
 
-優先：**engram-operator skill**（或 curl）：
+優先：**engram-workbench skill**（或 curl）：
 
 - 讀 pending report（可選看 draft 路徑列表）
 - 用人話指出問題 → **supersede 重夢** 直到滿意

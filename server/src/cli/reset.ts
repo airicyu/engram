@@ -16,4 +16,4 @@ await ensureEngramHome();
 
 console.log("Done. Empty store ready (no nodes, no events, no patches).");
 console.log("Start server: bun run start");
-console.log("Then ingest your own data via POST /ingest");
+console.log("Then capture your own data via POST /capture");

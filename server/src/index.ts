@@ -1,6 +1,6 @@
 import { config } from "./config";
 import { ensureEngramHome } from "./store/home";
-import { handleIngest } from "./api/ingest";
+import { handleCapture } from "./api/capture";
 import { handleStatus } from "./api/status";
 import {
   handleDreamRun,
@@ -8,7 +8,8 @@ import {
   handleDreamApprove,
   handleDreamDiscard,
 } from "./api/dream";
-import { handleActivate } from "./api/activate";
+import { handleRecall } from "./api/recall";
+import { handleFutureSight } from "./api/future-sight";
 import { logError, logInfo, withRequestLog } from "./log";
 
 await ensureEngramHome();
@@ -21,12 +22,13 @@ const server = Bun.serve({
         Response.json({
           name: "engram",
           endpoints: [
-            "POST /ingest",
+            "POST /capture",
             "POST /dream/run",
             "GET /dream/pending",
             "POST /dream/approve",
             "POST /dream/discard",
-            "GET /activate",
+            "GET /future-sight",
+            "GET /recall",
             "GET /status",
           ],
         }),
@@ -37,7 +39,7 @@ const server = Bun.serve({
       GET: withRequestLog(async () => Response.json(await handleStatus())),
     },
 
-    "/ingest": {
+    "/capture": {
       POST: withRequestLog(async (req) => {
         const body = (await req.json()) as {
           raw: string;
@@ -45,9 +47,9 @@ const server = Bun.serve({
           node_refs?: string[];
           idempotency_key?: string;
         };
-        const result = await handleIngest(body);
+        const result = await handleCapture(body);
         if (result instanceof Response) return result;
-        logInfo("ingest ok", {
+        logInfo("capture ok", {
           event_id: result.event_id,
           source: body.source ?? "api",
           node_refs: body.node_refs ?? [],
@@ -91,11 +93,22 @@ const server = Bun.serve({
       }),
     },
 
-    "/activate": {
+    "/future-sight": {
+      GET: withRequestLog(async () => {
+        const body = await handleFutureSight();
+        logInfo("future-sight", {
+          anchors: (body as { anchors: unknown[] }).anchors.length,
+          swept: (body as { swept_expired: unknown[] }).swept_expired.length,
+        });
+        return Response.json(body);
+      }),
+    },
+
+    "/recall": {
       GET: withRequestLog(async (req) => {
         const q = new URL(req.url).searchParams.get("q");
-        const packet = await handleActivate(q);
-        logInfo("activate", {
+        const packet = await handleRecall(q);
+        logInfo("recall", {
           q: packet.query,
           sources: packet.sources,
           nodes: packet.nodes.length,

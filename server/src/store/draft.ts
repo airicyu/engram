@@ -7,6 +7,7 @@ import { taipeiDate, taipeiNowIso } from "./events";
 import type { Patch } from "../dream/schema";
 import { extractCurrentSection } from "./nodes";
 import { logDream, logDreamDebug } from "../log";
+import { renderFutureSightMarkdown, type FutureSightAnchor } from "./future-sight";
 
 export type ManifestOp = "create" | "update";
 
@@ -237,6 +238,29 @@ async function applyChainToDraft(
   trackEntry(entries, seen, rel, await exists(livePath("memory-chain", "days", `${dayId}.md`)));
 }
 
+async function applyFutureToDraft(
+  dreamRunId: string,
+  patch: Extract<Patch, { type: "future" }>,
+  entries: ManifestEntry[],
+  seen: Map<string, ManifestOp>,
+): Promise<void> {
+  const anchor: FutureSightAnchor = {
+    id: patch.id,
+    anchor_start: patch.anchor_start,
+    anchor_end: patch.anchor_end,
+    content: patch.content,
+    node_refs: patch.node_refs,
+    event_refs: patch.event_refs,
+    dream_run_id: dreamRunId,
+    committed_at: taipeiNowIso(),
+  };
+  const rel = `future-sight/active/${patch.id}.md`;
+  const dest = draftPath(dreamRunId, ...rel.split("/"));
+  await ensureParent(dest);
+  await writeFile(dest, renderFutureSightMarkdown(anchor), "utf8");
+  trackEntry(entries, seen, rel, await exists(livePath("future-sight", "active", `${patch.id}.md`)));
+}
+
 async function applyAttributionToDraft(
   dreamRunId: string,
   patch: Extract<Patch, { type: "episodic" }>,
@@ -330,6 +354,10 @@ export async function materializeDraft(dreamRunId: string, patches: Patch[]): Pr
         }
         case "chain": {
           await applyChainToDraft(dreamRunId, patch, entries, seen);
+          break;
+        }
+        case "future": {
+          await applyFutureToDraft(dreamRunId, patch, entries, seen);
           break;
         }
         case "episodic": {
@@ -456,6 +484,7 @@ export async function commitDraft(dreamRunId: string): Promise<{ committed: stri
 export async function draftSummary(dreamRunId: string): Promise<{
   entry_count: number;
   chain_days: string[];
+  future_ids: string[];
 } | null> {
   const manifest = await readManifest(dreamRunId);
   if (!manifest) return null;
@@ -463,7 +492,15 @@ export async function draftSummary(dreamRunId: string): Promise<{
     .map((e) => e.path.match(/^memory-chain\/days\/(\d{4}-\d{2}-\d{2})\.md$/)?.[1])
     .filter((x): x is string => !!x)
     .sort();
-  return { entry_count: manifest.entries.length, chain_days: [...new Set(chain_days)] };
+  const future_ids = manifest.entries
+    .map((e) => e.path.match(/^future-sight\/active\/(.+)\.md$/)?.[1])
+    .filter((x): x is string => !!x)
+    .sort();
+  return {
+    entry_count: manifest.entries.length,
+    chain_days: [...new Set(chain_days)],
+    future_ids: [...new Set(future_ids)],
+  };
 }
 
 /** List relative paths under a draft (debug). */

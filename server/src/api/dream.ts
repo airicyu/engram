@@ -8,6 +8,7 @@ import {
   discardDream,
   NoPendingError,
   FutureChainIdError,
+  StaleFutureAnchorError,
 } from "../dream/run";
 import { isL1Empty, listPoolEventIds } from "../store/l1";
 import { isLocked, acquireLock, releaseLock, isLockStale, breakStaleLock, LockError } from "../store/lock";
@@ -20,7 +21,7 @@ export async function handleDreamRun(): Promise<Response> {
     return Response.json(
       {
         error: "nothing_to_dream",
-        message: "L1 pool is empty — ingest something before dreaming.",
+        message: "L1 pool is empty — capture something before dreaming.",
       },
       { status: 409 },
     );
@@ -174,6 +175,16 @@ export async function handleDreamApprove(body?: { dream_run_id?: string }): Prom
           error: "future_chain_id",
           message: e.message,
           rejected_chain_ids: e.rejected_chain_ids,
+        },
+        { status: 409 },
+      );
+    }
+    if (e instanceof StaleFutureAnchorError) {
+      return Response.json(
+        {
+          error: "stale_future_anchor",
+          message: e.message,
+          rejected_future_ids: e.rejected_future_ids,
         },
         { status: 409 },
       );

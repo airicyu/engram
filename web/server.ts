@@ -67,8 +67,8 @@ const server = Bun.serve({
     "/api/status": {
       GET: (req) => proxyApi(req, "/status"),
     },
-    "/api/ingest": {
-      POST: (req) => proxyApi(req, "/ingest"),
+    "/api/capture": {
+      POST: (req) => proxyApi(req, "/capture"),
     },
     "/api/dream/run": {
       POST: (req) => proxyApi(req, "/dream/run"),
@@ -82,8 +82,8 @@ const server = Bun.serve({
     "/api/dream/discard": {
       POST: (req) => proxyApi(req, "/dream/discard"),
     },
-    "/api/activate": {
-      GET: (req) => proxyApi(req, "/activate"),
+    "/api/recall": {
+      GET: (req) => proxyApi(req, "/recall"),
     },
   },
 

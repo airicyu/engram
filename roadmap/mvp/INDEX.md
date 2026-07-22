@@ -23,7 +23,7 @@
 
 ```
 Layer 0:   log/events.jsonl              — 情節原稿（immutable）
-Layer 0.5: dream/patches.jsonl           — Dream 決策原稿（immutable append；audit）
+Layer 1.5: dream/patches.jsonl           — Dream 決策原稿（immutable append；audit）
 Layer 1:   short-term-memory/            — 工作記憶（apply 階段跑完後清空；可含 DLQ）
 Layer 2:   nodes/ + memory-chain/        — 當前語意表面（Dream apply + 允許手改）
 Layer 3:   activation packet             — 讀取時現算
@@ -31,8 +31,8 @@ Layer 3:   activation packet             — 讀取時現算
 
 **原則：**
 
-- **L0 / L0.5 永不改**；L1 可清空；L2 可壓縮、可手改、可被 revise
-- L0.5 = Dream 的決策錄音（回答「為何夢成這樣」）；**不是** L2 的唯一真相
+- **L0 / L1.5 永不改**；L1 可清空；L2 可壓縮、可手改、可被 revise
+- L1.5 = Dream 的決策錄音（回答「為何夢成這樣」）；**不是** L2 的唯一真相
 - L2 = 活的工作面；「現在相信什麼」以 L2 Current 為準
 - 日間 Ingest、夜間 `dream run`（extract→apply 連跑）；**single thread，不並行**
 
@@ -40,7 +40,7 @@ Layer 3:   activation packet             — 讀取時現算
 
 ```
 寫入： input → Ingest(L0, L1)                         # 日間
-整合： dream run = extract → L0.5 → apply → clear L1 # 夜間連跑
+整合： dream run = extract → L1.5 → apply → clear L1 # 夜間連跑
 讀取： query → Activation(L1, L2 subgraph, chain)
 ```
 
@@ -53,7 +53,7 @@ Layer 3:   activation packet             — 讀取時現算
 | 節點結構、understand facets、INDEX | [docs/nodes.md](./docs/nodes.md) |
 | chronology 膨脹、primary/mention | [docs/nodes-chronology.md](./docs/nodes-chronology.md) |
 | 建立、T1–T4 重組、graph、收斂 | [docs/nodes-graph.md](./docs/nodes-graph.md) |
-| ingest、dream pipeline、L0.5 patches | [docs/dream.md](./docs/dream.md) |
+| ingest、dream pipeline、L1.5 patches | [docs/dream.md](./docs/dream.md) |
 | 激活檢索、budget | [docs/activation.md](./docs/activation.md) |
 | Prototype 實作提案 | [docs/prototype.md](./docs/prototype.md) |
 | 設計評審 | [docs/design-review.md](./docs/design-review.md) |
@@ -85,7 +85,7 @@ engram/
 ├── meta.yaml
 ├── log/events.jsonl                 # L0
 ├── dream/
-│   ├── patches.jsonl                # L0.5（JSON Lines）
+│   ├── patches.jsonl                # L1.5（JSON Lines）
 │   ├── applied.yaml                 # per-patch 冪等
 │   ├── dead-letter.jsonl            # pending DLQ
 │   ├── dead-letter-archive/         # 已審離 pending（可追溯）
@@ -121,13 +121,13 @@ engram/
 | `problems.md` | **現存痛點的語意陳述** | 工單追蹤 |
 | chronology | 「曾發生／曾理解到」 | 「進展到哪、下一步」 |
 | `candidates/` | Dream 提案佇列（yaml 為準） | 正式 node |
-| L0.5 | Dream 決策 audit | L2 的唯一真相／禁止手改的理由 |
+| L1.5 | Dream 決策 audit | L2 的唯一真相／禁止手改的理由 |
 
 ## MVP 驗證標準
 
 驗證句：
 
-> **≤3 個 node + L0 + L1 + `dream run`（what + day chain + candidates + L0.5 可追溯）是否比全量 rewrite 更穩？**
+> **≤3 個 node + L0 + L1 + `dream run`（what + day chain + candidates + L1.5 可追溯）是否比全量 rewrite 更穩？**
 
 **Required**
 
@@ -148,7 +148,7 @@ engram/
 
 ### 已定案
 
-- [x] L0.5 + extract / apply；失敗 → DLQ；跑完清 L1（[dream](./docs/dream.md)）
+- [x] L1.5 + extract / apply；失敗 → DLQ；跑完清 L1（[dream](./docs/dream.md)）
 - [x] **per-patch 冪等**；失敗 → **DLQ、繼續**；跑完清 L1；不回滾
 - [x] **DLQ review**：batch + report + adhoc；**extract 成功才 archive**；失敗 pending 保留（不擋主流程）
 - [x] **single thread**：日間 Ingest / 夜間 dream run 連跑；不並行
@@ -156,7 +156,7 @@ engram/
 - [x] L1↔L2 矛盾 → append / revise / open（同化）
 - [x] MVP 範圍：required = what + days + candidates；optional = chronology；不做 graph
 - [x] `reattribute`：MVP **不 apply**；attribution 手改 yaml
-- [x] candidates **yaml 為準**；L0.5 只記提案理由
+- [x] candidates **yaml 為準**；L1.5 只記提案理由
 - [x] MVP 只做 day；時區 `Asia/Taipei`；週關帳規則預留
 - [x] understand Current + History + event_refs
 - [x] node 新建：candidates → 人批准

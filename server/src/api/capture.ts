@@ -2,17 +2,17 @@ import { appendEvent, nextEventId, taipeiNowIso } from "../store/events";
 import { appendPoolEntry } from "../store/l1";
 import { isLocked } from "../store/lock";
 
-export interface IngestBody {
+export interface CaptureBody {
   raw: string;
   source?: string;
   node_refs?: string[];
   idempotency_key?: string;
 }
 
-export async function handleIngest(body: IngestBody): Promise<{ event_id: string } | Response> {
+export async function handleCapture(body: CaptureBody): Promise<{ event_id: string } | Response> {
   if (await isLocked()) {
     return Response.json(
-      { error: "dream_locked", message: "Dream in progress; ingest rejected" },
+      { error: "dream_locked", message: "Dream in progress; capture rejected" },
       { status: 409 },
     );
   }
