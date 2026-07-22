@@ -30,7 +30,7 @@ Ingest 要快、確定、可重跑；**不做**完整 digest。
 
 ---
 
-## L0.5 — Dream patch log（已定案）
+## L1.5 — Dream patch log（已定案）
 
 ```
 dream/patches.jsonl           — Dream 決策原稿（JSON Lines，append-only）
@@ -41,7 +41,7 @@ dream/reviews/                — DLQ settlement reports
 dream/dream.lock              — Dream run 期間互斥（single thread）
 ```
 
-| | L0 | L0.5 | L2 |
+| | L0 | L1.5 | L2 |
 |--|----|------|-----|
 | 內容 | 發生了什麼 | Dream **當時認為**該怎麼整合 | **當前**語意／情節表面 |
 | 可變性 | immutable | immutable | Dream apply **與人手改**都可寫 |
@@ -50,9 +50,9 @@ dream/dream.lock              — Dream run 期間互斥（single thread）
 **原則：**
 
 - LLM 只負責提案 patches；機械層負責 schema 校驗、落盤、apply、冪等
-- 除錯「為什麼**夢成**這樣」→ 讀 L0.5；「現在相信什麼」→ 讀 L2 Current
+- 除錯「為什麼**夢成**這樣」→ 讀 L1.5；「現在相信什麼」→ 讀 L2 Current
 - **允許手改 L2**；手改是一等公民
-- `dream rebuild`（從 L0.5 重建 L2）：**MVP 不做**；後期若做，標危險（會蓋手改）
+- `dream rebuild`（從 L1.5 重建 L2）：**MVP 不做**；後期若做，標危險（會蓋手改）
 
 ---
 
@@ -118,7 +118,7 @@ dream-apply    →  逐筆寫 L2；失敗 → DLQ，繼續；run 結束 → clea
 | 仍在 | |
 |------|--|
 | L0 `event_refs` | ✓ |
-| L0.5 原 patch | ✓ |
+| L1.5 原 patch | ✓ |
 | pending DLQ | ✓（待 batch review） |
 | L2 | ✗ 這筆未寫上 |
 
@@ -135,7 +135,7 @@ dream-apply    →  逐筆寫 L2；失敗 → DLQ，繼續；run 結束 → clea
 選 scope（dead_letter_ids）
   → User + AI：settlement report（或 discard / 人重申內容）
   → adhoc extract（失敗 → pending 不動，可重跑；不擋主流程）
-  → extract 成功 → L0.5 dlq_review + archive scope
+  → extract 成功 → L1.5 dlq_review + archive scope
   → disposition apply → apply（新失敗 = 新 DLQ append）
 ```
 
@@ -164,7 +164,7 @@ dream-apply    →  逐筆寫 L2；失敗 → DLQ，繼續；run 結束 → clea
 | extract 成功 + disposition `apply` | → archive | 再跑 apply；新失敗 = **新** DLQ append |
 | extract 成功 + disposition `discard` | → archive | 不 apply（或空 apply） |
 
-1. extract 成功後，L0.5 先記 audit：
+1. extract 成功後，L1.5 先記 audit：
 
 ```yaml
 type: dlq_review
@@ -209,7 +209,7 @@ disposition: apply | discard
 
 | 級別 | 寫入 |
 |------|------|
-| **Required** | `nodes/{id}/understand/what.md`；`memory-chain/days/YYYY-MM-DD.md`；L0.5 |
+| **Required** | `nodes/{id}/understand/what.md`；`memory-chain/days/YYYY-MM-DD.md`；L1.5 |
 | **Required** | `candidates/nodes.yaml`、`candidates/attribution.yaml`（提案佇列，不建 `nodes/`） |
 | **Optional**（同 sprint 可做） | `nodes/{id}/chronology/recent.md`（primary） |
 | **不做（MVP）** | 其他 facet；week/month/year；`graph/links`；`reattribute` **apply**；自動建 node；rebuild |
@@ -270,7 +270,7 @@ seed_facets: { what: "..." }
 # type: link
 # type: restructure | strengthen_link | merge_node
 
-# DLQ review audit（adhoc 開始時寫入 L0.5）
+# DLQ review audit（adhoc 開始時寫入 L1.5）
 type: dlq_review
 consumed_ids: [dl-001]
 report_ref: dream/reviews/...
@@ -281,7 +281,7 @@ disposition: apply | discard
 
 - **不做 apply**（不改 `chronology/recent.md`、不改 day chain）
 - 低置信只進 `candidates/attribution.yaml`
-- 人把 `status` 改成 `resolved`（手改 yaml）；L0.5 若有筆記僅供 audit
+- 人把 `status` 改成 `resolved`（手改 yaml）；L1.5 若有筆記僅供 audit
 - 後期再定義 forward-fix apply
 
 ### candidates source of truth（已定案）
@@ -289,7 +289,7 @@ disposition: apply | discard
 | 資料 | 誰為準 |
 |------|--------|
 | `candidates/*.yaml` **當前狀態**（pending / approved / rejected / resolved） | **yaml** |
-| 「當時為何提案」 | L0.5 `propose_node` patch |
+| 「當時為何提案」 | L1.5 `propose_node` patch |
 | 批准後建 `nodes/{id}/` | 人（或工具），非 Dream 自動 |
 
 手改 yaml 與舊 patch replay：**以 yaml 為準**；不因 replay 覆蓋人的批准／拒絕。
@@ -301,7 +301,7 @@ disposition: apply | discard
 - short-term：本 run **apply 階段跑完**後清空（含部分進 DLQ 的情況）  
 - chronology 歸檔、mention 節流：見 [nodes-chronology.md](./nodes-chronology.md)  
 - noise 不進 L2  
-- L0、L0.5 永遠保留  
+- L0、L1.5 永遠保留  
 
 ---
 
@@ -309,7 +309,7 @@ disposition: apply | discard
 
 | 步驟 | 規則 | LLM |
 |------|------|-----|
-| L0 / L0.5 append | ✓ | |
+| L0 / L1.5 append | ✓ | |
 | schema、per-patch 冪等、lock、清 L1 | ✓ | |
 | L1 分流 | 關鍵字 / node_refs | 可選 |
 | attribute & extract（含 vs Current） | | ✓ |

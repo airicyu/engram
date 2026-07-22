@@ -1,65 +1,46 @@
-# 0.4.0 — 未來視（範圍預留）
+# 0.4.0 — 未來視
 
-← [changelog](../../changelog.md) · 上游：[0.3.0](../0.3.0/INDEX.md)
+← [changelog](../../changelog.md) · 上游：[0.3.0](../0.3.0/INDEX.md) · current: [version](../../version.md)
 
-> **狀態：** 只記錄**為何要做、心智邊界、與 0.3 的接點**。  
-> **做法／schema／目錄／API：暫時留白。**  
-> 等 **0.3.0 做完、準備開 0.4.0 時，再仔細討論**後補文件。
+> **狀態：** **已實作（0.4.0）** — 見 `version.md`／`changelog.md`。  
+> Backlog：[mindzone](../backlog/near-future-mindzone.md) · [Recall 注入](../backlog/recall-future-sight.md)
 
-## 為何獨立成 0.4.0
+## 文件地圖
 
-未來視範圍大（多尺度、與回憶質性不同、過期行為、准入規則），不宜與 0.3 的 approve／L1／過去時間線綁同一版實作。
+| 文件 | 內容 |
+|------|------|
+| [docs/store-and-patch.md](./docs/store-and-patch.md) | 目錄、`future` patch、extract／report 分流 |
+| [docs/expiry-and-api.md](./docs/expiry-and-api.md) | 過期＝L0/L1 event + 硬清；僅 `GET /future-sight` |
+| [docs/impl-checklist.md](./docs/impl-checklist.md) | 實作順序 |
 
-**依賴：** 0.3.0 的 dream 人審、L1 mem pool、memory-chain = 已發生時序、禁止未來日寫入 memory-chain。
+## 心智模型（已定）
 
-## 心智模型（討論共識摘要）
+| 前瞻類型 | 歸處 |
+|----------|------|
+| 近程、可錨定、會過期 | **未來視**（`future-sight/active/`） |
+| 遠／含糊、黏 node | **node 認知**（本版只分流，不開新 facet） |
+| 無錨無 node | **當日普通事件** |
 
-人腦彷彿有一條人生時間線：對過去是回憶，對現在是經歷，對將來是未來視想像；心態上覺得連續，但**回憶與未來視仍分得出**，資料上**不能**把 memory-chain 硬接成一條往未來的線。
+## 已定做法要點
 
-- 大維度：例如 30 歲結婚、60 歲退休。  
-- 小維度：例如三個月後工作、下一年轉工、下個月 deadline 與旅行可能撞期。  
-- 將來常帶不確定性；細節未必說得清。
+| # | 題 | 決定 |
+|---|-----|------|
+| 1 | 錨點粒度 | 日級／短區間；相對日 extract 當下收成絕對日 |
+| 2 | 過期 | **L0（+L1）event → 硬清活檔**；懶掃；**無** expired 可 query |
+| 3 | 遠景 → node | 只定 extract 分流；不開 `when.md` |
+| 4 | mindzone | → backlog |
+| 5 | 產品邊界 | 非日曆／待辦；非人生大尺度骨幹 |
+| 6 | Recall | **不注入**未來視 |
+| 7 | 存法 | 僅 `future-sight/active/{id}.md` |
+| 8 | Patch | `future`；誤寫未來 `chain.id` 仍 `409 future_chain_id` |
+| 9 | 讀取 API | **僅** `GET /future-sight` |
 
-因此需要**獨立的未來視 chain**（格式不必與 memory-chain 相同），但應能表達大／小時間尺度。
+## 非目標（本版）
 
-### 准入（已談過的邊界）
-
-| 類型 | 是否進未來視 | 說明 |
-|------|--------------|------|
-| 有可錨定時間段 | **是**（0.4 再定存法） | 確定日，或確定起迄／年齡帶（如 50–60 歲） |
-| 無確定時間的純想像 | **否** | 例如「結婚後怎樣規劃」但婚期／對象皆無 → 只記**想像當天**的普通事件 |
-
-### 時間推進（已談過的方向，細節留白）
-
-當「現在」已越過未來視上某錨點，該錨點應被**抹除**（或失效）。  
-純抹除 vs 是否先留「未兌現」痕跡 → **做法討論時再定**。
-
-## 與 0.3.0 的接點（0.3 已預留）
-
-| 0.3 行為 | 對 0.4 的意義 |
-|----------|----------------|
-| 禁止未來日當 memory-chain occurrence | 避免錯誤 day 檔污染，0.4 不必「拆錯檔」 |
-| Report 可有 Future mentions、不入庫 | 人審習慣先在；0.4 再變正式寫入 |
-| Approve 閘門 | 未來視寫入同樣應經人審（預期） |
-| Memory-chain ≠ 未來線 | 雙軌：回憶 vs 未來視 |
-
-## 做法（留白）
-
-> **此節刻意空白。**  
-> 目錄結構、尺度分層、patch 類型、過期 job、activate、與 semantic／deadline 的關係等，一律等 0.3.0 完成後再開討論再寫。
-
-（討論就緒後可在此目錄新增 `docs/`，勿在未討論前填實作方案。）
-
-## 非目標（提醒，細項 0.4 討論時再收）
-
-不要做成專案管理／待辦／日曆產品；Engram 北極星仍是 **AI 大腦記憶**，前瞻是「對將來有錨點的想像／意圖」，不是 workflow 工具。
-
-## 何時再開
-
-1. 0.3.0 方向同意並實作穩定  
-2. 再開本版詳細 discuss  
-3. 補齊做法文件後才 lock 實作  
+- mindzone、Recall 注入
+- `when.md`、日曆 sync、提醒、過期 cron
+- **`GET /future-sight/expired`**
 
 ---
 
-**狀態：** scope + mental model only；implementation blank — 2026-07-19
+**狀態：** implemented — 0.4.0 shipped — 2026-07-22

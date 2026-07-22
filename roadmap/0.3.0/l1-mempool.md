@@ -73,7 +73,7 @@ Dream review 時，使用者可能叫 AI「直接改記憶」——若 agent：
 
 ### 緩解原則（草案）
 
-| 允許 | 禁止（operator／skill 契約） |
+| 允許 | 禁止（workbench／skill 契約） |
 |------|------------------------------|
 | 讀 pending report | pending 期間 **直接寫 L2** |
 | 指出問題 → **supersede 重夢** | 手改 `ENGRAM_HOME` 下 L1／L2「幫忙改對」 |

@@ -4,6 +4,7 @@ export type Patch =
   | SemanticPatch
   | EpisodicPatch
   | ChainPatch
+  | FuturePatch
   | ProposeNodePatch
   | DlqReviewPatch;
 
@@ -36,6 +37,16 @@ export interface ChainPatch extends PatchBase {
   level: "day";
   id: string;
   content: string;
+}
+
+/** Near-horizon future-sight anchor (not memory-chain). */
+export interface FuturePatch extends PatchBase {
+  type: "future";
+  id: string;
+  anchor_start: string;
+  anchor_end: string;
+  content: string;
+  node_refs?: string[];
 }
 
 export interface ProposeNodePatch extends PatchBase {
@@ -73,6 +84,15 @@ function optStringArray(obj: Record<string, unknown>, key: string): string[] | u
   if (!Array.isArray(v) || !v.every((x) => typeof x === "string")) {
     throw new Error(`invalid string[] field: ${key}`);
   }
+  return v;
+}
+
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const FUTURE_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
+
+function reqDay(obj: Record<string, unknown>, key: string): string {
+  const v = reqString(obj, key);
+  if (!DAY_RE.test(v)) throw new Error(`invalid YYYY-MM-DD field: ${key}`);
   return v;
 }
 
@@ -138,6 +158,29 @@ export function parsePatch(raw: unknown): Patch {
         level: "day",
         id: reqString(raw, "id"),
         content: reqString(raw, "content"),
+      };
+    }
+    case "future": {
+      const id = reqString(raw, "id");
+      if (!FUTURE_ID_RE.test(id)) {
+        throw new Error(`invalid future id (use [a-zA-Z0-9_-]): ${id}`);
+      }
+      const anchor_start = reqDay(raw, "anchor_start");
+      const anchor_end = reqDay(raw, "anchor_end");
+      if (anchor_start > anchor_end) {
+        throw new Error(`anchor_start > anchor_end for ${id}`);
+      }
+      return {
+        type: "future",
+        patch_id,
+        dream_run_id,
+        ts,
+        event_refs,
+        id,
+        anchor_start,
+        anchor_end,
+        content: reqString(raw, "content"),
+        node_refs: optStringArray(raw, "node_refs"),
       };
     }
     case "propose_node": {

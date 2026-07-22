@@ -1,5 +1,5 @@
 /**
- * Self-test for 0.3 dream approve flow (isolated ENGRAM_HOME + mock agent).
+ * Self-test for dream approve + future-sight (isolated ENGRAM_HOME + mock agent).
  */
 import { rm, mkdir, readFile, readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -85,7 +85,7 @@ async function main() {
   let server = await startServer("mock-ok");
 
   try {
-    console.log("Phase 0: ingest + status");
+    console.log("Phase 0: capture + status");
     const s0 = await json("GET", "/status");
     assert(s0.status === 200, "status 200");
     assert(s0.data.lock === false, "lock false");
@@ -94,14 +94,14 @@ async function main() {
     const emptyDream = await json("POST", "/dream/run");
     assert(emptyDream.status === 409 && emptyDream.data.error === "nothing_to_dream", "empty pool 409");
 
-    const i1 = await json("POST", "/ingest", {
+    const i1 = await json("POST", "/capture", {
       raw: "Talked to Alice about Acme API rate limits",
       source: "api",
       node_refs: ["acme", "alice"],
     });
     assert(i1.status === 201 && i1.data.event_id === "e000001", "first ingest");
 
-    const i2 = await json("POST", "/ingest", {
+    const i2 = await json("POST", "/capture", {
       raw: "NewCo might partner with us on aurora",
       node_refs: ["aurora"],
     });
@@ -147,7 +147,7 @@ async function main() {
     assert(whatBefore.includes("Partner organization"), "L2 unchanged before approve");
 
     console.log("Phase 1b: ingest while pending_review allowed");
-    const i3 = await json("POST", "/ingest", {
+    const i3 = await json("POST", "/capture", {
       raw: "Daytime note after extract — should survive approve of S",
     });
     assert(i3.status === 201, "ingest during pending_review");
@@ -184,7 +184,7 @@ async function main() {
     const pendingEmpty = await json("GET", "/dream/pending");
     assert(pendingEmpty.data.present === false, "no pending after approve");
 
-    const a1 = await json("GET", "/activate?q=acme");
+    const a1 = await json("GET", "/recall?q=acme");
     assert(["ok", "dead_letter_pending"].includes(a1.data.dream_status), "dream_status after approve");
 
     console.log("Phase 3: extract fail → dream_incomplete, L1 kept");
@@ -207,14 +207,79 @@ async function main() {
     console.log("Phase 4: discard path");
     await stopServer(server);
     server = await startServer("mock-ok");
-    await json("POST", "/dream/run");
-    await waitForJob((job, st2) => job?.status === "completed" && st2.dream_status === "pending_review");
+    const d4 = await json("POST", "/dream/run");
+    assert(d4.status === 202 && d4.data.job_id, "phase4 dream 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === d4.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
     const disc = await json("POST", "/dream/discard", {});
     assert(disc.status === 200 && disc.data.discarded === true, "discard ok");
     const stillPool = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
     assert(stillPool.includes("e000003"), "discard leaves L1");
 
-    console.log("\n✅ All 0.3 self-checks passed");
+    console.log("Phase 5: future-sight patch → approve → list → sweep");
+    const iFs = await json("POST", "/capture", {
+      raw: "fs-mock: Engram deadline discussed for next sprint",
+      source: "api",
+    });
+    assert(iFs.status === 201, "future ingest");
+    const dFs = await json("POST", "/dream/run");
+    assert(dFs.status === 202 && dFs.data.job_id, "future dream 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dFs.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
+    const pendFs = await json("GET", "/dream/pending");
+    assert(
+      typeof pendFs.data.report === "string" && pendFs.data.report.includes("Proposed future-sight"),
+      "report has future-sight section",
+    );
+    const patchTypes = (pendFs.data.patches as { type: string }[]).map((p) => p.type);
+    assert(patchTypes.includes("future"), `pending has future patch, got ${patchTypes.join(",")}`);
+    const apFs = await json("POST", "/dream/approve", {});
+    assert(apFs.status === 200, `future approve 200: ${JSON.stringify(apFs.data)}`);
+    assert(
+      (apFs.data.committed as string[]).some((p: string) => p.startsWith("future-sight/active/")),
+      `committed future-sight path: ${JSON.stringify(apFs.data.committed)}`,
+    );
+
+    const list1 = await json("GET", "/future-sight");
+    assert(list1.status === 200, "future-sight 200");
+    assert(Array.isArray(list1.data.anchors) && list1.data.anchors.length >= 1, "has active anchors");
+    const stFs = await json("GET", "/status");
+    assert(stFs.data.future_sight_active_count >= 1, "status count");
+
+    // Plant an already-expired anchor; GET should sweep → L0+L1 event + hard delete
+    await mkdir(join(TEST_HOME, "future-sight/active"), { recursive: true });
+    await Bun.write(
+      join(TEST_HOME, "future-sight/active/fs-expired-test.md"),
+      `---
+id: fs-expired-test
+anchor_start: "2020-01-01"
+anchor_end: "2020-01-02"
+---
+
+Old foresight that should expire.
+`,
+    );
+    const list2 = await json("GET", "/future-sight");
+    assert(list2.data.swept_expired?.includes("fs-expired-test"), "swept expired id");
+    assert(
+      !(list2.data.anchors as { id: string }[]).some((a) => a.id === "fs-expired-test"),
+      "expired not in active list",
+    );
+    const eventsAfter = await readFile(join(TEST_HOME, "log/events.jsonl"), "utf8");
+    assert(eventsAfter.includes("system/future_sight_expired"), "L0 expiry event");
+    assert(eventsAfter.includes("fs-expired-test"), "L0 mentions id");
+    const poolSweep = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
+    assert(poolSweep.includes("Future-sight expired"), "L1 has expiry note");
+
+    console.log("\n✅ All 0.4 self-checks passed");
   } finally {
     await stopServer(server);
   }

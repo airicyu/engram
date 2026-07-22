@@ -72,6 +72,32 @@ export class MockOkRunner implements AgentRunner {
       content: `Day summary (mock): ${ctx.events.map((e) => e.raw).join(" | ").slice(0, 300)}`,
     });
 
+    const wantsFuture =
+      /\bdeadline\b/i.test(ctx.l1.summary) ||
+      ctx.events.some((e) => /\bdeadline\b/i.test(e.raw) || /fs-mock/i.test(e.raw));
+
+    if (wantsFuture) {
+      // ~14 days ahead so approve is not stale
+      const d = new Date(`${today}T12:00:00+08:00`);
+      d.setDate(d.getDate() + 14);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const anchor = `${y}-${m}-${day}`;
+      patches.push({
+        type: "future",
+        patch_id: `p-mock-future-${Date.now()}`,
+        dream_run_id: ctx.dream_run_id,
+        ts,
+        event_refs: eventIds,
+        id: `fs-${anchor}-deadline`,
+        anchor_start: anchor,
+        anchor_end: anchor,
+        content: "Mock near-horizon deadline from L1",
+        node_refs: node !== "acme" || ctx.existing_nodes.includes("acme") ? [node] : undefined,
+      });
+    }
+
     return patches;
   }
 }

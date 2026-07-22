@@ -4,7 +4,7 @@ import { listNodeIds, readWhatCurrent } from "../store/nodes";
 import { taipeiDate } from "../store/events";
 import { computeDreamStatus, type DreamStatus } from "../dream/run";
 
-export interface ActivationPacket {
+export interface RecallPacket {
   query: string | null;
   sources: Array<"L1" | "L2" | "chain" | "gap">;
   dream_status: DreamStatus;
@@ -24,8 +24,8 @@ export interface ActivationPacket {
   }>;
 }
 
-export async function handleActivate(q: string | null): Promise<ActivationPacket> {
-  const sources: ActivationPacket["sources"] = [];
+export async function handleRecall(q: string | null): Promise<RecallPacket> {
+  const sources: RecallPacket["sources"] = [];
   const dream_status = await computeDreamStatus();
   const l1Empty = await isL1Empty();
   const summary = await readSummary();

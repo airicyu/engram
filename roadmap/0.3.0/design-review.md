@@ -25,7 +25,7 @@
 
 **原問題：** 現行 per-patch apply + `applied.yaml`（per `patch_id`）在 supersede 下冪等失效。
 
-**定案（#14）：** L0.5 拆成 **intent**（patches + report）+ **draft**（materialize 投影）。Approve 前不寫 L2；`approve` = 原子 `commitDraft`。
+**定案（#14）：** L1.5 拆成 **intent**（patches + report）+ **draft**（materialize 投影）。Approve 前不寫 L2；`approve` = 原子 `commitDraft`。
 
 | 情境 | 行為 |
 |------|------|
@@ -76,7 +76,7 @@ Pending 跨午夜時，「明天」會變成「今天」。同一批 pending 可
 
 **定案：** 0.3 出貨含 Consolidate **最小面** — pending 時顯示 report 摘要 + Approve／Discard；Run 改文案為 Extract。
 
-### 5. L0.5／run 生命週期 — **已定案（#14、#20）**
+### 5. L1.5／run 生命週期 — **已定案（#14、#20）**
 
 - intent：`patches.jsonl` + report；draft：`dream/draft/{id}/`
 - run 狀態：`pending` \| `committed` \| `superseded` \| `discarded`
@@ -119,7 +119,7 @@ Pending 跨午夜時，「明天」會變成「今天」。同一批 pending 可
 
 - **Pending 唯一 + supersede**、`pending_review` 可 ingest、approve 成功只清 S：邊界清楚，對齊白日夢。
 - **Memory-chain = world timeline**、未來日不進 chain、Future mentions 預留 0.4：與 [0.4.0](../0.4.0/INDEX.md) 接點正確。
-- **Review 禁止手改 L1／L2**：防 leak（L1∩L2 雙活）與丟記憶；須寫進 operator skill 契約。
+- **Review 禁止手改 L1／L2**：防 leak（L1∩L2 雙活）與丟記憶；須寫進 workbench skill 契約。
 - **無資料用 200 + `present: false`**：與 API 通則一致。
 - **Lock 只包 extracting／applying**，不包 `pending_review`：正確。
 - **取消 run 自動 apply／resume apply**：與閘門模型一致。
@@ -138,9 +138,9 @@ Pending 跨午夜時，「明天」會變成「今天」。同一批 pending 可
 
 0. Lock 洞 #1–#3（及建議 #17 產品路徑）  
 1. L1 改 event 索引 + scope S  
-2. dream：extract → 唯一 pending；supersede；approve／discard（含 L0.5 生命週期）  
+2. dream：extract → 唯一 pending；supersede；approve／discard（含 L1.5 生命週期）  
 3. extract 輸入改為 S 跨日 L0；prompt：occurrence／encoding；未來日校驗  
-4. `/status`、operator skill、Consolidate 最小面、`api-docs`、changelog／version  
+4. `/status`、workbench skill、Consolidate 最小面、`api-docs`、changelog／version  
 
 ---
 

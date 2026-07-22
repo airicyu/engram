@@ -1,6 +1,6 @@
 # Engram Web (0.3.0)
 
-Minimal operator UI for **Capture → Consolidate → Recall**. Talks only to the HTTP API (never touches `ENGRAM_HOME`).
+Minimal workbench UI for **Capture → Consolidate → Recall**. Talks only to the HTTP API (never touches `ENGRAM_HOME`).
 
 ## Prerequisites
 
@@ -29,8 +29,8 @@ Open **http://localhost:8788**
 
 | Scene | What it does |
 |-------|----------------|
-| **Capture** | `POST /ingest` · show L1 via `GET /activate` |
-| **Consolidate** | Extract → pending report → Approve／Discard；`GET /status` |
-| **Recall** | `GET /activate?q=` · L1 → day chain → nodes |
+| **Capture** | `POST /capture` · show L1 via `GET /recall` |
+| **Consolidate** | Dream → pending report → Approve／Discard；`GET /status` |
+| **Recall** | `GET /recall?q=` · L1 → day chain → nodes |
 
 Status light polls `/status` (faster while `lock: true`). Capture is disabled only while the dream lock is held — **not** during `pending_review`.

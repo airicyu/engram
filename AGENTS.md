@@ -12,17 +12,18 @@
 
 ## 這是什麼
 
-**Engram** 是個人記憶原型：透過 HTTP API 走完 **ingest → dream（extract + apply）→ activate**。
+**Engram** 是個人記憶原型：透過 HTTP API 走完 **capture → dream（extract + apply）→ recall**。
 
 | 層 | 角色 |
 |----|------|
 | **L0** | 唯附加事件 log（`log/events.jsonl`） |
 | **L1** | 短期記憶 pool（`short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
-| **L0.5** | dream intent（`dream/patches.jsonl` + report）+ draft 投影（`dream/draft/{run_id}/`）；approve 才 commit 至 L2 |
+| **L1.5** | dream intent（`dream/patches.jsonl` + report）+ draft 投影（`dream/draft/{run_id}/`）；Approve 才 commit 至 L2 |
 | **L2** | 長期 node 理解（`nodes/{id}/understand/what.md`） |
 | **chain** | 日級記憶鏈（`memory-chain/days/`） |
+| **future-sight** | 近程前瞻錨點（`future-sight/active/`）；過期 → L0/L1 event 後硬清 |
 
-產品循環對齊 UI：**Capture → Consolidate → Recall**（對應 ingest / dream / activate）。
+產品循環對齊 UI：**Capture → Consolidate → Recall**（對應 capture / dream / recall）。
 
 時區一律 **Asia/Taipei**。原型無 auth。
 
@@ -31,11 +32,11 @@
 | 路徑 | 用途 |
 |------|------|
 | `server/` | Bun HTTP API（記憶核心）— 預設 `:8787` |
-| `web/` | Vanilla operator UI + `/api` proxy — 預設 `:8788` |
+| `web/` | Vanilla workbench UI + `/api` proxy — 預設 `:8788` |
 | `api-docs/` | API 說明；契約細節見 `api-docs/api.md` |
 | `data/` | 預設 `ENGRAM_HOME`（執行期 store，勿當原始碼改） |
 | `roadmap/` | 版本計畫；大功能先寫 plan、同意後再實作 |
-| `.claude/skills/` | Operator / kill-port 等技能 |
+| `.claude/skills/` | Workbench / kill-port 等技能 |
 
 版本真相：`version.md`、`changelog.md`。
 
@@ -67,20 +68,20 @@ bun run dev:ui                    # web
 
 | 做 | 不做 |
 |----|------|
-| `curl` / `engram-operator` skill 打 API | 手改 `events.jsonl`、L1 notes、L2 `what.md` |
-| `POST /ingest` 寫入 | 把 fixture seed 當試用資料 |
+| `curl` / `engram-workbench` skill 打 API | 手改 `events.jsonl`、L1 notes、L2 `what.md` |
+| `POST /capture` 寫入 | 把 fixture seed 當試用資料 |
 | `POST /dream/run` extract → pending | 未經同意就 `reset` 或清 DLQ |
 | `POST /dream/approve`／`discard` | 手改 L1／L2／draft「幫忙改對」 |
-| `GET /activate` / `GET /status` / `GET /dream/pending` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
+| `GET /recall` / `GET /status` / `GET /dream/pending` / `GET /future-sight` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 
 API 欄位提醒：
 
-- ingest body 用 **`raw`**（不是 `content` / `text`）
-- activate query 用 **`q`**
-- dream **lock**（extract／commit）時 ingest → `409 dream_locked`；**`pending_review` 可 ingest**
+- capture body 用 **`raw`**（不是 `content` / `text`）
+- recall query 用 **`q`**
+- dream **lock**（extract／commit）時 capture → `409 dream_locked`；**`pending_review` 可 capture**
 - **無資料不用 404**：讀取型「目前沒有內容」回 **200**，在 body 用 `null`／`[]`／`present: false` 等表達；404 留給路徑／方法真正不存在
 
-操作技能：`.claude/skills/engram-operator/SKILL.md`  
+操作技能：`.claude/skills/engram-workbench/SKILL.md`  
 埠被占用：`.claude/skills/kill-port/SKILL.md`
 
 ## API 未暴露（原型）
@@ -99,12 +100,12 @@ API 欄位提醒：
 2. **UI 跟記憶循環走**：是個人記憶工作台，不是 admin dashboard；不要首屏塞 stats／多欄卡片牆。
 3. **最小改動**：只改任務需要的檔案；不順便重構、不亂加 markdown 文件。
 4. **契約文件優先**：改 API 行為時同步 `api-docs/`；改版本時更新 `version.md` / `changelog.md`。
-5. **測試資料**：`fixture:apply --seed` 與 `data-test/` 僅機械自測；真人試用走空 store + ingest。
+5. **測試資料**：`fixture:apply --seed` 與 `data-test/` 僅機械自測；真人試用走空 store + capture。
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.3.0` — dream approve 閘門、L0.5 draft staging、L1 mem pool（按 S 清）、world timeline；Consolidate 最小面（Extract／Approve／Discard）。
-- **下一版構想：** `roadmap/0.4.0` — 未來視（0.3 完成後再討論）。
+- **已出貨：** `0.4.0` — 近程未來視（`future` patch、`GET /future-sight`、過期 event+硬清）；Recall 不注入。  
+- **Backlog：** 短期未來 mindzone、Recall 注入未來視 — 見 `roadmap/backlog/`。
 
 ## 深入閱讀
 

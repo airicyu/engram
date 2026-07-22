@@ -1,6 +1,6 @@
 # Engram API Documentation
 
-HTTP API for the Engram memory prototype: **ingest → dream extract (draft) → approve → activate**.
+HTTP API for the Engram memory prototype: **capture → dream extract (draft) → approve → recall**.
 
 ## Quick start
 
@@ -13,14 +13,14 @@ bun run start    # listens on http://localhost:8787
 
 ```bash
 curl -s http://localhost:8787/status
-curl -s -X POST http://localhost:8787/ingest \
+curl -s -X POST http://localhost:8787/capture \
   -H 'content-type: application/json' \
   -d '{"raw":"今天和同事討論了…","source":"api"}'
 curl -s -X POST http://localhost:8787/dream/run
 # poll /status until dream_status=pending_review
 curl -s http://localhost:8787/dream/pending
 curl -s -X POST http://localhost:8787/dream/approve
-curl -s 'http://localhost:8787/activate'
+curl -s 'http://localhost:8787/recall'
 ```
 
 ## Web UI
@@ -59,12 +59,13 @@ No authentication in the prototype. All times use timezone `Asia/Taipei`.
 |--------|------|---------|
 | `GET` | `/` | Service discovery |
 | `GET` | `/status` | Lock, L1, DLQ, dream status, pending summary |
-| `POST` | `/ingest` | Append L0 event + update L1 pool |
+| `POST` | `/capture` | Append L0 event + update L1 pool |
 | `POST` | `/dream/run` | Extract → materialize draft → pending_review (async 202) |
 | `GET` | `/dream/pending` | Active pending report + patches (`present: false` if none) |
 | `POST` | `/dream/approve` | `commitDraft` → L2, clear scope S |
 | `POST` | `/dream/discard` | Drop pending + draft; L1/L2 unchanged |
-| `GET` | `/activate` | Activation packet (optional `?q=`) |
+| `GET` | `/future-sight` | Active near-horizon anchors (sweeps expired first) |
+| `GET` | `/recall` | Recall packet (optional `?q=`) |
 
 Full request/response schemas, error codes, and semantics: **[api.md](./api.md)**.
 
@@ -74,13 +75,14 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 |-------|------|
 | **L0** | Append-only event log (`log/events.jsonl`) |
 | **L1** | Short-term mem pool (`short-term-memory/pool.jsonl`); cleared by event-id scope S on approve |
-| **L0.5 intent** | Patches + report (`dream/patches.jsonl`, `dream/reports/`) |
-| **L0.5 draft** | Staged L2 projection (`dream/draft/{run_id}/`) — not live until approve |
+| **L1.5 intent** | Patches + report (`dream/patches.jsonl`, `dream/reports/`) — L1→L2 中間態 |
+| **L1.5 draft** | Staged L2 projection (`dream/draft/{run_id}/`) — not live until approve |
 | **L2** | Long-term node understanding (`nodes/{id}/understand/what.md`) |
 | **chain** | World timeline days (`memory-chain/days/`) — occurrence dates only |
+| **future-sight** | Near-horizon anchors (`future-sight/active/`) — not memory-chain; not injected into `/recall` |
 | **candidates** | Low-confidence attribution etc. (`candidates/`) — not the primary create-node path |
 
-**Lock rule:** ingest is blocked only while extract/materialize/commit holds the dream lock. **`pending_review` allows ingest** (new events ∉ frozen S).
+**Lock rule:** capture is blocked only while extract/materialize/commit holds the dream lock. **`pending_review` allows capture** (new events ∉ frozen S).
 
 ## What the API does *not* expose (prototype)
 

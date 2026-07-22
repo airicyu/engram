@@ -10,12 +10,13 @@ Usage: engram-api.sh <command> [args]
 
 Commands:
   status              GET /status
-  ingest <text> [src] POST /ingest (source defaults to claude-skill)
+  capture <text> [src] POST /capture (source defaults to claude-skill)
   dream               POST /dream/run (extract → pending)
   pending             GET /dream/pending
   approve             POST /dream/approve
   discard             POST /dream/discard
-  activate [q]        GET /activate (optional query)
+  recall [q]          GET /recall (optional query)
+  future-sight        GET /future-sight (active anchors; sweeps expired)
   root                GET /
 
 Environment:
@@ -30,11 +31,11 @@ case "$cmd" in
   status)
     curl -sS "$BASE/status"
     ;;
-  ingest)
-    text="${1:?usage: engram-api.sh ingest <text> [source]}"
+  capture)
+    text="${1:?usage: engram-api.sh capture <text> [source]}"
     source="${2:-claude-skill}"
     python3 -c 'import json,sys; print(json.dumps({"raw":sys.argv[1],"source":sys.argv[2]}))' "$text" "$source" \
-      | curl -sS -X POST "$BASE/ingest" -H 'content-type: application/json' -d @-
+      | curl -sS -X POST "$BASE/capture" -H 'content-type: application/json' -d @-
     ;;
   dream)
     curl -sS -X POST "$BASE/dream/run"
@@ -48,13 +49,16 @@ case "$cmd" in
   discard)
     curl -sS -X POST "$BASE/dream/discard" -H 'content-type: application/json' -d '{}'
     ;;
-  activate)
+  recall)
     if [[ -n "${1:-}" ]]; then
       q=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$1")
-      curl -sS "$BASE/activate?q=$q"
+      curl -sS "$BASE/recall?q=$q"
     else
-      curl -sS "$BASE/activate"
+      curl -sS "$BASE/recall"
     fi
+    ;;
+  future-sight|future_sight)
+    curl -sS "$BASE/future-sight"
     ;;
   root|"")
     curl -sS "$BASE/"

@@ -11,7 +11,7 @@
 
 | 輪次 | 焦點 | 結論 |
 |------|------|------|
-| 第一輪 | L0.5、MVP 縮小、邊界表 | 方向確立 |
+| 第一輪 | L1.5、MVP 縮小、邊界表 | 方向確立 |
 | 第二輪 | L2 手改、per-patch DLQ、single thread、MVP 對齊 | 執行契約成形 |
 | 第三輪 | DLQ requeue 略薄、L1 蒸發、幽靈 node | 可開工，convention 待補 |
 | **第四輪** | **DLQ review 流程** | **主路徑完整；§1 archive 時機已定** |
@@ -22,7 +22,7 @@
 
 | 原問題 | 決議 | 落點 |
 |--------|------|------|
-| Dream 過重、無 audit | L0.5；extract / apply | [dream.md](./dream.md) |
+| Dream 過重、無 audit | L1.5；extract / apply | [dream.md](./dream.md) |
 | 時間維度重複 | MVP 只做 day | [memory-chain.md](./memory-chain.md) |
 | primary/mention | attribution；可錯可改 | [nodes-chronology.md](./nodes-chronology.md) |
 | understand 漂移 | Current + History | [nodes.md](./nodes.md) |
@@ -36,7 +36,7 @@
 
 | 問題 | 決議 |
 |------|------|
-| L2 vs 手改 | L2 = 活工作面；L0.5 = audit；不做 rebuild |
+| L2 vs 手改 | L2 = 活工作面；L1.5 = audit；不做 rebuild |
 | apply 部分成功 | per-patch；失敗 → DLQ、繼續；跑完清 L1 |
 | extract↔apply | single thread；`dream run` 連跑 |
 | MVP 範圍 | Required / Optional 對齊 |
@@ -72,12 +72,12 @@
 ```
 夜間 dream run
   → 失敗進 pending DLQ
-  → 跑完仍清 L1（L0/L0.5 保留）
+  → 跑完仍清 L1（L0/L1.5 保留）
 
 日後 DLQ review
   → settlement report（dream/reviews/）
   → adhoc extract（失敗 → pending 不動；不擋主流程）
-  → extract 成功 → L0.5 dlq_review + archive scope
+  → extract 成功 → L1.5 dlq_review + archive scope
   → disposition apply → apply（新失敗 → 新 DLQ）
 ```
 
@@ -88,7 +88,7 @@
 | `dead-letter-archive/` + 不刪歷史 | 審計鏈完整 |
 | adhoc dream **絕對不清 L1** | 與夜間 run 區分清楚 |
 | 必須顯式 `dead_letter_ids` scope | 避免誤清全部 pending |
-| `dlq_review` 進 L0.5 | audit 與決策分離一致 |
+| `dlq_review` 進 L1.5 | audit 與決策分離一致 |
 | `disposition: discard` | 明確放棄路徑 |
 | activation 連到 DLQ review | 讀者找得到恢復流程 |
 
@@ -160,7 +160,7 @@ flowchart 仍有 `Dream → link`；MVP 不做 graph。建議加「MVP 略過」
 | 維度 | 第三輪 | 第四輪（現在） |
 |------|--------|----------------|
 | 失敗恢復閉環 | DLQ 有、路徑薄 | **DLQ review 完整** ✓ |
-| 審計鏈 | L0.5 | + archive + reviews + `dlq_review` ✓ |
+| 審計鏈 | L1.5 | + archive + reviews + `dlq_review` ✓ |
 | Activation 誠實性 | `dead_letter_pending` | **extract 成功才 archive** ✓ |
 | MVP 可實作性 | 可開工 | **可開工** |
 
@@ -175,7 +175,7 @@ flowchart 仍有 `Dream → link`；MVP 不做 graph。建議加「MVP 略過」
 5. candidates upsert  
 6. **DLQ review**（可第二個 sprint）：report → adhoc dream → archive  
 
-**第一個 spike：** 1 node、2–3 input、一輪 night run + **故意製造 1 筆 DLQ**，驗證 pending / `dead_letter_pending` / L0.5 可追溯。
+**第一個 spike：** 1 node、2–3 input、一輪 night run + **故意製造 1 筆 DLQ**，驗證 pending / `dead_letter_pending` / L1.5 可追溯。
 
 ---
 

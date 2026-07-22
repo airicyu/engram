@@ -60,7 +60,7 @@ candidates/
   status: pending   # pending | approved | rejected | aliased
 ```
 
-`propose_node` 經 L0.5 patch log 再寫入 candidates（見 [dream.md](./dream.md)）。
+`propose_node` 經 L1.5 patch log 再寫入 candidates（見 [dream.md](./dream.md)）。
 
 **最小骨架（批准後才建）：** `node.meta.yaml`、`INDEX.md`、`understand/`、`chronology/INDEX.md` + `recent.md`
 

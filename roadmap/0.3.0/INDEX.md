@@ -3,7 +3,7 @@
 ← [changelog](../../changelog.md) · current: [version](../../version.md) · 下游：[0.4.0 未來視](../0.4.0/INDEX.md)
 
 > **狀態：** **已實作（0.3.0）** — 見 `version.md`／`changelog.md`。  
-> **本版做：** dream 人審閘門、L0.5 draft staging、L1 mem pool（按 event 範圍清）、occurrence／encoding（**world timeline**）。  
+> **本版做：** dream 人審閘門、L1.5 draft staging、L1 mem pool（按 event 範圍清）、occurrence／encoding（**world timeline**）。  
 > **本版不做：** 未來視 chain → [0.4.0](../0.4.0/INDEX.md)（做法留白，完成後再討論）。
 
 ## 產品句
@@ -30,7 +30,7 @@
 
 **依賴：** 時間線 backfill 依賴 approve commit；pending 可 ingest 依賴按 S 清 L1。
 
-## L0.5（0.3 重新定義）
+## L1.5（0.3 重新定義）
 
 | 層 | 路徑 | 角色 |
 |----|------|------|
@@ -57,7 +57,7 @@
 | 11 | Extract 預設 S | **呼叫當下整個 pending pool** |
 | 12 | API「無資料」 | **禁止用 404 表示沒有資料**；回 **200** + body 空表示 |
 | 13 | HTTP API | 見下方「已 lock 的 API」；取消 run 自動 apply／resume apply |
-| 14 | L0.5 執行模型 | **D — draft staging**：intent + draft 投影；取代 per-patch 直寫 L2（見上表） |
+| 14 | L1.5 執行模型 | **D — draft staging**：intent + draft 投影；取代 per-patch 直寫 L2（見上表） |
 | 15 | Extract 輸入 | = S 對應的**跨日** L0 event + L1 視圖 + 既有 L2；廢除「僅今日 events」 |
 | 16 | 未來日校驗 | **approve** 當下 Asia/Taipei 日硬擋未來 `chain.id`；extract 同規預檢 |
 | 17 | Consolidate | 0.3 出貨：**最小面** — pending 時顯示 report 摘要 + Approve／Discard（Run 文案改 Extract） |
@@ -157,7 +157,7 @@ Extract 失敗：`phase: "extract"`，同上。
 | 現行（0.1／MVP） | 0.3.0 |
 |-----------------|-------|
 | dream 成功 → per-patch apply + 整包清 L1 | run = extract + materialize draft；approve = 原子 commit；成功只清 S |
-| L0.5 = patches + per-patch apply | L0.5 = intent + draft；commit 只經 `/dream/approve` |
+| L1.5 = patches + per-patch apply | L1.5 = intent + draft；commit 只經 `/dream/approve` |
 | `chain.id` ≈ ingest／dream 日 | **發生日**（world timeline）；一輪可多日 patch |
 | 無未來日硬規則 | 禁止未來日當 occurrence |
 
@@ -166,7 +166,7 @@ Extract 失敗：`phase: "extract"`，同上。
 1. L1 改 event 索引 + scope S（預設＝整池）  
 2. dream：extract → materialize draft → 唯一 pending；supersede／discard；`commitDraft` on approve  
 3. extract 輸入改 S 跨日 L0；prompt：occurrence／encoding；未來日校驗  
-4. `/status`、Consolidate 最小面、operator skill、`api-docs`、changelog／version  
+4. `/status`、Consolidate 最小面、workbench skill、`api-docs`、changelog／version  
 
 ---
 

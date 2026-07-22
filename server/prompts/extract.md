@@ -15,15 +15,16 @@ This run does **not** write L2 directly. Patches become a **draft** for human re
 1. **Memory-chain = world timeline.** `chain.id` = the calendar day the event **occurred** (already happened), Asia/Taipei `YYYY-MM-DD` — not merely the ingest/encoding day.
 2. **Encoding** = L0 `ts` day (when the user wrote it into Engram). If occurrence day ≠ encoding day, you may note the backfill in report-worthy content; do **not** duplicate the same fact as two chain days unless encoding needs a short meta line.
 3. **Same-day rule:** if occurrence day = encoding day, emit **only** the occurrence `chain` patch (no separate encoding chain).
-4. **Future days:** if the text mentions a future calendar day (deadline, plan), do **NOT** emit `chain.id` for that future day. Leave it out of memory-chain (0.4.0 will handle future sight). Prefer a `semantic` fact if useful (e.g. "deadline is 2026-07-31").
-5. **Relative dates:** resolve against Asia/Taipei and event `ts`. If uncertain, omit chain backfill rather than guessing.
+4. **Future days (near horizon):** if the text mentions a **near**, anchorable future day or short range (deadline, trip, next-month plan), emit a **`future`** patch — do **NOT** use `chain.id` for that future day. Resolve relative dates to absolute `YYYY-MM-DD` (Asia/Taipei) at extract time.
+5. **Far / vague foresight** (age bands like "at 50–60", unanchored life fantasy): do **not** emit `future`. If it clearly belongs to an existing or same-run node and is firm enough for cognition, use `semantic` on `what` sparingly; otherwise treat as ordinary same-day event content. Do **not** invent a calendar spine for life-scale dreams.
+6. **Relative dates:** resolve against Asia/Taipei and event `ts`. If uncertain, omit rather than guessing.
 
 ## Output rules (STRICT)
 
 1. Reply with **ONLY** a JSON array of patch objects. No prose, no markdown fences, no commentary before or after the array.
 2. The array **may be empty** `[]` when nothing is worth writing to L2 (human approve will still clear scope S).
 3. Every object MUST match exactly one schema below — no extra fields, no missing required fields, no alternate field names.
-4. Allowed `type` values: `semantic` | `chain` | `propose_node` | `episodic`. Do **not** emit `dlq_review`.
+4. Allowed `type` values: `semantic` | `chain` | `future` | `propose_node` | `episodic`. Do **not** emit `dlq_review`.
 5. `patch_id` must be unique within the array (e.g. `p001`, `p002`, …).
 6. `dream_run_id` on every patch MUST equal `{{DREAM_RUN_ID}}`.
 7. `ts` MUST be ISO-8601 with `+08:00` offset (Asia/Taipei).
@@ -44,7 +45,7 @@ Top-level output: `Patch[]` — a JSON array. Each element is a discriminated ob
 | `patch_id` | string | yes | Non-empty; unique in array |
 | `dream_run_id` | string | yes | Must equal `{{DREAM_RUN_ID}}` |
 | `ts` | string | yes | ISO-8601 with `+08:00` |
-| `type` | string | yes | One of the four allowed types below |
+| `type` | string | yes | One of the five allowed types below |
 | `event_refs` | string[] | no | Event ids from context; include when grounded |
 
 ### `type: "semantic"`
@@ -67,6 +68,18 @@ Day-level **occurrence** entry on the world timeline.
 | `level` | string | yes | Must be exactly `"day"` |
 | `id` | string | yes | Occurrence day `YYYY-MM-DD` ≤ today (Asia/Taipei). **Never** a future day. |
 | `content` | string | yes | Non-empty day summary |
+
+### `type: "future"`
+
+Near-horizon **future-sight** anchor (separate from memory-chain). Day-level or short range only.
+
+| Field | Type | Required | Rules |
+|-------|------|----------|-------|
+| `id` | string | yes | Stable id `[a-zA-Z0-9][a-zA-Z0-9_-]*` (e.g. `fs-2026-08-01-deadline`) |
+| `anchor_start` | string | yes | `YYYY-MM-DD` ≥ today |
+| `anchor_end` | string | yes | `YYYY-MM-DD` ≥ `anchor_start` (same day for day-level) |
+| `content` | string | yes | Short foresight text |
+| `node_refs` | string[] | no | Related node ids |
 
 ### `type: "propose_node"`
 
@@ -125,11 +138,23 @@ Attribute an experience to a node. Low confidence (`< 0.6`) → attribution cand
     "dream_run_id": "{{DREAM_RUN_ID}}",
     "ts": "2026-07-19T03:13:37+08:00",
     "event_refs": ["e000001"],
+    "type": "future",
+    "id": "fs-2026-07-31-deadline",
+    "anchor_start": "2026-07-31",
+    "anchor_end": "2026-07-31",
+    "content": "Engram deadline discussed.",
+    "node_refs": ["engram"]
+  },
+  {
+    "patch_id": "p004",
+    "dream_run_id": "{{DREAM_RUN_ID}}",
+    "ts": "2026-07-19T03:13:37+08:00",
+    "event_refs": ["e000001"],
     "type": "semantic",
     "node": "engram",
     "facet": "what",
     "operation": "append",
-    "content": "Deadline discussed as 2026-07-31 (future; not a chain day)."
+    "content": "Has a near-term deadline tracked in future-sight."
   }
 ]
 ```

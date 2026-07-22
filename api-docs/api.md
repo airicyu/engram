@@ -18,12 +18,13 @@ Service discovery.
 {
   "name": "engram",
   "endpoints": [
-    "POST /ingest",
+    "POST /capture",
     "POST /dream/run",
     "GET /dream/pending",
     "POST /dream/approve",
     "POST /dream/discard",
-    "GET /activate",
+    "GET /future-sight",
+    "GET /recall",
     "GET /status"
   ]
 }
@@ -43,6 +44,7 @@ Snapshot of store health, dream state, and async job status.
   "lock": false,
   "l1_empty": false,
   "pending_dlq_count": 0,
+  "future_sight_active_count": 0,
   "dream_status": "pending_review",
   "dream_pending": {
     "dream_run_id": "dream-2026-07-21T22:00:00+08:00",
@@ -61,6 +63,7 @@ Snapshot of store health, dream state, and async job status.
 | `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
 | `l1_empty` | boolean | `true` when L1 mem pool has no entries |
 | `pending_dlq_count` | number | Legacy DLQ count |
+| `future_sight_active_count` | number | Count of `future-sight/active/*.md` (may include overdue until next sweep) |
 | `dream_status` | enum | See [Dream status](#dream-status) |
 | `dream_pending` | object? | Active pending summary, or `null` |
 | `l1_clear_pending` | object? | Commit succeeded but scope clear failed — retry approve |
@@ -77,7 +80,7 @@ Snapshot of store health, dream state, and async job status.
 
 ---
 
-## `POST /ingest`
+## `POST /capture`
 
 Append one event to L0 and the L1 mem pool (indexed by event id).
 
@@ -160,37 +163,67 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 1. If `l1_clear_pending` → **only retry clear S**
 2. Else require active pending
 3. Reject future `chain.id` → **409** `future_chain_id` + `rejected_chain_ids` (pending／draft／L1／L2 unchanged)
-4. Empty patches → no L2 write; still clear S
-5. Else `commitDraft` → live L2; then clear S
-6. Clear S failure → run `committed` + `l1_clear_pending`; next approve retries clear only
+4. Reject `future` patches with `anchor_end` &lt; today → **409** `stale_future_anchor` + `rejected_future_ids`
+5. Empty patches → no L2／future-sight write; still clear S
+6. Else `commitDraft` → live L2／future-sight; then clear S; best-effort future-sight sweep
+7. Clear S failure → run `committed` + `l1_clear_pending`; next approve retries clear only
 
 **Response `200`**
 
 ```json
 {
   "dream_run_id": "dream-…",
-  "committed": ["nodes/acme/understand/what.md"],
+  "committed": ["nodes/acme/understand/what.md", "future-sight/active/fs-….md"],
   "cleared_scope": ["e000001", "e000002"],
   "l1_clear_pending": false,
   "empty_patches": false
 }
 ```
 
-**Errors:** `409` `no_pending` \| `dream_run_mismatch` \| `future_chain_id` \| `dream_locked`; `500` commit failure (L2 unchanged, L1 kept).
+**Errors:** `409` `no_pending` \| `dream_run_mismatch` \| `future_chain_id` \| `stale_future_anchor` \| `dream_locked`; `500` commit failure (L2 unchanged, L1 kept).
 
 ---
 
 ## `POST /dream/discard`
 
-Drop pending intent + draft. L1／L2 unchanged. Body optional `dream_run_id`.
+Drop pending intent + draft. L1／L2／active future-sight unchanged. Body optional `dream_run_id`.
 
 **Response `200`:** `{ "dream_run_id": "…", "discarded": true }`
 
 ---
 
-## `GET /activate`
+## `GET /future-sight`
 
-Activation packet (unchanged shape). `dream_status` includes 0.3 values (`pending_review`, `l1_clear_pending`, …).
+List **active** near-horizon future-sight anchors. Always **200**. Empty → `anchors: []`.
+
+On each call: **lazy sweep** — for each active file with `anchor_end` &lt; today (Asia/Taipei), append L0+L1 event (`source: system/future_sight_expired`) then **hard-delete** the active file. No expired query endpoint.
+
+**Response `200`**
+
+```json
+{
+  "anchors": [
+    {
+      "id": "fs-2026-07-31-deadline",
+      "anchor_start": "2026-07-31",
+      "anchor_end": "2026-07-31",
+      "content": "Deadline…",
+      "node_refs": ["acme"]
+    }
+  ],
+  "swept_expired": ["fs-2026-07-20-old"]
+}
+```
+
+`swept_expired` = ids removed on **this** request only (not a browseable expired store).
+
+**Not in `/recall`:** future-sight is not injected into recall packets in 0.4.0.
+
+---
+
+## `GET /recall`
+
+Recall packet. Shape unchanged from the former `/activate`. Does **not** include future-sight. `dream_status` includes 0.3+ values (`pending_review`, `l1_clear_pending`, …).
 
 ---
 
@@ -214,17 +247,18 @@ Activation packet (unchanged shape). `dream_status` includes 0.3 values (`pendin
 | `propose_node` | Create live node under `nodes/{id}/` (seed what／meta) |
 | `semantic` (`facet: what`) | Update `nodes/{id}/understand/what.md` |
 | `chain` (`level: day`) | Append `memory-chain/days/{id}.md` — **occurrence** day; future ids blocked at approve |
+| `future` | Write／overwrite `future-sight/active/{id}.md` — near-horizon anchor; stale `anchor_end` blocked |
 | `episodic` (confidence &lt; 0.6) | Attribution candidate |
 | `episodic` (≥ 0.6) | No-op (chronology not in prototype) |
 
-Same-run order: create new nodes first, then semantic／episodic for those ids.
+Same-run order: create new nodes first, then semantic／episodic for those ids. `future` may appear anywhere after creates.
 
 ---
 
 ## Typical session flow
 
 ```
-POST /ingest  (one or more; also OK during pending_review)
+POST /capture  (one or more; also OK during pending_review)
      ↓
 POST /dream/run  → 202
      ↓
@@ -234,7 +268,7 @@ GET  /dream/pending  (read report)
      ↓
 POST /dream/approve   OR   POST /dream/discard   OR   POST /dream/run (supersede)
      ↓
-GET  /activate?q=…
+GET  /recall?q=…
 ```
 
 ---
@@ -246,7 +280,7 @@ BASE=http://localhost:8787
 
 curl -s "$BASE/status" | jq .
 
-curl -s -X POST "$BASE/ingest" \
+curl -s -X POST "$BASE/capture" \
   -H 'content-type: application/json' \
   -d '{"raw":"早兩天確認了需求","source":"api"}' | jq .
 

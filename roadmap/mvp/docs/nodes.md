@@ -94,7 +94,7 @@ nodes/{id}/
 
 **手改：** 允許直接改 Current（或整檔）。下次 Dream 把「手改後的 Current」當先驗，與 L1 同化（append / revise / open）——與「新事件推翻舊夢」同一路徑。
 
-L2 = 當前表面；L0.5 = Dream 決策 audit；L0 = 情節原稿。
+L2 = 當前表面；L1.5 = Dream 決策 audit；L0 = 情節原稿。
 
 ---
 

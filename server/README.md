@@ -1,6 +1,6 @@
 # Engram Server (Prototype)
 
-Bun HTTP API for Engram MVP memory: ingest → dream (extract+apply) → activate.
+Bun HTTP API for Engram MVP memory: capture → dream (extract+apply) → recall.
 
 ## Real trial (empty store)
 
@@ -11,15 +11,15 @@ bun run reset          # wipe ENGRAM_HOME → empty tree, no nodes
 bun run start          # uses Cursor CLI (`agent`) by default
 ```
 
-Then ingest your own text:
+Then capture your own text:
 
 ```bash
-curl -s -X POST http://localhost:8787/ingest \
+curl -s -X POST http://localhost:8787/capture \
   -H 'content-type: application/json' \
   -d '{"raw":"今天和同事討論了…","source":"api"}'
 
 curl -s http://localhost:8787/status
-curl -s 'http://localhost:8787/activate'
+curl -s 'http://localhost:8787/recall'
 curl -s -X POST http://localhost:8787/dream/run
 ```
 
@@ -41,9 +41,9 @@ Env:
 
 | Method | Path | |
 |--------|------|--|
-| `POST` | `/ingest` | `{ "raw", "source?", "node_refs?" }` → `{ event_id }` |
+| `POST` | `/capture` | `{ "raw", "source?", "node_refs?" }` → `{ event_id }` |
 | `POST` | `/dream/run` | extract → apply → clear L1 |
-| `GET` | `/activate?q=` | activation packet |
+| `GET` | `/recall?q=` | recall packet |
 | `GET` | `/status` | lock, L1, DLQ, dream_status |
 
 ## Reset

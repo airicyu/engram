@@ -59,7 +59,7 @@ events (L0) + short-term
 
 - **chain** = 全局「這段時間世界發生了什麼」
 - **node chronology** = 節點視角 → [nodes-chronology.md](./nodes-chronology.md)
-- 做夢時：同一批 events → chain 寫全局 + 各 node 寫視角（皆經 L0.5 patches）
+- 做夢時：同一批 events → chain 寫全局 + 各 node 寫視角（皆經 L1.5 patches）
 
 ## MVP
 

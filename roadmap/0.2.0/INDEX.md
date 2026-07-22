@@ -7,7 +7,7 @@
 
 ## 背景
 
-0.1.0 已有可跑的 HTTP API（ingest / dream / activate / status），操作面主要靠 curl 與 operator skill。  
+0.1.0 已有可跑的 HTTP API（ingest / dream / activate / status），操作面主要靠 curl 與 workbench skill。  
 0.2.0 補上 **最小 web 界面**，降低「記一下／整理／想起來」的摩擦。
 
 ## 產品句（本版要驗證）
@@ -56,7 +56,7 @@
 - 即時 streaming dream log
 - Embedding 搜尋、graph 視覺化
 - 新記憶契約或改 patch schema
-- 美化到 marketing landing；本版是 **operator UI**
+- 美化到 marketing landing；本版是 **workbench UI**
 
 ### 可選（時間夠再加）
 

@@ -1,5 +1,5 @@
 /**
- * Fixture apply: treat fixtures/*.jsonl as already-extracted L0.5,
+ * Fixture apply: treat fixtures/*.jsonl as already-extracted L1.5,
  * materialize draft → commitDraft → clear fixture L1 (dev helper).
  *
  * Usage:
@@ -82,7 +82,7 @@ if (!keepL1) {
 await acquireLock("fixture-apply");
 try {
   const { written, patches: stored } = await appendPatchesIfNew(dreamRunId, patches);
-  console.log(`L0.5 append: written=${written}, count=${stored.length}`);
+  console.log(`L1.5 append: written=${written}, count=${stored.length}`);
 
   const scope = await listPoolEventIds();
   const manifest = await materializeDraft(dreamRunId, stored);
