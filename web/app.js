@@ -1,3 +1,5 @@
+import { initI18n, setLocale, t } from "./i18n.js";
+
 const API = "/api";
 
 /** @typedef {{
@@ -13,11 +15,13 @@ const API = "/api";
 const state = {
   /** @type {Status | null} */
   status: null,
-  /** @type {{ present: boolean, dream_run_id?: string|null, scope?: string[], report?: string|null, draft_summary?: object|null } | null} */
+  /** @type {{ present: boolean, dream_run_id?: string|null, scope?: string[], report?: string|null, draft_summary?: object|null, patches?: unknown[] } | null} */
   pending: null,
   scene: "capture",
   dreaming: false,
   pollTimer: null,
+  /** Last recall packet for re-render on locale change (shell strings only). */
+  lastRecall: null,
 };
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -55,7 +59,7 @@ function lightState(status) {
 }
 
 function lightLabel(status) {
-  if (!status) return "離線";
+  if (!status) return t("status.offline");
   if (status.lock) return "dreaming";
   return status.dream_status;
 }
@@ -69,32 +73,28 @@ function renderStatusLight() {
   if (dot) dot.setAttribute("data-state", key);
   label.textContent = lightLabel(s);
   light.title = s
-    ? `lock=${s.lock} · L1 ${s.l1_empty ? "empty" : "present"} · DLQ ${s.pending_dlq_count}`
-    : "無法連線 Engram API";
+    ? t("status.tooltip", {
+        lock: String(s.lock),
+        l1: s.l1_empty ? "empty" : "present",
+        dlq: s.pending_dlq_count,
+      })
+    : t("status.unreachable_title");
 }
 
 function adviceFor(status) {
-  if (!status) return "無法取得狀態。確認 server 是否在 :8787 運行。";
-  if (status.lock) return "Dream／commit 進行中——請稍候。pending_review 期間仍可 Capture。";
-  if (status.dream_status === "pending_review") {
-    return "有待審 dream：讀報告後 Approve（寫入 L2 並清本輪 L1）或 Discard／再次 Dream（取代）。";
-  }
-  if (status.dream_status === "l1_clear_pending") {
-    return "已 commit 但 L1 清理未完成——再按一次 Approve 只重試清 L1。";
-  }
-  if (status.dream_status === "dream_incomplete") {
-    return "上次 extract／materialize 失敗（L1 仍保留）。可重試 Dream。";
-  }
+  if (!status) return t("advice.none");
+  if (status.lock) return t("advice.lock");
+  if (status.dream_status === "pending_review") return t("advice.pending_review");
+  if (status.dream_status === "l1_clear_pending") return t("advice.l1_clear_pending");
+  if (status.dream_status === "dream_incomplete") return t("advice.dream_incomplete");
   if (status.dream_status === "dead_letter_pending") {
-    return `有 ${status.pending_dlq_count} 筆 DLQ 待人工處理；仍可繼續 Dream。`;
+    return t("advice.dlq", { count: status.pending_dlq_count });
   }
   if (status.l1_empty) {
-    if (status.dream_status === "never_dreamed") {
-      return "尚無短時記憶。先到 Capture 寫入幾筆。";
-    }
-    return "L1 已空——沒有需要整理的短時記憶。";
+    if (status.dream_status === "never_dreamed") return t("advice.never_dreamed");
+    return t("advice.l1_empty");
   }
-  return "L1 有內容，可以 Dream 產出待審報告。";
+  return t("advice.ready");
 }
 
 function renderPendingPanel() {
@@ -116,16 +116,17 @@ function renderPendingPanel() {
     .join(" · ");
   $("pending-meta").textContent = meta;
   const report = $("pending-report");
-  report.textContent = p.report?.trim() || "（無報告）";
+  report.textContent = p.report?.trim() || t("pending.no_report");
   report.classList.toggle("is-empty", !p.report?.trim());
 }
 
 function renderConsolidate() {
   const s = state.status;
-  $("st-dream").textContent = s ? s.dream_status : "—";
-  $("st-lock").textContent = s ? String(s.lock) : "—";
-  $("st-l1").textContent = s ? (s.l1_empty ? "empty" : "present") : "—";
-  $("st-dlq").textContent = s ? String(s.pending_dlq_count) : "—";
+  const dash = t("consolidate.dash");
+  $("st-dream").textContent = s ? s.dream_status : dash;
+  $("st-lock").textContent = s ? String(s.lock) : dash;
+  $("st-l1").textContent = s ? (s.l1_empty ? "empty" : "present") : dash;
+  $("st-dlq").textContent = s ? String(s.pending_dlq_count) : dash;
   $("status-advice").textContent = adviceFor(s);
   renderPendingPanel();
 
@@ -134,11 +135,11 @@ function renderConsolidate() {
   const clearRetry = s?.dream_status === "l1_clear_pending";
   btn.disabled = !s || s.lock || state.dreaming || (s.l1_empty && !pending && !clearRetry);
   if (s?.lock || state.dreaming) {
-    btn.textContent = "Dreaming…";
+    btn.textContent = t("consolidate.dreaming");
   } else if (pending) {
-    btn.textContent = "Dream（取代）";
+    btn.textContent = t("consolidate.dream_replace");
   } else {
-    btn.textContent = "Dream";
+    btn.textContent = t("consolidate.dream");
   }
 
   const approve = /** @type {HTMLButtonElement} */ ($("dream-approve"));
@@ -150,7 +151,6 @@ function renderConsolidate() {
 }
 
 function applyCaptureLock() {
-  // Only lock capture while extract/commit holds the dream lock — not during pending_review
   const locked = !!(state.status?.lock || state.dreaming);
   const raw = /** @type {HTMLTextAreaElement} */ ($("capture-raw"));
   const refs = /** @type {HTMLInputElement} */ ($("capture-refs"));
@@ -197,27 +197,28 @@ function schedulePoll() {
   if (state.pollTimer) clearTimeout(state.pollTimer);
   const locked = !!(state.status?.lock || state.dreaming);
   const pending = state.status?.dream_status === "pending_review";
-  const ms = locked ? 2000 : pending ? 5000 : 8000;
+  // Lax intervals: status is cheap but no need to chat with the API constantly.
+  const ms = locked ? 5000 : pending ? 20000 : 60000;
   state.pollTimer = setTimeout(async () => {
     await refreshStatus();
   }, ms);
 }
 
 function formatL1(packet) {
-  if (!packet?.l1) return { text: "（無資料）", empty: true };
+  if (!packet?.l1) return { text: t("empty.none"), empty: true };
   const { present, summary, node_notes } = packet.l1;
   if (!present) {
-    return { text: "（L1 已清空）", empty: true };
+    return { text: t("empty.l1_cleared"), empty: true };
   }
   const parts = [];
   if (summary?.trim()) {
     parts.push(summary.trim());
   } else {
-    parts.push("（summary 空白）");
+    parts.push(t("empty.summary_blank"));
   }
   const notes = node_notes && Object.keys(node_notes).length
     ? Object.entries(node_notes)
-        .map(([id, md]) => `### ${id}\n${md || "（空）"}`)
+        .map(([id, md]) => `### ${id}\n${md || t("empty.blank")}`)
         .join("\n\n")
     : null;
   if (notes) parts.push("---\nnode notes\n\n" + notes);
@@ -228,7 +229,7 @@ async function refreshL1() {
   const el = $("l1-content");
   const { ok, data } = await api("/recall");
   if (!ok) {
-    el.textContent = data?.message || data?.error || "無法載入 L1";
+    el.textContent = data?.message || data?.error || t("empty.l1_load");
     el.classList.add("is-empty");
     return;
   }
@@ -267,11 +268,11 @@ async function onCapture(e) {
   const refsEl = /** @type {HTMLInputElement} */ ($("capture-refs"));
   const raw = rawEl.value.trim();
   if (!raw) {
-    setMsg(msg, "請輸入內容", "error");
+    setMsg(msg, t("capture.empty_input"), "error");
     return;
   }
   if (state.status?.lock) {
-    setMsg(msg, "正在整理記憶，暫時無法寫入。", "error");
+    setMsg(msg, t("capture.lock_hint"), "error");
     return;
   }
 
@@ -279,27 +280,23 @@ async function onCapture(e) {
   const refs = parseNodeRefs(refsEl.value);
   if (refs.length) body.node_refs = refs;
 
-  setMsg(msg, "寫入中…");
+  setMsg(msg, t("capture.writing"));
   const { ok, status, data } = await api("/capture", {
     method: "POST",
     body: JSON.stringify(body),
   });
 
   if (status === 409 || data?.error === "dream_locked") {
-    setMsg(
-      msg,
-      data?.message || "正在整理記憶（dream_locked），請稍後再試。",
-      "error",
-    );
+    setMsg(msg, data?.message || t("capture.locked"), "error");
     await refreshStatus();
     return;
   }
   if (!ok) {
-    setMsg(msg, data?.message || data?.error || `寫入失敗 (${status})`, "error");
+    setMsg(msg, data?.message || data?.error || t("capture.fail", { status }), "error");
     return;
   }
 
-  setMsg(msg, `已寫入 ${data.event_id}`, "ok");
+  setMsg(msg, t("capture.ok", { id: data.event_id }), "ok");
   rawEl.value = "";
   await Promise.all([refreshStatus(), refreshL1()]);
 }
@@ -310,18 +307,18 @@ async function onDreamRun() {
   const body = $("dream-result-body");
 
   if (state.status?.lock || state.dreaming) {
-    setMsg(msg, "Dream 已在進行中。", "error");
+    setMsg(msg, t("dream.already"), "error");
     return;
   }
   if (state.status?.l1_empty && state.status?.dream_status !== "pending_review") {
-    setMsg(msg, "L1 為空，無需 Dream。", "error");
+    setMsg(msg, t("dream.l1_empty"), "error");
     return;
   }
 
   state.dreaming = true;
   applyCaptureLock();
   renderConsolidate();
-  setMsg(msg, "Dream 執行中（可能需要數分鐘）…");
+  setMsg(msg, t("dream.running"));
 
   const { ok, status, data } = await api("/dream/run", { method: "POST" });
 
@@ -329,7 +326,7 @@ async function onDreamRun() {
     state.dreaming = false;
     result.hidden = false;
     body.textContent = data?.message || data?.error || "rejected";
-    setMsg(msg, data?.message || data?.error || "dream rejected", "error");
+    setMsg(msg, data?.message || data?.error || t("dream.rejected"), "error");
     await refreshStatus();
     return;
   }
@@ -338,16 +335,15 @@ async function onDreamRun() {
     state.dreaming = false;
     result.hidden = false;
     body.textContent = JSON.stringify(data, null, 2);
-    setMsg(msg, data?.message || data?.error || `失敗 (${status})`, "error");
+    setMsg(msg, data?.message || data?.error || t("dream.fail", { status }), "error");
     await refreshStatus();
     return;
   }
 
-  setMsg(msg, "已提交 — 等待 pending_review…", "ok");
+  setMsg(msg, t("dream.submitted"), "ok");
   body.textContent = `job_id: ${data.job_id}\n${data.message || ""}`;
   result.hidden = false;
 
-  // Poll until lock clears / pending_review or failed
   const start = Date.now();
   while (Date.now() - start < 10 * 60 * 1000) {
     await new Promise((r) => setTimeout(r, 1500));
@@ -358,11 +354,14 @@ async function onDreamRun() {
   renderConsolidate();
 
   if (state.status?.dream_status === "pending_review") {
-    setMsg(msg, "待審報告已就緒。", "ok");
+    setMsg(msg, t("dream.ready"), "ok");
   } else if (state.status?.dream_job?.status === "failed") {
     setMsg(
       msg,
-      `失敗（${state.status.dream_job.phase || "?"}）：${state.status.dream_job.error || ""}`,
+      t("dream.job_fail", {
+        phase: state.status.dream_job.phase || "?",
+        error: state.status.dream_job.error || "",
+      }),
       "error",
     );
   }
@@ -371,25 +370,25 @@ async function onDreamRun() {
 
 async function onDreamApprove() {
   const msg = $("dream-msg");
-  setMsg(msg, "Approve 中…");
+  setMsg(msg, t("dream.approving"));
   const { ok, status, data } = await api("/dream/approve", {
     method: "POST",
     body: "{}",
   });
   if (status === 409) {
-    setMsg(msg, data?.message || data?.error || "無法 approve", "error");
+    setMsg(msg, data?.message || data?.error || t("dream.approve_fail"), "error");
     await refreshStatus();
     return;
   }
   if (!ok) {
-    setMsg(msg, data?.message || data?.error || `失敗 (${status})`, "error");
+    setMsg(msg, data?.message || data?.error || t("dream.fail", { status }), "error");
     return;
   }
   const note = data.empty_patches
-    ? "已批准：無 L2 寫入，已清本輪 L1。"
+    ? t("dream.approve_empty")
     : data.l1_clear_pending
-      ? "已 commit；L1 清理未完成，請再 Approve 一次。"
-      : `已寫入 ${data.committed?.length ?? 0} 個路徑並清本輪 L1。`;
+      ? t("dream.approve_retry_clear")
+      : t("dream.approve_ok", { count: data.committed?.length ?? 0 });
   setMsg(msg, note, data.l1_clear_pending ? "error" : "ok");
   $("dream-result").hidden = false;
   $("dream-result-body").textContent = JSON.stringify(data, null, 2);
@@ -399,21 +398,22 @@ async function onDreamApprove() {
 
 async function onDreamDiscard() {
   const msg = $("dream-msg");
-  setMsg(msg, "Discard 中…");
+  setMsg(msg, t("dream.discarding"));
   const { ok, status, data } = await api("/dream/discard", {
     method: "POST",
     body: "{}",
   });
   if (!ok) {
-    setMsg(msg, data?.message || data?.error || `失敗 (${status})`, "error");
+    setMsg(msg, data?.message || data?.error || t("dream.fail", { status }), "error");
     await refreshStatus();
     return;
   }
-  setMsg(msg, "已丟棄 pending（L1／L2 未改）。", "ok");
+  setMsg(msg, t("dream.discard_ok"), "ok");
   await refreshStatus();
 }
 
 function renderRecallPacket(data) {
+  state.lastRecall = data;
   const l1 = formatL1(data);
   const l1El = $("recall-l1");
   l1El.textContent = l1.text;
@@ -426,7 +426,7 @@ function renderRecallPacket(data) {
     chainEl.textContent = day + chain;
     chainEl.classList.remove("is-empty");
   } else {
-    chainEl.textContent = "（無 day chain）";
+    chainEl.textContent = t("empty.no_chain");
     chainEl.classList.add("is-empty");
   }
 
@@ -436,7 +436,7 @@ function renderRecallPacket(data) {
   if (!nodes.length) {
     const pre = document.createElement("pre");
     pre.className = "md-block is-empty";
-    pre.textContent = "（無匹配 nodes）";
+    pre.textContent = t("empty.no_nodes");
     nodesRoot.appendChild(pre);
     return;
   }
@@ -451,7 +451,7 @@ function renderRecallPacket(data) {
     if (what) {
       pre.textContent = what;
     } else {
-      pre.textContent = "（無 what）";
+      pre.textContent = t("empty.no_what");
       pre.classList.add("is-empty");
     }
     card.appendChild(h);
@@ -472,11 +472,11 @@ async function onRecall(e) {
   e.preventDefault();
   const msg = $("recall-msg");
   const q = /** @type {HTMLInputElement} */ ($("recall-q")).value.trim();
-  setMsg(msg, "查詢中…");
+  setMsg(msg, t("recall.querying"));
   const path = q ? `/recall?q=${encodeURIComponent(q)}` : "/recall";
   const { ok, data } = await api(path);
   if (!ok) {
-    setMsg(msg, data?.message || data?.error || "召回失敗", "error");
+    setMsg(msg, data?.message || data?.error || t("recall.fail"), "error");
     return;
   }
   const meta = [
@@ -485,8 +485,19 @@ async function onRecall(e) {
   ]
     .filter(Boolean)
     .join(" · ");
-  setMsg(msg, meta || "完成", "ok");
+  setMsg(msg, meta || t("recall.done"), "ok");
   renderRecallPacket(data);
+}
+
+async function onLocaleClick(e) {
+  const btn = e.currentTarget;
+  const code = btn.getAttribute("data-locale");
+  if (!code) return;
+  await setLocale(code);
+  renderStatusLight();
+  renderConsolidate();
+  if (state.lastRecall) renderRecallPacket(state.lastRecall);
+  if (state.scene === "capture") await refreshL1();
 }
 
 function bind() {
@@ -494,6 +505,9 @@ function bind() {
     btn.addEventListener("click", () => {
       switchScene(btn.getAttribute("data-scene"));
     });
+  });
+  document.querySelectorAll("[data-locale]").forEach((btn) => {
+    btn.addEventListener("click", onLocaleClick);
   });
   $("capture-form").addEventListener("submit", onCapture);
   $("refresh-l1").addEventListener("click", () => refreshL1());
@@ -505,14 +519,11 @@ function bind() {
 }
 
 async function init() {
+  await initI18n();
   bind();
   const up = await refreshStatus();
   if (!up) {
-    setMsg(
-      $("capture-msg"),
-      "連不上 Engram API（預設 localhost:8787）。請先 cd server && bun run start",
-      "error",
-    );
+    setMsg($("capture-msg"), t("capture.api_down"), "error");
   }
   await refreshL1();
 }

@@ -1,14 +1,14 @@
 # Engram
 
-**Engram** 是個人記憶原型：把日常片段寫進來，定期用 AI「做夢」整理成可審核的長期理解，需要時再召回相關脈絡。
+**Engram** 是個人記憶原型：把日常片段寫進來，定期用 AI「做夢」整理成可審核的長期理解，需要時再回憶相關脈絡。
 
 它不是筆記 app，也不是聊天紀錄備份，而是一條明確的記憶管線：
 
 ```
-Capture（寫入）→ Consolidate（整理／人審）→ Recall（召回）
+Capture（記下）→ Consolidate（沉澱）→ Recall（回憶）
 ```
 
-目前版本：**0.4.1**（見 [version.md](./version.md)、[changelog.md](./changelog.md)）。
+目前版本：**0.5.0**（見 [version.md](./version.md)、[changelog.md](./changelog.md)）。
 
 ---
 
@@ -32,7 +32,7 @@ Capture（寫入）→ Consolidate（整理／人審）→ Recall（召回）
 | **L1** | 短期 pool | 還沒整理完的輸入 |
 | **L1.5** | 入夢中間態 | AI 提案 + 待審 draft（L1 → L2） |
 | **L2** | Node 理解 | 對人／主題的長期「what」 |
-| **chain** | 日級時間軸 | 那天整體發生什麼 |
+| **chain** | 日級時間軸 | **ledger**（增量稽核）＋ **summary**（可讀日摘要；Recall 預設） |
 | **future-sight** | 近程錨點 | 短期要盯的 deadline／前瞻 |
 
 術語細解見 **[domain-language.md](./domain-language.md)**。
@@ -73,7 +73,7 @@ bun run dev:ui   # web
 - **Recall** — `GET /recall?q=關鍵字` 看 context packet。
 
 空庫試用請用 `cd server && bun run reset`（破壞性，會清空 `ENGRAM_HOME`）。  
-**不要**用 fixture seed 當個人試用資料。
+真人試用請用空 store + capture；機械自測用 `cd server && bun run test:phases`。
 
 ---
 
@@ -100,11 +100,11 @@ bun run dev:ui   # web
 | `GET` | `/dream/pending` | 讀待審報告 |
 | `POST` | `/dream/approve` | 批准並 commit |
 | `POST` | `/dream/discard` | 丟棄待審 |
-| `GET` | `/recall` | 召回 context packet |
+| `GET` | `/recall` | 回憶 context packet |
 | `GET` | `/future-sight` | 列出活躍前瞻錨點 |
 | `GET` | `/status` | 健康與 dream 狀態 |
 
-時區一律 **Asia/Taipei**。原型無 auth。
+時區由 **`ENGRAM_TZ`** 設定（IANA），預設 **`Asia/Hong_Kong`**。原型無 auth。
 
 ---
 

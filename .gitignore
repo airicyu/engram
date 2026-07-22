@@ -5,3 +5,5 @@ server/node_modules/
 web/node_modules/
 *.lock
 .DS_Store
+.env
+**/.env

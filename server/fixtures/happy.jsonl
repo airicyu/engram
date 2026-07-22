@@ -1,3 +1,0 @@
-{"patch_id":"p001","dream_run_id":"dream-2026-07-18T23:10:00+08:00","ts":"2026-07-18T23:10:00+08:00","event_refs":["e000001"],"type":"semantic","node":"acme","facet":"what","operation":"append","content":"Acme is a partner we track for API integrations."}
-{"patch_id":"p002","dream_run_id":"dream-2026-07-18T23:10:00+08:00","ts":"2026-07-18T23:10:00+08:00","event_refs":["e000001","e000002"],"type":"chain","level":"day","id":"2026-07-18","content":"Discussed Acme API feed and noted Alice as contact."}
-{"patch_id":"p003","dream_run_id":"dream-2026-07-18T23:10:00+08:00","ts":"2026-07-18T23:10:00+08:00","event_refs":["e000002"],"type":"semantic","node":"alice","facet":"what","operation":"append","content":"Alice is the Acme partnership contact."}

@@ -1,5 +1,5 @@
 /**
- * Wipe ENGRAM_HOME and recreate an empty store (no seed nodes, no fixtures).
+ * Wipe ENGRAM_HOME and recreate an empty store (no nodes, no events).
  *
  *   bun run reset
  *   ENGRAM_HOME=/path/to/data bun run reset

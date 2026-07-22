@@ -25,7 +25,7 @@
 
 產品循環對齊 UI：**Capture → Consolidate → Recall**（對應 capture / dream / recall）。
 
-時區一律 **Asia/Taipei**。原型無 auth。
+時區由 **`ENGRAM_TZ`** 設定（IANA），預設 **`Asia/Hong_Kong`**。原型無 auth。
 
 ## 倉庫結構
 
@@ -100,11 +100,11 @@ API 欄位提醒：
 2. **UI 跟記憶循環走**：是個人記憶工作台，不是 admin dashboard；不要首屏塞 stats／多欄卡片牆。
 3. **最小改動**：只改任務需要的檔案；不順便重構、不亂加 markdown 文件。
 4. **契約文件優先**：改 API 行為時同步 `api-docs/`；改版本時更新 `version.md` / `changelog.md`。
-5. **測試資料**：`fixture:apply --seed` 與 `data-test/` 僅機械自測；真人試用走空 store + capture。
+5. **測試資料**：`bun run test:phases`（isolated `data-test/`）僅機械自測；真人試用走空 store + capture。
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.4.0` — 近程未來視（`future` patch、`GET /future-sight`、過期 event+硬清）；Recall 不注入。  
+- **已出貨：** `0.5.0` — memory-chain ledger＋summary 雙軌；Web UI i18n（en／zh-Hant）；`ENGRAM_TZ`／熱路徑 cleanup；Recall 讀 summary（fallback ledger）。
 - **Backlog：** 短期未來 mindzone、Recall 注入未來視 — 見 `roadmap/backlog/`。
 
 ## 深入閱讀

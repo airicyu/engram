@@ -1,3 +1,5 @@
+/** Claude Code-backed and static dream extraction runners. */
+
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -15,6 +17,7 @@ import {
 const PROMPT_PATH = join(import.meta.dir, "../../prompts/extract.md");
 const RUNNER = "claude";
 
+/** Extract patches by invoking the configured Claude Code binary. */
 export class ClaudeCodeRunner implements AgentRunner {
   async extract(ctx: ExtractContext): Promise<Patch[]> {
     const promptTemplate = await readFile(PROMPT_PATH, "utf8");
@@ -33,7 +36,8 @@ export class ClaudeCodeRunner implements AgentRunner {
 
       const prompt = promptTemplate
         .replaceAll("{{CONTEXT_PATH}}", ctxPath)
-        .replaceAll("{{DREAM_RUN_ID}}", ctx.dream_run_id);
+        .replaceAll("{{DREAM_RUN_ID}}", ctx.dream_run_id)
+        .replaceAll("{{TIMEZONE}}", ctx.timezone);
 
       const cmd = [
         config.claudeBin,

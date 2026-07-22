@@ -1,4 +1,7 @@
+/** Persistence helpers for extracted dream patches in JSONL. */
+
 import { open, readFile } from "node:fs/promises";
+import { $ } from "bun";
 import { homePath } from "./home";
 import type { Patch } from "../dream/schema";
 
@@ -6,6 +9,11 @@ function patchesPath(): string {
   return homePath("dream", "patches.jsonl");
 }
 
+function dreamRunNeedle(dreamRunId: string): string {
+  return `"dream_run_id":"${dreamRunId}"`;
+}
+
+/** Read all extracted patches across dream runs. */
 export async function readAllPatches(): Promise<Patch[]> {
   const text = await readFile(patchesPath(), "utf8");
   if (!text.trim()) return [];
@@ -16,14 +24,26 @@ export async function readAllPatches(): Promise<Patch[]> {
     .map((line) => JSON.parse(line) as Patch);
 }
 
+/** Patches for one run via `grep -F` — avoids loading the whole patches.jsonl into memory. */
 export async function patchesForRun(dreamRunId: string): Promise<Patch[]> {
-  const all = await readAllPatches();
-  return all.filter((p) => p.dream_run_id === dreamRunId);
+  const path = patchesPath();
+  if (!(await Bun.file(path).exists())) return [];
+  const r = await $`grep -F ${dreamRunNeedle(dreamRunId)} ${path}`.nothrow();
+  if (r.exitCode !== 0) return [];
+  const text = (await r.text()).trim();
+  if (!text) return [];
+  return text
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as Patch);
 }
 
+/** Return whether a dream run already has persisted patches. */
 export async function hasPatchesForRun(dreamRunId: string): Promise<boolean> {
-  const patches = await patchesForRun(dreamRunId);
-  return patches.length > 0;
+  const path = patchesPath();
+  if (!(await Bun.file(path).exists())) return false;
+  const r = await $`grep -F -q ${dreamRunNeedle(dreamRunId)} ${path}`.nothrow();
+  return r.exitCode === 0;
 }
 
 /** Append patches for a run. No-op if dream_run_id already has patches. */

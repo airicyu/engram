@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.5.0 — Chain dual-track + Web i18n + cleanup (2026-07-22)
+
+Memory-chain **ledger + summary** dual-track; workbench UI English／繁體中文 shell i18n; server cleanup（timezone、hot-path I/O、deps、event id）。
+
+### Added
+
+- **Chain summary** — `memory-chain/days/{id}.summary.md` (`## Current` / `## History`); `chain` patch fields `summary` + `summary_operation` (`init`｜`revise`)
+- Extract context **`chain_summaries_current`** (+ optional `chain_ledgers`)
+- Recall `chain.source`: `summary`｜`ledger_fallback`｜`empty` (prefer summary Current)
+- Pending `draft_summary.chain_summary_days`
+- Web **`i18n/`** — `zh-Hant`（預設）＋ `en`；topbar 語言切換；記憶內容不翻
+- **`ENGRAM_TZ`**（IANA）；`/status` 欄位 **`timezone`**；extract prompt `{{TIMEZONE}}`
+- `server/src/yaml.ts` — Bun 內建 YAML wrapper
+
+### Changed
+
+- Ledger remains `days/{id}.md` append-only; one `chain` patch drives both tracks
+- Dream report timeline shows summary first; ledger increment in `<details>`
+- Mock agent／`test:phases` cover dual-track
+- Timezone helpers：`calendarDate`／`nowIso`（取代 `taipeiDate`／`taipeiNowIso`）；預設 **`Asia/Hong_Kong`**
+- **Event id** 寬度：`e` + **10** 位（例 `e0000000001`）；`nextEventId` 以 `wc -l` 計行，不整檔 parse JSONL
+- 熱路徑：DLQ count／L1 empty → `wc -l`；`patchesForRun` → `grep -F`；dream extract 事件來自 L1 scope（避免掃巨大 L0）
+- 依賴：移除 npm **`yaml`**；TypeScript **~7**；`tsconfig` 去掉 deprecated `baseUrl`／`paths`
+- Web status poll：lock **5s**／pending **20s**／idle **60s**
+- 產品中文用語：Capture→**記下**、Consolidate→**沉澱**、Recall→**回憶**、Dream→**入夢**（`domain-language.md`）
+- Server 模組／主要 export 補責任註解
+
+### Removed
+
+- **`fixture:apply` CLI** 與 `server/fixtures/` — 機械回歸改以 `test:phases` 為主
+- Hardcoded **Asia/Taipei** in runtime helpers（改為 `ENGRAM_TZ`）
+
+### Unchanged
+
+- No week/month rollup; no memory-content translation; no commit-time AI re-fuse
+- Recall still does **not** inject future-sight
+
+---
+
 ## 0.4.1 — Capture API rename (2026-07-22)
 
 Unify product vocabulary: **Capture** subsumes Ingest.

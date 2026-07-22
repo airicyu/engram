@@ -1,3 +1,5 @@
+/** Dream orchestration: extract, materialize, review, approve, and discard. */
+
 import type { AgentRunner, ExtractContext } from "../agent/types";
 import { ClaudeCodeRunner } from "../agent/claude-code";
 import { CursorCliRunner } from "../agent/cursor-cli";
@@ -9,8 +11,9 @@ import {
   isL1Empty,
   clearL1Scope,
 } from "../store/l1";
-import { readAllEvents, taipeiNowIso } from "../store/events";
+import { calendarDate, nowIso } from "../store/events";
 import { listNodeIds, readAllWhatCurrents } from "../store/nodes";
+import { readDay, readDaySummary } from "../store/chain";
 import { appendPatchesIfNew, patchesForRun } from "../store/patches";
 import type { Patch } from "./schema";
 import { pendingDlqCount } from "../store/dlq";
@@ -25,6 +28,7 @@ import {
   commitDraft,
 } from "../store/draft";
 import { sweepExpiredFutureSight, staleFutureAnchorIds } from "../store/future-sight";
+import { config } from "../config";
 import {
   DreamRunMismatchError,
   discardPending,
@@ -39,6 +43,7 @@ import {
   type DreamRunState,
 } from "../store/dream-runs";
 
+/** Indicates a dream that failed during extract or draft materialization. */
 export class DreamIncompleteError extends Error {
   dream_run_id: string;
   phase: "extract" | "materialize";
@@ -50,6 +55,7 @@ export class DreamIncompleteError extends Error {
   }
 }
 
+/** Indicates a dream request with no L1 events to process. */
 export class NothingToDreamError extends Error {
   constructor() {
     super("L1 pool is empty — nothing to dream");
@@ -57,11 +63,12 @@ export class NothingToDreamError extends Error {
   }
 }
 
-export function makeDreamRunId(nowIso = taipeiNowIso()): string {
+/** Create a collision-resistant identifier for a dream run. */
+export function makeDreamRunId(at = nowIso()): string {
   // Second-precision ISO alone collides when two runs start in the same second
   // (appendPatchesIfNew would reuse the prior run's patches).
   const uniq = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-  return `dream-${nowIso}-${uniq}`;
+  return `dream-${at}-${uniq}`;
 }
 
 function pickRunner(): AgentRunner {
@@ -72,16 +79,19 @@ function pickRunner(): AgentRunner {
   return new CursorCliRunner();
 }
 
+/** Build the frozen L1, L2, and chain context supplied to an extraction runner. */
 export async function buildExtractContext(
   dreamRunId: string,
   scope: string[],
 ): Promise<ExtractContext> {
   const scopeEntries = await readPoolEntriesForScope(scope);
-  const allEvents = await readAllEvents();
-  const byId = new Map(allEvents.map((e) => [e.id, e]));
-  const events = scope
-    .map((id) => byId.get(id))
-    .filter((e): e is NonNullable<typeof e> => !!e);
+  // L1 pool already holds id/ts/raw/node_refs for S — avoid readAllEvents() on huge L0 log.
+  const events = scopeEntries.map((e) => ({
+    id: e.id,
+    ts: e.ts,
+    raw: e.raw,
+    node_refs: e.node_refs,
+  }));
 
   const summary = scopeEntries
     .map((e) => `- [${e.ts}] (${e.id}) ${e.raw.trim()}`)
@@ -100,22 +110,34 @@ export async function buildExtractContext(
   const existing_nodes = await listNodeIds();
   const l2_current = await readAllWhatCurrents();
 
+  const today = calendarDate();
+  const candidateDays = new Set<string>([today]);
+  for (const e of events) {
+    candidateDays.add(calendarDate(e.ts));
+  }
+  const days = [...candidateDays].sort();
+
+  const chain_summaries_current: ExtractContext["chain_summaries_current"] = [];
+  const chain_ledgers: NonNullable<ExtractContext["chain_ledgers"]> = [];
+  for (const day of days) {
+    chain_summaries_current.push({ day, current: await readDaySummary(day) });
+    chain_ledgers.push({ day, content: await readDay(day) });
+  }
+
   return {
     dream_run_id: dreamRunId,
-    timezone: "Asia/Taipei",
+    timezone: config.timezone,
     scope,
     l1: { summary: summary ? summary + "\n" : "", node_notes },
-    events: events.map((e) => ({
-      id: e.id,
-      ts: e.ts,
-      raw: e.raw,
-      node_refs: e.node_refs,
-    })),
+    events,
     l2_current,
     existing_nodes,
+    chain_summaries_current,
+    chain_ledgers,
   };
 }
 
+/** Result returned after a dream reaches pending review. */
 export interface DreamRunResult {
   dream_run_id: string;
   scope: string[];
@@ -125,6 +147,7 @@ export interface DreamRunResult {
   phase: "pending_review";
 }
 
+/** Run extraction and draft materialization, leaving output pending review. */
 export async function runDream(opts?: {
   runner?: AgentRunner;
   dream_run_id?: string;
@@ -260,6 +283,7 @@ async function doExtract(
   return stored;
 }
 
+/** High-level state reported for the dream pipeline. */
 export type DreamStatus =
   | "ok"
   | "pending_review"
@@ -268,6 +292,7 @@ export type DreamStatus =
   | "never_dreamed"
   | "l1_clear_pending";
 
+/** Derive the current dream pipeline state from persistent records. */
 export async function computeDreamStatus(): Promise<DreamStatus> {
   const pending = await getPendingRun();
   if (pending) return "pending_review";
@@ -291,13 +316,19 @@ export async function computeDreamStatus(): Promise<DreamStatus> {
   return "ok";
 }
 
+/** Return the complete payload for the active pending dream, if any. */
 export async function getPendingPayload(): Promise<{
   present: boolean;
   dream_run_id: string | null;
   scope: string[];
   report: string | null;
   patches: Patch[];
-  draft_summary: { entry_count: number; chain_days: string[] } | null;
+  draft_summary: {
+    entry_count: number;
+    chain_days: string[];
+    chain_summary_days: string[];
+    future_ids: string[];
+  } | null;
 }> {
   const pending = await getPendingRun();
   if (!pending) {
@@ -325,6 +356,7 @@ export async function getPendingPayload(): Promise<{
   };
 }
 
+/** Result returned after committing a pending dream. */
 export interface ApproveResult {
   dream_run_id: string;
   committed: string[];
@@ -333,6 +365,7 @@ export interface ApproveResult {
   empty_patches: boolean;
 }
 
+/** Commit the pending draft and clear its frozen L1 scope. */
 export async function approveDream(opts?: { dream_run_id?: string }): Promise<ApproveResult> {
   // Retry path: commit already done, only clear L1
   const clearOnly = await getL1ClearPendingRun();
@@ -379,7 +412,7 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   }
 
   pending.status = "committed";
-  pending.committed_at = taipeiNowIso();
+  pending.committed_at = nowIso();
   pending.l1_clear_pending = true;
   await writeDreamRun(pending);
 
@@ -410,6 +443,7 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   };
 }
 
+/** Discard the active pending dream without mutating L1 or L2. */
 export async function discardDream(opts?: { dream_run_id?: string }): Promise<{
   dream_run_id: string;
   discarded: true;
@@ -419,6 +453,7 @@ export async function discardDream(opts?: { dream_run_id?: string }): Promise<{
   return { dream_run_id: discarded.id, discarded: true };
 }
 
+/** Indicates an action that requires a pending dream when none exists. */
 export class NoPendingError extends Error {
   constructor() {
     super("no pending dream to act on");
@@ -426,6 +461,7 @@ export class NoPendingError extends Error {
   }
 }
 
+/** Indicates day-chain patches that incorrectly target future dates. */
 export class FutureChainIdError extends Error {
   rejected_chain_ids: string[];
   constructor(ids: string[]) {
@@ -435,6 +471,7 @@ export class FutureChainIdError extends Error {
   }
 }
 
+/** Indicates future-sight patches whose anchors have already expired. */
 export class StaleFutureAnchorError extends Error {
   rejected_future_ids: string[];
   constructor(ids: string[]) {
@@ -444,6 +481,7 @@ export class StaleFutureAnchorError extends Error {
   }
 }
 
+/** Return a compact summary of the active pending dream. */
 export async function pendingRunSummary(): Promise<{
   dream_run_id: string;
   scope_count: number;

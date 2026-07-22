@@ -2,7 +2,7 @@
 
 Base URL: `http://localhost:8787` (override with `PORT`).
 
-All timestamps and dates use **Asia/Taipei**.
+All timestamps and calendar dates use the configured IANA timezone (`ENGRAM_TZ`, default **`Asia/Hong_Kong`**).
 
 **Empty reads:** endpoints that mean “no content right now” return **200** with an empty body shape (`present: false`, `null`, `[]`) — **not 404**. 404 is only for unknown paths/methods.
 
@@ -41,6 +41,7 @@ Snapshot of store health, dream state, and async job status.
 ```json
 {
   "engram_home": "/path/to/data",
+  "timezone": "Asia/Hong_Kong",
   "lock": false,
   "l1_empty": false,
   "pending_dlq_count": 0,
@@ -59,6 +60,7 @@ Snapshot of store health, dream state, and async job status.
 | Field | Type | Meaning |
 |-------|------|---------|
 | `engram_home` | string | Resolved `ENGRAM_HOME` path |
+| `timezone` | string | IANA zone (`ENGRAM_TZ`, default `Asia/Hong_Kong`) |
 | `lock` | boolean | `true` while extract／materialize／approve commit holds the lock |
 | `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
 | `l1_empty` | boolean | `true` when L1 mem pool has no entries |
@@ -97,7 +99,7 @@ Append one event to L0 and the L1 mem pool (indexed by event id).
 }
 ```
 
-**Response `201`:** `{ "event_id": "e000001" }`
+**Response `201`:** `{ "event_id": "e0000000001" }`
 
 **Errors:** `400` missing `raw`; `409` `dream_locked`.
 
@@ -152,7 +154,18 @@ Always **200**. No pending → empty shape (not 404).
 }
 ```
 
-**Present:** `present: true` plus filled fields; optional `draft_summary: { entry_count, chain_days }`.
+**Present:** `present: true` plus filled fields; optional `draft_summary`:
+
+```json
+{
+  "entry_count": 3,
+  "chain_days": ["2026-07-22"],
+  "chain_summary_days": ["2026-07-22"],
+  "future_ids": ["fs-2026-07-31-deadline"]
+}
+```
+
+`chain_days` = ledger files (`days/{id}.md`); `chain_summary_days` = summary files (`days/{id}.summary.md`).
 
 ---
 
@@ -174,7 +187,7 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 {
   "dream_run_id": "dream-…",
   "committed": ["nodes/acme/understand/what.md", "future-sight/active/fs-….md"],
-  "cleared_scope": ["e000001", "e000002"],
+  "cleared_scope": ["e0000000001", "e0000000002"],
   "l1_clear_pending": false,
   "empty_patches": false
 }
@@ -196,7 +209,7 @@ Drop pending intent + draft. L1／L2／active future-sight unchanged. Body optio
 
 List **active** near-horizon future-sight anchors. Always **200**. Empty → `anchors: []`.
 
-On each call: **lazy sweep** — for each active file with `anchor_end` &lt; today (Asia/Taipei), append L0+L1 event (`source: system/future_sight_expired`) then **hard-delete** the active file. No expired query endpoint.
+On each call: **lazy sweep** — for each active file with `anchor_end` &lt; today (configured timezone), append L0+L1 event (`source: system/future_sight_expired`) then **hard-delete** the active file. No expired query endpoint.
 
 **Response `200`**
 
@@ -223,7 +236,17 @@ On each call: **lazy sweep** — for each active file with `anchor_end` &lt; tod
 
 ## `GET /recall`
 
-Recall packet. Shape unchanged from the former `/activate`. Does **not** include future-sight. `dream_status` includes 0.3+ values (`pending_review`, `l1_clear_pending`, …).
+Recall packet. Does **not** include future-sight. `dream_status` includes 0.3+ values (`pending_review`, `l1_clear_pending`, …).
+
+**`chain` block (0.5.0):**
+
+| Field | Meaning |
+|-------|---------|
+| `day_id` | Today (configured timezone) |
+| `content` | Prefer **summary** Current from `memory-chain/days/{day}.summary.md`; if missing／empty → **fallback** ledger `days/{day}.md` |
+| `source` | `"summary"` \| `"ledger_fallback"` \| `"empty"` |
+
+Ledger is not injected when a non-empty summary exists.
 
 ---
 
@@ -246,7 +269,7 @@ Recall packet. Shape unchanged from the former `/activate`. Does **not** include
 |------|------------|
 | `propose_node` | Create live node under `nodes/{id}/` (seed what／meta) |
 | `semantic` (`facet: what`) | Update `nodes/{id}/understand/what.md` |
-| `chain` (`level: day`) | Append `memory-chain/days/{id}.md` — **occurrence** day; future ids blocked at approve |
+| `chain` (`level: day`) | Dual-track: append ledger `memory-chain/days/{id}.md` **and** init／revise summary `memory-chain/days/{id}.summary.md` (`summary`, `summary_operation`: `init`\|`revise`). Occurrence day only; future ids blocked at approve. Legacy patches without `summary` write ledger only. |
 | `future` | Write／overwrite `future-sight/active/{id}.md` — near-horizon anchor; stale `anchor_end` blocked |
 | `episodic` (confidence &lt; 0.6) | Attribution candidate |
 | `episodic` (≥ 0.6) | No-op (chronology not in prototype) |

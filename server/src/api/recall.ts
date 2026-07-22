@@ -1,9 +1,12 @@
+/** Recall API handler that composes L1, L2, and memory-chain context. */
+
 import { readSummary, readAllNodeNotes, isL1Empty } from "../store/l1";
-import { readDay } from "../store/chain";
+import { readDayForRecall } from "../store/chain";
 import { listNodeIds, readWhatCurrent } from "../store/nodes";
-import { taipeiDate } from "../store/events";
+import { calendarDate } from "../store/events";
 import { computeDreamStatus, type DreamStatus } from "../dream/run";
 
+/** Context packet returned from GET /recall. */
 export interface RecallPacket {
   query: string | null;
   sources: Array<"L1" | "L2" | "chain" | "gap">;
@@ -16,6 +19,8 @@ export interface RecallPacket {
   chain: {
     day_id: string;
     content: string;
+    /** Prefer summary; ledger_fallback only when no summary file/Current. */
+    source: "summary" | "ledger_fallback" | "empty";
   };
   nodes: Array<{
     node: string;
@@ -24,6 +29,7 @@ export interface RecallPacket {
   }>;
 }
 
+/** Build a recall packet for an optional query. */
 export async function handleRecall(q: string | null): Promise<RecallPacket> {
   const sources: RecallPacket["sources"] = [];
   const dream_status = await computeDreamStatus();
@@ -33,14 +39,14 @@ export async function handleRecall(q: string | null): Promise<RecallPacket> {
 
   if (!l1Empty) sources.push("L1");
 
-  const day_id = taipeiDate();
-  const dayContent = await readDay(day_id);
-  if (dayContent.trim()) sources.push("chain");
+  const day_id = calendarDate();
+  const day = await readDayForRecall(day_id);
+  if (day.content.trim()) sources.push("chain");
 
   const query = q?.trim() || null;
   const matched = await matchNodes(query, node_notes);
   if (matched.length > 0) sources.push("L2");
-  if (query && matched.length === 0 && l1Empty && !dayContent.trim()) {
+  if (query && matched.length === 0 && l1Empty && !day.content.trim()) {
     sources.push("gap");
   }
 
@@ -55,7 +61,8 @@ export async function handleRecall(q: string | null): Promise<RecallPacket> {
     },
     chain: {
       day_id,
-      content: dayContent,
+      content: day.content,
+      source: day.source,
     },
     nodes: matched,
   };
