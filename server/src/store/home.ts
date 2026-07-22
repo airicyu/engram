@@ -1,8 +1,10 @@
+/** Engram home directory paths and initial store scaffolding. */
+
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { ensureL1SummaryFile } from "./l1";
 import { ensureDreamDirs } from "./dream-runs";
 import { join } from "node:path";
-import { stringify } from "yaml";
+import { stringify } from "../yaml";
 import { config } from "../config";
 
 async function exists(path: string): Promise<boolean> {
@@ -14,10 +16,12 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
+/** Resolve a path within the configured ENGRAM_HOME. */
 export function homePath(...parts: string[]): string {
   return join(config.engramHome, ...parts);
 }
 
+/** Create the required store directories and empty metadata files. */
 export async function ensureEngramHome(): Promise<void> {
   const dirs = [
     "",

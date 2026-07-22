@@ -140,6 +140,39 @@ body {
   margin-left: auto;
 }
 
+.locale-switch {
+  display: inline-flex;
+  gap: 0.15rem;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.15rem;
+  background: var(--surface);
+}
+
+.locale-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.locale-btn.is-active {
+  background: rgba(28, 36, 48, 0.08);
+  color: var(--ink);
+}
+
+.locale-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .status-dot {
   width: 0.55rem;
   height: 0.55rem;

@@ -1,8 +1,11 @@
+/** Cursor CLI-backed runner for extracting dream patches. */
+
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { config } from "../config";
 import type { AgentRunner, ExtractContext } from "./types";
+import type { Patch } from "../dream/schema";
 import { parseAgentExtractOutput } from "../dream/schema";
 import {
   logAgentResult,
@@ -14,6 +17,7 @@ import {
 const PROMPT_PATH = join(import.meta.dir, "../../prompts/extract.md");
 const RUNNER = "cursor";
 
+/** Extract patches by invoking the configured Cursor agent binary. */
 export class CursorCliRunner implements AgentRunner {
   async extract(ctx: ExtractContext): Promise<Patch[]> {
     const promptTemplate = await readFile(PROMPT_PATH, "utf8");
@@ -32,7 +36,8 @@ export class CursorCliRunner implements AgentRunner {
 
       const prompt = promptTemplate
         .replaceAll("{{CONTEXT_PATH}}", ctxPath)
-        .replaceAll("{{DREAM_RUN_ID}}", ctx.dream_run_id);
+        .replaceAll("{{DREAM_RUN_ID}}", ctx.dream_run_id)
+        .replaceAll("{{TIMEZONE}}", ctx.timezone);
 
       const cmd = [
         config.cursorAgentBin,

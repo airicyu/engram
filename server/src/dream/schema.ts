@@ -1,5 +1,6 @@
-/** Patch schema + runtime validation. Extract fails entirely if any patch fails. */
+/** Patch schema and runtime validation for agent extraction output. */
 
+/** Union of all patch kinds accepted by the dream pipeline. */
 export type Patch =
   | SemanticPatch
   | EpisodicPatch
@@ -15,6 +16,7 @@ interface PatchBase {
   event_refs?: string[];
 }
 
+/** Long-term node understanding update. */
 export interface SemanticPatch extends PatchBase {
   type: "semantic";
   node: string;
@@ -23,6 +25,7 @@ export interface SemanticPatch extends PatchBase {
   content: string;
 }
 
+/** Candidate episodic attribution for a node. */
 export interface EpisodicPatch extends PatchBase {
   type: "episodic";
   node: string;
@@ -32,11 +35,20 @@ export interface EpisodicPatch extends PatchBase {
   content: string;
 }
 
+/** Daily memory-chain ledger and summary update. */
 export interface ChainPatch extends PatchBase {
   type: "chain";
   level: "day";
   id: string;
+  /** Incremental ledger block text → `days/{id}.md` append. */
   content: string;
+  /**
+   * Fused day narrative → `days/{id}.summary.md` Current.
+   * Optional only for legacy patches (ledger-only); new extract must include it.
+   */
+  summary?: string;
+  /** Present iff `summary` is set. */
+  summary_operation?: "init" | "revise";
 }
 
 /** Near-horizon future-sight anchor (not memory-chain). */
@@ -49,6 +61,7 @@ export interface FuturePatch extends PatchBase {
   node_refs?: string[];
 }
 
+/** Proposal to create a new long-term node. */
 export interface ProposeNodePatch extends PatchBase {
   type: "propose_node";
   proposed_id: string;
@@ -59,6 +72,7 @@ export interface ProposeNodePatch extends PatchBase {
   seed_facets?: { what?: string };
 }
 
+/** Review decision for dead-letter patches. */
 export interface DlqReviewPatch extends PatchBase {
   type: "dlq_review";
   consumed_ids: string[];
@@ -96,6 +110,7 @@ function reqDay(obj: Record<string, unknown>, key: string): string {
   return v;
 }
 
+/** Validate and normalize one untrusted patch value. */
 export function parsePatch(raw: unknown): Patch {
   if (!isObject(raw)) throw new Error("patch must be object");
   const patch_id = reqString(raw, "patch_id");
@@ -149,6 +164,21 @@ export function parsePatch(raw: unknown): Patch {
     case "chain": {
       const level = reqString(raw, "level");
       if (level !== "day") throw new Error(`unsupported chain level: ${level}`);
+      const hasSummary = raw.summary !== undefined;
+      const hasOp = raw.summary_operation !== undefined;
+      if (hasSummary !== hasOp) {
+        throw new Error("chain requires both summary and summary_operation, or neither (legacy)");
+      }
+      let summary: string | undefined;
+      let summary_operation: ChainPatch["summary_operation"];
+      if (hasSummary) {
+        summary = reqString(raw, "summary");
+        const op = reqString(raw, "summary_operation");
+        if (op !== "init" && op !== "revise") {
+          throw new Error(`invalid summary_operation: ${op}`);
+        }
+        summary_operation = op;
+      }
       return {
         type: "chain",
         patch_id,
@@ -158,6 +188,8 @@ export function parsePatch(raw: unknown): Patch {
         level: "day",
         id: reqString(raw, "id"),
         content: reqString(raw, "content"),
+        summary,
+        summary_operation,
       };
     }
     case "future": {
@@ -223,6 +255,7 @@ export function parsePatch(raw: unknown): Patch {
   }
 }
 
+/** Validate an array of untrusted patch values. */
 export function parsePatchArray(raw: unknown): Patch[] {
   if (!Array.isArray(raw)) throw new Error("expected JSON array of patches");
   // Empty array allowed (0.3 #29): pending_review with no L2 writes; approve clears S only.

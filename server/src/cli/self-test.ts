@@ -99,18 +99,18 @@ async function main() {
       source: "api",
       node_refs: ["acme", "alice"],
     });
-    assert(i1.status === 201 && i1.data.event_id === "e000001", "first ingest");
+    assert(i1.status === 201 && i1.data.event_id === "e0000000001", "first ingest");
 
     const i2 = await json("POST", "/capture", {
       raw: "NewCo might partner with us on aurora",
       node_refs: ["aurora"],
     });
-    assert(i2.data.event_id === "e000002", "second ingest");
+    assert(i2.data.event_id === "e0000000002", "second ingest");
 
     const events = await readFile(join(TEST_HOME, "log/events.jsonl"), "utf8");
     assert(events.trim().split("\n").length === 2, "L0 two lines");
     const pool = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
-    assert(pool.includes("e000001") && pool.includes("e000002"), "L1 pool indexed");
+    assert(pool.includes("e0000000001") && pool.includes("e0000000002"), "L1 pool indexed");
 
     for (const [id, what] of [
       ["acme", "Partner organization we integrate with."],
@@ -151,7 +151,7 @@ async function main() {
       raw: "Daytime note after extract — should survive approve of S",
     });
     assert(i3.status === 201, "ingest during pending_review");
-    assert(i3.data.event_id === "e000003", "third event");
+    assert(i3.data.event_id === "e0000000003", "third event");
 
     console.log("Phase 2: approve → commit L2 + clear S only");
     const ap = await json("POST", "/dream/approve", {});
@@ -160,9 +160,9 @@ async function main() {
     assert(Array.isArray(ap.data.committed) && ap.data.committed.length > 0, "committed paths");
 
     const poolAfter = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
-    assert(poolAfter.includes("e000003"), "new ingest kept in pool");
-    assert(!poolAfter.includes("e000001"), "S cleared e000001");
-    assert(!poolAfter.includes("e000002"), "S cleared e000002");
+    assert(poolAfter.includes("e0000000003"), "new ingest kept in pool");
+    assert(!poolAfter.includes("e0000000001"), "S cleared e0000000001");
+    assert(!poolAfter.includes("e0000000002"), "S cleared e0000000002");
 
     // Mock proposes newco from "NewCo" ingest; semantic lands on newco
     const whatNewco = await readFile(
@@ -174,7 +174,29 @@ async function main() {
       "L2 newco updated",
     );
     const days = await readdir(join(TEST_HOME, "memory-chain/days"));
-    assert(days.some((f) => f.endsWith(".md")), "chain day written");
+    const ledgerFiles = days.filter((f) => /^\d{4}-\d{2}-\d{2}\.md$/.test(f));
+    const summaryFiles = days.filter((f) => /^\d{4}-\d{2}-\d{2}\.summary\.md$/.test(f));
+    assert(ledgerFiles.length > 0, "chain ledger day written");
+    assert(summaryFiles.length > 0, "chain summary day written");
+    const sampleDay = ledgerFiles[0].replace(/\.md$/, "");
+    const ledgerBody = await readFile(
+      join(TEST_HOME, "memory-chain/days", `${sampleDay}.md`),
+      "utf8",
+    );
+    assert(ledgerBody.includes("<!-- patch:"), "ledger has patch marker");
+    const summaryBody = await readFile(
+      join(TEST_HOME, "memory-chain/days", `${sampleDay}.summary.md`),
+      "utf8",
+    );
+    assert(summaryBody.includes("## Current"), "summary has Current");
+    assert(summaryBody.includes("Day summary (mock)") || summaryBody.includes("Day ledger"), "summary content");
+
+    const recallChain = await json("GET", "/recall");
+    assert(recallChain.data.chain?.source === "summary", "recall prefers summary");
+    assert(
+      !String(recallChain.data.chain?.content ?? "").includes("<!-- patch:"),
+      "recall summary does not inject ledger markers",
+    );
     const whatAcmeStill = await readFile(
       join(TEST_HOME, "nodes/acme/understand/what.md"),
       "utf8",
@@ -199,7 +221,7 @@ async function main() {
     assert(st.data.dream_status === "dream_incomplete", "status dream_incomplete");
     assert(st.data.dream_job?.phase === "extract", "failed phase extract");
     const l1Kept = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
-    assert(l1Kept.includes("e000003"), "L1 retained after extract fail");
+    assert(l1Kept.includes("e0000000003"), "L1 retained after extract fail");
 
     const noPending = await json("GET", "/dream/pending");
     assert(noPending.data.present === false, "failed materialize/extract does not create pending");
@@ -218,7 +240,7 @@ async function main() {
     const disc = await json("POST", "/dream/discard", {});
     assert(disc.status === 200 && disc.data.discarded === true, "discard ok");
     const stillPool = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
-    assert(stillPool.includes("e000003"), "discard leaves L1");
+    assert(stillPool.includes("e0000000003"), "discard leaves L1");
 
     console.log("Phase 5: future-sight patch → approve → list → sweep");
     const iFs = await json("POST", "/capture", {
@@ -279,7 +301,7 @@ Old foresight that should expire.
     const poolSweep = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
     assert(poolSweep.includes("Future-sight expired"), "L1 has expiry note");
 
-    console.log("\n✅ All 0.4 self-checks passed");
+    console.log("\n✅ All 0.5 self-checks passed");
   } finally {
     await stopServer(server);
   }

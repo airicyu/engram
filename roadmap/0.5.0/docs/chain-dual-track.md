@@ -21,7 +21,7 @@ memory-chain/days/
 └── 2026-07-22.summary.md   # summary
 ```
 
-- `id`（patch `chain.id`）= occurrence day `YYYY-MM-DD`（Asia/Taipei），與 0.3 world timeline 一致。
+- `id`（patch `chain.id`）= occurrence day `YYYY-MM-DD`（`ENGRAM_TZ`，預設 Asia/Hong_Kong），與 0.3 world timeline 一致。
 - Summary 檔名固定 `{id}.summary.md`，與 ledger 同目錄。
 
 ### Ledger 格式（不變）

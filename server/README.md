@@ -23,14 +23,12 @@ curl -s 'http://localhost:8787/recall'
 curl -s -X POST http://localhost:8787/dream/run
 ```
 
-> **不要**對試用庫跑 `fixture:apply --seed`——那會寫入 acme/alice/aurora 測試 node。  
-> Fixture 只給機械層自測用。
-
-Env:
+Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；皆可選）。
 
 | Var | Default | Meaning |
 |-----|---------|---------|
 | `ENGRAM_HOME` | `../data` | memory store root |
+| `ENGRAM_TZ` | `Asia/Hong_Kong` | IANA timezone for calendar days + event timestamps |
 | `PORT` | `8787` | HTTP port |
 | `CLAUDE_BIN` | `claude` | Claude Code binary (when `ENGRAM_AGENT=claude`) |
 | `CURSOR_AGENT_BIN` | `agent` | Cursor CLI binary (when `ENGRAM_AGENT=cursor`) |
@@ -52,14 +50,6 @@ Env:
 bun run reset
 # or another home:
 ENGRAM_HOME=/tmp/engram-try bun run reset
-```
-
-## Fixture apply（僅 Phase 1 機械測試，勿當試用資料）
-
-```bash
-bun run reset
-bun run fixture:apply -- fixtures/happy.jsonl --seed
-bun run fixture:apply -- fixtures/with-bad.jsonl
 ```
 
 ## Self-test

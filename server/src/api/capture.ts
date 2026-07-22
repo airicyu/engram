@@ -1,7 +1,10 @@
-import { appendEvent, nextEventId, taipeiNowIso } from "../store/events";
+/** Capture API handler for appending an L0 event and L1 pool entry. */
+
+import { appendEvent, nextEventId, nowIso } from "../store/events";
 import { appendPoolEntry } from "../store/l1";
 import { isLocked } from "../store/lock";
 
+/** Request payload accepted by POST /capture. */
 export interface CaptureBody {
   raw: string;
   source?: string;
@@ -9,6 +12,7 @@ export interface CaptureBody {
   idempotency_key?: string;
 }
 
+/** Validate and persist a captured memory event. */
 export async function handleCapture(body: CaptureBody): Promise<{ event_id: string } | Response> {
   if (await isLocked()) {
     return Response.json(
@@ -22,7 +26,7 @@ export async function handleCapture(body: CaptureBody): Promise<{ event_id: stri
   }
 
   const event_id = await nextEventId();
-  const ts = taipeiNowIso();
+  const ts = nowIso();
   const source = body.source ?? "api";
   const node_refs = body.node_refs;
 

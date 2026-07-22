@@ -1,9 +1,12 @@
+/** Future-sight anchor persistence, validation, rendering, and expiry sweeping. */
+
 import { access, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { parse, stringify } from "yaml";
+import { parse, stringify } from "../yaml";
 import { homePath } from "./home";
-import { appendEvent, nextEventId, taipeiDate, taipeiNowIso } from "./events";
+import { appendEvent, nextEventId, calendarDate, nowIso } from "./events";
 import { appendPoolEntry } from "./l1";
 
+/** A near-horizon anchor stored outside the memory chain. */
 export interface FutureSightAnchor {
   id: string;
   anchor_start: string;
@@ -24,6 +27,7 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
+/** Resolve the directory containing active future-sight anchors. */
 export function futureSightActiveDir(): string {
   return homePath("future-sight", "active");
 }
@@ -34,6 +38,7 @@ function anchorPath(id: string): string {
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Return whether a value is a YYYY-MM-DD day identifier. */
 export function isValidDay(s: string): boolean {
   return DAY_RE.test(s);
 }
@@ -43,6 +48,7 @@ export function isValidFutureSightId(id: string): boolean {
   return /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/.test(id);
 }
 
+/** Render a future-sight anchor as frontmatter markdown. */
 export function renderFutureSightMarkdown(a: FutureSightAnchor): string {
   const meta: Record<string, unknown> = {
     id: a.id,
@@ -58,6 +64,7 @@ export function renderFutureSightMarkdown(a: FutureSightAnchor): string {
   return `---\n${stringify(meta).trim()}\n---\n\n${body}\n`;
 }
 
+/** Parse and validate a frontmatter markdown future-sight anchor. */
 export function parseFutureSightMarkdown(text: string, fallbackId?: string): FutureSightAnchor {
   const m = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
   if (!m) {
@@ -92,6 +99,7 @@ export function parseFutureSightMarkdown(text: string, fallbackId?: string): Fut
   };
 }
 
+/** List readable active anchors in chronological order. */
 export async function listActiveAnchors(): Promise<FutureSightAnchor[]> {
   const dir = futureSightActiveDir();
   if (!(await exists(dir))) return [];
@@ -111,6 +119,7 @@ export async function listActiveAnchors(): Promise<FutureSightAnchor[]> {
   return out;
 }
 
+/** Count active anchor files without parsing their contents. */
 export async function countActiveAnchors(): Promise<number> {
   const dir = futureSightActiveDir();
   if (!(await exists(dir))) return 0;
@@ -118,22 +127,25 @@ export async function countActiveAnchors(): Promise<number> {
   return names.filter((n) => n.endsWith(".md")).length;
 }
 
+/** Persist an active future-sight anchor. */
 export async function writeActiveAnchor(a: FutureSightAnchor): Promise<void> {
   await mkdir(futureSightActiveDir(), { recursive: true });
   await writeFile(anchorPath(a.id), renderFutureSightMarkdown(a), "utf8");
 }
 
+/** Delete an active future-sight anchor by identifier. */
 export async function deleteActiveAnchor(id: string): Promise<void> {
   await rm(anchorPath(id), { force: true });
 }
 
-export function isExpired(a: FutureSightAnchor, today = taipeiDate()): boolean {
+/** Return whether an anchor ended before the supplied day. */
+export function isExpired(a: FutureSightAnchor, today = calendarDate()): boolean {
   return a.anchor_end < today;
 }
 
 async function expireOne(a: FutureSightAnchor): Promise<void> {
   const event_id = await nextEventId();
-  const ts = taipeiNowIso();
+  const ts = nowIso();
   const raw =
     `Future-sight expired: ${a.id} (${a.anchor_start}→${a.anchor_end}). ` +
     `${a.content.trim().slice(0, 400)}`;
@@ -166,7 +178,7 @@ async function expireOne(a: FutureSightAnchor): Promise<void> {
  * Lazy sweep: for each active anchor with anchor_end < today,
  * append L0+L1 expiry event then hard-delete the live file.
  */
-export async function sweepExpiredFutureSight(today = taipeiDate()): Promise<string[]> {
+export async function sweepExpiredFutureSight(today = calendarDate()): Promise<string[]> {
   const active = await listActiveAnchors();
   const swept: string[] = [];
   for (const a of active) {
@@ -180,7 +192,7 @@ export async function sweepExpiredFutureSight(today = taipeiDate()): Promise<str
 /** Collect stale future patches (anchor_end < today) for approve gate. */
 export function staleFutureAnchorIds(
   patches: Array<{ type: string; id?: string; anchor_end?: string }>,
-  today = taipeiDate(),
+  today = calendarDate(),
 ): string[] {
   const out: string[] = [];
   for (const p of patches) {

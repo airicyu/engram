@@ -1,3 +1,5 @@
+/** HTTP handlers for starting, reviewing, approving, and discarding dreams. */
+
 import {
   runDream,
   makeDreamRunId,
@@ -16,6 +18,7 @@ import { DreamRunMismatchError } from "../store/dream-runs";
 import { writeDreamJob } from "../store/dream-job";
 import { logError, logInfo } from "../log";
 
+/** POST /dream/run — start asynchronous extract and draft materialization. */
 export async function handleDreamRun(): Promise<Response> {
   if (await isL1Empty() || (await listPoolEventIds()).length === 0) {
     return Response.json(
@@ -120,11 +123,13 @@ export async function handleDreamRun(): Promise<Response> {
   );
 }
 
+/** GET /dream/pending — return the current review payload. */
 export async function handleDreamPending(): Promise<Response> {
   const payload = await getPendingPayload();
   return Response.json(payload);
 }
 
+/** POST /dream/approve — commit the pending draft and clear its L1 scope. */
 export async function handleDreamApprove(body?: { dream_run_id?: string }): Promise<Response> {
   if (await isLocked()) {
     return Response.json(
@@ -199,6 +204,7 @@ export async function handleDreamApprove(body?: { dream_run_id?: string }): Prom
   }
 }
 
+/** POST /dream/discard — discard the pending draft without clearing L1. */
 export async function handleDreamDiscard(body?: { dream_run_id?: string }): Promise<Response> {
   if (await isLocked()) {
     return Response.json(

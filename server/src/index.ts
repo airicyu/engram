@@ -1,3 +1,7 @@
+/**
+ * HTTP entrypoint: starts Bun.serve and wires Engram API routes.
+ */
+
 import { config } from "./config";
 import { ensureEngramHome } from "./store/home";
 import { handleCapture } from "./api/capture";
@@ -134,4 +138,5 @@ const server = Bun.serve({
 
 logInfo(`engram listening on ${server.url}`);
 logInfo(`ENGRAM_HOME=${config.engramHome}`);
+logInfo(`ENGRAM_TZ=${config.timezone}`);
 logInfo(`ENGRAM_AGENT=${process.env.ENGRAM_AGENT ?? "cursor"}`);

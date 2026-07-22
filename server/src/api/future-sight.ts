@@ -1,8 +1,11 @@
+/** Future-sight API handler that sweeps expired anchors before listing active ones. */
+
 import {
   listActiveAnchors,
   sweepExpiredFutureSight,
 } from "../store/future-sight";
 
+/** Return active future-sight anchors and anchors swept on this request. */
 export async function handleFutureSight(): Promise<object> {
   const swept_expired = await sweepExpiredFutureSight();
   const active = await listActiveAnchors();

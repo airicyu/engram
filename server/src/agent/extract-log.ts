@@ -1,12 +1,16 @@
+/** Structured logging helpers for agent-based dream extraction. */
+
 import type { Patch } from "../dream/schema";
 import { logDream, logDreamDebug, previewText } from "../log";
 
+/** Shared identifiers attached to an agent extraction log entry. */
 export interface AgentExtractLogContext {
   dream_run_id: string;
   runner: string;
   work_dir: string;
 }
 
+/** Log the size and shape of an extraction context. */
 export function logExtractContext(ctx: {
   dream_run_id: string;
   events: number;
@@ -18,10 +22,12 @@ export function logExtractContext(ctx: {
   logDream("extract context", ctx);
 }
 
+/** Return a compact comma-separated description of extracted patches. */
 export function summarizePatches(patches: Patch[]): string {
   return patches.map((p) => `${p.patch_id}:${p.type}`).join(", ");
 }
 
+/** Log an agent command before it starts. */
 export function logAgentSpawn(meta: AgentExtractLogContext & { cmd: string[] }): void {
   logDreamDebug("agent spawn", {
     dream_run_id: meta.dream_run_id,
@@ -31,6 +37,7 @@ export function logAgentSpawn(meta: AgentExtractLogContext & { cmd: string[] }):
   });
 }
 
+/** Log an agent process result with safe output previews. */
 export function logAgentResult(
   meta: AgentExtractLogContext,
   result: {
@@ -53,6 +60,7 @@ export function logAgentResult(
   });
 }
 
+/** Log successfully parsed patches from agent output. */
 export function logExtractParsed(
   dream_run_id: string,
   patches: Patch[],
@@ -64,6 +72,7 @@ export function logExtractParsed(
   });
 }
 
+/** Log details of an agent output parsing failure. */
 export function logExtractParseFailed(
   dream_run_id: string,
   runner: string,

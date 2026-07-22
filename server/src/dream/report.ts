@@ -1,7 +1,10 @@
+/** Human-readable review report renderer for pending dream runs. */
+
 import type { Patch } from "./schema";
 import type { PoolEntry } from "../store/l1";
 import { futureChainIds } from "../store/draft";
-import { taipeiDate } from "../store/events";
+import { calendarDate } from "../store/events";
+import { config } from "../config";
 
 /** Build a human-readable dream report from extract outputs. */
 export function buildDreamReport(opts: {
@@ -11,12 +14,12 @@ export function buildDreamReport(opts: {
   patches: Patch[];
 }): string {
   const { dream_run_id, scope, events, patches } = opts;
-  const today = taipeiDate();
+  const today = calendarDate();
   const lines: string[] = [];
 
   lines.push(`# Dream report — ${dream_run_id}`);
   lines.push("");
-  lines.push(`Generated: ${today} (Asia/Taipei)`);
+  lines.push(`Generated: ${today} (${config.timezone})`);
   lines.push("");
 
   lines.push("## Scope (L1 event ids to clear on approve)");
@@ -60,17 +63,27 @@ export function buildDreamReport(opts: {
   if (occurrence.length === 0) {
     lines.push("_No memory-chain day patches._");
   } else {
-    const byDay = new Map<string, string[]>();
+    const byDay = new Map<string, Extract<Patch, { type: "chain" }>[]>();
     for (const c of occurrence) {
       const list = byDay.get(c.id) ?? [];
-      list.push(c.content.trim());
+      list.push(c);
       byDay.set(c.id, list);
     }
     for (const day of [...byDay.keys()].sort()) {
       const role = day === today ? "occurrence (= encoding today)" : "occurrence";
       lines.push(`### ${day} (${role})`);
-      for (const content of byDay.get(day)!) {
-        lines.push(`- ${content}`);
+      for (const c of byDay.get(day)!) {
+        if (c.summary?.trim()) {
+          lines.push(`- **summary** (${c.summary_operation ?? "?"}): ${c.summary.trim()}`);
+          lines.push("");
+          lines.push("<details><summary>ledger increment</summary>");
+          lines.push("");
+          lines.push(c.content.trim());
+          lines.push("");
+          lines.push("</details>");
+        } else {
+          lines.push(`- ${c.content.trim()}`);
+        }
       }
       lines.push("");
     }

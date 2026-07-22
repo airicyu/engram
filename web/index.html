@@ -17,13 +17,14 @@
     <div class="app">
       <header class="topbar">
         <h1 class="brand">Engram</h1>
-        <nav class="scenes" role="tablist" aria-label="場景">
+        <nav class="scenes" role="tablist" data-i18n-aria="nav.scenes" aria-label="場景">
           <button
             type="button"
             class="scene-btn is-active"
             data-scene="capture"
             role="tab"
             aria-selected="true"
+            data-i18n="scene.capture"
           >
             Capture
           </button>
@@ -33,6 +34,7 @@
             data-scene="consolidate"
             role="tab"
             aria-selected="false"
+            data-i18n="scene.consolidate"
           >
             Consolidate
           </button>
@@ -42,11 +44,37 @@
             data-scene="recall"
             role="tab"
             aria-selected="false"
+            data-i18n="scene.recall"
           >
             Recall
           </button>
         </nav>
-        <div class="status-light" id="status-light" title="連線中…">
+        <div class="locale-switch" role="group" data-i18n-aria="locale.switch" aria-label="介面語言">
+          <button
+            type="button"
+            class="locale-btn is-active"
+            data-locale="zh-Hant"
+            aria-pressed="true"
+            data-i18n="locale.zh"
+          >
+            繁體中文
+          </button>
+          <button
+            type="button"
+            class="locale-btn"
+            data-locale="en"
+            aria-pressed="false"
+            data-i18n="locale.en"
+          >
+            English
+          </button>
+        </div>
+        <div
+          class="status-light"
+          id="status-light"
+          data-i18n-title="status.connecting"
+          title="連線中…"
+        >
           <span class="status-dot" data-state="unknown"></span>
           <span class="status-label" id="status-label">…</span>
         </div>
@@ -60,44 +88,51 @@
           role="tabpanel"
           data-scene="capture"
         >
-          <p class="scene-lead">寫下此刻要記住的事。</p>
+          <p class="scene-lead" data-i18n="capture.lead">寫下此刻要記住的事。</p>
           <form id="capture-form" class="capture-form">
-            <label class="sr-only" for="capture-raw">記憶內容</label>
+            <label class="sr-only" for="capture-raw" data-i18n="capture.label_raw">記憶內容</label>
             <textarea
               id="capture-raw"
               name="raw"
               rows="8"
+              data-i18n-placeholder="capture.placeholder"
               placeholder="今天發生了什麼、要記得的判斷或細節…"
               required
             ></textarea>
             <div class="form-row">
               <label class="field-inline">
-                <span>node_refs（選填）</span>
+                <span data-i18n="capture.node_refs">node_refs（選填）</span>
                 <input
                   type="text"
                   id="capture-refs"
                   name="node_refs"
+                  data-i18n-placeholder="capture.refs_placeholder"
                   placeholder="alice, bob"
                   autocomplete="off"
                 />
               </label>
-              <button type="submit" class="btn primary" id="capture-submit">
+              <button
+                type="submit"
+                class="btn primary"
+                id="capture-submit"
+                data-i18n="capture.submit"
+              >
                 Capture
               </button>
             </div>
-            <p class="form-hint" id="capture-lock-hint" hidden>
+            <p class="form-hint" id="capture-lock-hint" hidden data-i18n="capture.lock_hint">
               正在整理記憶，暫時無法寫入。
             </p>
             <p class="form-msg" id="capture-msg" role="status"></p>
           </form>
           <div class="l1-panel">
             <div class="panel-head">
-              <h2>今日 L1</h2>
-              <button type="button" class="btn ghost" id="refresh-l1">
+              <h2 data-i18n="capture.l1_title">今日 L1</h2>
+              <button type="button" class="btn ghost" id="refresh-l1" data-i18n="capture.refresh">
                 刷新
               </button>
             </div>
-            <pre class="md-block" id="l1-content">載入中…</pre>
+            <pre class="md-block" id="l1-content" data-i18n="capture.loading">載入中…</pre>
           </div>
         </section>
 
@@ -109,7 +144,9 @@
           data-scene="consolidate"
           hidden
         >
-          <p class="scene-lead">先 dream 出報告，人審後再寫入長期記憶。</p>
+          <p class="scene-lead" data-i18n="consolidate.lead">
+            先 dream 出報告，人審後再寫入長期記憶。
+          </p>
           <div class="status-panel" id="status-panel">
             <dl class="status-grid">
               <div>
@@ -133,30 +170,45 @@
           </div>
 
           <div class="pending-panel" id="pending-panel" hidden>
-            <h2>待審報告</h2>
+            <h2 data-i18n="consolidate.pending_title">待審報告</h2>
             <p class="pending-meta" id="pending-meta"></p>
             <pre class="md-block" id="pending-report"></pre>
             <div class="consolidate-actions">
-              <button type="button" class="btn primary" id="dream-approve">
+              <button
+                type="button"
+                class="btn primary"
+                id="dream-approve"
+                data-i18n="consolidate.approve"
+              >
                 Approve
               </button>
-              <button type="button" class="btn ghost" id="dream-discard">
+              <button
+                type="button"
+                class="btn ghost"
+                id="dream-discard"
+                data-i18n="consolidate.discard"
+              >
                 Discard
               </button>
             </div>
           </div>
 
           <div class="consolidate-actions">
-            <button type="button" class="btn primary" id="dream-run">
+            <button type="button" class="btn primary" id="dream-run" data-i18n="consolidate.dream">
               Dream
             </button>
-            <button type="button" class="btn ghost" id="refresh-status">
+            <button
+              type="button"
+              class="btn ghost"
+              id="refresh-status"
+              data-i18n="consolidate.refresh"
+            >
               刷新狀態
             </button>
           </div>
           <p class="form-msg" id="dream-msg" role="status"></p>
           <div class="dream-result" id="dream-result" hidden>
-            <h2>狀態</h2>
+            <h2 data-i18n="consolidate.result_title">狀態</h2>
             <pre class="md-block" id="dream-result-body"></pre>
           </div>
         </section>
@@ -169,32 +221,33 @@
           data-scene="recall"
           hidden
         >
-          <p class="scene-lead">用關鍵字召回 context packet。</p>
+          <p class="scene-lead" data-i18n="recall.lead">用關鍵字找回相關記憶包。</p>
           <form id="recall-form" class="recall-form">
-            <label class="sr-only" for="recall-q">查詢</label>
+            <label class="sr-only" for="recall-q" data-i18n="recall.label_q">查詢</label>
             <input
               type="search"
               id="recall-q"
               name="q"
+              data-i18n-placeholder="recall.placeholder"
               placeholder="關鍵字（可留空看全部）"
               autocomplete="off"
             />
-            <button type="submit" class="btn primary">召回</button>
+            <button type="submit" class="btn primary" data-i18n="recall.submit">回憶</button>
           </form>
           <p class="form-msg" id="recall-msg" role="status"></p>
           <div class="recall-packet" id="recall-packet">
             <article class="packet-block">
-              <h2>L1</h2>
-              <pre class="md-block" id="recall-l1">尚未查詢</pre>
+              <h2 data-i18n="recall.l1_title">L1</h2>
+              <pre class="md-block" id="recall-l1" data-i18n="recall.not_queried">尚未查詢</pre>
             </article>
             <article class="packet-block">
-              <h2>Day chain</h2>
-              <pre class="md-block" id="recall-chain">尚未查詢</pre>
+              <h2 data-i18n="recall.chain_title">Day chain</h2>
+              <pre class="md-block" id="recall-chain" data-i18n="recall.not_queried">尚未查詢</pre>
             </article>
             <article class="packet-block">
-              <h2>Nodes</h2>
+              <h2 data-i18n="recall.nodes_title">Nodes</h2>
               <div id="recall-nodes">
-                <pre class="md-block">尚未查詢</pre>
+                <pre class="md-block" data-i18n="recall.not_queried">尚未查詢</pre>
               </div>
             </article>
           </div>

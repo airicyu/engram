@@ -1,7 +1,10 @@
+/** Deterministic mock runners used by local dream pipeline tests. */
+
 import type { AgentRunner, ExtractContext } from "./types";
 import type { Patch } from "../dream/schema";
-import { taipeiDate, taipeiNowIso } from "../store/events";
+import { calendarDate, nowIso } from "../store/events";
 
+/** Test runner that always fails extraction. */
 export class MockFailRunner implements AgentRunner {
   async extract(_ctx: ExtractContext): Promise<Patch[]> {
     throw new Error("mock extract failure");
@@ -11,13 +14,13 @@ export class MockFailRunner implements AgentRunner {
 /** Returns a minimal valid patch set for smoke tests without a live agent. */
 export class MockOkRunner implements AgentRunner {
   async extract(ctx: ExtractContext): Promise<Patch[]> {
-    const ts = taipeiNowIso();
-    const today = taipeiDate();
+    const ts = nowIso();
+    const today = calendarDate();
     const eventIds = ctx.events.map((e) => e.id);
     const scopeIds = ctx.scope.length ? ctx.scope : eventIds;
 
     // Prefer occurrence day from first event ts, but never future vs today
-    const firstDay = ctx.events[0] ? taipeiDate(ctx.events[0].ts) : today;
+    const firstDay = ctx.events[0] ? calendarDate(ctx.events[0].ts) : today;
     const chainDay = firstDay > today ? today : firstDay;
 
     const patches: Patch[] = [];
@@ -69,7 +72,20 @@ export class MockOkRunner implements AgentRunner {
       event_refs: eventIds,
       level: "day",
       id: chainDay,
-      content: `Day summary (mock): ${ctx.events.map((e) => e.raw).join(" | ").slice(0, 300)}`,
+      content: `Day ledger (mock): ${ctx.events.map((e) => e.raw).join(" | ").slice(0, 300)}`,
+      summary: (() => {
+        const prior =
+          (ctx.chain_summaries_current ?? []).find((d) => d.day === chainDay)?.current.trim() ?? "";
+        const increment = ctx.events.map((e) => e.raw.trim()).join(" ").slice(0, 200);
+        return prior
+          ? `${prior} ${increment}`.trim()
+          : `Day summary (mock): ${increment}`;
+      })(),
+      summary_operation: (() => {
+        const prior =
+          (ctx.chain_summaries_current ?? []).find((d) => d.day === chainDay)?.current.trim() ?? "";
+        return prior ? "revise" : "init";
+      })(),
     });
 
     const wantsFuture =

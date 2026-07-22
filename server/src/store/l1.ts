@@ -1,4 +1,7 @@
+/** L1 short-term memory pool persistence and derived presentation files. */
+
 import { mkdir, readFile, rm, writeFile, access, rename } from "node:fs/promises";
+import { $ } from "bun";
 import { homePath } from "./home";
 import { readAllEvents } from "./events";
 
@@ -6,6 +9,7 @@ const SUMMARY_FILE = "summary.md";
 const LEGACY_SUMMARY_FILE = "today-summary.md";
 const POOL_FILE = "pool.jsonl";
 
+/** One L1 pool entry mirrored from an L0 event. */
 export interface PoolEntry {
   id: string;
   ts: string;
@@ -38,6 +42,7 @@ function nodeNotesPath(nodeId: string): string {
   return homePath("short-term-memory", "nodes", nodeId, "notes.md");
 }
 
+/** Rename the legacy L1 summary file when needed. */
 export async function migrateL1SummaryFile(): Promise<void> {
   const legacy = legacySummaryPath();
   const current = summaryPath();
@@ -90,6 +95,7 @@ async function migrateSummaryToPool(): Promise<void> {
   await renderPresentation(entries);
 }
 
+/** Initialize L1 storage and migrate legacy summary contents. */
 export async function ensureL1SummaryFile(): Promise<void> {
   await migrateL1SummaryFile();
   await ensurePoolFile();
@@ -130,6 +136,7 @@ async function renderPresentation(entries: PoolEntry[]): Promise<void> {
   }
 }
 
+/** Read the current L1 pool entries. */
 export async function readPoolEntries(): Promise<PoolEntry[]> {
   await ensureL1SummaryFile();
   const text = await readFile(poolPath(), "utf8");
@@ -141,16 +148,19 @@ export async function readPoolEntries(): Promise<PoolEntry[]> {
     .map((line) => JSON.parse(line) as PoolEntry);
 }
 
+/** List event identifiers currently retained in L1. */
 export async function listPoolEventIds(): Promise<string[]> {
   const entries = await readPoolEntries();
   return entries.map((e) => e.id);
 }
 
+/** Read L1 entries belonging to a frozen dream scope. */
 export async function readPoolEntriesForScope(scope: string[]): Promise<PoolEntry[]> {
   const set = new Set(scope);
   return (await readPoolEntries()).filter((e) => set.has(e.id));
 }
 
+/** Add a unique event to L1 and refresh derived files. */
 export async function appendPoolEntry(entry: PoolEntry): Promise<void> {
   await ensureL1SummaryFile();
   const entries = await readPoolEntries();
@@ -177,10 +187,12 @@ export async function appendSummary(line: string): Promise<void> {
 /** @deprecated Use appendSummary */
 export const appendTodaySummary = appendSummary;
 
+/** Legacy no-op; node notes are derived from pool entry references. */
 export async function appendNodeNotes(_nodeId: string, _line: string): Promise<void> {
   // Node notes are derived from pool entries' node_refs on render.
 }
 
+/** Render the current L1 pool as a markdown summary. */
 export async function readSummary(): Promise<string> {
   const entries = await readPoolEntries();
   if (entries.length === 0) return "";
@@ -190,6 +202,7 @@ export async function readSummary(): Promise<string> {
 /** @deprecated Use readSummary */
 export const readTodaySummary = readSummary;
 
+/** Render L1 notes grouped by referenced node. */
 export async function readAllNodeNotes(): Promise<Record<string, string>> {
   const entries = await readPoolEntries();
   const byNode = new Map<string, PoolEntry[]>();
@@ -207,9 +220,14 @@ export async function readAllNodeNotes(): Promise<Record<string, string>> {
   return out;
 }
 
+/** Return whether the L1 pool has no entries. */
 export async function isL1Empty(): Promise<boolean> {
-  const entries = await readPoolEntries();
-  return entries.length === 0;
+  await migrateSummaryToPool();
+  const path = poolPath();
+  if (!(await Bun.file(path).exists())) return true;
+  const out = (await $`wc -l < ${path}`.text()).trim();
+  const count = Number.parseInt(out, 10);
+  return !Number.isFinite(count) || count <= 0;
 }
 
 /** Remove only entries whose id ∈ scope. Leaves the rest of the pool. */

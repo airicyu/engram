@@ -1,3 +1,5 @@
+/** Status API handler assembling current store and dream pipeline state. */
+
 import { isLocked, isLockStale } from "../store/lock";
 import { isL1Empty } from "../store/l1";
 import { pendingDlqCount } from "../store/dlq";
@@ -7,6 +9,7 @@ import { readDreamJob } from "../store/dream-job";
 import { countActiveAnchors } from "../store/future-sight";
 import { config } from "../config";
 
+/** Return the status document exposed by GET /status. */
 export async function handleStatus(): Promise<object> {
   const dreamJob = await readDreamJob();
   const lock = await isLocked();
@@ -17,6 +20,7 @@ export async function handleStatus(): Promise<object> {
 
   const result: Record<string, unknown> = {
     engram_home: config.engramHome,
+    timezone: config.timezone,
     lock,
     l1_empty: await isL1Empty(),
     pending_dlq_count: await pendingDlqCount(),

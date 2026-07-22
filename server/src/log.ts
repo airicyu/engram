@@ -4,6 +4,7 @@ function ts(): string {
   return new Date().toISOString();
 }
 
+/** Write an informational message with optional structured context. */
 export function logInfo(msg: string, extra?: Record<string, unknown>): void {
   if (extra && Object.keys(extra).length > 0) {
     console.log(`[${ts()}] ${msg}`, extra);
@@ -30,6 +31,7 @@ export function previewText(text: string, max = 500): string {
   return `${oneLine.slice(0, max)}…`;
 }
 
+/** Write an error message with normalized error details. */
 export function logError(msg: string, err?: unknown, extra?: Record<string, unknown>): void {
   const detail =
     err instanceof Error

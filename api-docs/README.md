@@ -51,7 +51,7 @@ See [`web/README.md`](../web/README.md).
 http://localhost:${PORT:-8787}
 ```
 
-No authentication in the prototype. All times use timezone `Asia/Taipei`.
+No authentication in the prototype. Timestamps use `ENGRAM_TZ` (default `Asia/Hong_Kong`).
 
 ## Endpoints
 
