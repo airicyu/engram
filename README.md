@@ -5,10 +5,10 @@
 它不是筆記 app，也不是聊天紀錄備份，而是一條明確的記憶管線：
 
 ```
-Capture（記下）→ Consolidate（沉澱）→ Recall（回憶）
+Capture（記下）→ Consolidate（沉澱）→ Memory（記憶）
 ```
 
-目前版本：**0.5.0**（見 [version.md](./version.md)、[changelog.md](./changelog.md)）。
+目前版本：**0.7.0**（見 [version.md](./version.md)、[changelog.md](./changelog.md)）。
 
 ---
 
@@ -18,7 +18,7 @@ Capture（記下）→ Consolidate（沉澱）→ Recall（回憶）
 
 1. **快速 Capture** — 先記下來，不要求當下分類完美。
 2. **Consolidate with review** — AI 提出整合方案（報告 + 結構化 patch），**你批准後**才寫入長期記憶。
-3. **Recall** — 用關鍵字拉回 L1 視圖、日級時間軸、相關 node 理解。
+3. **Memory** — 關鍵字搜尋（`GET /memory/search`）或 AI 提問（`POST /memory/ask`）。
 
 核心設計選擇：**人審關卡**、**分層儲存**（事件 log ≠ 工作記憶 ≠ 長期理解）、**可追蹤的入夢中間態**（L1.5）。
 
@@ -32,7 +32,7 @@ Capture（記下）→ Consolidate（沉澱）→ Recall（回憶）
 | **L1** | 短期 pool | 還沒整理完的輸入 |
 | **L1.5** | 入夢中間態 | AI 提案 + 待審 draft（L1 → L2） |
 | **L2** | Node 理解 | 對人／主題的長期「what」 |
-| **chain** | 日級時間軸 | **ledger**（增量稽核）＋ **summary**（可讀日摘要；Recall 預設） |
+| **chain** | 日級時間軸 | **ledger**（增量稽核）＋ **summary**（可讀日摘要；search 命中時回傳） |
 | **future-sight** | 近程錨點 | 短期要盯的 deadline／前瞻 |
 
 術語細解見 **[domain-language.md](./domain-language.md)**。
@@ -70,7 +70,7 @@ bun run dev:ui   # web
 
 - **Capture** — 在 UI 或 `POST /capture` 寫入 `raw` 文字。
 - **Consolidate** — `POST /dream/run`，等 `pending_review`，讀報告後 **Approve** 或 **Discard**。
-- **Recall** — `GET /recall?q=關鍵字` 看 context packet。
+- **Memory** — `GET /memory/search?q=關鍵字&scope=l1,nodes,chain` 或 `POST /memory/ask`。
 
 空庫試用請用 `cd server && bun run reset`（破壞性，會清空 `ENGRAM_HOME`）。  
 真人試用請用空 store + capture；機械自測用 `cd server && bun run test:phases`。
@@ -100,7 +100,10 @@ bun run dev:ui   # web
 | `GET` | `/dream/pending` | 讀待審報告 |
 | `POST` | `/dream/approve` | 批准並 commit |
 | `POST` | `/dream/discard` | 丟棄待審 |
-| `GET` | `/recall` | 回憶 context packet |
+| `POST` | `/dream/cancel` | 取消 running 入夢 |
+| `GET` | `/memory/l1` | Capture L1 預覽 |
+| `GET` | `/memory/search` | keyword 搜尋（`q` 必填；`scope` 可選） |
+| `POST` | `/memory/ask` | AI 提問（非同步） |
 | `GET` | `/future-sight` | 列出活躍前瞻錨點 |
 | `GET` | `/status` | 健康與 dream 狀態 |
 

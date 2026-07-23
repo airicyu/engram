@@ -6,12 +6,12 @@ import { logDream, logError } from "../log";
 /** Append a structured dream event and mirror it to console. */
 export function emitDreamEvent(
   dreamRunId: string,
-  event: Omit<DreamEvent, "ts">,
+  event: Omit<DreamEvent, "ts" | "level"> & { level?: DreamEvent["level"] },
 ): void {
   const full: DreamEvent = {
     ts: new Date().toISOString(),
-    level: event.level ?? "info",
     ...event,
+    level: event.level ?? "info",
   };
   void appendDreamEvent(dreamRunId, full).catch((e) => {
     logError("dream event append failed", e, {

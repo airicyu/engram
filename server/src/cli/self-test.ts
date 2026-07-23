@@ -200,12 +200,28 @@ async function main() {
     assert(summaryBody.includes("## Current"), "summary has Current");
     assert(summaryBody.includes("Day summary (mock)") || summaryBody.includes("Day ledger"), "summary content");
 
-    const recallChain = await json("GET", "/recall");
-    assert(recallChain.data.chain?.source === "summary", "recall prefers summary");
+    const searchChain = await json("GET", "/memory/search?q=summary");
+    assert(searchChain.status === 200, "search 200");
+    assert(Array.isArray(searchChain.data.scope) && searchChain.data.scope.length === 3, "default scope");
+    assert(Array.isArray(searchChain.data.chain) && searchChain.data.chain.length > 0, "chain hit");
+    const chainHit = searchChain.data.chain[0];
+    assert(chainHit.source === "summary", "search prefers summary");
     assert(
-      !String(recallChain.data.chain?.content ?? "").includes("<!-- patch:"),
-      "recall summary does not inject ledger markers",
+      !String(chainHit.content ?? "").includes("<!-- patch:"),
+      "search summary does not inject ledger markers",
     );
+
+    const chainOnly = await json("GET", "/memory/search?q=summary&scope=chain");
+    assert(chainOnly.status === 200, "scope=chain 200");
+    assert(chainOnly.data.scope?.join(",") === "chain", "scope echoed");
+    assert(chainOnly.data.chain?.length > 0, "chain only hit");
+    assert(!("nodes" in chainOnly.data), "nodes omitted when out of scope");
+
+    const badScope = await json("GET", "/memory/search?q=x&scope=foo");
+    assert(badScope.status === 400 && badScope.data.error === "invalid_scope", "invalid scope");
+
+    const noQ = await json("GET", "/memory/search");
+    assert(noQ.status === 400 && noQ.data.error === "missing_q", "search requires q");
     const whatAcmeStill = await readFile(
       join(TEST_HOME, "nodes/acme/understand/what.md"),
       "utf8",
@@ -215,8 +231,12 @@ async function main() {
     const pendingEmpty = await json("GET", "/dream/pending");
     assert(pendingEmpty.data.present === false, "no pending after approve");
 
-    const a1 = await json("GET", "/recall?q=acme");
-    assert(["ok", "dead_letter_pending"].includes(a1.data.dream_status), "dream_status after approve");
+    const a1 = await json("GET", "/memory/search?q=acme");
+    assert(a1.status === 200, "search acme 200");
+    assert(
+      (a1.data.nodes as Array<{ node: string }>).some((n) => n.node === "acme"),
+      "search finds acme node",
+    );
 
     console.log("Phase 3: extract fail → dream_incomplete, L1 kept");
     await stopServer(server);
@@ -250,6 +270,32 @@ async function main() {
     assert(disc.status === 200 && disc.data.discarded === true, "discard ok");
     const stillPool = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
     assert(stillPool.includes("e0000000003"), "discard leaves L1");
+
+    console.log("Phase 4b: memory l1 + ask");
+    const l1 = await json("GET", "/memory/l1");
+    assert(l1.status === 200 && l1.data.present === true, "memory l1");
+    assert(!("nodes" in l1.data), "l1 has no nodes");
+
+    await stopServer(server);
+    server = await startServer("mock-ask-ok");
+    const askStart = await json("POST", "/memory/ask", { q: "What about Acme?" });
+    assert(askStart.status === 202 && askStart.data.job_id, "ask 202");
+    const jobId = askStart.data.job_id as string;
+    let askDone = false;
+    for (let i = 0; i < 40; i++) {
+      const poll = await json("GET", `/memory/ask/${encodeURIComponent(jobId)}`);
+      assert(poll.status === 200 && poll.data.present === true, "ask poll");
+      if (poll.data.status === "completed") {
+        assert(String(poll.data.answer).includes("Mock answer"), "ask answer");
+        askDone = true;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    assert(askDone, "ask completed");
+
+    await stopServer(server);
+    server = await startServer("mock-ok");
 
     console.log("Phase 5: future-sight patch → approve → list → sweep");
     const iFs = await json("POST", "/capture", {
@@ -310,7 +356,7 @@ Old foresight that should expire.
     const poolSweep = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
     assert(poolSweep.includes("Future-sight expired"), "L1 has expiry note");
 
-    console.log("\n✅ All 0.5 self-checks passed");
+    console.log("\n✅ All 0.7 self-checks passed");
   } finally {
     await stopServer(server);
   }

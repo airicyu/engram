@@ -15,8 +15,16 @@
 |----|------|------|-----------|------|
 | **Capture** | 記下 | 把「此刻要記住的事」寫進系統（L0 + L1） | `POST /capture` | UI 場景名、按鈕語；body 用 **`raw`** |
 | **Consolidate** | 沉澱 | 整理短時記憶：AI 出報告，人審後寫入長期 | `POST /dream/run` → Approve／Discard | 核心是人審關卡 |
-| **Recall** | 回憶 | 用關鍵字拉回相關記憶包 | `GET /recall?q=` | 0.4 取代 **Activate** |
+| **Memory** | 記憶 | 讀取已寫入的記憶（UI 第三場景） | 見下表 | 0.7.0 取代 **Recall** 場景名 |
 | **Dream** | 入夢 | 對 L1 跑 AI 提取，產出待審報告 | `POST /dream/run` | 產品語；技術上含 extract |
+
+### Memory（0.7.0）
+
+| EN | 中文 | 說明 | API | 備註 |
+|----|------|------|-----|------|
+| **Search** | 搜尋 | keyword 命中 L1／chain／nodes | `GET /memory/search?q=&scope=` | `q` 必填；`scope` 可選，預設全搜 |
+| **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memory/ask`、`GET /memory/ask/{job_id}` | 同時只允許一個 running job |
+| **L1 preview** | L1 預覽 | Capture 場景顯示短期 pool 摘要 | `GET /memory/l1` | 僅 L1；不載入全量 nodes |
 
 ---
 
@@ -111,7 +119,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | **node_refs** | 節點參照 | Capture 可選標註「跟哪些 node 有關」 |
 | **what.md** | 是什麼（facet） | 該 node 當前定義與邊界；MVP 主 facet |
 | **facet** | 理解面向 | what／who／why 等；多數尚未實作 |
-| **match_reason** | 命中原因 | recall 時為何選中該 node |
+| **match_reason** | 命中原因 | search 時為何選中該 node |
 
 ---
 
@@ -135,7 +143,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | **DLQ** (dead-letter queue) | 死信佇列 | 舊版 apply 失敗的 patch 佇列 |
 | **l1_empty** | L1 是否為空 | pool 無條目時為 true |
 | **dream_job** | 入夢非同步工作 | `running`／`completed`／`failed` |
-| **context packet** | 上下文包 | recall 回傳：L1 + chain + nodes |
+| **search packet** | 搜尋包 | `GET /memory/search` 回傳：僅 keyword 命中的 `l1`／`chain[]`／`nodes` |
 | **ENGRAM_HOME** | 記憶庫根目錄 | 預設 `data/`；執行期 store |
 
 ---
@@ -160,7 +168,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | EN | 中文 | 說明 | 路徑 | 寫入 |
 |----|------|------|------|------|
 | **chain ledger** | 日鏈增量紀錄 | patch block 稽核鏈；append-only | `memory-chain/days/{id}.md` | 機械 append |
-| **chain summary** | 日鏈融合摘要 | 可讀的當日敘事；Recall 預設讀此 | `memory-chain/days/{id}.summary.md` | extract 產出 `summary`；approve 機械 revise |
+| **chain summary** | 日鏈融合摘要 | 可讀的當日敘事；search 命中時回傳 | `memory-chain/days/{id}.summary.md` | extract 產出 `summary`；approve 機械 revise |
 
 - 一筆 `chain` patch 同時寫 ledger block 與 summary（`summary_operation`: `init` \| `revise`）。
 - 既有 `days/*.md` 視為 ledger；summary 由下一輪 dream 產生。
@@ -169,7 +177,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 
 ## Workbench（工作台）
 
-個人記憶**工作台**——走 Capture → Consolidate → Recall；**不是** admin dashboard、不是多使用者後台。
+個人記憶**工作台**——走 Capture → Consolidate → Memory；**不是** admin dashboard、不是多使用者後台。
 
 | EN | 中文 | 說明 | 路徑／備註 |
 |----|------|------|------------|
@@ -177,7 +185,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | **workbench UI** | 工作台介面 | 瀏覽器三場景 UI | `web/`（`:8788`） |
 | **engram-workbench** | 工作台 skill | Agent 用 HTTP 打 API；禁止手改 `ENGRAM_HOME` | `.claude/skills/engram-workbench/` |
 | **status light** | 狀態燈 | 頂欄連線／入夢狀態指示 | workbench UI |
-| **scene** | 場景 | Capture／Consolidate／Recall 三主畫面 | workbench UI |
+| **scene** | 場景 | Capture／Consolidate／Memory 三主畫面 | workbench UI |
 
 **Workbench UI i18n（0.5.0）：** 僅介面殼層；**English** + **繁體中文**；不翻譯 L1／L2／chain／report 等記憶內容。
 
@@ -189,7 +197,8 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 |-------------|---------|----------|
 | **Ingest** | **Capture** | 寫入 API／用語統一（0.4.1：`/ingest` → `/capture` 硬切） |
 | **L0.5** | **L1.5** | 層級命名修正：中間態在 L1 與 L2 之間，非 L0 延伸 |
-| **Activate** | **Recall** | 回憶 API 改名（0.4；中文不用「召回」） |
+| **Activate** | **Recall** → **Memory** | 0.4 Activate→Recall；0.7.0 Recall→Memory（場景／讀取域） |
+| **Recall** | **Memory** | `GET /recall` → `GET /memory/search`（硬切）；第三 UI 場景 **記憶** |
 | **Extract**（UI） | **Dream**（入夢） | Consolidate 主按鈕改名 |
 | **auto-apply** | **pending + approve** | 不再 extract 後直接寫 L2 |
 | **apply**（舊） | **materialize + commit** | 拆成 draft 投影與人審 commit |

@@ -13,6 +13,8 @@ import {
   logExtractParseFailed,
   logExtractParsed,
 } from "./extract-log";
+import { registerAgentProcess, unregisterAgentProcess } from "../store/agent-process";
+import { setDreamJobAgentPid } from "../store/dream-job";
 
 const PROMPT_PATH = join(import.meta.dir, "../../prompts/extract.md");
 const RUNNER = "cursor";
@@ -29,6 +31,8 @@ export class CursorCliRunner implements AgentRunner {
       runner: RUNNER,
       work_dir: workDir,
     };
+
+    const procKey = `dream:${ctx.dream_run_id}`;
 
     try {
       const ctxPath = join(workDir, "extract-context.json");
@@ -49,7 +53,6 @@ export class CursorCliRunner implements AgentRunner {
         "--add-dir",
         workDir,
       ];
-      logAgentSpawn({ ...meta, cmd: [config.cursorAgentBin, "-p", "<prompt>", "--output-format", "json", "--yolo", "--add-dir", workDir] });
 
       const { ENGRAM_HOME: _omit, ...agentEnv } = process.env;
       const started = performance.now();
@@ -58,6 +61,17 @@ export class CursorCliRunner implements AgentRunner {
         env: agentEnv,
         stdout: "pipe",
         stderr: "pipe",
+      });
+
+      const pid = registerAgentProcess(procKey, proc);
+      if (pid != null) {
+        await setDreamJobAgentPid(pid);
+      }
+
+      logAgentSpawn({
+        ...meta,
+        cmd: [config.cursorAgentBin, "-p", "<prompt>", "--output-format", "json", "--yolo", "--add-dir", workDir],
+        pid: pid ?? undefined,
       });
 
       const [stdout, stderr, exitCode] = await Promise.all([
@@ -88,6 +102,7 @@ export class CursorCliRunner implements AgentRunner {
         throw e;
       }
     } finally {
+      unregisterAgentProcess(procKey);
       await rm(workDir, { recursive: true, force: true }).catch(() => {});
     }
   }

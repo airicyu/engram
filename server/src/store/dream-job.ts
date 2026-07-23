@@ -5,7 +5,7 @@ import { parse, stringify } from "../yaml";
 import { homePath } from "./home";
 
 /** Lifecycle states for an asynchronous dream job. */
-export type DreamJobStatus = "running" | "completed" | "failed";
+export type DreamJobStatus = "running" | "completed" | "failed" | "cancelled";
 /** Pipeline phases recorded for a dream job. */
 export type DreamJobPhase = "extract" | "materialize" | "pending_review";
 
@@ -16,6 +16,7 @@ export interface DreamJobState {
   started_at: string;
   completed_at?: string;
   phase?: DreamJobPhase;
+  agent_pid?: number | null;
   result?: {
     scope: string[];
     patch_count: number;
@@ -56,6 +57,13 @@ export async function updateDreamJobPhase(phase: DreamJobPhase): Promise<void> {
   const job = await readDreamJob();
   if (!job || job.status !== "running") return;
   await writeDreamJob({ ...job, phase });
+}
+
+/** Set agent PID on the active running dream job. */
+export async function setDreamJobAgentPid(agentPid: number): Promise<void> {
+  const job = await readDreamJob();
+  if (!job || job.status !== "running") return;
+  await writeDreamJob({ ...job, agent_pid: agentPid });
 }
 
 /** Clear the recorded asynchronous dream job. */

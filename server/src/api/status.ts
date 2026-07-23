@@ -7,6 +7,8 @@ import { computeDreamStatus, pendingRunSummary } from "../dream/run";
 import { getL1ClearPendingRun } from "../store/dream-runs";
 import { readDreamJob } from "../store/dream-job";
 import { tailDreamEvents } from "../store/dream-events";
+import { getRunningAskJob } from "../store/memory-ask-job";
+import { tailAskEvents } from "../store/memory-ask-events";
 import { countActiveAnchors } from "../store/future-sight";
 import { config } from "../config";
 
@@ -61,6 +63,20 @@ export async function handleStatus(): Promise<object> {
 
   if (lock) {
     result.lock_stale = lockStale;
+  }
+
+  const askJob = await getRunningAskJob();
+  if (askJob) {
+    result.ask_job = {
+      job_id: askJob.job_id,
+      status: askJob.status,
+      phase: askJob.phase ?? null,
+      started_at: askJob.started_at,
+      q: askJob.q,
+      log_tail: await tailAskEvents(askJob.job_id, 20),
+    };
+  } else {
+    result.ask_job = null;
   }
 
   return result;

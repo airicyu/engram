@@ -5,6 +5,7 @@ import {
   makeDreamRunId,
   NothingToDreamError,
   DreamIncompleteError,
+  DreamCancelledError,
   getPendingPayload,
   approveDream,
   discardDream,
@@ -12,10 +13,11 @@ import {
   FutureChainIdError,
   StaleFutureAnchorError,
 } from "../dream/run";
+import { cancelDream } from "../dream/cancel";
 import { isL1Empty, listPoolEventIds } from "../store/l1";
 import { isLocked, acquireLock, releaseLock, isLockStale, breakStaleLock, LockError } from "../store/lock";
 import { DreamRunMismatchError } from "../store/dream-runs";
-import { writeDreamJob } from "../store/dream-job";
+import { readDreamJob, writeDreamJob } from "../store/dream-job";
 import { emitDreamEvent } from "../dream/emit-event";
 import { logError, logInfo } from "../log";
 
@@ -91,6 +93,11 @@ export async function handleDreamRun(): Promise<Response> {
       });
     })
     .catch(async (e) => {
+      const existing = await readDreamJob();
+      if (existing?.status === "cancelled" || e instanceof DreamCancelledError) {
+        logInfo("dream job cancelled", { dream_run_id: dreamRunId });
+        return;
+      }
       const errorMessage = e instanceof Error ? e.message : String(e);
       const phase =
         e instanceof DreamIncompleteError
@@ -241,6 +248,29 @@ export async function handleDreamDiscard(body?: { dream_run_id?: string }): Prom
           expected: e.expected,
           got: e.got,
         },
+        { status: 409 },
+      );
+    }
+    throw e;
+  }
+}
+
+/** POST /dream/cancel — cancel a running dream job. */
+export async function handleDreamCancel(body?: { dream_run_id?: string }): Promise<Response> {
+  try {
+    const result = await cancelDream(body);
+    if (!result) {
+      return Response.json(
+        { error: "no_running_dream", message: "No dream job is currently running." },
+        { status: 409 },
+      );
+    }
+    logInfo("dream cancel ok", result);
+    return Response.json(result);
+  } catch (e) {
+    if (e instanceof Error && e.name === "DreamRunMismatchError") {
+      return Response.json(
+        { error: "dream_run_mismatch", message: e.message },
         { status: 409 },
       );
     }

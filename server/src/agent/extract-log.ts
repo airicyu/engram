@@ -40,7 +40,9 @@ export function summarizePatches(patches: Patch[]): string {
 }
 
 /** Log an agent command before it starts. */
-export function logAgentSpawn(meta: AgentExtractLogContext & { cmd: string[] }): void {
+export function logAgentSpawn(
+  meta: AgentExtractLogContext & { cmd: string[]; pid?: number },
+): void {
   emitDreamEvent(meta.dream_run_id, {
     phase: "extract",
     event: "agent_spawn",
@@ -49,6 +51,7 @@ export function logAgentSpawn(meta: AgentExtractLogContext & { cmd: string[] }):
       runner: meta.runner,
       work_dir: meta.work_dir,
       cmd: meta.cmd.join(" "),
+      ...(meta.pid != null ? { pid: meta.pid } : {}),
     },
   });
   logDreamDebug("agent spawn", {

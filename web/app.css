@@ -246,6 +246,7 @@ body {
 /* —— Forms —— */
 .capture-form textarea,
 .recall-form input[type="search"],
+.recall-form.ask-form textarea,
 .field-inline input {
   width: 100%;
   font: inherit;
@@ -267,8 +268,26 @@ body {
   min-height: 10rem;
 }
 
+.recall-form.ask-form textarea {
+  font-family: var(--font-read);
+  line-height: 1.55;
+  resize: vertical;
+  min-height: 8rem;
+  width: 100%;
+  box-shadow: var(--shadow);
+}
+
+.recall-form.ask-form {
+  display: block;
+}
+
+.recall-form.ask-form .form-row {
+  margin-top: 0.75rem;
+}
+
 .capture-form textarea:focus,
 .recall-form input:focus,
+.recall-form.ask-form textarea:focus,
 .field-inline input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(31, 107, 99, 0.15);
@@ -499,6 +518,28 @@ body {
 }
 
 /* —— Recall —— */
+.memory-modes {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.mode-btn {
+  font: 500 0.85rem var(--font-ui);
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.mode-btn.is-active {
+  color: var(--accent);
+  border-color: rgba(31, 107, 99, 0.35);
+  background: rgba(31, 107, 99, 0.08);
+}
+
 .recall-form {
   display: flex;
   gap: 0.65rem;
@@ -508,6 +549,35 @@ body {
 .recall-form input[type="search"] {
   flex: 1 1 14rem;
   box-shadow: none;
+}
+
+.search-scopes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  flex: 1 1 100%;
+  margin-top: 0.15rem;
+}
+
+.search-scopes-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  margin-right: 0.25rem;
+}
+
+.search-scope-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.search-scope-option input {
+  margin: 0;
 }
 
 .recall-packet .packet-block:first-child {

@@ -56,7 +56,7 @@
 
 ## 與 0.7.0 的關係
 
-兩版**獨立排程**；實作順序 **先做 0.6.0**。0.7.0 Recall Ask 屆時**複製**本版 events 模式（`recall/jobs/{id}/events.jsonl`），不阻塞 0.6.0 釋出。
+兩版**獨立排程**；實作順序 **先做 0.6.0**。0.7.0 [Memory + Ask](../0.7.0/INDEX.md) 屆時**複製**本版 events 模式（`memory/ask/jobs/{id}/events.jsonl`），不阻塞 0.6.0 釋出。
 
 ---
 

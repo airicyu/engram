@@ -11,15 +11,25 @@ import {
   handleDreamPending,
   handleDreamApprove,
   handleDreamDiscard,
+  handleDreamCancel,
 } from "./api/dream";
 import { handleDreamEvents } from "./api/dream-events";
-import { handleRecall } from "./api/recall";
+import { handleMemoryL1 } from "./api/memory/l1";
+import { handleMemorySearchRequest } from "./api/memory/search";
+import {
+  handleMemoryAskPost,
+  handleMemoryAskGet,
+  handleMemoryAskCancel,
+} from "./api/memory/ask";
 import { handleFutureSight } from "./api/future-sight";
-import { logError, logInfo, withRequestLog } from "./log";
+import { logError, logInfo, logMemory, withRequestLog } from "./log";
+import { killAllTrackedAgentProcesses } from "./store/agent-process";
 
 await ensureEngramHome();
 
-const server = Bun.serve({
+let server: ReturnType<typeof Bun.serve>;
+try {
+  server = Bun.serve({
   port: config.port,
   routes: {
     "/": {
@@ -29,12 +39,17 @@ const server = Bun.serve({
           endpoints: [
             "POST /capture",
             "POST /dream/run",
+            "POST /dream/cancel",
             "GET /dream/pending",
             "GET /dream/events",
             "POST /dream/approve",
             "POST /dream/discard",
             "GET /future-sight",
-            "GET /recall",
+            "GET /memory/l1",
+            "GET /memory/search",
+            "POST /memory/ask",
+            "GET /memory/ask/{job_id}",
+            "POST /memory/ask/{job_id}/cancel",
             "GET /status",
           ],
         }),
@@ -67,6 +82,19 @@ const server = Bun.serve({
 
     "/dream/run": {
       POST: withRequestLog(() => handleDreamRun()),
+    },
+
+    "/dream/cancel": {
+      POST: withRequestLog(async (req) => {
+        let body: { dream_run_id?: string } = {};
+        try {
+          const text = await req.text();
+          if (text.trim()) body = JSON.parse(text) as { dream_run_id?: string };
+        } catch {
+          return Response.json({ error: "invalid JSON body" }, { status: 400 });
+        }
+        return handleDreamCancel(body);
+      }),
     },
 
     "/dream/pending": {
@@ -121,24 +149,62 @@ const server = Bun.serve({
       }),
     },
 
-    "/recall": {
+    "/memory/l1": {
+      GET: withRequestLog(async () => Response.json(await handleMemoryL1())),
+    },
+
+    "/memory/search": {
       GET: withRequestLog(async (req) => {
-        const q = new URL(req.url).searchParams.get("q");
-        const packet = await handleRecall(q);
-        logInfo("recall", {
-          q: packet.query,
-          sources: packet.sources,
-          nodes: packet.nodes.length,
-          l1_present: packet.l1.present,
+        const params = new URL(req.url).searchParams;
+        const q = params.get("q");
+        const scope = params.get("scope");
+        const out = await handleMemorySearchRequest(q, scope);
+        if ("error" in out) {
+          const message =
+            out.error === "missing_q"
+              ? "Query parameter q is required"
+              : "scope must be one or more of: l1, nodes, chain";
+          return Response.json({ error: out.error, message }, { status: 400 });
+        }
+        const { result } = out;
+        logMemory("search", {
+          q: result.q,
+          scope: result.scope,
+          nodes: result.nodes?.length ?? 0,
+          l1: result.l1 != null,
+          chain_days: result.chain?.length ?? 0,
         });
-        return Response.json(packet);
+        return Response.json(result);
+      }),
+    },
+
+    "/memory/ask": {
+      POST: withRequestLog(async (req) => {
+        let body: { q?: string } = {};
+        try {
+          body = (await req.json()) as { q?: string };
+        } catch {
+          return Response.json({ error: "invalid JSON body" }, { status: 400 });
+        }
+        return handleMemoryAskPost(body);
       }),
     },
   },
 
-  fetch: withRequestLog(() =>
-    Response.json({ error: "not found" }, { status: 404 }),
-  ),
+  fetch: withRequestLog(async (req) => {
+    const url = new URL(req.url);
+    const match = url.pathname.match(/^\/memory\/ask\/([^/]+)(\/cancel)?$/);
+    if (match) {
+      const jobId = decodeURIComponent(match[1]!);
+      if (match[2] === "/cancel" && req.method === "POST") {
+        return handleMemoryAskCancel(jobId);
+      }
+      if (req.method === "GET") {
+        return handleMemoryAskGet(jobId);
+      }
+    }
+    return Response.json({ error: "not found" }, { status: 404 });
+  }),
 
   error(error) {
     logError("unhandled", error);
@@ -148,6 +214,32 @@ const server = Bun.serve({
     );
   },
 });
+} catch (e) {
+  const code = e && typeof e === "object" && "code" in e ? String(e.code) : "";
+  if (code === "EADDRINUSE") {
+    logError(`port ${config.port} already in use — stop other bun dev or: kill-port ${config.port}`);
+    process.exit(1);
+  }
+  throw e;
+}
+
+let shuttingDown = false;
+
+function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logInfo(`shutdown ${signal}`);
+  killAllTrackedAgentProcesses();
+  try {
+    server.stop(true);
+  } catch {
+    // already stopped
+  }
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 logInfo(`engram listening on ${server.url}`);
 logInfo(`ENGRAM_HOME=${config.engramHome}`);

@@ -12,7 +12,7 @@
 
 ## 這是什麼
 
-**Engram** 是個人記憶原型：透過 HTTP API 走完 **capture → dream（extract + apply）→ recall**。
+**Engram** 是個人記憶原型：透過 HTTP API 走完 **capture → dream（extract + apply）→ memory**。
 
 | 層 | 角色 |
 |----|------|
@@ -23,7 +23,7 @@
 | **chain** | 日級記憶鏈（`memory-chain/days/`） |
 | **future-sight** | 近程前瞻錨點（`future-sight/active/`）；過期 → L0/L1 event 後硬清 |
 
-產品循環對齊 UI：**Capture → Consolidate → Recall**（對應 capture / dream / recall）。
+產品循環對齊 UI：**Capture → Consolidate → Memory**（對應 capture / dream / memory）。
 
 時區由 **`ENGRAM_TZ`** 設定（IANA），預設 **`Asia/Hong_Kong`**。原型無 auth。
 
@@ -72,12 +72,13 @@ bun run dev:ui                    # web
 | `POST /capture` 寫入 | 把 fixture seed 當試用資料 |
 | `POST /dream/run` extract → pending | 未經同意就 `reset` 或清 DLQ |
 | `POST /dream/approve`／`discard` | 手改 L1／L2／draft「幫忙改對」 |
-| `GET /recall` / `GET /status` / `GET /dream/pending` / `GET /future-sight` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
+| `GET /memory/search` / `GET /memory/l1` / `POST /memory/ask` / `GET /status` / `GET /dream/pending` / `GET /future-sight` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 
 API 欄位提醒：
 
 - capture body 用 **`raw`**（不是 `content` / `text`）
-- recall query 用 **`q`**
+- memory search query 用 **`q`**（必填）；可選 **`scope`** = `l1,nodes,chain`（逗號分隔，預設全搜）
+- memory ask body 用 **`q`**
 - dream **lock**（extract／commit）時 capture → `409 dream_locked`；**`pending_review` 可 capture**
 - **無資料不用 404**：讀取型「目前沒有內容」回 **200**，在 body 用 `null`／`[]`／`present: false` 等表達；404 留給路徑／方法真正不存在
 
@@ -104,8 +105,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.5.0` — memory-chain ledger＋summary 雙軌；Web UI i18n（en／zh-Hant）；`ENGRAM_TZ`／熱路徑 cleanup；Recall 讀 summary（fallback ledger）。
-- **Backlog：** 短期未來 mindzone、Recall 注入未來視 — 見 `roadmap/backlog/`。
+- **已出貨：** `0.7.0` — Memory 域（`/memory/l1`、`/memory/search` + `scope`、`/memory/ask` + cancel）；`POST /dream/cancel`；移除 `/recall`。
+- **上一版：** `0.6.0` — dream observability（events、`log_tail`、Consolidate progress）。
+- **Backlog：** mindzone、future-sight 注入 Memory — 見 `roadmap/backlog/`。
 
 ## 深入閱讀
 

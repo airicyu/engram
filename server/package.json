@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
-    "dev": "bun --watch run src/index.ts",
+    "dev": "bash scripts/dev.sh",
     "reset": "bun run src/cli/reset.ts",
     "test:phases": "bun run src/cli/self-test.ts"
   },

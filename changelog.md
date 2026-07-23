@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.7.0 — Memory + Ask + Dream Cancel (2026-07-23)
+
+Rename Recall → **Memory**; keyword search with optional **scope**; async AI ask; manual dream/ask cancel.
+
+### Added
+
+- **`GET /memory/l1`** — Capture L1 preview (summary + node_notes only)
+- **`GET /memory/search?q=&scope=`** — keyword hits only (`q` required; `scope=l1,nodes,chain` optional, default all)
+- **`POST /memory/ask`** + **`GET /memory/ask/{job_id}`** + **`POST /memory/ask/{job_id}/cancel`** — async AI Q&A (`ENGRAM_AGENT=mock-ask-ok` for tests); agent reads `ENGRAM_HOME` directly
+- **`POST /dream/cancel`** — cancel running dream (kill agent + revert L1.5 draft)
+- **`/status` `ask_job`** — running ask summary + `log_tail`
+- Workbench **Memory** scene (Search with scope checkboxes | Ask); Consolidate **Cancel** during dream
+
+### Changed
+
+- Product cycle UI: **Capture → Consolidate → Memory**（記憶）
+- **`GET /recall` removed** (hard cut); search no longer returns activation packet / `dream_status`
+- **`dream_run_id` / ask `job_id`** — compact `{prefix}-YYYYMMDD-HHmmss-{rand6}` (URL-safe); timestamps in yaml remain full ISO
+- `dream-job.yaml` records **`agent_pid`** on extract spawn
+
+### Unchanged
+
+- No auto timeout; stale dream lock (30 min) unchanged
+- `GET /future-sight` path unchanged; no future-sight UI
+
+---
+
 ## 0.6.0 — Dream observability (2026-07-23)
 
 Structured dream run events + default server console visibility; Workbench Consolidate progress panel.

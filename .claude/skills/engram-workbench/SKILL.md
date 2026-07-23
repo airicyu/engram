@@ -1,6 +1,6 @@
 ---
 name: engram-workbench
-description: Operate Engram memory via its HTTP API — capture events, run dream extract, review pending, approve/discard, check status, recall context packets. Use whenever the user mentions Engram, memory capture, dream run, recall, L1/L2, candidates, or wants to read or write Engram state. Always call the API; never edit files under ENGRAM_HOME or data/ directly.
+description: Operate Engram memory via its HTTP API — capture events, run dream extract, review pending, approve/discard/cancel, memory search/ask, check status. Use whenever the user mentions Engram, memory capture, dream run, memory search, L1/L2, candidates, or wants to read or write Engram state. Always call the API; never edit files under ENGRAM_HOME or data/ directly.
 ---
 
 # Engram Workbench
@@ -34,8 +34,8 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 |----|-------|
 | `curl` / `engram-api.sh` against `ENGRAM_URL` | Edit `data/**`, `nodes/**`, `candidates/**`, `dream/**` |
 | `POST /capture` to capture | Append to `events.jsonl` by hand |
-| `POST /dream/run` → pending → `approve`／`discard` | Hand-edit L1／L2／draft during review |
-| `GET /recall` to read context (Recall) | Assemble context by reading markdown files |
+| `POST /dream/run` → pending → `approve`／`discard`／`cancel` | Hand-edit L1／L2／draft during review |
+| `GET /memory/l1` / `GET /memory/search` / `POST /memory/ask` | Assemble context by reading markdown files |
 | `GET /future-sight` for near-horizon anchors | Hand-edit `future-sight/` |
 | Report `dream_status` from `/status` | Manually fix DLQ via filesystem |
 
@@ -53,7 +53,9 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Extract / Dream** | `POST /dream/run` — patches + draft + report; **does not** write L2 |
 | **Approve** | `POST /dream/approve` — `commitDraft` → L2, clear scope S |
 | **Discard** | `POST /dream/discard` — drop pending; L1／L2 unchanged |
-| **Recall** | `GET /recall` — L1, day chain, matched L2 (**no** future-sight in 0.4) |
+| **Dream cancel** | `POST /dream/cancel` — stop running extract; revert draft |
+| **Memory / Search** | `GET /memory/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain`) |
+| **Ask** | `POST /memory/ask` — async AI Q&A; poll `GET /memory/ask/{job_id}` |
 | **Future-sight** | `GET /future-sight` — active near-horizon anchors (sweeps expired → L0+L1 event) |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `dead_letter_pending` \| `never_dreamed` |
 
@@ -68,7 +70,10 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `GET /dream/pending` | none | always `200`; `present: false` if none |
 | `POST /dream/approve` | body optional | committed paths + cleared_scope |
 | `POST /dream/discard` | body optional | `{ discarded: true }` |
-| `GET /recall` | `q` optional | `l1`, `chain`, `nodes` |
+| `POST /dream/cancel` | body optional | cancel running dream |
+| `GET /memory/l1` | none | `summary`, `node_notes`, `present` |
+| `GET /memory/search` | `q` (required); `scope` optional | keyword hits per scope |
+| `POST /memory/ask` | `q` | `202` + `job_id` |
 | `GET /future-sight` | none | `anchors`, `swept_expired` |
 
 ## Quick operations
@@ -80,7 +85,10 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 ./.claude/skills/engram-workbench/scripts/engram-api.sh pending
 ./.claude/skills/engram-workbench/scripts/engram-api.sh approve
 ./.claude/skills/engram-workbench/scripts/engram-api.sh discard
-./.claude/skills/engram-workbench/scripts/engram-api.sh recall alice
+./.claude/skills/engram-workbench/scripts/engram-api.sh dream-cancel
+./.claude/skills/engram-workbench/scripts/engram-api.sh memory-l1
+./.claude/skills/engram-workbench/scripts/engram-api.sh memory-search acme nodes,chain
+./.claude/skills/engram-workbench/scripts/engram-api.sh memory-ask 'What about Acme?'
 ./.claude/skills/engram-workbench/scripts/engram-api.sh future-sight
 ```
 
@@ -92,6 +100,9 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "整理記憶"／extract | `POST /dream/run`；poll 至 `pending_review` |
 | "看看夢報告" | `GET /dream/pending` |
 | "批准"／寫入長期 | `POST /dream/approve` |
+| "取消入夢" | `POST /dream/cancel` (running only) |
+| "搜尋記憶" | `GET /memory/search?q=…&scope=…` |
+| "問記憶庫" | `POST /memory/ask`；poll job |
 | "近期前瞻／未來視" | `GET /future-sight`（過期會 mark event 後清掉） |
 | "丟掉這次夢" | `POST /dream/discard` |
 | "重夢／改時間線" | 再 `POST /dream/run`（supersede）— **不要**手改檔案 |

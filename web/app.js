@@ -20,8 +20,11 @@ const state = {
   scene: "capture",
   dreaming: false,
   pollTimer: null,
-  /** Last recall packet for re-render on locale change (shell strings only). */
-  lastRecall: null,
+  memoryMode: "search",
+  askJobId: null,
+  askPolling: false,
+  /** Last search packet for re-render on locale change. */
+  lastSearch: null,
 };
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -164,6 +167,8 @@ function renderDreamProgress() {
   if (events.length) {
     log.scrollTop = log.scrollHeight;
   }
+  const cancelBtn = $("dream-cancel");
+  if (cancelBtn) cancelBtn.hidden = !active;
 }
 
 function renderConsolidate() {
@@ -253,6 +258,9 @@ async function refreshStatus() {
   renderStatusLight();
   renderConsolidate();
   applyCaptureLock();
+  if (state.askJobId && state.status?.ask_job) {
+    renderAskProgress(state.status.ask_job);
+  }
   schedulePoll();
   return true;
 }
@@ -261,8 +269,8 @@ function schedulePoll() {
   if (state.pollTimer) clearTimeout(state.pollTimer);
   const locked = !!(state.status?.lock || state.dreaming);
   const pending = state.status?.dream_status === "pending_review";
-  // Lax intervals: status is cheap but no need to chat with the API constantly.
-  const ms = locked ? 3000 : pending ? 20000 : 60000;
+  const asking = !!state.status?.ask_job || state.askPolling;
+  const ms = locked || asking ? 3000 : pending ? 20000 : 60000;
   state.pollTimer = setTimeout(async () => {
     await refreshStatus();
   }, ms);
@@ -291,13 +299,13 @@ function formatL1(packet) {
 
 async function refreshL1() {
   const el = $("l1-content");
-  const { ok, data } = await api("/recall");
+  const { ok, data } = await api("/memory/l1");
   if (!ok) {
     el.textContent = data?.message || data?.error || t("empty.l1_load");
     el.classList.add("is-empty");
     return;
   }
-  const { text, empty } = formatL1(data);
+  const { text, empty } = formatL1({ l1: data });
   el.textContent = text;
   el.classList.toggle("is-empty", empty);
 }
@@ -316,6 +324,20 @@ function switchScene(name) {
   });
   if (name === "capture") refreshL1();
   if (name === "consolidate") refreshStatus();
+  if (name === "memory" && state.memoryMode === "search") {
+    /* optional: auto-search */
+  }
+}
+
+function switchMemoryMode(mode) {
+  state.memoryMode = mode;
+  document.querySelectorAll("[data-memory-mode]").forEach((btn) => {
+    const on = btn.getAttribute("data-memory-mode") === mode;
+    btn.classList.toggle("is-active", on);
+    btn.setAttribute("aria-selected", String(on));
+  });
+  $("memory-search-panel").hidden = mode !== "search";
+  $("memory-ask-panel").hidden = mode !== "ask";
 }
 
 function parseNodeRefs(raw) {
@@ -454,52 +476,266 @@ async function onDreamDiscard() {
   await refreshStatus();
 }
 
-function renderRecallPacket(data) {
-  state.lastRecall = data;
-  const l1 = formatL1(data);
-  const l1El = $("recall-l1");
-  l1El.textContent = l1.text;
-  l1El.classList.toggle("is-empty", l1.empty);
-
-  const chainEl = $("recall-chain");
-  const chain = data.chain?.content?.trim();
-  if (chain) {
-    const day = data.chain.day_id ? `# ${data.chain.day_id}\n\n` : "";
-    chainEl.textContent = day + chain;
-    chainEl.classList.remove("is-empty");
-  } else {
-    chainEl.textContent = t("empty.no_chain");
-    chainEl.classList.add("is-empty");
-  }
-
-  const nodesRoot = $("recall-nodes");
-  nodesRoot.innerHTML = "";
-  const nodes = data.nodes ?? [];
-  if (!nodes.length) {
-    const pre = document.createElement("pre");
-    pre.className = "md-block is-empty";
-    pre.textContent = t("empty.no_nodes");
-    nodesRoot.appendChild(pre);
+async function onDreamCancel() {
+  const msg = $("dream-msg");
+  setMsg(msg, t("dream.cancelling"));
+  const { ok, status, data } = await api("/dream/cancel", {
+    method: "POST",
+    body: "{}",
+  });
+  if (!ok) {
+    setMsg(msg, data?.message || data?.error || t("dream.fail", { status }), "error");
+    await refreshStatus();
     return;
   }
-  for (const n of nodes) {
-    const card = document.createElement("div");
-    card.className = "node-card";
-    const h = document.createElement("h3");
-    h.innerHTML = `${escapeHtml(n.node)} <span>· ${escapeHtml(n.match_reason || "")}</span>`;
-    const pre = document.createElement("pre");
-    pre.className = "md-block";
-    const what = (n.what_current || "").trim();
-    if (what) {
-      pre.textContent = what;
+  state.dreaming = false;
+  setMsg(msg, t("dream.cancel_ok"), "ok");
+  await refreshStatus();
+}
+
+function getSearchScopes() {
+  return [...document.querySelectorAll('#memory-search-form input[name="scope"]:checked')].map(
+    (el) => /** @type {HTMLInputElement} */ (el).value,
+  );
+}
+
+function formatSearchL1(l1) {
+  if (!l1) return { text: "", empty: true };
+  const parts = [];
+  if (l1.summary?.trim()) parts.push(l1.summary.trim());
+  const notes = Object.entries(l1.node_notes ?? {})
+    .filter(([, md]) => md?.trim())
+    .map(([id, md]) => `### ${id}\n${md.trim()}`);
+  if (notes.length) parts.push(notes.join("\n\n"));
+  const text = parts.join("\n\n");
+  return { text, empty: !text };
+}
+
+function renderSearchPacket(data) {
+  state.lastSearch = data;
+
+  const l1Block = $("memory-l1-block");
+  const l1El = $("memory-l1");
+  if ("l1" in data) {
+    const l1 = formatSearchL1(data.l1);
+    l1Block.hidden = false;
+    if (data.l1) {
+      l1El.textContent = l1.text;
+      l1El.classList.toggle("is-empty", l1.empty);
     } else {
-      pre.textContent = t("empty.no_what");
-      pre.classList.add("is-empty");
+      l1El.textContent = t("empty.no_l1_hit");
+      l1El.classList.add("is-empty");
     }
-    card.appendChild(h);
-    card.appendChild(pre);
-    nodesRoot.appendChild(card);
+  } else {
+    l1Block.hidden = true;
   }
+
+  const chainBlock = $("memory-chain-block");
+  const chainEl = $("memory-chain");
+  if ("chain" in data) {
+    const chainHits = data.chain ?? [];
+    chainBlock.hidden = false;
+    if (chainHits.length) {
+      chainEl.textContent = chainHits
+        .map((c) => `# ${c.day_id}\n\n${c.content.trim()}`)
+        .join("\n\n---\n\n");
+      chainEl.classList.remove("is-empty");
+    } else {
+      chainEl.textContent = t("empty.no_chain");
+      chainEl.classList.add("is-empty");
+    }
+  } else {
+    chainBlock.hidden = true;
+  }
+
+  const nodesBlock = $("memory-nodes-block");
+  const nodesRoot = $("memory-nodes");
+  nodesRoot.innerHTML = "";
+  if ("nodes" in data) {
+    nodesBlock.hidden = false;
+    const nodes = data.nodes ?? [];
+    if (!nodes.length) {
+      const pre = document.createElement("pre");
+      pre.className = "md-block is-empty";
+      pre.textContent = t("empty.no_nodes");
+      nodesRoot.appendChild(pre);
+      return;
+    }
+    for (const n of nodes) {
+      const card = document.createElement("div");
+      card.className = "node-card";
+      const h = document.createElement("h3");
+      h.innerHTML = `${escapeHtml(n.node)} <span>· ${escapeHtml(n.match_reason || "")}</span>`;
+      const pre = document.createElement("pre");
+      pre.className = "md-block";
+      const what = (n.what_current || "").trim();
+      if (what) {
+        pre.textContent = what;
+      } else {
+        pre.textContent = t("empty.no_what");
+        pre.classList.add("is-empty");
+      }
+      card.appendChild(h);
+      card.appendChild(pre);
+      nodesRoot.appendChild(card);
+    }
+  } else {
+    nodesBlock.hidden = true;
+  }
+}
+
+function askEventLabel(ev) {
+  const key = `memory.log.${ev.event}`;
+  const translated = t(key);
+  if (translated !== key) return translated;
+  return ev.message || ev.event;
+}
+
+function renderAskProgress(job) {
+  const panel = $("ask-progress");
+  const active = job?.status === "running";
+  panel.hidden = !active && !state.askPolling;
+  $("memory-ask-cancel").hidden = !active;
+  $("memory-ask-submit").disabled = active;
+
+  if (!job) return;
+
+  const meta = $("ask-progress-meta");
+  meta.textContent = t("memory.ask_progress", {
+    phase: job.phase || "—",
+    elapsed: formatElapsed(job.started_at),
+  });
+
+  const log = $("ask-progress-log");
+  log.replaceChildren();
+  for (const ev of job.log_tail ?? []) {
+    const li = document.createElement("li");
+    li.className = ev.level === "error" ? "is-error" : "";
+    const time = ev.ts ? new Date(ev.ts).toLocaleTimeString() : "";
+    li.textContent = time ? `${time}  ${askEventLabel(ev)}` : askEventLabel(ev);
+    log.appendChild(li);
+  }
+  if ((job.log_tail ?? []).length) {
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+function renderAskAnswer(job) {
+  const block = $("memory-answer-block");
+  if (!job?.answer) {
+    block.hidden = true;
+    return;
+  }
+  block.hidden = false;
+  $("memory-answer").textContent = job.answer;
+  const sources = job.sources ?? [];
+  const wrap = $("memory-sources-wrap");
+  if (sources.length) {
+    wrap.hidden = false;
+    $("memory-sources").textContent = JSON.stringify(sources, null, 2);
+  } else {
+    wrap.hidden = true;
+  }
+}
+
+async function pollAskJob(jobId) {
+  state.askPolling = true;
+  const msg = $("memory-ask-msg");
+  while (state.askPolling && state.askJobId === jobId) {
+    const { ok, data } = await api(`/memory/ask/${encodeURIComponent(jobId)}`);
+    if (!ok || data?.present === false) {
+      setMsg(msg, t("memory.ask_fail"), "error");
+      break;
+    }
+    renderAskProgress(data);
+    if (data.status === "completed") {
+      setMsg(msg, t("memory.ask_done"), "ok");
+      renderAskAnswer(data);
+      state.askJobId = null;
+      state.askPolling = false;
+      $("ask-progress").hidden = true;
+      break;
+    }
+    if (data.status === "failed" || data.status === "cancelled") {
+      setMsg(msg, data.error || t("memory.ask_fail"), "error");
+      state.askJobId = null;
+      state.askPolling = false;
+      $("ask-progress").hidden = true;
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 2500));
+  }
+  $("memory-ask-submit").disabled = false;
+}
+
+async function onMemorySearch(e) {
+  e.preventDefault();
+  const msg = $("memory-search-msg");
+  const q = /** @type {HTMLInputElement} */ ($("memory-search-q")).value.trim();
+  if (!q) {
+    setMsg(msg, t("memory.search_empty_q"), "error");
+    return;
+  }
+  const scopes = getSearchScopes();
+  if (!scopes.length) {
+    setMsg(msg, t("memory.search_scope_empty"), "error");
+    return;
+  }
+  setMsg(msg, t("memory.querying"));
+  const params = new URLSearchParams({ q });
+  if (scopes.length < 3) params.set("scope", scopes.join(","));
+  const { ok, data } = await api(`/memory/search?${params}`);
+  if (!ok) {
+    setMsg(msg, data?.message || data?.error || t("memory.search_fail"), "error");
+    return;
+  }
+  const hits =
+    (data.nodes?.length ?? 0) +
+    (data.l1 ? 1 : 0) +
+    (data.chain?.length ?? 0);
+  setMsg(msg, hits ? t("memory.search_hits", { count: hits }) : t("memory.search_empty"), "ok");
+  renderSearchPacket(data);
+}
+
+async function onMemoryAsk(e) {
+  e.preventDefault();
+  const msg = $("memory-ask-msg");
+  const q = /** @type {HTMLTextAreaElement} */ ($("memory-ask-q")).value.trim();
+  if (!q) {
+    setMsg(msg, t("memory.ask_empty"), "error");
+    return;
+  }
+  setMsg(msg, t("memory.ask_running"));
+  $("memory-answer-block").hidden = true;
+  const { ok, status, data } = await api("/memory/ask", {
+    method: "POST",
+    body: JSON.stringify({ q }),
+  });
+  if (status === 409 && data?.error === "ask_busy") {
+    setMsg(msg, t("memory.ask_busy"), "error");
+    return;
+  }
+  if (!ok) {
+    setMsg(msg, data?.message || data?.error || t("memory.ask_fail"), "error");
+    return;
+  }
+  state.askJobId = data.job_id;
+  $("ask-progress").hidden = false;
+  void pollAskJob(data.job_id);
+}
+
+async function onMemoryAskCancel() {
+  if (!state.askJobId) return;
+  const msg = $("memory-ask-msg");
+  await api(`/memory/ask/${encodeURIComponent(state.askJobId)}/cancel`, {
+    method: "POST",
+    body: "{}",
+  });
+  state.askPolling = false;
+  state.askJobId = null;
+  setMsg(msg, t("memory.ask_cancelled"), "ok");
+  $("ask-progress").hidden = true;
+  $("memory-ask-submit").disabled = false;
 }
 
 function escapeHtml(s) {
@@ -510,27 +746,6 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-async function onRecall(e) {
-  e.preventDefault();
-  const msg = $("recall-msg");
-  const q = /** @type {HTMLInputElement} */ ($("recall-q")).value.trim();
-  setMsg(msg, t("recall.querying"));
-  const path = q ? `/recall?q=${encodeURIComponent(q)}` : "/recall";
-  const { ok, data } = await api(path);
-  if (!ok) {
-    setMsg(msg, data?.message || data?.error || t("recall.fail"), "error");
-    return;
-  }
-  const meta = [
-    data.dream_status ? `dream_status=${data.dream_status}` : null,
-    data.sources?.length ? `sources=${data.sources.join(",")}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  setMsg(msg, meta || t("recall.done"), "ok");
-  renderRecallPacket(data);
-}
-
 async function onLocaleClick(e) {
   const btn = e.currentTarget;
   const code = btn.getAttribute("data-locale");
@@ -538,7 +753,7 @@ async function onLocaleClick(e) {
   await setLocale(code);
   renderStatusLight();
   renderConsolidate();
-  if (state.lastRecall) renderRecallPacket(state.lastRecall);
+  if (state.lastSearch) renderSearchPacket(state.lastSearch);
   if (state.scene === "capture") await refreshL1();
 }
 
@@ -546,6 +761,11 @@ function bind() {
   document.querySelectorAll(".scene-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       switchScene(btn.getAttribute("data-scene"));
+    });
+  });
+  document.querySelectorAll("[data-memory-mode]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      switchMemoryMode(btn.getAttribute("data-memory-mode"));
     });
   });
   document.querySelectorAll("[data-locale]").forEach((btn) => {
@@ -557,7 +777,10 @@ function bind() {
   $("dream-run").addEventListener("click", onDreamRun);
   $("dream-approve").addEventListener("click", onDreamApprove);
   $("dream-discard").addEventListener("click", onDreamDiscard);
-  $("recall-form").addEventListener("submit", onRecall);
+  $("dream-cancel").addEventListener("click", onDreamCancel);
+  $("memory-search-form").addEventListener("submit", onMemorySearch);
+  $("memory-ask-form").addEventListener("submit", onMemoryAsk);
+  $("memory-ask-cancel").addEventListener("click", onMemoryAskCancel);
 }
 
 async function init() {

@@ -1,14 +1,14 @@
 # Engram workbench workflows
 
-## Capture → Extract → Approve → Recall
+## Capture → Extract → Approve → Memory
 
 1. `GET /status` — confirm server up
 2. `POST /capture` with `{ "raw": "…" }` (repeat as needed)
 3. `POST /dream/run` → 202; poll `/status` until `dream_status=pending_review` (or `dream_job.status=failed`)
 4. `GET /dream/pending` — read report; check timeline / new nodes
-5. If wrong → `POST /dream/run` again (**supersede**) or `POST /dream/discard`
+5. If wrong → `POST /dream/run` again (**supersede**), `POST /dream/discard`, or `POST /dream/cancel` if still running
 6. If OK → `POST /dream/approve`
-7. `GET /recall?q=…` — verify L2／chain (Recall; no future-sight)
+7. `GET /memory/search?q=…&scope=nodes,chain` — verify L2／chain hits
 8. `GET /future-sight` — list active near-horizon anchors (optional)
 
 ## Pending 期間仍可 capture
@@ -34,6 +34,7 @@ Approve returns `409 stale_future_anchor` when a `future` patch has `anchor_end`
 ## Future-sight expiry
 
 `GET /future-sight` (and after approve) sweeps: mark L0+L1 `system/future_sight_expired` event, then hard-delete active file. No expired list API.
+
 ## Extract failure
 
 `dream_job.status=failed`, `phase: extract|materialize`. No pending. L1 unchanged. Retry `/dream/run`.
@@ -41,3 +42,7 @@ Approve returns `409 stale_future_anchor` when a `future` patch has `anchor_end`
 ## l1_clear_pending
 
 Commit succeeded but clearing S failed. Call approve again — only retries clear. Do not supersede as if still pending.
+
+## Memory ask
+
+`POST /memory/ask` → poll `GET /memory/ask/{job_id}` until `completed` | `failed` | `cancelled`. One running ask at a time (`409 ask_busy`). Cancel via `POST /memory/ask/{job_id}/cancel`.

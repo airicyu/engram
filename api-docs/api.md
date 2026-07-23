@@ -25,7 +25,12 @@ Service discovery.
     "POST /dream/approve",
     "POST /dream/discard",
     "GET /future-sight",
-    "GET /recall",
+    "GET /memory/l1",
+    "GET /memory/search",
+    "POST /memory/ask",
+    "GET /memory/ask/{job_id}",
+    "POST /memory/ask/{job_id}/cancel",
+    "POST /dream/cancel",
     "GET /status"
   ]
 }
@@ -49,7 +54,7 @@ Snapshot of store health, dream state, and async job status.
   "future_sight_active_count": 0,
   "dream_status": "pending_review",
   "dream_pending": {
-    "dream_run_id": "dream-2026-07-21T22:00:00+08:00",
+    "dream_run_id": "dream-20260721-220000-a1b2c3",
     "scope_count": 2,
     "patch_count": 3
   },
@@ -99,7 +104,7 @@ Incremental dream run event log for UI polling and post-mortem review.
 
 ```json
 {
-  "run_id": "dream-2026-07-23T21:00:00+08:00-…",
+  "run_id": "dream-20260723-210000-a1b2c3",
   "status": "running",
   "phase": "extract",
   "events": [
@@ -155,12 +160,13 @@ Async **extract → materialize draft → unique pending**. Does **not** write L
 - Existing pending → **supersede** (discard old intent+draft; new extract on current pool)
 - Scope **S** = all event ids in the pool at call time
 - Extract input = L0 events for S (may span days) + L1 view for S + existing L2
+- `job_id` / `dream_run_id` shape: `dream-YYYYMMDD-HHmmss-{rand6}` (ENGRAM_TZ local time)
 
 **Response `202`**
 
 ```json
 {
-  "job_id": "dream-2026-07-21T22:00:00+08:00",
+  "job_id": "dream-20260721-220000-a1b2c3",
   "status": "started",
   "message": "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dream/pending then approve or discard."
 }
@@ -272,23 +278,78 @@ On each call: **lazy sweep** — for each active file with `anchor_end` &lt; tod
 
 `swept_expired` = ids removed on **this** request only (not a browseable expired store).
 
-**Not in `/recall`:** future-sight is not injected into recall packets in 0.4.0.
+**Not in `/memory/search`:** future-sight is not injected into search packets.
 
 ---
 
-## `GET /recall`
+## `GET /memory/l1`
 
-Recall packet. Does **not** include future-sight. `dream_status` includes 0.3+ values (`pending_review`, `l1_clear_pending`, …).
+L1 preview for Capture. **Does not** include chain or nodes.
 
-**`chain` block (0.5.0):**
+**Response `200`:** `{ summary, node_notes, present }`
+
+---
+
+## `GET /memory/search`
+
+Keyword search across L1, memory-chain days, and L2 nodes. **`q` is required** (`400 missing_q` if omitted or blank). Only **matching** sections are returned.
+
+**Query:**
+
+| Param | Required | Meaning |
+|-------|----------|---------|
+| `q` | yes | Keyword (case-insensitive substring) |
+| `scope` | no | Comma-separated: `l1`, `nodes`, `chain`. Default: all three. `400 invalid_scope` if empty or unknown value |
+
+**Response `200`:**
+
+```json
+{
+  "q": "acme",
+  "scope": ["nodes", "chain"],
+  "nodes": [
+    { "node": "acme", "what_current": "…", "match_reason": "node_id" }
+  ],
+  "chain": [
+    { "day_id": "2026-07-23", "content": "…", "source": "summary" }
+  ]
+}
+```
 
 | Field | Meaning |
 |-------|---------|
-| `day_id` | Today (configured timezone) |
-| `content` | Prefer **summary** Current from `memory-chain/days/{day}.summary.md`; if missing／empty → **fallback** ledger `days/{day}.md` |
-| `source` | `"summary"` \| `"ledger_fallback"` \| `"empty"` |
+| `scope` | Scopes searched on this request (echo) |
+| `nodes` | Present only when `nodes` in scope; L2 hits (`node_id` \| `what_content` \| `l1_note`) |
+| `l1` | Present only when `l1` in scope; `null` when no L1 hit |
+| `chain` | Present only when `chain` in scope; all matching days (summary preferred) |
 
-Ledger is not injected when a non-empty summary exists.
+No matches → `200` with requested scope keys empty (`nodes: []`, `l1: null`, or `chain: []`). Does **not** include `dream_status` or future-sight.
+
+**Errors:** `400 missing_q`, `400 invalid_scope`
+
+---
+
+## `POST /memory/ask`
+
+Start async AI ask. Agent reads `ENGRAM_HOME` directly (read-only).
+
+**Request:** `{ "q": "natural language question" }`  
+**Response `202`:** `{ job_id, status: "started" }`  
+**Errors:** `400 missing_q`, `409 ask_busy`
+
+Poll **`GET /memory/ask/{job_id}`** until `status` is `completed` | `failed` | `cancelled`.  
+Cancel running job: **`POST /memory/ask/{job_id}/cancel`**.
+
+`job_id` shape: `ask-YYYYMMDD-HHmmss-{rand6}` (ENGRAM_TZ local time; URL-safe, no encoding).
+
+`ENGRAM_AGENT`: `cursor` (default) | `claude` | `mock-ask-ok` (ask tests). Dream also supports `mock-ok` | `mock-fail`.
+
+---
+
+## `POST /dream/cancel`
+
+Cancel a **running** dream (kill extract agent + remove draft). Optional body `{ "dream_run_id" }`.  
+**409** when no running job. Distinct from **`POST /dream/discard`** (pending_review only).
 
 ---
 
@@ -332,8 +393,10 @@ GET  /status  until dream_status=pending_review (or dream_job failed)
 GET  /dream/pending  (read report)
      ↓
 POST /dream/approve   OR   POST /dream/discard   OR   POST /dream/run (supersede)
+     OR   POST /dream/cancel (while running)
      ↓
-GET  /recall?q=…
+GET  /memory/search?q=…
+POST /memory/ask { "q": "…" }  →  GET /memory/ask/{job_id}
 ```
 
 ---

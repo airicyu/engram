@@ -1,6 +1,6 @@
 # Engram API Documentation
 
-HTTP API for the Engram memory prototype: **capture → dream extract (draft) → approve → recall**.
+HTTP API for the Engram memory prototype: **capture → dream extract (draft) → approve → memory**.
 
 ## Quick start
 
@@ -20,7 +20,8 @@ curl -s -X POST http://localhost:8787/dream/run
 # poll /status until dream_status=pending_review
 curl -s http://localhost:8787/dream/pending
 curl -s -X POST http://localhost:8787/dream/approve
-curl -s 'http://localhost:8787/recall'
+curl -s 'http://localhost:8787/memory/l1'
+curl -s 'http://localhost:8787/memory/search?q=keyword&scope=nodes,chain'
 ```
 
 ## Web UI
@@ -43,7 +44,7 @@ See [`web/README.md`](../web/README.md).
 | `ENGRAM_HOME` | `../data` (repo `data/`) | Memory store root on disk |
 | `PORT` | `8787` | HTTP listen port |
 | `CLAUDE_BIN` | `claude` | Claude Code binary for dream extract |
-| `ENGRAM_AGENT` | `cursor` | `cursor` \| `claude` \| `mock-ok` \| `mock-fail` (latter two for tests only) |
+| `ENGRAM_AGENT` | `cursor` | `cursor` \| `claude` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
 
 ## Base URL
 
@@ -64,8 +65,13 @@ No authentication in the prototype. Timestamps use `ENGRAM_TZ` (default `Asia/Ho
 | `GET` | `/dream/pending` | Active pending report + patches (`present: false` if none) |
 | `POST` | `/dream/approve` | `commitDraft` → L2, clear scope S |
 | `POST` | `/dream/discard` | Drop pending + draft; L1/L2 unchanged |
+| `POST` | `/dream/cancel` | Cancel running dream (kill agent + revert draft) |
 | `GET` | `/future-sight` | Active near-horizon anchors (sweeps expired first) |
-| `GET` | `/recall` | Recall packet (optional `?q=`) |
+| `GET` | `/memory/l1` | L1 preview for Capture |
+| `GET` | `/memory/search` | Keyword search (`q` required; optional `scope=l1,nodes,chain`) |
+| `POST` | `/memory/ask` | Start async AI ask |
+| `GET` | `/memory/ask/{job_id}` | Poll ask job |
+| `POST` | `/memory/ask/{job_id}/cancel` | Cancel running ask |
 
 Full request/response schemas, error codes, and semantics: **[api.md](./api.md)**.
 
@@ -79,7 +85,7 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 | **L1.5 draft** | Staged L2 projection (`dream/draft/{run_id}/`) — not live until approve |
 | **L2** | Long-term node understanding (`nodes/{id}/understand/what.md`) |
 | **chain** | World timeline days (`memory-chain/days/`) — occurrence dates only |
-| **future-sight** | Near-horizon anchors (`future-sight/active/`) — not memory-chain; not injected into `/recall` |
+| **future-sight** | Near-horizon anchors (`future-sight/active/`) — not memory-chain; not in `/memory/search` |
 | **candidates** | Low-confidence attribution etc. (`candidates/`) — not the primary create-node path |
 
 **Lock rule:** capture is blocked only while extract/materialize/commit holds the dream lock. **`pending_review` allows capture** (new events ∉ frozen S).

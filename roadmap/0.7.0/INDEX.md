@@ -1,64 +1,70 @@
-# 0.7.0 — Recall Ask（非同步 AI 問答）
+# 0.7.0 — Memory + Ask + Dream Cancel
 
-← [changelog](../../changelog.md) · 上游：[0.6.0](../0.6.0/INDEX.md) · current: [version](../../version.md)
+← [changelog](../../changelog.md) · 上游：[0.6.0](../0.6.0/INDEX.md) · current: [version](../../version.md) · 詞彙：[domain-language.md](../../domain-language.md)
 
-> **狀態：** 規劃中 — 與 0.6.0 **獨立**；**實作順序在 0.6.0 之後**。  
-> **本版做：** 在保留既有 **`GET /recall?q=`**（同步 keyword packet）前提下，新增 **非同步 AI 問答**：spawn agent 搜尋記憶脈絡、撰寫答案；job + events 可輪詢。  
-> **本版不做：** embedding／向量庫、多輪對話 session、取代 sync recall、future-sight 注入（見 [backlog](../../backlog/recall-future-sight.md)）。
+> **狀態：** 已出貨（`version.md` **0.7.0**）。  
+> **本版做：** **Memory** 域（Search + `scope`、Ask + 手動 cancel）；**入夢手動 cancel**；Capture **`GET /memory/l1`**。  
+> **本版不做：** embedding／多輪 Ask session、future-sight UI、auto timeout、改 stale lock。
 
 ## 產品句
 
-> **回憶**有兩條路：**快** — 關鍵字脈絡包（現行）；**深** — 丟問題給 AI，等它讀 L1／L2／chain 再回答（本版）。
+> **記憶**：搜尋（快）或提問（AI）。**沉澱**：入夢中可取消。卡住時使用者／agent **手動 cancel**，不做自動 timeout。
 
 ## 文件地圖
 
 | 文件 | 內容 |
 |------|------|
-| [docs/recall-ask.md](./docs/recall-ask.md) | job 生命週期、context、agent 契約、API、UI |
+| [docs/memory-ask.md](./docs/memory-ask.md) | Search／L1／Ask API、Ask cancel |
+| [docs/dream-cancel.md](./docs/dream-cancel.md) | 入夢 cancel（= revert running run） |
+| [domain-language.md](../../domain-language.md) | Memory／Search／Ask 產品詞 |
 
-## 現況（0.5.0）
+## 已定案
 
-`GET /recall?q=` 同步回傳 packet；L2 匹配為 **keyword**（node id、L1 node_refs、`what.md` substring）。無 AI、無 timeout 問題，但也無法語意搜尋或綜合回答。
+### Memory 域
 
-## 已定案（2026-07-23）
+| 端點 | 用途 |
+|------|------|
+| `GET /memory/l1` | Capture L1 預覽 |
+| `GET /memory/search?q=&scope=` | keyword 搜尋（`q` 必填；`scope=l1,nodes,chain` 可選，預設全搜；只回命中） |
+| `POST /memory/ask` | 非同步 AI 問答 |
+| `GET /memory/ask/{job_id}` | 輪詢 |
+| `POST /memory/ask/{job_id}/cancel` | 手動取消 ask |
 
-| # | 題 | 決定 |
-|---|-----|------|
-| 1 | 與 sync recall 關係 | **並存**；`GET /recall` 行為不變 |
-| 2 | 觸發 | **`POST /recall/ask`** body `{ "q": "…" }` → **202** `{ job_id, status: "started" }` |
-| 3 | 輪詢 | **`GET /recall/ask/{job_id}`** → status、phase、answer、sources、log_tail |
-| 4 | 執行模型 | 背景 task（同 dream）；**不**佔 dream lock（唯讀讀 store） |
-| 5 | 並發 | **同時只允許一個 ask job**；新 ask → **409 `ask_busy`** |
-| 6 | Context | 以 sync recall packet 為基礎；L2 廣度等細節 **實作前再討論** |
-| 7 | Agent 輸出 | 結構化 JSON：`{ answer, sources[], confidence? }`；sources 對齊 packet 欄位 |
-| 8 | 可觀測性 | 複製 0.6.0 模式：`recall/jobs/{job_id}/events.jsonl` + console log |
-| 9 | Runner | 复用 `AgentRunner` 模式 + 新 prompt `prompts/recall-ask.md`；`ENGRAM_AGENT` 同 dream |
-| 10 | UI | Recall 場景：**脈絡包**（現行）／**問答**（輸入 q → 進度 log → 答案 markdown） |
-| 11 | Timeout | HTTP 不等待 agent；job `failed` + event 記錄；可設 `ENGRAM_ASK_TIMEOUT_MS` |
+Ask：agent 直讀 `ENGRAM_HOME`；同時只一個 running ask（`409 ask_busy`）。
 
-## 非目標（本版）
+### Dream cancel
 
-- 向量檢索、hybrid search
-- Chat history／follow-up（一 job 一問）
-- 自動寫入記憶（capture）
-- Recall 注入 future-sight
-- Server 端 streaming 答案（整包 JSON 完成後一次回）
+| 端點 | 用途 |
+|------|------|
+| `POST /dream/cancel` | running 入夢：kill agent + revert L1.5 半成品 + release lock |
 
-## 實作軌道（建議順序）
+與 **Discard** 分工：cancel = running；discard = pending_review（已有）。**不支援 resume**。
 
-1. `store/recall-job.ts` + `recall/jobs/{id}/job.yaml` + events（抄 0.6.0）
-2. `recall/build-context.ts` — 組 agent context（擴展現有 `handleRecall`）
-3. `agent/recall-ask.ts` + prompt
-4. `POST /recall/ask`、`GET /recall/ask/:id`
-5. Web Recall 問答 UI + i18n
-6. `api-docs`、`test:phases`（mock agent 固定答案）
+### Cancel 共用基礎設施
 
-## 與 0.6.0 的關係
+- `store/agent-process.ts` — in-memory `proc` + `agent_pid`
+- `agent_spawn` 寫 PID（ask `job.yaml`、dream `dream-job.yaml`）
+- **手動 only** — 無 `ENGRAM_*_TIMEOUT_MS` auto
 
-兩版**獨立**（可分開釋出）；**實作順序先做 0.6.0**。0.7.0 實作時複製 0.6.0 的 events 基礎設施，其餘細節（L2 廣度、舊 job 清理等）**開工前再討論**。
+## 非目標
 
-不依賴 mindzone／future-sight backlog。
+- 向量檢索、Ask 多輪、future-sight Memory UI
+- Ask／Dream **自動 timeout**
+- 改 dream **stale lock**（30 分鐘被動拆鎖維持現狀）
+- `GET /recall` 別名
+
+## 實作軌道
+
+1. **`store/agent-process.ts`** — 共用 proc registry + PID kill
+2. **Memory 域** — `/memory/l1`、`/memory/search`；移除 `/recall`
+3. **Ask** — job store、runner、ask API + cancel、Web Memory tab
+4. **Dream cancel** — `POST /dream/cancel`、`abandonDreamRun`、materialize `AbortSignal`、`agent_pid` on extract、Consolidate 取消鈕
+5. **docs** — `api-docs`、workbench skill、`test:phases`
+
+## 與 0.6.0
+
+複製 events／progress UI 模式；0.6.0 已出貨。
 
 ---
 
-**狀態：** draft — 核心並發策略已定；其餘實作前再定
+**狀態：** shipped — 見 `version.md` 0.7.0

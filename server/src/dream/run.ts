@@ -12,6 +12,7 @@ import {
   clearL1Scope,
 } from "../store/l1";
 import { calendarDate, nowIso } from "../store/events";
+import { makeRunId } from "../store/run-id";
 import { listNodeIds, readAllWhatCurrents } from "../store/nodes";
 import { readDay, readDaySummary } from "../store/chain";
 import { appendPatchesIfNew, patchesForRun } from "../store/patches";
@@ -23,6 +24,13 @@ import { emitDreamEvent } from "./emit-event";
 import { logExtractContext, summarizePatches } from "../agent/extract-log";
 import { updateDreamJobPhase } from "../store/dream-job";
 import { buildDreamReport } from "./report";
+import {
+  beginDreamRun,
+  endDreamRun,
+  throwIfDreamCancelled,
+  DreamCancelledError,
+  isDreamCancelled,
+} from "./cancel-state";
 import {
   draftSummary,
   futureChainIds,
@@ -44,6 +52,8 @@ import {
   writeReport,
   type DreamRunState,
 } from "../store/dream-runs";
+
+export { DreamCancelledError } from "./cancel-state";
 
 /** Indicates a dream that failed during extract or draft materialization. */
 export class DreamIncompleteError extends Error {
@@ -67,10 +77,7 @@ export class NothingToDreamError extends Error {
 
 /** Create a collision-resistant identifier for a dream run. */
 export function makeDreamRunId(at = nowIso()): string {
-  // Second-precision ISO alone collides when two runs start in the same second
-  // (appendPatchesIfNew would reuse the prior run's patches).
-  const uniq = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-  return `dream-${at}-${uniq}`;
+  return makeRunId("dream", at);
 }
 
 function pickRunner(): AgentRunner {
@@ -165,6 +172,8 @@ export async function runDream(opts?: {
 
   const dreamRunId = opts?.dream_run_id ?? makeDreamRunId();
 
+  beginDreamRun(dreamRunId);
+
   try {
     const scope = await listPoolEventIds();
     if (scope.length === 0 || (await isL1Empty())) {
@@ -185,6 +194,8 @@ export async function runDream(opts?: {
 
     const patches = await doExtract(dreamRunId, scope, opts?.runner);
 
+    throwIfDreamCancelled(dreamRunId);
+
     await updateDreamJobPhase("materialize");
     emitDreamEvent(dreamRunId, {
       phase: "materialize",
@@ -197,9 +208,14 @@ export async function runDream(opts?: {
     });
 
     try {
-      await materializeDraft(dreamRunId, patches);
+      await materializeDraft(dreamRunId, patches, {
+        shouldAbort: () => isDreamCancelled(dreamRunId),
+      });
     } catch (e) {
       await removeDraft(dreamRunId).catch(() => {});
+      if (isDreamCancelled(dreamRunId)) {
+        throw new DreamCancelledError(dreamRunId);
+      }
       const msg = e instanceof Error ? e.message : String(e);
       emitDreamEvent(dreamRunId, {
         phase: "materialize",
@@ -252,6 +268,9 @@ export async function runDream(opts?: {
       phase: "pending_review",
     };
   } catch (e) {
+    if (e instanceof DreamCancelledError || isDreamCancelled(dreamRunId)) {
+      throw new DreamCancelledError(dreamRunId);
+    }
     if (e instanceof DreamIncompleteError) {
       emitDreamEvent(e.dream_run_id, {
         phase: e.phase,
@@ -268,6 +287,7 @@ export async function runDream(opts?: {
     }
     throw e;
   } finally {
+    endDreamRun(dreamRunId);
     if (!opts?.lockAlreadyHeld) {
       await releaseLock();
     }

@@ -61,7 +61,6 @@ const server = Bun.serve({
   port: PORT,
   development: process.env.NODE_ENV !== "production",
   routes: {
-    // HTML import: Bun bundles linked CSS/JS (see Bun fullstack docs)
     "/": index,
 
     "/api/status": {
@@ -73,6 +72,9 @@ const server = Bun.serve({
     "/api/dream/run": {
       POST: (req) => proxyApi(req, "/dream/run"),
     },
+    "/api/dream/cancel": {
+      POST: (req) => proxyApi(req, "/dream/cancel"),
+    },
     "/api/dream/pending": {
       GET: (req) => proxyApi(req, "/dream/pending"),
     },
@@ -82,12 +84,27 @@ const server = Bun.serve({
     "/api/dream/discard": {
       POST: (req) => proxyApi(req, "/dream/discard"),
     },
-    "/api/recall": {
-      GET: (req) => proxyApi(req, "/recall"),
+    "/api/memory/l1": {
+      GET: (req) => proxyApi(req, "/memory/l1"),
+    },
+    "/api/memory/search": {
+      GET: (req) => proxyApi(req, "/memory/search"),
+    },
+    "/api/memory/ask": {
+      POST: (req) => proxyApi(req, "/memory/ask"),
     },
   },
 
-  fetch() {
+  fetch(req) {
+    const url = new URL(req.url);
+    const match = url.pathname.match(/^\/api\/memory\/ask\/([^/]+)(\/cancel)?$/);
+    if (match) {
+      const jobId = encodeURIComponent(decodeURIComponent(match[1]!));
+      if (match[2] === "/cancel") {
+        return proxyApi(req, `/memory/ask/${jobId}/cancel`);
+      }
+      return proxyApi(req, `/memory/ask/${jobId}`);
+    }
     return new Response("Not found", { status: 404 });
   },
 
@@ -99,6 +116,19 @@ const server = Bun.serve({
     );
   },
 });
+
+let shuttingDown = false;
+
+function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`shutdown ${signal}`);
+  server.stop(true);
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 console.log(`engram web on ${server.url}`);
 console.log(`proxy → ${ENGRAM_URL}`);

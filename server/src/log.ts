@@ -18,6 +18,17 @@ export function logDream(msg: string, extra?: Record<string, unknown>): void {
   logInfo(`dream | ${msg}`, extra);
 }
 
+/** Memory (search / ask) milestones — always logged. */
+export function logMemory(msg: string, extra?: Record<string, unknown>): void {
+  logInfo(`memory | ${msg}`, extra);
+}
+
+/** Verbose memory troubleshooting — set ENGRAM_MEMORY_DEBUG=1 */
+export function logMemoryDebug(msg: string, extra?: Record<string, unknown>): void {
+  if (process.env.ENGRAM_MEMORY_DEBUG !== "1") return;
+  logInfo(`memory debug | ${msg}`, extra);
+}
+
 /** Verbose dream troubleshooting — set ENGRAM_DREAM_DEBUG=1 */
 export function logDreamDebug(msg: string, extra?: Record<string, unknown>): void {
   if (process.env.ENGRAM_DREAM_DEBUG !== "1") return;

@@ -75,7 +75,7 @@ dream/runs/{dream_run_id}/
 
 ```json
 {
-  "run_id": "dream-2026-07-23T21:00:00+08:00-…",
+  "run_id": "dream-20260723-210000-a1b2c3",
   "status": "running",
   "phase": "extract",
   "events": [ { "ts": "…", "level": "info", "phase": "extract", "event": "agent_spawn", "message": "…" } ],

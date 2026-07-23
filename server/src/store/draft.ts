@@ -405,7 +405,11 @@ export class MaterializeError extends Error {
  * Materialize patches into dream/draft/{run_id}/. Wipes any prior draft for this run.
  * Does not write live L2. Fails entirely on error (caller should remove draft).
  */
-export async function materializeDraft(dreamRunId: string, patches: Patch[]): Promise<DraftManifest> {
+export async function materializeDraft(
+  dreamRunId: string,
+  patches: Patch[],
+  opts?: { onPatch?: (patch: Patch) => void; shouldAbort?: () => boolean },
+): Promise<DraftManifest> {
   const dir = draftDir(dreamRunId);
   if (await exists(dir)) {
     await rm(dir, { recursive: true, force: true });
@@ -417,6 +421,9 @@ export async function materializeDraft(dreamRunId: string, patches: Patch[]): Pr
   const ordered = orderPatchesForMaterialize(patches);
 
   for (const patch of ordered) {
+    if (opts?.shouldAbort?.()) {
+      throw new MaterializeError("materialize aborted");
+    }
     try {
       switch (patch.type) {
         case "propose_node": {

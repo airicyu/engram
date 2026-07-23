@@ -1,6 +1,6 @@
 /** Read access for daily memory-chain ledgers and summaries. */
 
-import { access, readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import { homePath } from "./home";
 import { extractCurrentSection } from "./nodes";
 
@@ -58,4 +58,20 @@ export async function readDayForRecall(
     return { content: ledger, source: "ledger_fallback" };
   }
   return { content: "", source: "empty" };
+}
+
+/** Distinct YYYY-MM-DD ids under memory-chain/days/, newest first. */
+export async function listChainDayIds(): Promise<string[]> {
+  const dir = homePath("memory-chain", "days");
+  try {
+    const files = await readdir(dir);
+    const ids = new Set<string>();
+    for (const f of files) {
+      const m = f.match(/^(\d{4}-\d{2}-\d{2})(?:\.summary)?\.md$/);
+      if (m) ids.add(m[1]);
+    }
+    return [...ids].sort().reverse();
+  } catch {
+    return [];
+  }
 }

@@ -14,7 +14,7 @@ Canonical spec: [../../../api-docs/api.md](../../../api-docs/api.md)
 .claude/skills/engram-workbench/scripts/engram-api.sh <command> [args]
 ```
 
-Commands: `status` | `capture` | `dream` | `pending` | `approve` | `discard` | `recall` | `future-sight` | `root`
+Commands: `status` | `capture` | `dream` | `dream-cancel` | `pending` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `root`
 
 ## curl catalog
 
@@ -29,8 +29,11 @@ curl -s -X POST "$ENGRAM_URL/dream/run"
 # poll until dream_status=pending_review
 curl -s "$ENGRAM_URL/dream/pending"
 curl -s -X POST "$ENGRAM_URL/dream/approve" -H 'content-type: application/json' -d '{}'
-# or: curl -s -X POST "$ENGRAM_URL/dream/discard" -H 'content-type: application/json' -d '{}'
-curl -s "$ENGRAM_URL/recall?q=alice"
+curl -s "$ENGRAM_URL/memory/l1"
+curl -s "$ENGRAM_URL/memory/search?q=alice&scope=nodes,chain"
+curl -s -X POST "$ENGRAM_URL/memory/ask" \
+  -H 'content-type: application/json' \
+  -d '{"q":"What about Alice?"}'
 curl -s "$ENGRAM_URL/future-sight"
 ```
 
@@ -38,7 +41,7 @@ curl -s "$ENGRAM_URL/future-sight"
 
 ### `GET /status`
 
-Includes `dream_status`, `dream_pending`, `l1_clear_pending`, `future_sight_active_count`, `dream_job` (with `phase`).
+Includes `dream_status`, `dream_pending`, `l1_clear_pending`, `future_sight_active_count`, `dream_job`, `ask_job`.
 
 ### `GET /dream/pending`
 
@@ -48,9 +51,14 @@ Always 200. `present: false` when empty.
 
 May return `409` with `future_chain_id` + `rejected_chain_ids`, or `stale_future_anchor` + `rejected_future_ids` (pending kept).
 
+### `GET /memory/search`
+
+`q` required. `scope` optional (`l1,nodes,chain`; default all). Returns only requested scopes with keyword hits.
+
 ### `GET /future-sight`
 
 Always 200. Sweeps expired anchors (L0+L1 event + hard delete), then returns active `anchors`. No `/future-sight/expired`.
+
 ### Dream status
 
 | Value | Meaning |
@@ -67,4 +75,5 @@ Always 200. Sweeps expired anchors (L0+L1 event + hard delete), then returns act
 | Call | Use | Not |
 |------|-----|-----|
 | capture | `raw` | `content`, `text` |
-| recall | `q` | `query`, `search` |
+| memory search | `q`, `scope` | `query`, `search` (as param name) |
+| memory ask | `q` | `question`, `query` |
