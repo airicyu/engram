@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.6.0 — Dream observability (2026-07-23)
+
+Structured dream run events + default server console visibility; Workbench Consolidate progress panel.
+
+### Added
+
+- **`dream/runs/{dream_run_id}/events.jsonl`** — append-only structured run log (`run_start`, `agent_spawn`, `materialize_patch`, …)
+- **`GET /dream/events?run_id=&after=`** — incremental event poll; `200` + empty when no file (not 404)
+- **`/status` `dream_job.log_tail`** — last ≤20 events while job `running`
+- Workbench Consolidate **progress panel** (phase, elapsed, scrollable log); lock poll **3s**
+
+### Changed
+
+- Agent spawn／finish／parse milestones **default to info** console (`logDream`); full stdout preview still `ENGRAM_DREAM_DEBUG=1`
+- `dream-job.yaml` **phase updates to `materialize`** when extract finishes
+- i18n keys for dream log events (`consolidate.log.*`)
+
+### Unchanged
+
+- Dream lock／approve／discard contract; no WebSocket／SSE
+
+---
+
 ## 0.5.0 — Chain dual-track + Web i18n + cleanup (2026-07-22)
 
 Memory-chain **ledger + summary** dual-track; workbench UI English／繁體中文 shell i18n; server cleanup（timezone、hot-path I/O、deps、event id）。

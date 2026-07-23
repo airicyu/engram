@@ -21,6 +21,7 @@ Service discovery.
     "POST /capture",
     "POST /dream/run",
     "GET /dream/pending",
+    "GET /dream/events",
     "POST /dream/approve",
     "POST /dream/discard",
     "GET /future-sight",
@@ -77,8 +78,49 @@ Snapshot of store health, dream state, and async job status.
 |-------|---------|
 | `status` | `"running"` \| `"completed"` \| `"failed"` |
 | `phase` | `"extract"` \| `"materialize"` \| `"pending_review"` |
+| `log_tail` | When `status` is `"running"`: last ≤20 structured events (same shape as `GET /dream/events`) |
 | `result` | On success: `scope`, `patch_count`, `superseded`, `phase` |
 | `error` | On failure |
+
+---
+
+## `GET /dream/events`
+
+Incremental dream run event log for UI polling and post-mortem review.
+
+**Query**
+
+| Param | Required | Meaning |
+|-------|----------|---------|
+| `run_id` | yes | `dream_run_id` from `POST /dream/run` or `/status` `dream_job` |
+| `after` | no | 0-based event offset (default `0`) |
+
+**Response `200`**
+
+```json
+{
+  "run_id": "dream-2026-07-23T21:00:00+08:00-…",
+  "status": "running",
+  "phase": "extract",
+  "events": [
+    {
+      "ts": "2026-07-23T21:00:01+08:00",
+      "level": "info",
+      "phase": "extract",
+      "event": "run_start",
+      "message": "Dream run started (2 events in scope)"
+    }
+  ],
+  "total": 5,
+  "has_more": false
+}
+```
+
+| `status` | `running` \| `completed` \| `failed` \| `unknown` |
+
+**Errors:** `400` missing `run_id`. No file for run → `200` with `events: []`, `status: "unknown"`.
+
+Events are stored at `dream/runs/{dream_run_id}/events.jsonl` (append-only). Superseded runs keep their logs.
 
 ---
 

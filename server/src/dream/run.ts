@@ -18,8 +18,10 @@ import { appendPatchesIfNew, patchesForRun } from "../store/patches";
 import type { Patch } from "./schema";
 import { pendingDlqCount } from "../store/dlq";
 import { readExtractState, writeExtractState } from "../store/extract-state";
-import { logError, logDream, logDreamDebug } from "../log";
+import { logError, logDreamDebug } from "../log";
+import { emitDreamEvent } from "./emit-event";
 import { logExtractContext, summarizePatches } from "../agent/extract-log";
+import { updateDreamJobPhase } from "../store/dream-job";
 import { buildDreamReport } from "./report";
 import {
   draftSummary,
@@ -171,18 +173,27 @@ export async function runDream(opts?: {
 
     const superseded = await supersedePending(dreamRunId);
 
-    logDream("extract start", {
-      dream_run_id: dreamRunId,
-      scope: scope.length,
-      superseded: superseded?.id ?? null,
+    emitDreamEvent(dreamRunId, {
+      phase: "extract",
+      event: "run_start",
+      message: `Dream run started (${scope.length} events in scope)`,
+      detail: {
+        scope_count: scope.length,
+        superseded: superseded?.id ?? null,
+      },
     });
 
     const patches = await doExtract(dreamRunId, scope, opts?.runner);
 
-    logDream("materialize start", {
-      dream_run_id: dreamRunId,
-      patches: patches.length,
-      types: summarizePatches(patches),
+    await updateDreamJobPhase("materialize");
+    emitDreamEvent(dreamRunId, {
+      phase: "materialize",
+      event: "materialize_start",
+      message: `Materializing ${patches.length} patch(es)`,
+      detail: {
+        patches: patches.length,
+        types: summarizePatches(patches),
+      },
     });
 
     try {
@@ -190,8 +201,20 @@ export async function runDream(opts?: {
     } catch (e) {
       await removeDraft(dreamRunId).catch(() => {});
       const msg = e instanceof Error ? e.message : String(e);
+      emitDreamEvent(dreamRunId, {
+        phase: "materialize",
+        level: "error",
+        event: "materialize_failed",
+        message: msg,
+      });
       throw new DreamIncompleteError(dreamRunId, msg, "materialize");
     }
+
+    emitDreamEvent(dreamRunId, {
+      phase: "materialize",
+      event: "materialize_done",
+      message: "Draft materialized",
+    });
 
     const poolEntries = await readPoolEntriesForScope(scope);
     const report = buildDreamReport({
@@ -210,10 +233,14 @@ export async function runDream(opts?: {
     await writeDreamRun(run);
     await writeExtractState({ status: "ok", dream_run_id: dreamRunId });
 
-    logDream("pending_review ready", {
-      dream_run_id: dreamRunId,
-      patches: patches.length,
-      future_chain: futureChainIds(patches),
+    emitDreamEvent(dreamRunId, {
+      phase: "pending_review",
+      event: "run_complete",
+      message: `Ready for review (${patches.length} patches)`,
+      detail: {
+        patches: patches.length,
+        future_chain: futureChainIds(patches),
+      },
     });
 
     return {
@@ -226,6 +253,12 @@ export async function runDream(opts?: {
     };
   } catch (e) {
     if (e instanceof DreamIncompleteError) {
+      emitDreamEvent(e.dream_run_id, {
+        phase: e.phase,
+        level: "error",
+        event: "run_failed",
+        message: e.message,
+      });
       logError("dream incomplete", e, { dream_run_id: e.dream_run_id, phase: e.phase });
       await writeExtractState({
         status: "failed",
@@ -262,9 +295,13 @@ async function doExtract(
   try {
     patches = await agent.extract(ctx);
   } catch (e) {
-    logDreamDebug("extract failed", {
-      dream_run_id: dreamRunId,
-      error: e instanceof Error ? e.message : String(e),
+    const msg = e instanceof Error ? e.message : String(e);
+    emitDreamEvent(dreamRunId, {
+      phase: "extract",
+      level: "error",
+      event: "extract_failed",
+      message: msg,
+      detail: { reason: "agent" },
     });
     throw new DreamIncompleteError(
       dreamRunId,

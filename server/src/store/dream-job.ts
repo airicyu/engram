@@ -51,6 +51,13 @@ export async function writeDreamJob(state: DreamJobState): Promise<void> {
   await writeFile(jobPath(), stringify(state), "utf8");
 }
 
+/** Update phase on the active running dream job, if any. */
+export async function updateDreamJobPhase(phase: DreamJobPhase): Promise<void> {
+  const job = await readDreamJob();
+  if (!job || job.status !== "running") return;
+  await writeDreamJob({ ...job, phase });
+}
+
 /** Clear the recorded asynchronous dream job. */
 export async function clearDreamJob(): Promise<void> {
   try {

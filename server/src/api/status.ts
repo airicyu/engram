@@ -6,6 +6,7 @@ import { pendingDlqCount } from "../store/dlq";
 import { computeDreamStatus, pendingRunSummary } from "../dream/run";
 import { getL1ClearPendingRun } from "../store/dream-runs";
 import { readDreamJob } from "../store/dream-job";
+import { tailDreamEvents } from "../store/dream-events";
 import { countActiveAnchors } from "../store/future-sight";
 import { config } from "../config";
 
@@ -17,6 +18,22 @@ export async function handleStatus(): Promise<object> {
   const dream_status = await computeDreamStatus();
   const dream_pending = await pendingRunSummary();
   const clearPending = await getL1ClearPendingRun();
+
+  let dreamJobPayload: Record<string, unknown> | null = null;
+  if (dreamJob) {
+    dreamJobPayload = {
+      status: dreamJob.status,
+      dream_run_id: dreamJob.dream_run_id,
+      started_at: dreamJob.started_at,
+      completed_at: dreamJob.completed_at ?? null,
+      phase: dreamJob.phase ?? null,
+      result: dreamJob.result ?? null,
+      error: dreamJob.error ?? null,
+    };
+    if (dreamJob.status === "running") {
+      dreamJobPayload.log_tail = await tailDreamEvents(dreamJob.dream_run_id, 20);
+    }
+  }
 
   const result: Record<string, unknown> = {
     engram_home: config.engramHome,
@@ -39,17 +56,7 @@ export async function handleStatus(): Promise<object> {
           scope: clearPending.scope,
         }
       : null,
-    dream_job: dreamJob
-      ? {
-          status: dreamJob.status,
-          dream_run_id: dreamJob.dream_run_id,
-          started_at: dreamJob.started_at,
-          completed_at: dreamJob.completed_at ?? null,
-          phase: dreamJob.phase ?? null,
-          result: dreamJob.result ?? null,
-          error: dreamJob.error ?? null,
-        }
-      : null,
+    dream_job: dreamJobPayload,
   };
 
   if (lock) {

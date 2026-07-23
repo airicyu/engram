@@ -9,6 +9,7 @@ import { calendarDate, nowIso } from "./events";
 import type { Patch } from "../dream/schema";
 import { extractCurrentSection } from "./nodes";
 import { logDream, logDreamDebug } from "../log";
+import { emitDreamEvent } from "../dream/emit-event";
 import { renderFutureSightMarkdown, type FutureSightAnchor } from "./future-sight";
 
 /** Operation represented by a draft manifest entry. */
@@ -465,6 +466,12 @@ export async function materializeDraft(dreamRunId: string, patches: Patch[]): Pr
           throw new Error(`unhandled patch: ${JSON.stringify(_e)}`);
         }
       }
+      emitDreamEvent(dreamRunId, {
+        phase: "materialize",
+        event: "materialize_patch",
+        message: `${patch.type} ${patch.patch_id}`,
+        detail: { patch_id: patch.patch_id, type: patch.type },
+      });
     } catch (e) {
       throw new MaterializeError(
         `patch ${patch.patch_id} (${patch.type}): ${e instanceof Error ? e.message : String(e)}`,

@@ -16,6 +16,7 @@ import { isL1Empty, listPoolEventIds } from "../store/l1";
 import { isLocked, acquireLock, releaseLock, isLockStale, breakStaleLock, LockError } from "../store/lock";
 import { DreamRunMismatchError } from "../store/dream-runs";
 import { writeDreamJob } from "../store/dream-job";
+import { emitDreamEvent } from "../dream/emit-event";
 import { logError, logInfo } from "../log";
 
 /** POST /dream/run — start asynchronous extract and draft materialization. */
@@ -105,6 +106,14 @@ export async function handleDreamRun(): Promise<Response> {
         phase,
         error: errorMessage,
       });
+      if (!(e instanceof DreamIncompleteError)) {
+        emitDreamEvent(dreamRunId, {
+          phase: phase === "materialize" ? "materialize" : "extract",
+          level: "error",
+          event: "run_failed",
+          message: errorMessage,
+        });
+      }
       logError("dream job failed", e, { dream_run_id: dreamRunId, phase });
     })
     .finally(async () => {

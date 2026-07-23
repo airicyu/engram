@@ -135,6 +135,15 @@ async function main() {
     );
     assert(afterExtract.dream_status === "pending_review", "pending_review");
 
+    const runId = (afterExtract.dream_job as { dream_run_id?: string })?.dream_run_id;
+    assert(typeof runId === "string" && runId.length > 0, "dream_job run id");
+    const ev = await json("GET", `/dream/events?run_id=${encodeURIComponent(runId!)}`);
+    assert(ev.status === 200, "dream events 200");
+    assert((ev.data.total as number) >= 5, "dream events total");
+    const names = (ev.data.events as Array<{ event: string }>).map((e) => e.event);
+    assert(names.includes("run_start"), "event run_start");
+    assert(names.includes("run_complete"), "event run_complete");
+
     const pending = await json("GET", "/dream/pending");
     assert(pending.status === 200 && pending.data.present === true, "pending present");
     assert(pending.data.scope?.length === 2, "scope frozen to 2 events");

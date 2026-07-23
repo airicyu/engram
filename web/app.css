@@ -412,6 +412,43 @@ body {
 }
 
 /* —— Consolidate —— */
+
+.dream-progress {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.dream-progress-meta {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  color: var(--dreaming);
+  font-weight: 600;
+}
+
+.dream-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 10rem;
+  overflow-y: auto;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.dream-log li {
+  padding: 0.15rem 0;
+  border-bottom: 1px solid rgba(28, 36, 48, 0.06);
+}
+
+.dream-log li.is-error {
+  color: var(--bad);
+}
+
 .status-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

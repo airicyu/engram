@@ -1,7 +1,8 @@
 /** Structured logging helpers for agent-based dream extraction. */
 
 import type { Patch } from "../dream/schema";
-import { logDream, logDreamDebug, previewText } from "../log";
+import { emitDreamEvent } from "../dream/emit-event";
+import { logDreamDebug, previewText } from "../log";
 
 /** Shared identifiers attached to an agent extraction log entry. */
 export interface AgentExtractLogContext {
@@ -19,7 +20,18 @@ export function logExtractContext(ctx: {
   existing_nodes: number;
   l2_nodes: number;
 }): void {
-  logDream("extract context", ctx);
+  emitDreamEvent(ctx.dream_run_id, {
+    phase: "extract",
+    event: "extract_context",
+    message: `Context ready (${ctx.events} events, ${ctx.existing_nodes} nodes)`,
+    detail: {
+      events: ctx.events,
+      l1_chars: ctx.l1_chars,
+      node_notes: ctx.node_notes,
+      existing_nodes: ctx.existing_nodes,
+      l2_nodes: ctx.l2_nodes,
+    },
+  });
 }
 
 /** Return a compact comma-separated description of extracted patches. */
@@ -29,6 +41,16 @@ export function summarizePatches(patches: Patch[]): string {
 
 /** Log an agent command before it starts. */
 export function logAgentSpawn(meta: AgentExtractLogContext & { cmd: string[] }): void {
+  emitDreamEvent(meta.dream_run_id, {
+    phase: "extract",
+    event: "agent_spawn",
+    message: `Spawning ${meta.runner} agent`,
+    detail: {
+      runner: meta.runner,
+      work_dir: meta.work_dir,
+      cmd: meta.cmd.join(" "),
+    },
+  });
   logDreamDebug("agent spawn", {
     dream_run_id: meta.dream_run_id,
     runner: meta.runner,
@@ -47,6 +69,18 @@ export function logAgentResult(
     stderr: string;
   },
 ): void {
+  emitDreamEvent(meta.dream_run_id, {
+    phase: "extract",
+    event: "agent_finished",
+    message: `Agent finished (exit ${result.exit_code}, ${result.duration_ms}ms)`,
+    detail: {
+      runner: meta.runner,
+      exit_code: result.exit_code,
+      duration_ms: result.duration_ms,
+      stdout_bytes: result.stdout.length,
+      stderr_bytes: result.stderr.length,
+    },
+  });
   logDreamDebug("agent finished", {
     dream_run_id: meta.dream_run_id,
     runner: meta.runner,
@@ -61,14 +95,15 @@ export function logAgentResult(
 }
 
 /** Log successfully parsed patches from agent output. */
-export function logExtractParsed(
-  dream_run_id: string,
-  patches: Patch[],
-): void {
-  logDream("extract parsed", {
-    dream_run_id,
-    patches: patches.length,
-    types: summarizePatches(patches),
+export function logExtractParsed(dream_run_id: string, patches: Patch[]): void {
+  emitDreamEvent(dream_run_id, {
+    phase: "extract",
+    event: "extract_parsed",
+    message: `Parsed ${patches.length} patch(es)`,
+    detail: {
+      patches: patches.length,
+      types: summarizePatches(patches),
+    },
   });
 }
 
@@ -79,6 +114,17 @@ export function logExtractParseFailed(
   stdout: string,
   err: unknown,
 ): void {
+  emitDreamEvent(dream_run_id, {
+    phase: "extract",
+    level: "error",
+    event: "extract_failed",
+    message: err instanceof Error ? err.message : String(err),
+    detail: {
+      runner,
+      stdout_bytes: stdout.length,
+      reason: "parse",
+    },
+  });
   logDreamDebug("extract parse failed", {
     dream_run_id,
     runner,

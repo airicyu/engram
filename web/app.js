@@ -120,6 +120,52 @@ function renderPendingPanel() {
   report.classList.toggle("is-empty", !p.report?.trim());
 }
 
+function formatElapsed(startedAt) {
+  if (!startedAt) return "0s";
+  const sec = Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+  if (sec < 60) return `${sec}s`;
+  return `${Math.floor(sec / 60)}m ${sec % 60}s`;
+}
+
+function dreamEventLabel(ev) {
+  const key = `consolidate.log.${ev.event}`;
+  const translated = t(key);
+  if (translated !== key) return translated;
+  return ev.message || ev.event;
+}
+
+function renderDreamProgress() {
+  const panel = $("dream-progress");
+  const meta = $("dream-progress-meta");
+  const log = $("dream-progress-log");
+  const s = state.status;
+  const job = /** @type {{ status?: string, phase?: string, started_at?: string, log_tail?: Array<{ ts?: string, event?: string, message?: string, level?: string }> } | null} */ (
+    s?.dream_job ?? null
+  );
+  const active = !!(s?.lock || state.dreaming || job?.status === "running");
+  panel.hidden = !active;
+  if (!active) return;
+
+  const phase = job?.phase || (s?.lock ? "extract" : "—");
+  meta.textContent = t("consolidate.progress_phase", {
+    phase,
+    elapsed: formatElapsed(job?.started_at),
+  });
+
+  const events = job?.log_tail ?? [];
+  log.replaceChildren();
+  for (const ev of events) {
+    const li = document.createElement("li");
+    li.className = ev.level === "error" ? "is-error" : "";
+    const time = ev.ts ? new Date(ev.ts).toLocaleTimeString() : "";
+    li.textContent = time ? `${time}  ${dreamEventLabel(ev)}` : dreamEventLabel(ev);
+    log.appendChild(li);
+  }
+  if (events.length) {
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
 function renderConsolidate() {
   const s = state.status;
   const dash = t("consolidate.dash");
@@ -148,6 +194,7 @@ function renderConsolidate() {
   if (approve) approve.disabled = !canReview && !clearRetry;
   if (discard) discard.disabled = !pending || !!s?.lock || state.dreaming;
   if (approve && clearRetry) approve.disabled = !!s?.lock || state.dreaming;
+  renderDreamProgress();
 }
 
 function applyCaptureLock() {
@@ -181,6 +228,23 @@ async function refreshStatus() {
     return false;
   }
   state.status = data;
+  if (state.dreaming && !data.lock && data.dream_job?.status !== "running") {
+    state.dreaming = false;
+    const dreamMsg = $("dream-msg");
+    if (data.dream_status === "pending_review") {
+      setMsg(dreamMsg, t("dream.ready"), "ok");
+    } else if (data.dream_job?.status === "failed") {
+      setMsg(
+        dreamMsg,
+        t("dream.job_fail", {
+          phase: data.dream_job.phase || "?",
+          error: data.dream_job.error || "",
+        }),
+        "error",
+      );
+    }
+    if (state.scene === "capture") void refreshL1();
+  }
   if (data.dream_status === "pending_review" || data.dream_status === "l1_clear_pending") {
     await refreshPending();
   } else {
@@ -198,7 +262,7 @@ function schedulePoll() {
   const locked = !!(state.status?.lock || state.dreaming);
   const pending = state.status?.dream_status === "pending_review";
   // Lax intervals: status is cheap but no need to chat with the API constantly.
-  const ms = locked ? 5000 : pending ? 20000 : 60000;
+  const ms = locked ? 3000 : pending ? 20000 : 60000;
   state.pollTimer = setTimeout(async () => {
     await refreshStatus();
   }, ms);
@@ -343,29 +407,7 @@ async function onDreamRun() {
   setMsg(msg, t("dream.submitted"), "ok");
   body.textContent = `job_id: ${data.job_id}\n${data.message || ""}`;
   result.hidden = false;
-
-  const start = Date.now();
-  while (Date.now() - start < 10 * 60 * 1000) {
-    await new Promise((r) => setTimeout(r, 1500));
-    await refreshStatus();
-    if (!state.status?.lock) break;
-  }
-  state.dreaming = false;
-  renderConsolidate();
-
-  if (state.status?.dream_status === "pending_review") {
-    setMsg(msg, t("dream.ready"), "ok");
-  } else if (state.status?.dream_job?.status === "failed") {
-    setMsg(
-      msg,
-      t("dream.job_fail", {
-        phase: state.status.dream_job.phase || "?",
-        error: state.status.dream_job.error || "",
-      }),
-      "error",
-    );
-  }
-  if (state.scene === "capture") await refreshL1();
+  await refreshStatus();
 }
 
 async function onDreamApprove() {

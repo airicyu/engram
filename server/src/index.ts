@@ -12,6 +12,7 @@ import {
   handleDreamApprove,
   handleDreamDiscard,
 } from "./api/dream";
+import { handleDreamEvents } from "./api/dream-events";
 import { handleRecall } from "./api/recall";
 import { handleFutureSight } from "./api/future-sight";
 import { logError, logInfo, withRequestLog } from "./log";
@@ -29,6 +30,7 @@ const server = Bun.serve({
             "POST /capture",
             "POST /dream/run",
             "GET /dream/pending",
+            "GET /dream/events",
             "POST /dream/approve",
             "POST /dream/discard",
             "GET /future-sight",
@@ -69,6 +71,17 @@ const server = Bun.serve({
 
     "/dream/pending": {
       GET: withRequestLog(() => handleDreamPending()),
+    },
+
+    "/dream/events": {
+      GET: withRequestLog(async (req) => {
+        const url = new URL(req.url);
+        const runId = url.searchParams.get("run_id");
+        const after = Number(url.searchParams.get("after") ?? "0");
+        const result = await handleDreamEvents(runId, Number.isFinite(after) ? after : 0);
+        if (result instanceof Response) return result;
+        return Response.json(result);
+      }),
     },
 
     "/dream/approve": {
