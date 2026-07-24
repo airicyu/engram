@@ -136,6 +136,8 @@ export async function buildExtractContext(
   return {
     dream_run_id: dreamRunId,
     timezone: config.timezone,
+    now: nowIso(),
+    today,
     scope,
     l1: { summary: summary ? summary + "\n" : "", node_notes },
     events,

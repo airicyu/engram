@@ -75,6 +75,9 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `GET /memory/search` | `q` (required); `scope` optional | keyword hits per scope |
 | `POST /memory/ask` | `q` | `202` + `job_id` |
 | `GET /future-sight` | none | `anchors`, `swept_expired` |
+| `GET /clock` | none | `mode`, `now`, `today`, `allow_set` |
+| `PUT /clock` | `now` **or** `day` (+ optional `time`) | needs `ENGRAM_ALLOW_VIRTUAL_CLOCK=1` |
+| `DELETE /clock` | none | back to system clock |
 
 ## Quick operations
 

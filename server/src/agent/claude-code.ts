@@ -37,7 +37,9 @@ export class ClaudeCodeRunner implements AgentRunner {
       const prompt = promptTemplate
         .replaceAll("{{CONTEXT_PATH}}", ctxPath)
         .replaceAll("{{DREAM_RUN_ID}}", ctx.dream_run_id)
-        .replaceAll("{{TIMEZONE}}", ctx.timezone);
+        .replaceAll("{{TIMEZONE}}", ctx.timezone)
+        .replaceAll("{{TODAY}}", ctx.today)
+        .replaceAll("{{NOW}}", ctx.now);
 
       const cmd = [
         config.claudeBin,

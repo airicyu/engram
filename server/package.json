@@ -7,6 +7,7 @@
     "start": "bun run src/index.ts",
     "dev": "bash scripts/dev.sh",
     "reset": "bun run src/cli/reset.ts",
+    "replay": "bun run src/cli/replay.ts",
     "test:phases": "bun run src/cli/self-test.ts"
   },
   "devDependencies": {

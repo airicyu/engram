@@ -4,6 +4,8 @@ Base URL: `http://localhost:8787` (override with `PORT`).
 
 All timestamps and calendar dates use the configured IANA timezone (`ENGRAM_TZ`, default **`Asia/Hong_Kong`**).
 
+When a **virtual clock** is set (`PUT /clock`, requires `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`), capture timestamps, dream “today” gates, and agent `today`/`now` follow that timeline instead of the wall clock. See [Virtual clock](#virtual-clock).
+
 **Empty reads:** endpoints that mean “no content right now” return **200** with an empty body shape (`present: false`, `null`, `[]`) — **not 404**. 404 is only for unknown paths/methods.
 
 ---
@@ -35,6 +37,9 @@ Service discovery.
     "GET /memory/ask/{job_id}",
     "POST /memory/ask/{job_id}/cancel",
     "POST /dream/cancel",
+    "GET /clock",
+    "PUT /clock",
+    "DELETE /clock",
     "GET /status"
   ]
 }
@@ -52,6 +57,13 @@ Snapshot of store health, dream state, and async job status.
 {
   "engram_home": "/path/to/data",
   "timezone": "Asia/Hong_Kong",
+  "clock": {
+    "mode": "system",
+    "now": "2026-07-24T23:00:00+08:00",
+    "today": "2026-07-24",
+    "timezone": "Asia/Hong_Kong",
+    "allow_set": false
+  },
   "lock": false,
   "l1_empty": false,
   "pending_dlq_count": 0,
@@ -71,6 +83,7 @@ Snapshot of store health, dream state, and async job status.
 |-------|------|---------|
 | `engram_home` | string | Resolved `ENGRAM_HOME` path |
 | `timezone` | string | IANA zone (`ENGRAM_TZ`, default `Asia/Hong_Kong`) |
+| `clock` | object | Memory-timeline clock snapshot (see [Virtual clock](#virtual-clock)) |
 | `lock` | boolean | `true` while extract／materialize／approve commit holds the lock |
 | `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
 | `l1_empty` | boolean | `true` when L1 mem pool has no entries |
@@ -90,6 +103,74 @@ Snapshot of store health, dream state, and async job status.
 | `log_tail` | When `status` is `"running"`: last ≤20 structured events (same shape as `GET /dream/events`) |
 | `result` | On success: `scope`, `patch_count`, `superseded`, `phase` |
 | `error` | On failure |
+
+---
+
+## Virtual clock
+
+Memory-timeline clock used by capture `ts`, dream “today” gates (chain／future-sight), and agent prompts. Wall-clock is still used for process concerns (lock staleness, timers).
+
+### `GET /clock`
+
+**Response `200`**
+
+```json
+{
+  "mode": "system",
+  "now": "2026-07-24T23:00:00+08:00",
+  "today": "2026-07-24",
+  "timezone": "Asia/Hong_Kong",
+  "allow_set": false
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `mode` | `"system"` (wall) or `"virtual"` |
+| `now` | Current memory-timeline ISO-8601 with offset |
+| `today` | Calendar day `YYYY-MM-DD` in `timezone` |
+| `allow_set` | `true` when `ENGRAM_ALLOW_VIRTUAL_CLOCK=1` |
+
+### `PUT /clock`
+
+Requires `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`. Persists to `ENGRAM_HOME/meta/clock.json`.
+
+**Body** — one of:
+
+```json
+{ "now": "2026-05-12T21:05:00+08:00" }
+```
+
+```json
+{ "day": "2026-05-12", "time": "23:30:00" }
+```
+
+`time` optional (default `12:00:00`).
+
+**Response `200`** — same shape as `GET /clock`, plus `set` (formatted ISO that was applied).
+
+| Status | Error |
+|--------|-------|
+| `403` | `virtual_clock_disabled` |
+| `400` | `invalid_body` / `invalid_datetime` |
+
+### `DELETE /clock`
+
+Clear virtual clock (always allowed). Returns system snapshot.
+
+### Time replay (CLI)
+
+Day-by-day fixture replay (not an HTTP endpoint):
+
+```bash
+# Server: ENGRAM_ALLOW_VIRTUAL_CLOCK=1, prefer dedicated ENGRAM_HOME + reset
+cd server && bun run replay -- --fixture=fixtures/replay-sample.jsonl
+# optional: --pause  --dream-at=22:00:00  --dream-next-day  --base-url=http://127.0.0.1:8787
+```
+
+Fixture JSONL lines: `{ "ts", "raw", "source?", "node_refs?" }` — `ts` is encoding time. Orchestrator: set clock → capture → dream at night → approve → next day.
+
+**Do not** pass client `ts` on `POST /capture`; set the clock first.
 
 ---
 

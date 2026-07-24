@@ -318,6 +318,7 @@ async function refreshL1() {
 
 function switchScene(name) {
   state.scene = name;
+  document.querySelector(".app")?.classList.toggle("app-wide", name === "memory");
   document.querySelectorAll(".scene-btn").forEach((btn) => {
     const on = btn.getAttribute("data-scene") === name;
     btn.classList.toggle("is-active", on);

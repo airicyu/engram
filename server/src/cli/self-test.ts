@@ -32,6 +32,7 @@ function startServer(agent: string): Promise<ChildProcess> {
       ENGRAM_HOME: TEST_HOME,
       PORT: String(PORT),
       ENGRAM_AGENT: agent,
+      ENGRAM_ALLOW_VIRTUAL_CLOCK: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -384,7 +385,36 @@ Old foresight that should expire.
     const poolSweep = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
     assert(poolSweep.includes("Future-sight expired"), "L1 has expiry note");
 
-    console.log("\n✅ All 0.8 self-checks passed");
+    console.log("\nPhase 6: virtual clock (time replay)");
+    const clock0 = await json("GET", "/clock");
+    assert(clock0.status === 200, "GET /clock 200");
+    assert(clock0.data.mode === "system", "clock starts system");
+    assert(clock0.data.allow_set === true, "allow_set true in test");
+    assert(typeof clock0.data.now === "string" && typeof clock0.data.today === "string", "now/today");
+
+    const stClock = await json("GET", "/status");
+    assert(stClock.data.clock && (stClock.data.clock as { mode: string }).mode === "system", "status.clock");
+
+    const putNow = await json("PUT", "/clock", { now: "2026-05-12T21:05:00+08:00" });
+    assert(putNow.status === 200, `PUT /clock now: ${JSON.stringify(putNow.data)}`);
+    assert(putNow.data.mode === "virtual", "mode virtual");
+    assert(putNow.data.today === "2026-05-12", `today=2026-05-12 got ${putNow.data.today}`);
+
+    const capV = await json("POST", "/capture", {
+      raw: "virtual-clock capture on May 12",
+      source: "test",
+    });
+    assert(capV.status === 201, "capture under virtual clock");
+    const poolV = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
+    assert(poolV.includes("2026-05-12"), "pool ts uses virtual day");
+
+    const putDay = await json("PUT", "/clock", { day: "2026-05-12", time: "23:30:00" });
+    assert(putDay.status === 200 && putDay.data.today === "2026-05-12", "PUT day+time");
+
+    const delClock = await json("DELETE", "/clock");
+    assert(delClock.status === 200 && delClock.data.mode === "system", "DELETE → system");
+
+    console.log("\n✅ All 0.9 self-checks passed");
   } finally {
     await stopServer(server);
   }

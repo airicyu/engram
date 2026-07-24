@@ -34,6 +34,14 @@
 | **Nodes browse** | 節點翻閱 | L2 index（字母序）+ what Current detail | `GET /memory/nodes`、`GET /memory/nodes/{node_id}` | filter 在客戶端 |
 | **L1 preview** | L1 預覽 | Capture 場景顯示短期 pool 摘要 | `GET /memory/l1` | 僅 L1；不在 Memory 場景瀏覽 |
 
+### Time replay（0.9.0）
+
+| EN | 中文 | 說明 | API／工具 | 備註 |
+|----|------|------|-----------|------|
+| **Virtual clock** | 虛擬時鐘 | 記憶時間線的「現在」；capture／dream／agent 共用 | `GET`/`PUT`/`DELETE /clock` | `PUT` 需 `ENGRAM_ALLOW_VIRTUAL_CLOCK=1` |
+| **Time replay** | 時間重播 | 按日重播 fixture：記下 → 入夢 → approve | `bun run replay` | 獨立 `ENGRAM_HOME`；勿污染真人 store |
+| **Fixture event** | 重播事件 | mock 的 encoding `ts` + `raw` | JSONL | 不直接寫入 store；經 capture API |
+
 ---
 
 ## 記憶層（資料存在哪一層）

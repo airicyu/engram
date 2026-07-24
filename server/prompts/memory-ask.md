@@ -7,6 +7,10 @@ Question: {{QUESTION}}
 job_id: {{JOB_ID}}
 timezone: {{TIMEZONE}}
 dream_status: {{DREAM_STATUS}}
+today: {{TODAY}}
+now: {{NOW}}
+
+**Memory timeline:** treat **today** = `{{TODAY}}` and **now** = `{{NOW}}` (may be a virtual clock during time replay). Do **not** use your own wall clock as "today".
 
 ## Store map (read-only)
 

@@ -38,7 +38,7 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 
 Status light polls `/status`: **5s** while lock／dreaming，**20s** during `pending_review`，**60s** when idle. Capture is disabled only while the dream lock is held — **not** during `pending_review`.
 
-Memory scene uses a wider layout (`≥48rem` split index／detail).
+Memory scene uses a wider shell (`.app-wide`, up to ~80rem) and a split index／detail layout (`≥48rem`).
 
 ## UI language
 

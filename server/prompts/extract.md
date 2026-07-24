@@ -6,6 +6,8 @@ dream_run_id (must use on every patch): {{DREAM_RUN_ID}}
 
 timezone (calendar days + timestamps): {{TIMEZONE}} — also in context JSON as `timezone`.
 
+**Memory timeline (STRICT):** treat **today** = `{{TODAY}}` and **now** = `{{NOW}}` (also in context JSON as `today` / `now`). These may be a **virtual** clock during time replay. Do **not** use your own wall clock, training cutoff, or system date as "today".
+
 ## Task
 
 Compare L1 (scope `S` — may span **multiple calendar days**) and the corresponding L0 events against `l2_current` (what Current for each known node). Propose structured patches that distill short-term experience into long-term memory.
@@ -17,9 +19,9 @@ This run does **not** write L2 directly. Patches become a **draft** for human re
 1. **Memory-chain = world timeline.** `chain.id` = the calendar day the event **occurred** (already happened), {{TIMEZONE}} `YYYY-MM-DD` — not merely the ingest/encoding day.
 2. **Encoding** = L0 `ts` day (when the user wrote it into Engram). If occurrence day ≠ encoding day, you may note the backfill in report-worthy content; do **not** duplicate the same fact as two chain days unless encoding needs a short meta line.
 3. **Same-day rule:** if occurrence day = encoding day, emit **only** the occurrence `chain` patch (no separate encoding chain).
-4. **Future days (near horizon):** if the text mentions a **near**, anchorable future day or short range (deadline, trip, next-month plan), emit a **`future`** patch — do **NOT** use `chain.id` for that future day. Resolve relative dates to absolute `YYYY-MM-DD` ({{TIMEZONE}}) at extract time.
+4. **Future days (near horizon):** if the text mentions a **near**, anchorable future day or short range (deadline, trip, next-month plan), emit a **`future`** patch — do **NOT** use `chain.id` for that future day. Resolve relative dates to absolute `YYYY-MM-DD` ({{TIMEZONE}}) against **today** = `{{TODAY}}`.
 5. **Far / vague foresight** (age bands like "at 50–60", unanchored life fantasy): do **not** emit `future`. If it clearly belongs to an existing or same-run node and is firm enough for cognition, use `semantic` on `what` sparingly; otherwise treat as ordinary same-day event content. Do **not** invent a calendar spine for life-scale dreams.
-6. **Relative dates:** resolve against {{TIMEZONE}} and event `ts`. If uncertain, omit rather than guessing.
+6. **Relative dates:** resolve against {{TIMEZONE}}, **today** = `{{TODAY}}`, **now** = `{{NOW}}`, and event `ts`. If uncertain, omit rather than guessing.
 
 ## Output rules (STRICT)
 
@@ -72,7 +74,7 @@ Day-level **occurrence** on the world timeline. One patch drives **both** tracks
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
 | `level` | string | yes | Must be exactly `"day"` |
-| `id` | string | yes | Occurrence day `YYYY-MM-DD` ≤ today ({{TIMEZONE}}). **Never** a future day. |
+| `id` | string | yes | Occurrence day `YYYY-MM-DD` ≤ today (`{{TODAY}}`, {{TIMEZONE}}). **Never** a future day. |
 | `content` | string | yes | Non-empty **incremental** ledger text (may be fragmentary; need not match summary verbatim) |
 | `summary` | string | yes | **Fused** full-day narrative for Current — absorb prior `chain_summaries_current[day]` + this round's facts; do **not** only repeat `content` |
 | `summary_operation` | string | yes | `"init"` if that day's summary Current is empty／missing; `"revise"` if prior Current exists |
@@ -86,7 +88,7 @@ Near-horizon **future-sight** anchor (separate from memory-chain). Day-level or 
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
 | `id` | string | yes | Stable id `[a-zA-Z0-9][a-zA-Z0-9_-]*` (e.g. `fs-2026-08-01-deadline`) |
-| `anchor_start` | string | yes | `YYYY-MM-DD` ≥ today |
+| `anchor_start` | string | yes | `YYYY-MM-DD` ≥ today (`{{TODAY}}`) |
 | `anchor_end` | string | yes | `YYYY-MM-DD` ≥ `anchor_start` (same day for day-level) |
 | `content` | string | yes | Short foresight text |
 | `node_refs` | string[] | no | Related node ids |

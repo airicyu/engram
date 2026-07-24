@@ -19,6 +19,10 @@ export interface AskInput {
   engram_home: string;
   timezone: string;
   dream_status: string;
+  /** Memory-timeline "now" (virtual clock aware). */
+  now: string;
+  /** Memory-timeline calendar day YYYY-MM-DD. */
+  today: string;
 }
 
 /** Runner capable of answering a natural-language question from the store. */

@@ -25,6 +25,7 @@ export function homePath(...parts: string[]): string {
 export async function ensureEngramHome(): Promise<void> {
   const dirs = [
     "",
+    "meta",
     "log",
     "dream",
     "dream/dead-letter-archive",

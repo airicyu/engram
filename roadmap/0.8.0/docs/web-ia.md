@@ -125,9 +125,9 @@ Search／Ask **表單與邏輯不變**，僅搬 DOM 與 i18n 前綴。元素 ID 
 /* 預設窄欄不變 */
 .app { width: min(42rem, calc(100% - 2rem)); }
 
-/* Memory 場景時加在 .app */
+/* Memory 場景時加在 .app（browse 需要較寬） */
 .app.app-wide {
-  width: min(56rem, calc(100% - 2rem));
+  width: min(80rem, calc(100% - 2.5rem));
 }
 ```
 

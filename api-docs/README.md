@@ -47,6 +47,7 @@ See [`web/README.md`](../web/README.md).
 | `PORT` | `8787` | HTTP listen port |
 | `CLAUDE_BIN` | `claude` | Claude Code binary for dream extract |
 | `ENGRAM_AGENT` | `cursor` | `cursor` \| `claude` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
+| `ENGRAM_ALLOW_VIRTUAL_CLOCK` | (off) | `1` = allow `PUT /clock` (time replay) |
 
 ## Base URL
 
@@ -78,6 +79,9 @@ No authentication in the prototype. Timestamps use `ENGRAM_TZ` (default `Asia/Ho
 | `POST` | `/memory/ask` | Start async AI ask |
 | `GET` | `/memory/ask/{job_id}` | Poll ask job |
 | `POST` | `/memory/ask/{job_id}/cancel` | Cancel running ask |
+| `GET` | `/clock` | Memory-timeline clock snapshot |
+| `PUT` | `/clock` | Set virtual now (`ENGRAM_ALLOW_VIRTUAL_CLOCK=1`) |
+| `DELETE` | `/clock` | Clear virtual clock |
 
 Full request/response schemas, error codes, and semantics: **[api.md](./api.md)**.
 

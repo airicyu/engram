@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.0 — Time Replay (2026-07-24)
+
+Virtual memory clock + day-by-day fixture replay (capture → dream → approve).
+
+### Added
+
+- **Virtual clock** — `nowIso()` / `calendarDate()` read a settable timeline; persist `ENGRAM_HOME/meta/clock.json`
+- **`GET /clock`** / **`PUT /clock`** / **`DELETE /clock`** — inspect / set / clear virtual now (`PUT` requires `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`)
+- **`/status.clock`** — `{ mode, now, today, timezone, allow_set }`
+- Extract context + prompts: explicit **`today`** / **`now`** (also memory-ask)
+- **`bun run replay`** — fixture JSONL orchestrator (per-day capture → dream night → auto-approve; `--pause` optional)
+- Sample fixture: `server/fixtures/replay-sample.jsonl`
+- `test:phases` Phase 6 virtual-clock assertions
+
+### Unchanged
+
+- Capture body still has no client `ts` — set clock first, then `POST /capture`
+- Seek / Memory browse contracts
+
+---
+
 ## 0.8.0 — Seek + Memory Browse (2026-07-24)
 
 Split **Seek** (search／ask) from **Memory** (browse); add read-only chain／nodes browse API.

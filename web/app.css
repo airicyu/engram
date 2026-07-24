@@ -71,9 +71,14 @@ body {
 }
 
 .app {
-  width: min(56rem, calc(100% - 2rem));
+  width: min(42rem, calc(100% - 2rem));
   margin: 0 auto;
   padding: 1.25rem 0 3rem;
+}
+
+/* Memory browse: use more horizontal space for index + detail */
+.app.app-wide {
+  width: min(80rem, calc(100% - 2.5rem));
 }
 
 /* —— Top bar —— */
@@ -615,14 +620,19 @@ body {
 @media (min-width: 48rem) {
   .browse-layout {
     display: grid;
-    grid-template-columns: minmax(11rem, 14rem) 1fr;
+    grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+    gap: 1.25rem;
     align-items: start;
-    min-height: 20rem;
+    min-height: 24rem;
   }
 
   .browse-index {
-    max-height: min(70vh, 28rem);
+    max-height: min(78vh, 48rem);
     overflow-y: auto;
+  }
+
+  .browse-detail .md-block {
+    max-height: min(78vh, 48rem);
   }
 }
 

@@ -14,7 +14,9 @@ export function buildAskPrompt(template: string, input: AskInput): string {
     .replaceAll("{{QUESTION}}", input.q)
     .replaceAll("{{JOB_ID}}", input.job_id)
     .replaceAll("{{TIMEZONE}}", input.timezone)
-    .replaceAll("{{DREAM_STATUS}}", input.dream_status);
+    .replaceAll("{{DREAM_STATUS}}", input.dream_status)
+    .replaceAll("{{TODAY}}", input.today)
+    .replaceAll("{{NOW}}", input.now);
 }
 
 /** Read and validate the agent-written result file for a job. */

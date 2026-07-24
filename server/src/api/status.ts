@@ -11,6 +11,7 @@ import { getRunningAskJob } from "../store/memory-ask-job";
 import { tailAskEvents } from "../store/memory-ask-events";
 import { countActiveAnchors } from "../store/future-sight";
 import { config } from "../config";
+import { getClockSnapshot } from "../store/clock";
 
 /** Return the status document exposed by GET /status. */
 export async function handleStatus(): Promise<object> {
@@ -40,6 +41,7 @@ export async function handleStatus(): Promise<object> {
   const result: Record<string, unknown> = {
     engram_home: config.engramHome,
     timezone: config.timezone,
+    clock: getClockSnapshot(),
     lock,
     l1_empty: await isL1Empty(),
     pending_dlq_count: await pendingDlqCount(),

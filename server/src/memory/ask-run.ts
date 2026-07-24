@@ -17,7 +17,7 @@ import {
   pruneOldAskJobs,
   type AskJobState,
 } from "../store/memory-ask-job";
-import { nowIso } from "../store/events";
+import { nowIso, calendarDate } from "../store/events";
 
 /** Indicates another ask job is already running. */
 export class AskBusyError extends Error {
@@ -112,6 +112,8 @@ async function runAskJob(jobId: string, q: string, startedAt: string): Promise<v
       engram_home: config.engramHome,
       timezone: config.timezone,
       dream_status,
+      now: nowIso(),
+      today: calendarDate(),
     });
 
     if (cancelledJobs.has(jobId)) {

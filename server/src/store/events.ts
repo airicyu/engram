@@ -3,6 +3,11 @@
 import { open, readFile, writeFile } from "node:fs/promises";
 import { $ } from "bun";
 import { config } from "../config";
+import {
+  calendarDateFromDate,
+  formatIsoInTimezone,
+  getClockDate,
+} from "./clock";
 import { homePath } from "./home";
 
 /** One persisted L0 capture event. */
@@ -69,49 +74,13 @@ export async function eventsForDay(day: string): Promise<Event[]> {
 
 /** Calendar date `YYYY-MM-DD` in `config.timezone` (default Asia/Hong_Kong). */
 export function calendarDate(isoOrNow?: string): string {
-  const d = isoOrNow ? new Date(isoOrNow) : new Date();
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: config.timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
+  const d = isoOrNow ? new Date(isoOrNow) : getClockDate();
+  return calendarDateFromDate(d, config.timezone);
 }
 
-/** ISO-8601 local timestamp with numeric offset for `config.timezone`. */
+/** ISO-8601 local timestamp with numeric offset for `config.timezone` (virtual clock aware). */
 export function nowIso(): string {
-  const d = new Date();
-  const timeZone = config.timezone;
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(d);
-
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
-  const offset = formatTimeZoneOffset(d, timeZone);
-  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}${offset}`;
-}
-
-/** e.g. `+08:00` from IANA zone via Intl longOffset. */
-function formatTimeZoneOffset(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    timeZoneName: "longOffset",
-  }).formatToParts(date);
-  const name = parts.find((p) => p.type === "timeZoneName")?.value ?? "GMT";
-  if (name === "GMT" || name === "UTC") return "+00:00";
-  const m = name.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/);
-  if (!m) return "+00:00";
-  const sign = m[1];
-  const hh = m[2].padStart(2, "0");
-  const mm = (m[3] ?? "00").padStart(2, "0");
-  return `${sign}${hh}:${mm}`;
+  return formatIsoInTimezone(getClockDate(), config.timezone);
 }
 
 /** Replace the L0 event log with the supplied events. */

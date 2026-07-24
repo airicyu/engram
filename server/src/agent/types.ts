@@ -6,6 +6,10 @@ import type { Patch } from "../dream/schema";
 export interface ExtractContext {
   dream_run_id: string;
   timezone: string;
+  /** Memory-timeline "now" (virtual clock aware). ISO-8601 with offset. */
+  now: string;
+  /** Memory-timeline calendar day YYYY-MM-DD (virtual clock aware). */
+  today: string;
   /** Frozen L1 event ids for this dream (S). Events may span multiple calendar days. */
   scope: string[];
   l1: { summary: string; node_notes: Record<string, string> };

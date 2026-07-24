@@ -6,6 +6,8 @@ import { config } from "./config";
 import { ensureEngramHome } from "./store/home";
 import { handleCapture } from "./api/capture";
 import { handleStatus } from "./api/status";
+import { handleClockGet, handleClockPut, handleClockDelete } from "./api/clock";
+import { loadClockFromDisk } from "./store/clock";
 import {
   handleDreamRun,
   handleDreamPending,
@@ -28,6 +30,7 @@ import { logError, logInfo, logMemory, withRequestLog } from "./log";
 import { killAllTrackedAgentProcesses } from "./store/agent-process";
 
 await ensureEngramHome();
+await loadClockFromDisk();
 
 let server: ReturnType<typeof Bun.serve>;
 try {
@@ -56,6 +59,9 @@ try {
             "POST /memory/ask",
             "GET /memory/ask/{job_id}",
             "POST /memory/ask/{job_id}/cancel",
+            "GET /clock",
+            "PUT /clock",
+            "DELETE /clock",
             "GET /status",
           ],
         }),
@@ -64,6 +70,23 @@ try {
 
     "/status": {
       GET: withRequestLog(async () => Response.json(await handleStatus())),
+    },
+
+    "/clock": {
+      GET: withRequestLog(() => Response.json(handleClockGet())),
+      PUT: withRequestLog(async (req) => {
+        let body: { now?: string; day?: string; time?: string } = {};
+        try {
+          const text = await req.text();
+          if (text.trim()) body = JSON.parse(text) as typeof body;
+        } catch {
+          return Response.json({ error: "invalid JSON body" }, { status: 400 });
+        }
+        const result = await handleClockPut(body);
+        if (result instanceof Response) return result;
+        return Response.json(result);
+      }),
+      DELETE: withRequestLog(async () => Response.json(await handleClockDelete())),
     },
 
     "/capture": {
@@ -296,3 +319,4 @@ logInfo(`engram listening on ${server.url}`);
 logInfo(`ENGRAM_HOME=${config.engramHome}`);
 logInfo(`ENGRAM_TZ=${config.timezone}`);
 logInfo(`ENGRAM_AGENT=${process.env.ENGRAM_AGENT ?? "cursor"}`);
+logInfo(`ENGRAM_ALLOW_VIRTUAL_CLOCK=${config.allowVirtualClock ? "1" : "0"}`);

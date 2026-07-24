@@ -14,4 +14,6 @@ export const config = {
   claudeBin: process.env.CLAUDE_BIN ?? "claude",
   cursorAgentBin: process.env.CURSOR_AGENT_BIN ?? "agent",
   timezone: process.env.ENGRAM_TZ?.trim() || DEFAULT_TIMEZONE,
+  /** When true, PUT /clock may set a virtual memory timeline. */
+  allowVirtualClock: process.env.ENGRAM_ALLOW_VIRTUAL_CLOCK === "1",
 };
