@@ -23,7 +23,7 @@
 | **chain** | 日級記憶鏈（`memory-chain/days/`） |
 | **future-sight** | 近程前瞻錨點（`future-sight/active/`）；過期 → L0/L1 event 後硬清 |
 
-產品循環對齊 UI：**Capture → Consolidate → Memory**（對應 capture / dream / memory）。
+產品循環對齊 UI：**Capture → Consolidate → Seek → Memory**（對應 capture / dream / seek+browse）。
 
 時區由 **`ENGRAM_TZ`** 設定（IANA），預設 **`Asia/Hong_Kong`**。原型無 auth。
 
@@ -72,7 +72,7 @@ bun run dev:ui                    # web
 | `POST /capture` 寫入 | 把 fixture seed 當試用資料 |
 | `POST /dream/run` extract → pending | 未經同意就 `reset` 或清 DLQ |
 | `POST /dream/approve`／`discard` | 手改 L1／L2／draft「幫忙改對」 |
-| `GET /memory/search` / `GET /memory/l1` / `POST /memory/ask` / `GET /status` / `GET /dream/pending` / `GET /future-sight` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
+| `GET /memory/search` / `GET /memory/l1` / `POST /memory/ask` / `GET /memory/chain` / `GET /memory/nodes` / `GET /status` / `GET /dream/pending` / `GET /future-sight` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 
 API 欄位提醒：
 
@@ -105,8 +105,8 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.7.0` — Memory 域（`/memory/l1`、`/memory/search` + `scope`、`/memory/ask` + cancel）；`POST /dream/cancel`；移除 `/recall`。
-- **上一版：** `0.6.0` — dream observability（events、`log_tail`、Consolidate progress）。
+- **已出貨：** `0.8.0` — Seek／Memory 四場景；browse API（`/memory/chain`、`/memory/nodes`）；Search／Ask 契約不變。
+- **上一版：** `0.7.0` — Memory 域（`/memory/l1`、`/memory/search` + `scope`、`/memory/ask` + cancel）；`POST /dream/cancel`；移除 `/recall`。
 - **Backlog：** mindzone、future-sight 注入 Memory — 見 `roadmap/backlog/`。
 
 ## 深入閱讀

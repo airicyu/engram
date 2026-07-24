@@ -41,6 +41,16 @@
           <button
             type="button"
             class="scene-btn"
+            data-scene="seek"
+            role="tab"
+            aria-selected="false"
+            data-i18n="scene.seek"
+          >
+            Seek
+          </button>
+          <button
+            type="button"
+            class="scene-btn"
             data-scene="memory"
             role="tab"
             aria-selected="false"
@@ -226,44 +236,44 @@
           </div>
         </section>
 
-        <!-- Memory -->
+        <!-- Seek -->
         <section
           class="scene"
-          id="scene-memory"
+          id="scene-seek"
           role="tabpanel"
-          data-scene="memory"
+          data-scene="seek"
           hidden
         >
-          <div class="memory-modes" role="tablist" aria-label="Memory mode">
+          <div class="memory-modes seek-modes" role="tablist" data-i18n-aria="seek.mode_search" aria-label="Seek mode">
             <button
               type="button"
               class="mode-btn is-active"
-              data-memory-mode="search"
+              data-seek-mode="search"
               role="tab"
               aria-selected="true"
-              data-i18n="memory.mode_search"
+              data-i18n="seek.mode_search"
             >
               搜尋
             </button>
             <button
               type="button"
               class="mode-btn"
-              data-memory-mode="ask"
+              data-seek-mode="ask"
               role="tab"
               aria-selected="false"
-              data-i18n="memory.mode_ask"
+              data-i18n="seek.mode_ask"
             >
               提問
             </button>
           </div>
 
-          <div id="memory-search-panel">
-            <p class="scene-lead" data-i18n="memory.search_lead">用關鍵字搜尋 L1、day chain、nodes。</p>
-            <form id="memory-search-form" class="recall-form">
-              <label class="sr-only" for="memory-search-q" data-i18n="memory.label_q">查詢</label>
+          <div id="seek-search-panel">
+            <p class="scene-lead" data-i18n="seek.lead">用關鍵字搜尋，或向 AI 提問。</p>
+            <form id="seek-search-form" class="recall-form">
+              <label class="sr-only" for="seek-search-q" data-i18n="memory.label_q">查詢</label>
               <input
                 type="search"
-                id="memory-search-q"
+                id="seek-search-q"
                 name="q"
                 required
                 data-i18n-placeholder="memory.placeholder"
@@ -271,8 +281,8 @@
                 autocomplete="off"
               />
               <button type="submit" class="btn primary" data-i18n="memory.search_submit">搜尋</button>
-              <div class="search-scopes" role="group" aria-labelledby="memory-search-scope-label">
-                <span id="memory-search-scope-label" class="search-scopes-label" data-i18n="memory.search_scope"
+              <div class="search-scopes" role="group" aria-labelledby="seek-search-scope-label">
+                <span id="seek-search-scope-label" class="search-scopes-label" data-i18n="memory.search_scope"
                   >搜尋範圍</span
                 >
                 <label class="search-scope-option">
@@ -289,8 +299,8 @@
                 </label>
               </div>
             </form>
-            <p class="form-msg" id="memory-search-msg" role="status"></p>
-            <div class="recall-packet" id="memory-search-packet">
+            <p class="form-msg" id="seek-search-msg" role="status"></p>
+            <div class="recall-packet" id="seek-search-packet">
               <article class="packet-block" id="memory-l1-block" hidden>
                 <h2 data-i18n="memory.l1_title">L1</h2>
                 <pre class="md-block" id="memory-l1" data-i18n="memory.not_queried">尚未查詢</pre>
@@ -308,12 +318,12 @@
             </div>
           </div>
 
-          <div id="memory-ask-panel" hidden>
+          <div id="seek-ask-panel" hidden>
             <p class="scene-lead" data-i18n="memory.ask_lead">用自然語言提問，AI 會讀取記憶庫後回答。</p>
-            <form id="memory-ask-form" class="recall-form ask-form">
-              <label class="sr-only" for="memory-ask-q" data-i18n="memory.ask_label">問題</label>
+            <form id="seek-ask-form" class="recall-form ask-form">
+              <label class="sr-only" for="seek-ask-q" data-i18n="memory.ask_label">問題</label>
               <textarea
-                id="memory-ask-q"
+                id="seek-ask-q"
                 name="q"
                 rows="6"
                 data-i18n-placeholder="memory.ask_placeholder"
@@ -321,16 +331,16 @@
                 autocomplete="off"
               ></textarea>
               <div class="form-row">
-                <button type="submit" class="btn primary" id="memory-ask-submit" data-i18n="memory.ask_submit">
+                <button type="submit" class="btn primary" id="seek-ask-submit" data-i18n="memory.ask_submit">
                   提問
                 </button>
               </div>
             </form>
-            <p class="form-msg" id="memory-ask-msg" role="status"></p>
+            <p class="form-msg" id="seek-ask-msg" role="status"></p>
             <div class="dream-progress" id="ask-progress" hidden>
               <p class="dream-progress-meta" id="ask-progress-meta"></p>
               <ol class="dream-log" id="ask-progress-log"></ol>
-              <button type="button" class="btn ghost" id="memory-ask-cancel" data-i18n="memory.ask_cancel" hidden>
+              <button type="button" class="btn ghost" id="seek-ask-cancel" data-i18n="memory.ask_cancel" hidden>
                 取消
               </button>
             </div>
@@ -342,6 +352,85 @@
                 <pre class="md-block" id="memory-sources"></pre>
               </details>
             </article>
+          </div>
+        </section>
+
+        <!-- Memory -->
+        <section
+          class="scene"
+          id="scene-memory"
+          role="tabpanel"
+          data-scene="memory"
+          hidden
+        >
+          <p class="scene-lead" data-i18n="memory.lead">翻閱記憶鏈與節點。</p>
+          <div class="memory-modes" role="tablist" aria-label="Memory mode">
+            <button
+              type="button"
+              class="mode-btn is-active"
+              data-memory-mode="chain"
+              role="tab"
+              aria-selected="true"
+              data-i18n="memory.mode_chain"
+            >
+              記憶鏈
+            </button>
+            <button
+              type="button"
+              class="mode-btn"
+              data-memory-mode="nodes"
+              role="tab"
+              aria-selected="false"
+              data-i18n="memory.mode_nodes"
+            >
+              節點
+            </button>
+          </div>
+
+          <div id="memory-chain-panel">
+            <div class="browse-layout">
+              <div
+                class="browse-index"
+                id="memory-chain-index"
+                role="listbox"
+                data-i18n-aria="memory.mode_chain"
+                aria-label="Day chain"
+              ></div>
+              <article class="browse-detail packet-block" id="memory-chain-detail">
+                <h2 id="memory-chain-detail-title">—</h2>
+                <p class="browse-meta" id="memory-chain-detail-meta"></p>
+                <pre class="md-block" id="memory-chain-detail-body" data-i18n="memory.browse_loading">載入中…</pre>
+              </article>
+            </div>
+          </div>
+
+          <div id="memory-nodes-panel" hidden>
+            <div class="browse-layout">
+              <div class="browse-index-wrap">
+                <label class="sr-only" for="memory-nodes-filter" data-i18n="memory.nodes_filter">篩選節點</label>
+                <input
+                  type="search"
+                  id="memory-nodes-filter"
+                  class="browse-filter"
+                  data-i18n-placeholder="memory.nodes_filter"
+                  placeholder="篩選節點"
+                  autocomplete="off"
+                  data-i18n-aria="memory.nodes_filter"
+                  aria-label="Filter nodes"
+                />
+                <div
+                  class="browse-index"
+                  id="memory-nodes-index"
+                  role="listbox"
+                  data-i18n-aria="memory.mode_nodes"
+                  aria-label="Nodes"
+                ></div>
+              </div>
+              <article class="browse-detail packet-block" id="memory-nodes-detail">
+                <h2 id="memory-nodes-detail-title">—</h2>
+                <pre class="md-block" id="memory-nodes-detail-body" data-i18n="memory.browse_loading">載入中…</pre>
+              </article>
+            </div>
           </div>
         </section>
       </main>

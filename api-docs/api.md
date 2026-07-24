@@ -27,6 +27,10 @@ Service discovery.
     "GET /future-sight",
     "GET /memory/l1",
     "GET /memory/search",
+    "GET /memory/chain",
+    "GET /memory/chain/{day_id}",
+    "GET /memory/nodes",
+    "GET /memory/nodes/{node_id}",
     "POST /memory/ask",
     "GET /memory/ask/{job_id}",
     "POST /memory/ask/{job_id}/cancel",
@@ -329,6 +333,68 @@ No matches → `200` with requested scope keys empty (`nodes: []`, `l1: null`, o
 
 ---
 
+## `GET /memory/chain`
+
+Day chain **index** (newest first). Lightweight: `day_id` + `preview` + `source`.
+
+**Response `200`:**
+
+```json
+{
+  "days": [
+    { "day_id": "2026-07-23", "preview": "Engram 0.6.0 dream entry…", "source": "summary" }
+  ],
+  "present": true
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `days` | Sorted **day_id descending** (new → old); days with no content omitted |
+| `preview` | First **80** chars (whitespace-normalized) |
+| `source` | `summary` \| `ledger_fallback` |
+| `present` | `days.length > 0` |
+
+Empty store → `{ "days": [], "present": false }`.
+
+---
+
+## `GET /memory/chain/{day_id}`
+
+Single day **detail**. Path `day_id` must match `YYYY-MM-DD` or **`400 invalid_day_id`**.
+
+**Response `200` (has content):** `{ day_id, content, source, present: true }`  
+**Response `200` (no file):** `{ day_id, content: null, source: "empty", present: false }`
+
+---
+
+## `GET /memory/nodes`
+
+L2 node **index** (id ascending). Lightweight: `node` + `preview`.
+
+**Response `200`:**
+
+```json
+{
+  "nodes": [
+    { "node": "engram", "preview": "Release cadence…" }
+  ],
+  "present": true
+}
+```
+
+Empty → `{ "nodes": [], "present": false }`.
+
+---
+
+## `GET /memory/nodes/{node_id}`
+
+Single node **detail** — **Current** section of `what.md` only.  
+Illegal path chars → **`400 invalid_node_id`**.  
+Missing node → **200** `{ node, what_current: null, present: false }`.
+
+---
+
 ## `POST /memory/ask`
 
 Start async AI ask. Agent reads `ENGRAM_HOME` directly (read-only).
@@ -396,6 +462,8 @@ POST /dream/approve   OR   POST /dream/discard   OR   POST /dream/run (supersede
      OR   POST /dream/cancel (while running)
      ↓
 GET  /memory/search?q=…
+GET  /memory/chain  →  GET /memory/chain/{day_id}
+GET  /memory/nodes  →  GET /memory/nodes/{node_id}
 POST /memory/ask { "q": "…" }  →  GET /memory/ask/{job_id}
 ```
 

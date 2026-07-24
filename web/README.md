@@ -1,6 +1,6 @@
-# Engram Web (0.7.0)
+# Engram Web (0.8.0)
 
-Minimal workbench UI for **Capture → Consolidate → Memory**. Talks only to the HTTP API (never touches `ENGRAM_HOME`).
+Minimal workbench UI for **Capture → Consolidate → Seek → Memory**. Talks only to the HTTP API (never touches `ENGRAM_HOME`).
 
 ## Prerequisites
 
@@ -33,9 +33,12 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 |-------|----------------|
 | **Capture** | `POST /capture` · show L1 via `GET /memory/l1` |
 | **Consolidate** | Dream → pending report → Approve／Discard／Cancel；`GET /status` |
-| **Memory** | **Search** — `GET /memory/search?q=&scope=` (L1／chain／nodes checkboxes) · **Ask** — `POST /memory/ask` |
+| **Seek** | **Search** — `GET /memory/search?q=&scope=` · **Ask** — `POST /memory/ask` |
+| **Memory** | **Day chain** — `GET /memory/chain` + detail · **Nodes** — `GET /memory/nodes` + detail (client filter) |
 
 Status light polls `/status`: **5s** while lock／dreaming，**20s** during `pending_review`，**60s** when idle. Capture is disabled only while the dream lock is held — **not** during `pending_review`.
+
+Memory scene uses a wider layout (`≥48rem` split index／detail).
 
 ## UI language
 

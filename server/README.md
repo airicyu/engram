@@ -21,6 +21,8 @@ curl -s -X POST http://localhost:8787/capture \
 curl -s http://localhost:8787/status
 curl -s 'http://localhost:8787/memory/l1'
 curl -s 'http://localhost:8787/memory/search?q=同事&scope=nodes,chain'
+curl -s 'http://localhost:8787/memory/chain'
+curl -s 'http://localhost:8787/memory/nodes'
 curl -s -X POST http://localhost:8787/dream/run
 ```
 
@@ -45,6 +47,10 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | `POST` | `/dream/cancel` | cancel running dream |
 | `GET` | `/memory/l1` | L1 preview (Capture) |
 | `GET` | `/memory/search?q=&scope=` | keyword hits (`q` required) |
+| `GET` | `/memory/chain` | day chain index (browse) |
+| `GET` | `/memory/chain/{day_id}` | day chain detail |
+| `GET` | `/memory/nodes` | L2 node index (browse) |
+| `GET` | `/memory/nodes/{node_id}` | L2 node detail |
 | `POST` | `/memory/ask` | async AI Q&A |
 | `GET` | `/status` | lock, L1, DLQ, dream_status, ask_job |
 

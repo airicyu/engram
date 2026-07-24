@@ -71,7 +71,7 @@ body {
 }
 
 .app {
-  width: min(42rem, calc(100% - 2rem));
+  width: min(56rem, calc(100% - 2rem));
   margin: 0 auto;
   padding: 1.25rem 0 3rem;
 }
@@ -603,6 +603,78 @@ body {
 .node-card h3 span {
   font-weight: 400;
   opacity: 0.8;
+}
+
+/* —— Memory browse —— */
+.browse-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 48rem) {
+  .browse-layout {
+    display: grid;
+    grid-template-columns: minmax(11rem, 14rem) 1fr;
+    align-items: start;
+    min-height: 20rem;
+  }
+
+  .browse-index {
+    max-height: min(70vh, 28rem);
+    overflow-y: auto;
+  }
+}
+
+.browse-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  margin-bottom: 0.35rem;
+  font: inherit;
+  color: inherit;
+}
+
+.browse-item.is-selected {
+  border-color: rgba(31, 107, 99, 0.35);
+  background: rgba(31, 107, 99, 0.08);
+}
+
+.browse-item-id {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.browse-item-preview {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  margin-top: 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browse-meta {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  margin: 0 0 0.75rem;
+}
+
+.browse-filter {
+  width: 100%;
+  margin-bottom: 0.65rem;
+  box-sizing: border-box;
+}
+
+.browse-empty {
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  margin: 0;
 }
 
 /* —— Mobile —— */

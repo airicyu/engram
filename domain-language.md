@@ -15,16 +15,24 @@
 |----|------|------|-----------|------|
 | **Capture** | 記下 | 把「此刻要記住的事」寫進系統（L0 + L1） | `POST /capture` | UI 場景名、按鈕語；body 用 **`raw`** |
 | **Consolidate** | 沉澱 | 整理短時記憶：AI 出報告，人審後寫入長期 | `POST /dream/run` → Approve／Discard | 核心是人審關卡 |
-| **Memory** | 記憶 | 讀取已寫入的記憶（UI 第三場景） | 見下表 | 0.7.0 取代 **Recall** 場景名 |
+| **Seek** | 尋找 | 用關鍵字或 AI 提問找記憶 | `GET /memory/search`、`POST /memory/ask` | 0.8.0 自 Memory 場景拆出 |
+| **Memory** | 記憶 | 沿時間軸或節點列表翻閱已寫入記憶 | `GET /memory/chain`、`GET /memory/nodes` | 0.8.0 browse；不含 Search／Ask |
 | **Dream** | 入夢 | 對 L1 跑 AI 提取，產出待審報告 | `POST /dream/run` | 產品語；技術上含 extract |
 
-### Memory（0.7.0）
+### Seek（0.8.0）
 
 | EN | 中文 | 說明 | API | 備註 |
 |----|------|------|-----|------|
 | **Search** | 搜尋 | keyword 命中 L1／chain／nodes | `GET /memory/search?q=&scope=` | `q` 必填；`scope` 可選，預設全搜 |
 | **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memory/ask`、`GET /memory/ask/{job_id}` | 同時只允許一個 running job |
-| **L1 preview** | L1 預覽 | Capture 場景顯示短期 pool 摘要 | `GET /memory/l1` | 僅 L1；不載入全量 nodes |
+
+### Memory browse（0.8.0）
+
+| EN | 中文 | 說明 | API | 備註 |
+|----|------|------|-----|------|
+| **Day chain browse** | 記憶鏈翻閱 | 日級 index（新→舊）+ 按需 detail | `GET /memory/chain`、`GET /memory/chain/{day_id}` | 與 Search 分工：列表點選，非 keyword |
+| **Nodes browse** | 節點翻閱 | L2 index（字母序）+ what Current detail | `GET /memory/nodes`、`GET /memory/nodes/{node_id}` | filter 在客戶端 |
+| **L1 preview** | L1 預覽 | Capture 場景顯示短期 pool 摘要 | `GET /memory/l1` | 僅 L1；不在 Memory 場景瀏覽 |
 
 ---
 
@@ -177,15 +185,15 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 
 ## Workbench（工作台）
 
-個人記憶**工作台**——走 Capture → Consolidate → Memory；**不是** admin dashboard、不是多使用者後台。
+個人記憶**工作台**——走 Capture → Consolidate → Seek → Memory；**不是** admin dashboard、不是多使用者後台。
 
 | EN | 中文 | 說明 | 路徑／備註 |
 |----|------|------|------------|
 | **workbench** | 工作台 | 產品操作面總稱（人 + agent 透過 API 操作記憶） | 舊稱 **operator**（0.5.0 前） |
-| **workbench UI** | 工作台介面 | 瀏覽器三場景 UI | `web/`（`:8788`） |
+| **workbench UI** | 工作台介面 | 瀏覽器四場景 UI | `web/`（`:8788`） |
 | **engram-workbench** | 工作台 skill | Agent 用 HTTP 打 API；禁止手改 `ENGRAM_HOME` | `.claude/skills/engram-workbench/` |
 | **status light** | 狀態燈 | 頂欄連線／入夢狀態指示 | workbench UI |
-| **scene** | 場景 | Capture／Consolidate／Memory 三主畫面 | workbench UI |
+| **scene** | 場景 | Capture／Consolidate／Seek／Memory 四主畫面 | workbench UI |
 
 **Workbench UI i18n（0.5.0）：** 僅介面殼層；**English** + **繁體中文**；不翻譯 L1／L2／chain／report 等記憶內容。
 
@@ -198,7 +206,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | **Ingest** | **Capture** | 寫入 API／用語統一（0.4.1：`/ingest` → `/capture` 硬切） |
 | **L0.5** | **L1.5** | 層級命名修正：中間態在 L1 與 L2 之間，非 L0 延伸 |
 | **Activate** | **Recall** → **Memory** | 0.4 Activate→Recall；0.7.0 Recall→Memory（場景／讀取域） |
-| **Recall** | **Memory** | `GET /recall` → `GET /memory/search`（硬切）；第三 UI 場景 **記憶** |
+| **Recall** | **Seek** + **Memory** | 0.7.0 `GET /recall` → search；0.8.0 UI 拆 **尋找**（search+ask）與 **記憶**（browse） |
 | **Extract**（UI） | **Dream**（入夢） | Consolidate 主按鈕改名 |
 | **auto-apply** | **pending + approve** | 不再 extract 後直接寫 L2 |
 | **apply**（舊） | **materialize + commit** | 拆成 draft 投影與人審 commit |

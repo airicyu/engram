@@ -93,10 +93,26 @@ const server = Bun.serve({
     "/api/memory/ask": {
       POST: (req) => proxyApi(req, "/memory/ask"),
     },
+    "/api/memory/chain": {
+      GET: (req) => proxyApi(req, "/memory/chain"),
+    },
+    "/api/memory/nodes": {
+      GET: (req) => proxyApi(req, "/memory/nodes"),
+    },
   },
 
   fetch(req) {
     const url = new URL(req.url);
+    const chainMatch = url.pathname.match(/^\/api\/memory\/chain\/([^/]+)$/);
+    if (chainMatch) {
+      const dayId = encodeURIComponent(decodeURIComponent(chainMatch[1]!));
+      return proxyApi(req, `/memory/chain/${dayId}`);
+    }
+    const nodesMatch = url.pathname.match(/^\/api\/memory\/nodes\/([^/]+)$/);
+    if (nodesMatch) {
+      const nodeId = encodeURIComponent(decodeURIComponent(nodesMatch[1]!));
+      return proxyApi(req, `/memory/nodes/${nodeId}`);
+    }
     const match = url.pathname.match(/^\/api\/memory\/ask\/([^/]+)(\/cancel)?$/);
     if (match) {
       const jobId = encodeURIComponent(decodeURIComponent(match[1]!));

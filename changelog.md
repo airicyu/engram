@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.8.0 — Seek + Memory Browse (2026-07-24)
+
+Split **Seek** (search／ask) from **Memory** (browse); add read-only chain／nodes browse API.
+
+### Added
+
+- **`GET /memory/chain`** — day index (new→old + 80-char preview)
+- **`GET /memory/chain/{day_id}`** — day detail (`summary` or `ledger_fallback`)
+- **`GET /memory/nodes`** — L2 node index (A→Z + preview)
+- **`GET /memory/nodes/{node_id}`** — what Current detail
+- Workbench **四場景**：記下／沉澱／**尋找 Seek**／**記憶 Memory**
+- Memory browse UI — chain + nodes split layout (`≥48rem`); client-side node filter
+- `test:phases` Phase 4c browse assertions
+
+### Changed
+
+- UI **Search + Ask** moved to **Seek** scene; API paths unchanged
+- Memory scene width `min(56rem, …)`; other scenes stay `42rem`
+
+### Unchanged
+
+- **`GET /memory/search`**、**`POST /memory/ask`** contracts
+- L1 preview stays on **Capture** (`GET /memory/l1`)
+- No future-sight browse; no server-side node filter
+
+---
+
 ## 0.7.0 — Memory + Ask + Dream Cancel (2026-07-23)
 
 Rename Recall → **Memory**; keyword search with optional **scope**; async AI ask; manual dream/ask cancel.

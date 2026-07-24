@@ -22,6 +22,8 @@ curl -s http://localhost:8787/dream/pending
 curl -s -X POST http://localhost:8787/dream/approve
 curl -s 'http://localhost:8787/memory/l1'
 curl -s 'http://localhost:8787/memory/search?q=keyword&scope=nodes,chain'
+curl -s 'http://localhost:8787/memory/chain'
+curl -s 'http://localhost:8787/memory/nodes'
 ```
 
 ## Web UI
@@ -69,6 +71,10 @@ No authentication in the prototype. Timestamps use `ENGRAM_TZ` (default `Asia/Ho
 | `GET` | `/future-sight` | Active near-horizon anchors (sweeps expired first) |
 | `GET` | `/memory/l1` | L1 preview for Capture |
 | `GET` | `/memory/search` | Keyword search (`q` required; optional `scope=l1,nodes,chain`) |
+| `GET` | `/memory/chain` | Day chain index (browse) |
+| `GET` | `/memory/chain/{day_id}` | Day chain detail |
+| `GET` | `/memory/nodes` | L2 node index (browse) |
+| `GET` | `/memory/nodes/{node_id}` | L2 node detail (what Current) |
 | `POST` | `/memory/ask` | Start async AI ask |
 | `GET` | `/memory/ask/{job_id}` | Poll ask job |
 | `POST` | `/memory/ask/{job_id}/cancel` | Cancel running ask |

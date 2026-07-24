@@ -21,6 +21,8 @@ import {
   handleMemoryAskGet,
   handleMemoryAskCancel,
 } from "./api/memory/ask";
+import { handleChainIndex, handleChainDay } from "./api/memory/chain";
+import { handleNodesIndex, handleNodeDetail } from "./api/memory/nodes";
 import { handleFutureSight } from "./api/future-sight";
 import { logError, logInfo, logMemory, withRequestLog } from "./log";
 import { killAllTrackedAgentProcesses } from "./store/agent-process";
@@ -47,6 +49,10 @@ try {
             "GET /future-sight",
             "GET /memory/l1",
             "GET /memory/search",
+            "GET /memory/chain",
+            "GET /memory/chain/{day_id}",
+            "GET /memory/nodes",
+            "GET /memory/nodes/{node_id}",
             "POST /memory/ask",
             "GET /memory/ask/{job_id}",
             "POST /memory/ask/{job_id}/cancel",
@@ -178,6 +184,22 @@ try {
       }),
     },
 
+    "/memory/chain": {
+      GET: withRequestLog(async () => {
+        const body = await handleChainIndex();
+        logMemory("browse chain index", { days: body.days.length, present: body.present });
+        return Response.json(body);
+      }),
+    },
+
+    "/memory/nodes": {
+      GET: withRequestLog(async () => {
+        const body = await handleNodesIndex();
+        logMemory("browse nodes index", { nodes: body.nodes.length, present: body.present });
+        return Response.json(body);
+      }),
+    },
+
     "/memory/ask": {
       POST: withRequestLog(async (req) => {
         let body: { q?: string } = {};
@@ -193,6 +215,35 @@ try {
 
   fetch: withRequestLog(async (req) => {
     const url = new URL(req.url);
+
+    const chainMatch = url.pathname.match(/^\/memory\/chain\/([^/]+)$/);
+    if (chainMatch && req.method === "GET") {
+      const dayId = decodeURIComponent(chainMatch[1]!);
+      const out = await handleChainDay(dayId);
+      if ("error" in out) {
+        return Response.json(
+          { error: out.error, message: "day_id must be YYYY-MM-DD" },
+          { status: 400 },
+        );
+      }
+      logMemory("browse chain day", { day_id: out.day_id, present: out.present });
+      return Response.json(out);
+    }
+
+    const nodesMatch = url.pathname.match(/^\/memory\/nodes\/([^/]+)$/);
+    if (nodesMatch && req.method === "GET") {
+      const nodeId = decodeURIComponent(nodesMatch[1]!);
+      const out = await handleNodeDetail(nodeId);
+      if ("error" in out) {
+        return Response.json(
+          { error: out.error, message: "node_id contains invalid characters" },
+          { status: 400 },
+        );
+      }
+      logMemory("browse nodes detail", { node: out.node, present: out.present });
+      return Response.json(out);
+    }
+
     const match = url.pathname.match(/^\/memory\/ask\/([^/]+)(\/cancel)?$/);
     if (match) {
       const jobId = decodeURIComponent(match[1]!);

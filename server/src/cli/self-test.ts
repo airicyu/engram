@@ -91,6 +91,13 @@ async function main() {
     assert(s0.data.lock === false, "lock false");
     assert(s0.data.dream_status === "never_dreamed", "never_dreamed");
 
+    const emptyChain = await json("GET", "/memory/chain");
+    assert(emptyChain.status === 200 && emptyChain.data.present === false, "empty chain index");
+    const emptyNodes = await json("GET", "/memory/nodes");
+    assert(emptyNodes.status === 200 && emptyNodes.data.present === false, "empty nodes index");
+    const emptyDay = await json("GET", "/memory/chain/2020-01-01");
+    assert(emptyDay.status === 200 && emptyDay.data.present === false, "empty chain detail");
+
     const emptyDream = await json("POST", "/dream/run");
     assert(emptyDream.status === 409 && emptyDream.data.error === "nothing_to_dream", "empty pool 409");
 
@@ -294,6 +301,27 @@ async function main() {
     }
     assert(askDone, "ask completed");
 
+    console.log("Phase 4c: browse chain + nodes");
+    const chainIdx = await json("GET", "/memory/chain");
+    assert(chainIdx.status === 200 && chainIdx.data.present === true, "chain index present");
+    assert(Array.isArray(chainIdx.data.days) && chainIdx.data.days.length >= 1, "chain days");
+    const browseDay = chainIdx.data.days[0].day_id as string;
+    const chainDet = await json("GET", `/memory/chain/${browseDay}`);
+    assert(chainDet.status === 200 && chainDet.data.present === true, "chain day detail");
+    assert(String(chainDet.data.content ?? "").length > 0, "chain day content");
+
+    const nodesIdx = await json("GET", "/memory/nodes");
+    assert(nodesIdx.status === 200 && nodesIdx.data.present === true, "nodes index present");
+    assert(
+      (nodesIdx.data.nodes as Array<{ node: string }>).some((n) => n.node === "acme"),
+      "nodes includes acme",
+    );
+    const nodeDet = await json("GET", "/memory/nodes/acme");
+    assert(nodeDet.status === 200 && nodeDet.data.present === true, "node acme detail");
+
+    const badDay = await json("GET", "/memory/chain/not-a-date");
+    assert(badDay.status === 400 && badDay.data.error === "invalid_day_id", "invalid day_id");
+
     await stopServer(server);
     server = await startServer("mock-ok");
 
@@ -356,7 +384,7 @@ Old foresight that should expire.
     const poolSweep = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
     assert(poolSweep.includes("Future-sight expired"), "L1 has expiry note");
 
-    console.log("\n✅ All 0.7 self-checks passed");
+    console.log("\n✅ All 0.8 self-checks passed");
   } finally {
     await stopServer(server);
   }

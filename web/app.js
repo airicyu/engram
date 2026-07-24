@@ -20,11 +20,17 @@ const state = {
   scene: "capture",
   dreaming: false,
   pollTimer: null,
-  memoryMode: "search",
+  seekMode: "search",
+  memoryMode: "chain",
   askJobId: null,
   askPolling: false,
   /** Last search packet for re-render on locale change. */
   lastSearch: null,
+  chainDays: null,
+  nodesList: null,
+  selectedDayId: null,
+  selectedNodeId: null,
+  nodesFilter: "",
 };
 
 const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -324,9 +330,21 @@ function switchScene(name) {
   });
   if (name === "capture") refreshL1();
   if (name === "consolidate") refreshStatus();
-  if (name === "memory" && state.memoryMode === "search") {
-    /* optional: auto-search */
+  if (name === "memory") {
+    if (state.memoryMode === "chain") loadChainIndex();
+    else loadNodesIndex();
   }
+}
+
+function switchSeekMode(mode) {
+  state.seekMode = mode;
+  document.querySelectorAll("[data-seek-mode]").forEach((btn) => {
+    const on = btn.getAttribute("data-seek-mode") === mode;
+    btn.classList.toggle("is-active", on);
+    btn.setAttribute("aria-selected", String(on));
+  });
+  $("seek-search-panel").hidden = mode !== "search";
+  $("seek-ask-panel").hidden = mode !== "ask";
 }
 
 function switchMemoryMode(mode) {
@@ -336,8 +354,10 @@ function switchMemoryMode(mode) {
     btn.classList.toggle("is-active", on);
     btn.setAttribute("aria-selected", String(on));
   });
-  $("memory-search-panel").hidden = mode !== "search";
-  $("memory-ask-panel").hidden = mode !== "ask";
+  $("memory-chain-panel").hidden = mode !== "chain";
+  $("memory-nodes-panel").hidden = mode !== "nodes";
+  if (mode === "chain") loadChainIndex();
+  else loadNodesIndex();
 }
 
 function parseNodeRefs(raw) {
@@ -345,6 +365,238 @@ function parseNodeRefs(raw) {
     .split(/[,，\s]+/)
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+async function loadChainIndex() {
+  const indexEl = $("memory-chain-index");
+  const bodyEl = $("memory-chain-detail-body");
+  indexEl.replaceChildren();
+  bodyEl.textContent = t("memory.browse_loading");
+  bodyEl.classList.remove("is-empty");
+
+  const { ok, data } = await api("/memory/chain");
+  if (!ok) {
+    indexEl.innerHTML = `<p class="browse-empty">${escapeHtml(t("memory.browse_fail"))}</p>`;
+    bodyEl.textContent = t("memory.browse_fail");
+    bodyEl.classList.add("is-empty");
+    return;
+  }
+
+  state.chainDays = data;
+  if (!data.present || !data.days?.length) {
+    indexEl.innerHTML = `<p class="browse-empty">${escapeHtml(t("memory.chain_empty"))}</p>`;
+    $("memory-chain-detail-title").textContent = "—";
+    $("memory-chain-detail-meta").textContent = "";
+    bodyEl.textContent = t("memory.chain_empty");
+    bodyEl.classList.add("is-empty");
+    state.selectedDayId = null;
+    return;
+  }
+
+  renderChainIndex(data.days);
+  const firstId = data.days[0].day_id;
+  if (!state.selectedDayId || !data.days.some((d) => d.day_id === state.selectedDayId)) {
+    state.selectedDayId = firstId;
+  }
+  await loadChainDay(state.selectedDayId);
+}
+
+function renderChainIndex(days) {
+  const indexEl = $("memory-chain-index");
+  indexEl.replaceChildren();
+  for (const day of days) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "browse-item";
+    btn.setAttribute("role", "option");
+    btn.dataset.dayId = day.day_id;
+    if (day.day_id === state.selectedDayId) {
+      btn.classList.add("is-selected");
+      btn.setAttribute("aria-current", "true");
+    }
+    const idSpan = document.createElement("span");
+    idSpan.className = "browse-item-id";
+    idSpan.textContent = day.day_id;
+    const preview = document.createElement("div");
+    preview.className = "browse-item-preview";
+    preview.textContent = day.preview || "";
+    btn.appendChild(idSpan);
+    if (day.preview) btn.appendChild(preview);
+    btn.addEventListener("click", () => {
+      state.selectedDayId = day.day_id;
+      renderChainIndex(days);
+      void loadChainDay(day.day_id);
+    });
+    indexEl.appendChild(btn);
+  }
+}
+
+function chainSourceLabel(source) {
+  if (source === "summary") return t("memory.source_summary");
+  if (source === "ledger_fallback") return t("memory.source_ledger");
+  return source || "";
+}
+
+async function loadChainDay(dayId) {
+  state.selectedDayId = dayId;
+  const titleEl = $("memory-chain-detail-title");
+  const metaEl = $("memory-chain-detail-meta");
+  const bodyEl = $("memory-chain-detail-body");
+  titleEl.textContent = dayId;
+  metaEl.textContent = "";
+  bodyEl.textContent = t("memory.browse_loading");
+  bodyEl.classList.remove("is-empty");
+
+  const { ok, data } = await api(`/memory/chain/${encodeURIComponent(dayId)}`);
+  if (!ok) {
+    bodyEl.textContent = t("memory.browse_fail");
+    bodyEl.classList.add("is-empty");
+    return;
+  }
+
+  if (!data.present) {
+    metaEl.textContent = "";
+    bodyEl.textContent = t("memory.chain_empty");
+    bodyEl.classList.add("is-empty");
+    return;
+  }
+
+  metaEl.textContent = chainSourceLabel(data.source);
+  bodyEl.textContent = data.content?.trim() || t("empty.blank");
+  bodyEl.classList.toggle("is-empty", !data.content?.trim());
+
+  document.querySelectorAll("#memory-chain-index .browse-item").forEach((btn) => {
+    const on = btn.dataset.dayId === dayId;
+    btn.classList.toggle("is-selected", on);
+    if (on) btn.setAttribute("aria-current", "true");
+    else btn.removeAttribute("aria-current");
+  });
+}
+
+async function loadNodesIndex() {
+  const indexEl = $("memory-nodes-index");
+  const bodyEl = $("memory-nodes-detail-body");
+  indexEl.replaceChildren();
+  bodyEl.textContent = t("memory.browse_loading");
+  bodyEl.classList.remove("is-empty");
+
+  const { ok, data } = await api("/memory/nodes");
+  if (!ok) {
+    indexEl.innerHTML = `<p class="browse-empty">${escapeHtml(t("memory.browse_fail"))}</p>`;
+    bodyEl.textContent = t("memory.browse_fail");
+    bodyEl.classList.add("is-empty");
+    return;
+  }
+
+  state.nodesList = data;
+  if (!data.present || !data.nodes?.length) {
+    indexEl.innerHTML = `<p class="browse-empty">${escapeHtml(t("memory.nodes_empty"))}</p>`;
+    $("memory-nodes-detail-title").textContent = "—";
+    bodyEl.textContent = t("memory.nodes_empty");
+    bodyEl.classList.add("is-empty");
+    state.selectedNodeId = null;
+    return;
+  }
+
+  const filtered = filterNodesList(data.nodes);
+  renderNodesIndex(filtered);
+
+  if (
+    !state.selectedNodeId ||
+    !data.nodes.some((n) => n.node === state.selectedNodeId)
+  ) {
+    state.selectedNodeId = filtered[0]?.node ?? data.nodes[0].node;
+  }
+  if (state.selectedNodeId) await loadNodeDetail(state.selectedNodeId);
+}
+
+function filterNodesList(nodes) {
+  const q = state.nodesFilter.trim().toLowerCase();
+  if (!q) return nodes;
+  return nodes.filter(
+    (n) =>
+      n.node.toLowerCase().includes(q) ||
+      (n.preview || "").toLowerCase().includes(q),
+  );
+}
+
+function renderNodesIndex(nodes) {
+  const indexEl = $("memory-nodes-index");
+  indexEl.replaceChildren();
+  if (!nodes.length) {
+    indexEl.innerHTML = `<p class="browse-empty">${escapeHtml(t("memory.nodes_empty"))}</p>`;
+    return;
+  }
+  for (const node of nodes) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "browse-item";
+    btn.setAttribute("role", "option");
+    btn.dataset.nodeId = node.node;
+    if (node.node === state.selectedNodeId) {
+      btn.classList.add("is-selected");
+      btn.setAttribute("aria-current", "true");
+    }
+    const idSpan = document.createElement("span");
+    idSpan.className = "browse-item-id";
+    idSpan.textContent = node.node;
+    const preview = document.createElement("div");
+    preview.className = "browse-item-preview";
+    preview.textContent = node.preview || "";
+    btn.appendChild(idSpan);
+    if (node.preview) btn.appendChild(preview);
+    btn.addEventListener("click", () => {
+      state.selectedNodeId = node.node;
+      const all = state.nodesList?.nodes ?? [];
+      renderNodesIndex(filterNodesList(all));
+      void loadNodeDetail(node.node);
+    });
+    indexEl.appendChild(btn);
+  }
+}
+
+function onNodesFilterInput() {
+  const input = /** @type {HTMLInputElement} */ ($("memory-nodes-filter"));
+  state.nodesFilter = input.value;
+  const all = state.nodesList?.nodes ?? [];
+  const filtered = filterNodesList(all);
+  renderNodesIndex(filtered);
+  if (filtered.length && !filtered.some((n) => n.node === state.selectedNodeId)) {
+    state.selectedNodeId = filtered[0].node;
+    void loadNodeDetail(state.selectedNodeId);
+  }
+}
+
+async function loadNodeDetail(nodeId) {
+  state.selectedNodeId = nodeId;
+  const titleEl = $("memory-nodes-detail-title");
+  const bodyEl = $("memory-nodes-detail-body");
+  titleEl.textContent = nodeId;
+  bodyEl.textContent = t("memory.browse_loading");
+  bodyEl.classList.remove("is-empty");
+
+  const { ok, data } = await api(`/memory/nodes/${encodeURIComponent(nodeId)}`);
+  if (!ok) {
+    bodyEl.textContent = t("memory.browse_fail");
+    bodyEl.classList.add("is-empty");
+    return;
+  }
+
+  if (!data.present) {
+    bodyEl.textContent = t("memory.nodes_empty");
+    bodyEl.classList.add("is-empty");
+    return;
+  }
+
+  bodyEl.textContent = data.what_current?.trim() || t("empty.no_what");
+  bodyEl.classList.toggle("is-empty", !data.what_current?.trim());
+
+  document.querySelectorAll("#memory-nodes-index .browse-item").forEach((btn) => {
+    const on = btn.dataset.nodeId === nodeId;
+    btn.classList.toggle("is-selected", on);
+    if (on) btn.setAttribute("aria-current", "true");
+    else btn.removeAttribute("aria-current");
+  });
 }
 
 async function onCapture(e) {
@@ -494,7 +746,7 @@ async function onDreamCancel() {
 }
 
 function getSearchScopes() {
-  return [...document.querySelectorAll('#memory-search-form input[name="scope"]:checked')].map(
+  return [...document.querySelectorAll('#seek-search-form input[name="scope"]:checked')].map(
     (el) => /** @type {HTMLInputElement} */ (el).value,
   );
 }
@@ -595,8 +847,8 @@ function renderAskProgress(job) {
   const panel = $("ask-progress");
   const active = job?.status === "running";
   panel.hidden = !active && !state.askPolling;
-  $("memory-ask-cancel").hidden = !active;
-  $("memory-ask-submit").disabled = active;
+  $("seek-ask-cancel").hidden = !active;
+  $("seek-ask-submit").disabled = active;
 
   if (!job) return;
 
@@ -640,7 +892,7 @@ function renderAskAnswer(job) {
 
 async function pollAskJob(jobId) {
   state.askPolling = true;
-  const msg = $("memory-ask-msg");
+  const msg = $("seek-ask-msg");
   while (state.askPolling && state.askJobId === jobId) {
     const { ok, data } = await api(`/memory/ask/${encodeURIComponent(jobId)}`);
     if (!ok || data?.present === false) {
@@ -665,13 +917,13 @@ async function pollAskJob(jobId) {
     }
     await new Promise((r) => setTimeout(r, 2500));
   }
-  $("memory-ask-submit").disabled = false;
+  $("seek-ask-submit").disabled = false;
 }
 
 async function onMemorySearch(e) {
   e.preventDefault();
-  const msg = $("memory-search-msg");
-  const q = /** @type {HTMLInputElement} */ ($("memory-search-q")).value.trim();
+  const msg = $("seek-search-msg");
+  const q = /** @type {HTMLInputElement} */ ($("seek-search-q")).value.trim();
   if (!q) {
     setMsg(msg, t("memory.search_empty_q"), "error");
     return;
@@ -699,8 +951,8 @@ async function onMemorySearch(e) {
 
 async function onMemoryAsk(e) {
   e.preventDefault();
-  const msg = $("memory-ask-msg");
-  const q = /** @type {HTMLTextAreaElement} */ ($("memory-ask-q")).value.trim();
+  const msg = $("seek-ask-msg");
+  const q = /** @type {HTMLTextAreaElement} */ ($("seek-ask-q")).value.trim();
   if (!q) {
     setMsg(msg, t("memory.ask_empty"), "error");
     return;
@@ -726,7 +978,7 @@ async function onMemoryAsk(e) {
 
 async function onMemoryAskCancel() {
   if (!state.askJobId) return;
-  const msg = $("memory-ask-msg");
+  const msg = $("seek-ask-msg");
   await api(`/memory/ask/${encodeURIComponent(state.askJobId)}/cancel`, {
     method: "POST",
     body: "{}",
@@ -735,7 +987,7 @@ async function onMemoryAskCancel() {
   state.askJobId = null;
   setMsg(msg, t("memory.ask_cancelled"), "ok");
   $("ask-progress").hidden = true;
-  $("memory-ask-submit").disabled = false;
+  $("seek-ask-submit").disabled = false;
 }
 
 function escapeHtml(s) {
@@ -763,6 +1015,11 @@ function bind() {
       switchScene(btn.getAttribute("data-scene"));
     });
   });
+  document.querySelectorAll("[data-seek-mode]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      switchSeekMode(btn.getAttribute("data-seek-mode"));
+    });
+  });
   document.querySelectorAll("[data-memory-mode]").forEach((btn) => {
     btn.addEventListener("click", () => {
       switchMemoryMode(btn.getAttribute("data-memory-mode"));
@@ -778,9 +1035,10 @@ function bind() {
   $("dream-approve").addEventListener("click", onDreamApprove);
   $("dream-discard").addEventListener("click", onDreamDiscard);
   $("dream-cancel").addEventListener("click", onDreamCancel);
-  $("memory-search-form").addEventListener("submit", onMemorySearch);
-  $("memory-ask-form").addEventListener("submit", onMemoryAsk);
-  $("memory-ask-cancel").addEventListener("click", onMemoryAskCancel);
+  $("seek-search-form").addEventListener("submit", onMemorySearch);
+  $("seek-ask-form").addEventListener("submit", onMemoryAsk);
+  $("seek-ask-cancel").addEventListener("click", onMemoryAskCancel);
+  $("memory-nodes-filter").addEventListener("input", onNodesFilterInput);
 }
 
 async function init() {

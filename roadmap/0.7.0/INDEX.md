@@ -68,3 +68,5 @@ Ask：agent 直讀 `ENGRAM_HOME`；同時只一個 running ask（`409 ask_busy`�
 ---
 
 **狀態：** shipped — 見 `version.md` 0.7.0
+
+**下游：** [0.8.0 Seek + Memory Browse](../0.8.0/INDEX.md)（plan）
