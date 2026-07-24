@@ -26,8 +26,6 @@ const cmd = [
   config.cursorAgentBin,
   "-p",
   prompt,
-  "--mode",
-  "ask",
   "--yolo",
   "--add-dir",
   config.engramHome,

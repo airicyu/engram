@@ -10,8 +10,8 @@ import {
   unregisterAgentProcess,
 } from "../store/agent-process";
 import { askProcessKey } from "./memory-ask-process";
-import { askJobDir, askResultPath } from "../store/memory-ask-job";
-import { logMemory } from "../log";
+import { askJobDir } from "../store/memory-ask-job";
+import { logMemory, previewText } from "../log";
 
 const PROMPT_PATH = join(import.meta.dir, "../../prompts/memory-ask.md");
 const RUNNER = "cursor";
@@ -23,12 +23,11 @@ export class MemoryAskCursorRunner implements MemoryAskRunner {
     const prompt = buildAskPrompt(promptTemplate, input);
     const jobDir = askJobDir(input.job_id);
 
+    // Do NOT use --mode ask: Cursor documents it as read-only (no Write tool).
     const cmd = [
       config.cursorAgentBin,
       "-p",
       prompt,
-      "--mode",
-      "ask",
       "--yolo",
       "--add-dir",
       input.engram_home,
@@ -73,7 +72,18 @@ export class MemoryAskCursorRunner implements MemoryAskRunner {
         );
       }
 
-      return readAskResultFile(input.job_id);
+      try {
+        return await readAskResultFile(input.job_id);
+      } catch (e) {
+        if (e instanceof Error && e.message === "ask result file missing") {
+          logMemory("ask result file missing after agent exit", {
+            job_id: input.job_id,
+            stdout_preview: previewText(stdout),
+            stderr_preview: previewText(stderr),
+          });
+        }
+        throw e;
+      }
     } finally {
       unregisterAgentProcess(key);
     }
