@@ -1,13 +1,24 @@
 {
   "name": "engram-web",
-  "version": "0.2.0",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "build": "vite build",
     "start": "bun run server.ts",
-    "dev": "bash scripts/dev.sh"
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@types/bun": "1.3.14"
+    "@types/bun": "1.3.14",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "typescript": "~5.9.0",
+    "vite": "^8.1.5"
   }
 }

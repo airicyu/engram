@@ -22,4 +22,4 @@ free_port() {
 
 free_port
 cd "$ROOT"
-exec bun --watch run server.ts
+exec bunx vite --port "$PORT"

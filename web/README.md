@@ -1,6 +1,6 @@
-# Engram Web (0.8.0)
+# Engram Web (0.10.0)
 
-Minimal workbench UI for **Capture → Consolidate → Seek → Memory**. Talks only to the HTTP API (never touches `ENGRAM_HOME`).
+Vite + React + TypeScript workbench for **Capture → Consolidate → Seek → Memory**. Talks only to the HTTP API (never touches `ENGRAM_HOME`).
 
 ## Prerequisites
 
@@ -11,21 +11,35 @@ cd server
 bun run start
 ```
 
-## Start UI
+## Dev
 
 ```bash
 cd web
-bun run start
+bun install
+bun run dev
 ```
 
-Open **http://localhost:8788**
+Open **http://localhost:8788** — Vite proxies `/api/*` → `ENGRAM_URL`.
 
-Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；皆可選）。
+## Production
+
+```bash
+cd web
+bun run build
+bun run start    # serves dist/ + /api proxy
+```
+
+Env: copy [`.env.example`](.env.example) → `.env`（皆可選）。
 
 | Env | Default | Meaning |
 |-----|---------|---------|
 | `WEB_PORT` | `8788` | UI listen port |
 | `ENGRAM_URL` | `http://localhost:8787` | Upstream API (proxied at `/api/*`) |
+
+## Layout
+
+- **`AppShell`** (`.app`) — fixed width for all scenes; shared `Topbar`
+- Scene content swaps inside `main.stage` only (React state; no react-router in 0.10)
 
 ## Scenes
 
@@ -36,14 +50,22 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | **Seek** | **Search** — `GET /memory/search?q=&scope=` · **Ask** — `POST /memory/ask` |
 | **Memory** | **Day chain** — `GET /memory/chain` + detail · **Nodes** — `GET /memory/nodes` + detail (client filter) |
 
-Status light polls `/status`: **5s** while lock／dreaming，**20s** during `pending_review`，**60s** when idle. Capture is disabled only while the dream lock is held — **not** during `pending_review`.
-
-Memory scene uses a wider shell (`.app-wide`, up to ~80rem) and a split index／detail layout (`≥48rem`).
+Status light polls `/status`: ~3s while lock／dreaming／ask，~20s during `pending_review`，~60s when idle.
 
 ## UI language
 
-Shell strings only — **繁體中文** (`zh-Hant`, default) and **English** (`en`). Topbar switcher persists to `localStorage` (`engram.locale`).
+Shell strings — **繁體中文** (`zh-Hant`, default) and **English** (`en`). Topbar switcher persists to `localStorage` (`engram.locale`).
 
-- Locale catalogs: `i18n/zh-Hant.json`, `i18n/en.json`
+- Locale catalogs: `src/i18n/zh-Hant.json`, `src/i18n/en.json`
 - **Not** translated: L1／L2／chain／dream report body, API error `message` text
-- Status grid `dt` keys (`dream_status`, `lock`, …) stay as API identifiers; advice／labels are localized
+
+## Source map
+
+| Path | Role |
+|------|------|
+| `src/App.tsx` | AppShell + scene switch |
+| `src/components/Topbar.tsx` | Brand, scenes, locale, status |
+| `src/scenes/*` | Capture／Consolidate／Seek／Memory |
+| `src/context/StatusContext.tsx` | `/status` poll |
+| `src/lib/api.ts` | `/api` fetch helper |
+| `server.ts` | Prod static + proxy |

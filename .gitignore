@@ -5,6 +5,7 @@ data-demo/
 demo-story/
 server/node_modules/
 web/node_modules/
+web/dist/
 *.lock
 .DS_Store
 .env

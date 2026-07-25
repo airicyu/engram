@@ -32,7 +32,7 @@
 | 路徑 | 用途 |
 |------|------|
 | `server/` | Bun HTTP API（記憶核心）— 預設 `:8787` |
-| `web/` | Vanilla workbench UI + `/api` proxy — 預設 `:8788` |
+| `web/` | Vite + React workbench UI + `/api` proxy — 預設 `:8788` |
 | `api-docs/` | API 說明；契約細節見 `api-docs/api.md` |
 | `data/` | 預設 `ENGRAM_HOME`（執行期 store，勿當原始碼改） |
 | `roadmap/` | 版本計畫；大功能先寫 plan、同意後再實作 |
@@ -44,7 +44,7 @@
 
 - **Runtime：** Bun（TypeScript，ESM）
 - **Server：** `Bun.serve({ routes })`
-- **Web：** Vanilla HTML / CSS / JS，Bun 掛靜態 + proxy
+- **Web：** Vite + React + TypeScript；Bun 服務 `dist/` + proxy（prod）
 - **Dream extract：** `AgentRunner`（預設 Cursor CLI `agent`；可切 `claude` / mock）
 
 常用指令：
@@ -106,8 +106,8 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.9.0` — Time replay：虛擬時鐘（`/clock`）+ fixture day orchestrator（`bun run replay`）；extract／ask 注入 `today`／`now`
-- **上一版：** `0.8.0` — Seek／Memory 四場景；browse API（`/memory/chain`、`/memory/nodes`）；Search／Ask 契約不變
+- **已出貨：** `0.10.0` — Web Vite + React；共用 AppShell 固定寬度
+- **上一版：** `0.9.0` — Time replay：虛擬時鐘（`/clock`）+ fixture day orchestrator（`bun run replay`）
 - **Backlog：** mindzone、future-sight 注入 Memory — 見 `roadmap/backlog/`。
 
 ## 深入閱讀

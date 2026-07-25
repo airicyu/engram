@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.10.0 — Web Vite + React (2026-07-25)
+
+Workbench UI rewritten as Vite + React + TypeScript; shared AppShell width for all scenes.
+
+### Changed
+
+- **`web/`** — Vite + React + TS; scenes as components under `src/scenes/`
+- **AppShell** — fixed width `min(80rem, …)` for every scene (topbar + content)
+- **Dev** — `bun run dev` → Vite on `:8788` with `/api` proxy
+- **Prod** — `bun run build` → `dist/`; `bun run start` serves dist + API proxy
+
+### Removed
+
+- Vanilla `app.js` / root `index.html` multi-section page / Bun HTML import serve path
+
+### Unchanged
+
+- Engram server HTTP API contracts
+- Scene set: Capture → Consolidate → Seek → Memory
+- i18n zh-Hant／en catalogs
+
+---
+
 ## 0.9.0 — Time Replay (2026-07-24)
 
 Virtual memory clock + day-by-day fixture replay (capture → dream → approve).

@@ -121,17 +121,13 @@ Search／Ask **表單與邏輯不變**，僅搬 DOM 與 i18n 前綴。元素 ID 
 
 ### App 寬度
 
-```css
-/* 預設窄欄不變 */
-.app { width: min(42rem, calc(100% - 2rem)); }
+全場景共用同一 shell 寬度（topbar 與 stage 同寬）：
 
-/* Memory 場景時加在 .app（browse 需要較寬） */
-.app.app-wide {
-  width: min(80rem, calc(100% - 2.5rem));
-}
+```css
+.app { width: min(80rem, calc(100% - 2.5rem)); }
 ```
 
-`switchScene("memory")` → `document.querySelector(".app").classList.add("app-wide")`；其他 scene → `remove`。
+（不再依 scene 切換 `.app-wide`。）
 
 ---
 
