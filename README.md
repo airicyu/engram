@@ -58,7 +58,7 @@ bun run dev      # API  http://localhost:8787
 bun run dev:ui   # UI   http://localhost:8788
 ```
 
-瀏覽器打開 **http://localhost:8788**，從頂欄場景走一遍即可。
+瀏覽器打開 **http://localhost:8788** ，從頂欄場景走一遍即可。
 
 | 場景 | 你在做什麼 |
 |------|------------|
