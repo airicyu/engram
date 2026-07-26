@@ -90,14 +90,14 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 
 | Layer | Role |
 |-------|------|
-| **L0** | Append-only event log (`log/events.jsonl`) |
-| **L1** | Short-term mem pool (`short-term-memory/pool.jsonl`); cleared by event-id scope S on approve |
+| **L0** | Append-only event log (`memory/activities/events.jsonl`) |
+| **L1** | Short-term mem pool (`memory/short-term-memory/pool.jsonl`); cleared by event-id scope S on approve |
 | **L1.5 intent** | Patches + report (`dream/patches.jsonl`, `dream/reports/`) — L1→L2 中間態 |
 | **L1.5 draft** | Staged L2 projection (`dream/draft/{run_id}/`) — not live until approve |
-| **L2** | Long-term node understanding (`nodes/{id}/understand/what.md`) |
-| **chain** | World timeline (`memory-chain/days|weeks|months|years/`) — day dual-track; higher summary-only |
-| **future-sight** | Near-horizon anchors (`future-sight/active/`) — not memory-chain; not in `/memory/search` |
-| **candidates** | Low-confidence attribution etc. (`candidates/`) — not the primary create-node path |
+| **L2** | Long-term node understanding (`memory/nodes/{id}/understand/what.md`) |
+| **chain** | World timeline (`memory/memory-chain/days|weeks|months|years/`) — day dual-track; higher summary-only |
+| **future-sight** | Near-horizon anchors (`memory/future-sight/active/`) — not memory-chain; not in `/memory/search` |
+| **candidates** | Low-confidence attribution (`dream/candidates/`) — not the primary create-node path |
 
 **Lock rule:** capture is blocked only while extract/materialize/commit holds the dream lock. **`pending_review` allows capture** (new events ∉ frozen S).
 

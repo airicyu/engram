@@ -80,8 +80,8 @@ Update L2 **what** for an existing node **or** a node created via `propose_node`
 
 Day-level **occurrence** on the world timeline. One patch drives **both** tracks:
 
-- **ledger** (`content`) → append-only block on `memory-chain/days/{YYYY-MM}/{id}.md`
-- **summary** (`summary` + `summary_operation`) → fused day narrative on `memory-chain/days/{YYYY-MM}/{id}.summary.md`
+- **ledger** (`content`) → append-only block on `memory/memory-chain/days/{YYYY-MM}/{id}.md`
+- **summary** (`summary` + `summary_operation`) → fused day narrative on `memory/memory-chain/days/{YYYY-MM}/{id}.summary.md`
 - Week／month／year rollups are a **separate** post-extract pipeline — do **not** emit week／month／year chain patches here.
 
 | Field | Type | Required | Rules |

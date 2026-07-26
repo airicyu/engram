@@ -101,7 +101,7 @@ Snapshot of store health, dream state, and async job status.
 | `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
 | `l1_empty` | boolean | `true` when L1 mem pool has no entries |
 | `pending_dlq_count` | number | Legacy DLQ count |
-| `future_sight_active_count` | number | Count of `future-sight/active/*.md` (may include overdue until next sweep) |
+| `future_sight_active_count` | number | Count of `memory/future-sight/active/*.md` (may include overdue until next sweep) |
 | `dream_status` | enum | See [Dream status](#dream-status) |
 | `dream_pending` | object? | Active pending summary, or `null` |
 | `l1_clear_pending` | object? | Commit succeeded but scope clear failed — retry approve |
@@ -146,7 +146,7 @@ Memory-timeline clock used by capture `ts`, dream “today” gates (chain／fut
 
 ### `PUT /clock`
 
-Requires `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`. Persists to `ENGRAM_HOME/meta/clock.json`.
+Requires `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`. Persists to `ENGRAM_HOME/tmp/clock.json`.
 
 **Body** — one of:
 
@@ -366,7 +366,7 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 ```json
 {
   "dream_run_id": "dream-…",
-  "committed": ["nodes/acme/understand/what.md", "future-sight/active/fs-….md"],
+  "committed": ["memory/nodes/acme/understand/what.md", "memory/future-sight/active/fs-….md"],
   "cleared_scope": ["e0000000001", "e0000000002"],
   "l1_clear_pending": false,
   "empty_patches": false
@@ -589,11 +589,11 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 
 | Type | On approve |
 |------|------------|
-| `propose_node` | Create live node under `nodes/{id}/` (seed what／meta) |
-| `semantic` (`facet: what`) | Update `nodes/{id}/understand/what.md` |
-| `chain` (`level: day`) | Dual-track: append ledger `memory-chain/days/{YYYY-MM}/{id}.md` **and** init／revise summary `…/{id}.summary.md`. Occurrence day only; future day ids blocked at approve. Legacy without `summary` → ledger only. |
+| `propose_node` | Create live node under `memory/nodes/{id}/` (seed what／meta) |
+| `semantic` (`facet: what`) | Update `memory/nodes/{id}/understand/what.md` |
+| `chain` (`level: day`) | Dual-track: append ledger `memory/memory-chain/days/{YYYY-MM}/{id}.md` **and** init／revise summary `…/{id}.summary.md`. Occurrence day only; future day ids blocked at approve. Legacy without `summary` → ledger only. |
 | `chain` (`level: week`｜`month`｜`year`) | Summary-only rollup from post-extract planner／writer (not day extract). Paths: `weeks/…`、`months/…`、`years/…`. `summary` + `summary_operation` required; no ledger. |
-| `future` | Write／overwrite `future-sight/active/{id}.md` — near-horizon anchor; stale `anchor_end` blocked |
+| `future` | Write／overwrite `memory/future-sight/active/{id}.md` — near-horizon anchor; stale `anchor_end` blocked |
 | `episodic` (confidence &lt; 0.6) | Attribution candidate |
 | `episodic` (≥ 0.6) | No-op (chronology not in prototype) |
 

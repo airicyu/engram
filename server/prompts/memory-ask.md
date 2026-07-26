@@ -21,16 +21,16 @@ now: {{NOW}}
 
 | Area | Path |
 |------|------|
-| L1 pool | `short-term-memory/pool.jsonl`, `short-term-memory/summary.md` |
-| L2 nodes | `nodes/{id}/understand/what.md` — Current under `## Current` |
-| Day chain | `memory-chain/days/{YYYY-MM}/{YYYY-MM-DD}.summary.md` (prefer), `…/{YYYY-MM-DD}.md` ledger |
-| Week／month／year | `memory-chain/weeks/{YYYY-MM}/{YYYY-Www}.summary.md`, `months/{YYYY}/{YYYY-MM}.summary.md`, `years/{YYYY}.summary.md` |
+| L1 pool | `memory/short-term-memory/pool.jsonl`, `memory/short-term-memory/summary.md` |
+| L2 nodes | `memory/nodes/{id}/understand/what.md` — Current under `## Current` |
+| Day chain | `memory/memory-chain/days/{YYYY-MM}/{YYYY-MM-DD}.summary.md` (prefer), `…/{YYYY-MM-DD}.md` ledger |
+| Week／month／year | `memory/memory-chain/weeks/{YYYY-MM}/{YYYY-Www}.summary.md`, `months/{YYYY}/{YYYY-MM}.summary.md`, `years/{YYYY}.summary.md` |
 
-Do **not** read `future-sight/`. Do **not** scan all of `log/events.jsonl` unless necessary — prefer L1, L2, chain.
+Do **not** read `memory/future-sight/`. Do **not** scan all of `memory/activities/events.jsonl` unless necessary — prefer L1, L2, chain.
 
 ## Rules (STRICT)
 
-1. **Read only** from the memory store under `{{ENGRAM_HOME}}` (L1, L2, chain, log). Do **not** edit any of those paths.
+1. **Read only** from the memory store under `{{ENGRAM_HOME}}` (L1, L2, chain, activities). Do **not** edit any of those paths.
 2. **Write your answer** to this file and nowhere else: `{{RESULT_PATH}}`
 3. The file must contain **only** a JSON object (no markdown fences, no prose before/after):
 

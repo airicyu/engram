@@ -67,22 +67,22 @@ export function futureChainIds(patches: Patch[], today = calendarDate()): string
 }
 
 async function liveNodeExists(nodeId: string): Promise<boolean> {
-  return exists(livePath("nodes", nodeId));
+  return exists(livePath("memory", "nodes", nodeId));
 }
 
 async function draftNodeExists(dreamRunId: string, nodeId: string): Promise<boolean> {
-  return exists(draftPath(dreamRunId, "nodes", nodeId));
+  return exists(draftPath(dreamRunId, "memory", "nodes", nodeId));
 }
 
 async function readWhatFromRoots(
   dreamRunId: string,
   nodeId: string,
 ): Promise<{ content: string; source: "draft" | "live" | "empty" }> {
-  const d = draftPath(dreamRunId, "nodes", nodeId, "understand", "what.md");
+  const d = draftPath(dreamRunId, "memory", "nodes", nodeId, "understand", "what.md");
   if (await exists(d)) {
     return { content: await readFile(d, "utf8"), source: "draft" };
   }
-  const live = livePath("nodes", nodeId, "understand", "what.md");
+  const live = livePath("memory", "nodes", nodeId, "understand", "what.md");
   if (await exists(live)) {
     return { content: await readFile(live, "utf8"), source: "live" };
   }
@@ -184,11 +184,11 @@ async function seedNodeInDraft(
   seen: Map<string, ManifestOp>,
 ): Promise<void> {
   const liveExisted = await liveNodeExists(nodeId);
-  const base = draftPath(dreamRunId, "nodes", nodeId);
+  const base = draftPath(dreamRunId, "memory", "nodes", nodeId);
   await mkdir(join(base, "understand"), { recursive: true });
   await mkdir(join(base, "chronology"), { recursive: true });
 
-  const metaRel = `nodes/${nodeId}/node.meta.yaml`;
+  const metaRel = `memory/nodes/${nodeId}/node.meta.yaml`;
   const metaFile = draftPath(dreamRunId, ...metaRel.split("/"));
   if (!(await exists(metaFile))) {
     await writeFile(
@@ -201,10 +201,10 @@ async function seedNodeInDraft(
       }),
       "utf8",
     );
-    trackEntry(entries, seen, metaRel, liveExisted && (await exists(livePath("nodes", nodeId, "node.meta.yaml"))));
+    trackEntry(entries, seen, metaRel, liveExisted && (await exists(livePath("memory", "nodes", nodeId, "node.meta.yaml"))));
   }
 
-  const whatRel = `nodes/${nodeId}/understand/what.md`;
+  const whatRel = `memory/nodes/${nodeId}/understand/what.md`;
   const whatFile = draftPath(dreamRunId, ...whatRel.split("/"));
   if (!(await exists(whatFile))) {
     const body = meta.what?.trim() ?? "";
@@ -213,15 +213,15 @@ async function seedNodeInDraft(
       entries,
       seen,
       whatRel,
-      liveExisted && (await exists(livePath("nodes", nodeId, "understand", "what.md"))),
+      liveExisted && (await exists(livePath("memory", "nodes", nodeId, "understand", "what.md"))),
     );
   }
 
-  const indexRel = `nodes/${nodeId}/INDEX.md`;
+  const indexRel = `memory/nodes/${nodeId}/INDEX.md`;
   const indexFile = draftPath(dreamRunId, ...indexRel.split("/"));
   if (!(await exists(indexFile))) {
     await writeFile(indexFile, `# ${nodeId}\n\nSee understand/what.md\n`, "utf8");
-    trackEntry(entries, seen, indexRel, liveExisted && (await exists(livePath("nodes", nodeId, "INDEX.md"))));
+    trackEntry(entries, seen, indexRel, liveExisted && (await exists(livePath("memory", "nodes", nodeId, "INDEX.md"))));
   }
 }
 
@@ -267,11 +267,11 @@ async function applySemanticToDraft(
   }
 
   const out = `## Current\n\n${newCurrent}\n\n## History\n${historyBody.startsWith("\n") ? historyBody : "\n" + historyBody}`;
-  const rel = `nodes/${nodeId}/understand/what.md`;
+  const rel = `memory/nodes/${nodeId}/understand/what.md`;
   const dest = draftPath(dreamRunId, ...rel.split("/"));
   await ensureParent(dest);
   await writeFile(dest, out.endsWith("\n") ? out : out + "\n", "utf8");
-  trackEntry(entries, seen, rel, await exists(livePath("nodes", nodeId, "understand", "what.md")));
+  trackEntry(entries, seen, rel, await exists(livePath("memory", "nodes", nodeId, "understand", "what.md")));
 }
 
 /** Ledger: append-only patch block (idempotent on marker). Day level only. */
@@ -397,11 +397,11 @@ async function applyFutureToDraft(
     dream_run_id: dreamRunId,
     committed_at: nowIso(),
   };
-  const rel = `future-sight/active/${patch.id}.md`;
+  const rel = `memory/future-sight/active/${patch.id}.md`;
   const dest = draftPath(dreamRunId, ...rel.split("/"));
   await ensureParent(dest);
   await writeFile(dest, renderFutureSightMarkdown(anchor), "utf8");
-  trackEntry(entries, seen, rel, await exists(livePath("future-sight", "active", `${patch.id}.md`)));
+  trackEntry(entries, seen, rel, await exists(livePath("memory", "future-sight", "active", `${patch.id}.md`)));
 }
 
 async function applyAttributionToDraft(
@@ -410,9 +410,9 @@ async function applyAttributionToDraft(
   entries: ManifestEntry[],
   seen: Map<string, ManifestOp>,
 ): Promise<void> {
-  const rel = "candidates/attribution.yaml";
+  const rel = "dream/candidates/attribution.yaml";
   const draftFile = draftPath(dreamRunId, ...rel.split("/"));
-  const liveFile = livePath("candidates", "attribution.yaml");
+  const liveFile = livePath("dream", "candidates", "attribution.yaml");
 
   let list: unknown[] = [];
   if (await exists(draftFile)) {
@@ -754,7 +754,7 @@ export async function draftSummary(dreamRunId: string): Promise<{
   const chain_days = manifest.entries
     .map(
       (e) =>
-        e.path.match(/^memory-chain\/days\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2})\.md$/)?.[1],
+        e.path.match(/^memory\/memory-chain\/days\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2})\.md$/)?.[1],
     )
     .filter((x): x is string => !!x)
     .sort();
@@ -762,7 +762,7 @@ export async function draftSummary(dreamRunId: string): Promise<{
     .map(
       (e) =>
         e.path.match(
-          /^memory-chain\/days\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2})\.summary\.md$/,
+          /^memory\/memory-chain\/days\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2})\.summary\.md$/,
         )?.[1],
     )
     .filter((x): x is string => !!x)
@@ -770,23 +770,23 @@ export async function draftSummary(dreamRunId: string): Promise<{
   const chain_weeks = manifest.entries
     .map(
       (e) =>
-        e.path.match(/^memory-chain\/weeks\/\d{4}-\d{2}\/(\d{4}-W\d{2})\.summary\.md$/)?.[1],
+        e.path.match(/^memory\/memory-chain\/weeks\/\d{4}-\d{2}\/(\d{4}-W\d{2})\.summary\.md$/)?.[1],
     )
     .filter((x): x is string => !!x)
     .sort();
   const chain_months = manifest.entries
     .map(
       (e) =>
-        e.path.match(/^memory-chain\/months\/\d{4}\/(\d{4}-\d{2})\.summary\.md$/)?.[1],
+        e.path.match(/^memory\/memory-chain\/months\/\d{4}\/(\d{4}-\d{2})\.summary\.md$/)?.[1],
     )
     .filter((x): x is string => !!x)
     .sort();
   const chain_years = manifest.entries
-    .map((e) => e.path.match(/^memory-chain\/years\/(\d{4})\.summary\.md$/)?.[1])
+    .map((e) => e.path.match(/^memory\/memory-chain\/years\/(\d{4})\.summary\.md$/)?.[1])
     .filter((x): x is string => !!x)
     .sort();
   const future_ids = manifest.entries
-    .map((e) => e.path.match(/^future-sight\/active\/(.+)\.md$/)?.[1])
+    .map((e) => e.path.match(/^memory\/future-sight\/active\/(.+)\.md$/)?.[1])
     .filter((x): x is string => !!x)
     .sort();
   return {

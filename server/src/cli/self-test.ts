@@ -33,6 +33,7 @@ function startServer(agent: string): Promise<ChildProcess> {
       PORT: String(PORT),
       ENGRAM_AGENT: agent,
       ENGRAM_ALLOW_VIRTUAL_CLOCK: "1",
+      ENGRAM_MEMORY_LANGUAGE: "en",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -117,9 +118,9 @@ async function main() {
     });
     assert(i2.data.event_id === "e0000000002", "second ingest");
 
-    const events = await readFile(join(TEST_HOME, "log/events.jsonl"), "utf8");
+    const events = await readFile(join(TEST_HOME, "memory/activities/events.jsonl"), "utf8");
     assert(events.trim().split("\n").length === 2, "L0 two lines");
-    const pool = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
+    const pool = await readFile(join(TEST_HOME, "memory/short-term-memory/pool.jsonl"), "utf8");
     assert(pool.includes("e0000000001") && pool.includes("e0000000002"), "L1 pool indexed");
 
     for (const [id, what] of [
@@ -127,12 +128,12 @@ async function main() {
       ["alice", "A contact person."],
       ["aurora", "Theme placeholder."],
     ] as const) {
-      await mkdir(join(TEST_HOME, `nodes/${id}/understand`), { recursive: true });
+      await mkdir(join(TEST_HOME, `memory/nodes/${id}/understand`), { recursive: true });
       await Bun.write(
-        join(TEST_HOME, `nodes/${id}/understand/what.md`),
+        join(TEST_HOME, `memory/nodes/${id}/understand/what.md`),
         `## Current\n\n${what}\n\n## History\n`,
       );
-      await Bun.write(join(TEST_HOME, `nodes/${id}/node.meta.yaml`), `id: ${id}\nkind: org\n`);
+      await Bun.write(join(TEST_HOME, `memory/nodes/${id}/node.meta.yaml`), `id: ${id}\nkind: org\n`);
     }
 
     console.log("Phase 1: extract → pending_review (no L2 yet)");
@@ -160,7 +161,7 @@ async function main() {
     assert(typeof pending.data.report === "string" && pending.data.report.length > 0, "report");
 
     const whatBefore = await readFile(
-      join(TEST_HOME, "nodes/acme/understand/what.md"),
+      join(TEST_HOME, "memory/nodes/acme/understand/what.md"),
       "utf8",
     );
     assert(whatBefore.includes("Partner organization"), "L2 unchanged before approve");
@@ -218,7 +219,7 @@ async function main() {
     const secondRunId = pending2.data.dream_run_id as string;
     assert(secondRunId !== firstRunId, "retry1 new run id");
 
-    const poolMid = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
+    const poolMid = await readFile(join(TEST_HOME, "memory/short-term-memory/pool.jsonl"), "utf8");
     assert(poolMid.includes("e0000000001") && poolMid.includes("e0000000003"), "L1 uncleared on retry");
 
     const retry2 = await json("POST", "/dream/retry", {
@@ -249,21 +250,21 @@ async function main() {
     assert(ap.data.l1_clear_pending === false, "l1 cleared");
     assert(Array.isArray(ap.data.committed) && ap.data.committed.length > 0, "committed paths");
 
-    const poolAfter = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
+    const poolAfter = await readFile(join(TEST_HOME, "memory/short-term-memory/pool.jsonl"), "utf8");
     assert(poolAfter.includes("e0000000003"), "new ingest kept in pool");
     assert(!poolAfter.includes("e0000000001"), "S cleared e0000000001");
     assert(!poolAfter.includes("e0000000002"), "S cleared e0000000002");
 
     // Mock proposes newco from "NewCo" ingest; semantic lands on newco
     const whatNewco = await readFile(
-      join(TEST_HOME, "nodes/newco/understand/what.md"),
+      join(TEST_HOME, "memory/nodes/newco/understand/what.md"),
       "utf8",
     );
     assert(
       whatNewco.includes("Mock extract") || whatNewco.includes("Organization mentioned"),
       "L2 newco updated",
     );
-    const daysRoot = join(TEST_HOME, "memory-chain/days");
+    const daysRoot = join(TEST_HOME, "memory/memory-chain/days");
     const monthDirs = (await readdir(daysRoot, { withFileTypes: true }))
       .filter((e) => e.isDirectory() && /^\d{4}-\d{2}$/.test(e.name))
       .map((e) => e.name);
@@ -320,7 +321,7 @@ async function main() {
     const noQ = await json("GET", "/memory/search");
     assert(noQ.status === 400 && noQ.data.error === "missing_q", "search requires q");
     const whatAcmeStill = await readFile(
-      join(TEST_HOME, "nodes/acme/understand/what.md"),
+      join(TEST_HOME, "memory/nodes/acme/understand/what.md"),
       "utf8",
     );
     assert(whatAcmeStill === whatBefore, "unrelated L2 acme unchanged");
@@ -346,7 +347,7 @@ async function main() {
     const st = await json("GET", "/status");
     assert(st.data.dream_status === "dream_incomplete", "status dream_incomplete");
     assert(st.data.dream_job?.phase === "extract", "failed phase extract");
-    const l1Kept = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
+    const l1Kept = await readFile(join(TEST_HOME, "memory/short-term-memory/pool.jsonl"), "utf8");
     assert(l1Kept.includes("e0000000003"), "L1 retained after extract fail");
 
     const noPending = await json("GET", "/dream/pending");
@@ -365,7 +366,7 @@ async function main() {
     );
     const disc = await json("POST", "/dream/discard", {});
     assert(disc.status === 200 && disc.data.discarded === true, "discard ok");
-    const stillPool = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
+    const stillPool = await readFile(join(TEST_HOME, "memory/short-term-memory/pool.jsonl"), "utf8");
     assert(stillPool.includes("e0000000003"), "discard leaves L1");
 
     console.log("Phase 4b: memory l1 + ask");
@@ -449,7 +450,7 @@ async function main() {
     const apFs = await json("POST", "/dream/approve", {});
     assert(apFs.status === 200, `future approve 200: ${JSON.stringify(apFs.data)}`);
     assert(
-      (apFs.data.committed as string[]).some((p: string) => p.startsWith("future-sight/active/")),
+      (apFs.data.committed as string[]).some((p: string) => p.startsWith("memory/future-sight/active/")),
       `committed future-sight path: ${JSON.stringify(apFs.data.committed)}`,
     );
 
@@ -460,9 +461,9 @@ async function main() {
     assert(stFs.data.future_sight_active_count >= 1, "status count");
 
     // Plant an already-expired anchor; GET should sweep → L0+L1 event + hard delete
-    await mkdir(join(TEST_HOME, "future-sight/active"), { recursive: true });
+    await mkdir(join(TEST_HOME, "memory/future-sight/active"), { recursive: true });
     await Bun.write(
-      join(TEST_HOME, "future-sight/active/fs-expired-test.md"),
+      join(TEST_HOME, "memory/future-sight/active/fs-expired-test.md"),
       `---
 id: fs-expired-test
 anchor_start: "2020-01-01"
@@ -478,10 +479,10 @@ Old foresight that should expire.
       !(list2.data.anchors as { id: string }[]).some((a) => a.id === "fs-expired-test"),
       "expired not in active list",
     );
-    const eventsAfter = await readFile(join(TEST_HOME, "log/events.jsonl"), "utf8");
+    const eventsAfter = await readFile(join(TEST_HOME, "memory/activities/events.jsonl"), "utf8");
     assert(eventsAfter.includes("system/future_sight_expired"), "L0 expiry event");
     assert(eventsAfter.includes("fs-expired-test"), "L0 mentions id");
-    const poolSweep = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
+    const poolSweep = await readFile(join(TEST_HOME, "memory/short-term-memory/pool.jsonl"), "utf8");
     assert(poolSweep.includes("Future-sight expired"), "L1 has expiry note");
 
     console.log("\nPhase 6: virtual clock (time replay)");
@@ -504,7 +505,7 @@ Old foresight that should expire.
       source: "test",
     });
     assert(capV.status === 201, "capture under virtual clock");
-    const poolV = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
+    const poolV = await readFile(join(TEST_HOME, "memory/short-term-memory/pool.jsonl"), "utf8");
     assert(poolV.includes("2026-05-12"), "pool ts uses virtual day");
 
     const putDay = await json("PUT", "/clock", { day: "2026-05-12", time: "23:30:00" });
@@ -599,7 +600,7 @@ Old foresight that should expire.
 
     await json("DELETE", "/clock");
 
-    console.log("\n✅ All 0.13 self-checks passed");
+    console.log("\n✅ All 0.14 self-checks passed");
   } finally {
     await stopServer(server);
   }

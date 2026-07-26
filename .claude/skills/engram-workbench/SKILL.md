@@ -32,7 +32,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 
 | Do | Don't |
 |----|-------|
-| `curl` / `engram-api.sh` against `ENGRAM_URL` | Edit `data/**`, `nodes/**`, `candidates/**`, `dream/**` |
+| `curl` / `engram-api.sh` against `ENGRAM_URL` | Edit `data/**`, `memory/nodes/**`, `dream/**` |
 | `POST /capture` to capture | Append to `events.jsonl` by hand |
 | `POST /dream/run` → pending → `approve`／`discard`／`retry`／`cancel` | Hand-edit L1／L2／draft during review |
 | `GET /memory/l1` / `GET /memory/search` / `POST /memory/ask` | Assemble context by reading markdown files |

@@ -22,7 +22,7 @@ export interface Event {
 }
 
 function eventsPath(): string {
-  return homePath("log", "events.jsonl");
+  return homePath("memory", "activities", "events.jsonl");
 }
 
 function formatEventId(n: number): string {

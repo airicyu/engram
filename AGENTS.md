@@ -16,12 +16,12 @@
 
 | 層 | 角色 |
 |----|------|
-| **L0** | 唯附加事件 log（`log/events.jsonl`） |
-| **L1** | 短期記憶 pool（`short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
+| **L0** | 唯附加事件 log（`memory/activities/events.jsonl`） |
+| **L1** | 短期記憶 pool（`memory/short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
 | **L1.5** | dream intent（`dream/patches.jsonl` + report）+ draft 投影（`dream/draft/{run_id}/`）；Approve 才 commit 至 L2 |
-| **L2** | 長期 node 理解（`nodes/{id}/understand/what.md`） |
-| **chain** | 日／週／月／年記憶鏈（`memory-chain/days|weeks|months|years/`） |
-| **future-sight** | 近程前瞻錨點（`future-sight/active/`）；過期 → L0/L1 event 後硬清 |
+| **L2** | 長期 node 理解（`memory/nodes/{id}/understand/what.md`） |
+| **chain** | 日／週／月／年記憶鏈（`memory/memory-chain/days|weeks|months|years/`） |
+| **future-sight** | 近程前瞻錨點（`memory/future-sight/active/`）；過期 → L0/L1 event 後硬清 |
 
 產品循環對齊 UI：**Capture → Consolidate → Seek → Memory**（對應 capture / dream / seek+browse）。
 
@@ -114,9 +114,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.13.0` — Workspace config + `bun run setup` wizard — 見 `roadmap/0.13.0/`
-- **上一版：** `0.12.0` — Dream Retry with reason（pending 三選一；禁無理由取代）
-- **更早：** `0.11.0` — Week／Month／Year memory chain
+- **已出貨：** `0.14.0` — Store layout refactor — 見 `roadmap/0.14.0/`
+- **上一版：** `0.13.0` — Workspace config + `bun run setup` wizard — 見 `roadmap/0.13.0/`
+- **更早：** `0.12.0` — Dream Retry with reason；`0.11.0` — Week／Month／Year memory chain
 - **Backlog：** mindzone、future-sight 注入 Memory — 見 `roadmap/backlog/`。
 
 ## 深入閱讀

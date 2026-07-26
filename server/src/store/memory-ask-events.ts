@@ -17,11 +17,11 @@ export interface AskEvent {
 }
 
 function jobDir(jobId: string): string {
-  return homePath("memory", "ask", "jobs", jobId);
+  return homePath("tmp", "ask", "jobs", jobId);
 }
 
 function eventsPath(jobId: string): string {
-  return homePath("memory", "ask", "jobs", jobId, "events.jsonl");
+  return homePath("tmp", "ask", "jobs", jobId, "events.jsonl");
 }
 
 /** Append one event to the ask job log. */

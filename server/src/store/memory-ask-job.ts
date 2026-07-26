@@ -39,7 +39,7 @@ export interface AskJobState {
 const KEEP_JOBS = 5;
 
 function jobsRoot(): string {
-  return homePath("memory", "ask", "jobs");
+  return homePath("tmp", "ask", "jobs");
 }
 
 /** Job workspace directory for one ask run. */

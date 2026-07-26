@@ -9,7 +9,7 @@ let virtualMs: number | null = null;
 let loaded = false;
 
 function clockFilePath(): string {
-  return homePath("meta", "clock.json");
+  return homePath("tmp", "clock.json");
 }
 
 /** True when PUT /clock is permitted (`ENGRAM_ALLOW_VIRTUAL_CLOCK=1`). */

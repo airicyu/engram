@@ -29,11 +29,11 @@ async function exists(path: string): Promise<boolean> {
 
 /** Resolve the directory containing active future-sight anchors. */
 export function futureSightActiveDir(): string {
-  return homePath("future-sight", "active");
+  return homePath("memory", "future-sight", "active");
 }
 
 function anchorPath(id: string): string {
-  return homePath("future-sight", "active", `${id}.md`);
+  return homePath("memory", "future-sight", "active", `${id}.md`);
 }
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;

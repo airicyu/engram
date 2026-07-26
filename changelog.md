@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.14.0 — Store Layout Refactor (2026-07-27)
+
+Reorganize `ENGRAM_HOME` into live memory／dream pipeline／ephemeral tmp. HTTP API unchanged.
+
+### Changed
+
+- **Live memory** under `memory/` — L0 `memory/activities/events.jsonl`; L1 `memory/short-term-memory/`; chain `memory/memory-chain/`; L2 `memory/nodes/`; future-sight `memory/future-sight/active/`
+- **Ask jobs** → `tmp/ask/jobs/`; virtual clock → `tmp/clock.json`
+- **Attribution candidates** → `dream/candidates/attribution.yaml`
+- Removed unused scaffolding：`meta.yaml`、`meta/`、`archive/`、`dream/reviews/`、`dream/dead-letter-archive/`、`dream/applied.yaml`、`candidates/nodes.yaml`
+- **`bun run store:migrate-layout`** — one-shot rename migrate（discard pending first）
+
+### Non-goals
+
+- New memory features；HTTP path／field renames；long dual-read of old paths
+
+---
+
 ## 0.13.0 — Workspace Config + First-run Setup (2026-07-26)
 
 Per-`ENGRAM_HOME` preferences plus a first-run setup wizard.

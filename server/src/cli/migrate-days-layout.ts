@@ -1,5 +1,5 @@
 /**
- * Migrate flat memory-chain/days/{YYYY-MM-DD}*.md → days/{YYYY-MM}/…
+ * Migrate flat memory/memory-chain/days/{YYYY-MM-DD}*.md → memory/memory-chain/days/{YYYY-MM}/…
  *
  * Usage:
  *   ENGRAM_HOME=/path/to/store bun run chain:migrate-days
@@ -26,7 +26,7 @@ async function exists(path: string): Promise<boolean> {
 const FLAT_DAY_RE = /^(\d{4}-\d{2}-\d{2})(\.summary)?\.md$/;
 
 async function migrateDaysLayout(home: string): Promise<{ moved: number; skipped: number }> {
-  const daysDir = join(home, "memory-chain", "days");
+  const daysDir = join(home, "memory", "memory-chain", "days");
   if (!(await exists(daysDir))) {
     return { moved: 0, skipped: 0 };
   }

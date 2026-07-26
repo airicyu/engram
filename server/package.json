@@ -9,6 +9,7 @@
     "reset": "bun run src/cli/reset.ts",
     "replay": "bun run src/cli/replay.ts",
     "chain:migrate-days": "bun run src/cli/migrate-days-layout.ts",
+    "store:migrate-layout": "bun run src/cli/migrate-store-layout.ts",
     "chain:backfill": "bun run src/cli/backfill-chain.ts",
     "test:phases": "bun run src/cli/self-test.ts"
   },
