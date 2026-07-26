@@ -18,9 +18,10 @@
 |----|------|
 | **L0**（activities） | 唯附加事件 log（`memories/activities/events.jsonl`） |
 | **short-term memory** | 短期記憶 pool（`memories/short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
-| **dream staging** | dream intent（`dreams/patches.jsonl` + report）+ draft 投影（`dreams/draft/{run_id}/`）；Approve 才 commit 至 L2 |
-| **L2**（nodes） | 長期 node 理解（`memories/nodes/{id}/understand/what.md`） |
-| **chain** | 日／週／月／年記憶鏈（`memories/chain/days|weeks|months|years/`） |
+| **dream staging** | dream intent（`dreams/patches.jsonl` + report）+ draft 投影（`dreams/draft/{run_id}/`）；Approve 才 commit 至 **L2** |
+| **L2** | **長期已沉澱記憶**＝**nodes**（主題理解）＋**chain**（時間軸）；見下行兩欄 |
+| └ **nodes** | `memories/nodes/{id}/understand/what.md` |
+| └ **chain** | `memories/chain/days|weeks|months|years/` |
 | **future-sight** | 近程前瞻錨點（`memories/future-sight/active/`）；過期 → L0 + short-term event 後硬清 |
 
 產品循環對齊 UI：**Activities → Consolidate → Seek → Memory**（場景 id：`activities`／`consolidate`／`seek`／`memory`）。

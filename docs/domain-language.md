@@ -74,17 +74,18 @@
 | **L0**（activities） | 事件（發生了什麼） |
 | **short-term memory** | 短期記憶（尚未沉澱的輸入） |
 | **dream staging** | **short-term → L2 的中間態**（入夢提案 + 待審 draft） |
-| **L2**（nodes） | 長期理解（已 commit 的語意表面） |
+| **L2** | **長期已沉澱記憶**＝**nodes**（主題軸）＋**chain**（時間軸） |
 
-> 舊稱 **L1**／**L1.5**（至 0.14）；自 **0.15.0** 起現行文件改用 **short-term memory**／**dream staging**。HTTP wire 名（如 `scope=l1`、`l1_empty`）仍凍結，見 api-docs。
+> 舊稱把 **L2** 窄指 nodes、chain 另列平級；自本文件起 **L2 = nodes + chain**（兩種長期表面）。HTTP search `scope` 仍分 `nodes`／`chain`（wire 凍結）。程式裡歷史欄位如 extract context `l2_current`＝**L2 的 nodes 面**，不是「整個 L2」。  
+> 舊稱 **L1**／**L1.5**（至 0.14）→ **short-term memory**／**dream staging**。HTTP wire 名（如 `scope=l1`、`l1_empty`）仍凍結，見 api-docs。
 
 | EN | 中文 | 說明 | 典型路徑 | 可變性 |
 |----|------|------|----------|--------|
 | **L0** | 事件層 | 發生了什麼（原文、時間、來源） | `memories/activities/events.jsonl` | 唯附加 |
 | **short-term memory** | 短期記憶層 | 尚未整理進長期的工作區 pool | `memories/short-term-memory/pool.jsonl` | Activities 寫入；Approve 後清 scope S |
 | **dream staging** | 入夢中間層 | 由 short-term 入夢產出、待 Approve 才進 L2（patch + 報告 + draft） | `dreams/patches.jsonl`、`dreams/draft/` | patch log 唯附加 |
-| **L2** | 長期理解層 | 對 node 目前「相信什麼」 | `memories/nodes/{id}/understand/what.md` | Approve 寫入；可手改 |
-| **chain** | 記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary |
+| **L2 · nodes** | 長期節點理解 | 對某主題／人目前「相信什麼」 | `memories/nodes/{id}/understand/what.md` | Approve 寫入；可手改 |
+| **L2 · chain** | 長期記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary |
 | **future-sight** | 近程前瞻 | 短期要盯的錨點（deadline 等） | `memories/future-sight/active/` | 過期寫 event 後硬刪 |
 
 **一句話對照：**
@@ -94,8 +95,9 @@
 | 當時 raw 寫了什麼 | L0 | 事件層 |
 | 還沒入夢／還沒批准的輸入 | short-term memory | 短期記憶 |
 | AI 那次提案了什麼、draft 長怎樣 | dream staging | 入夢中間層 |
-| 現在對某主題的穩定理解 | L2 | 長期理解 |
-| 那天整體發生什麼（可讀摘要） | chain summary (day) | 日鏈融合摘要（0.5.0） |
+| 已沉澱的長期記憶（整體） | **L2** | 長期記憶（nodes＋chain） |
+| 現在對某主題的穩定理解 | L2 · nodes | 長期節點理解 |
+| 那天／那週整體發生什麼 | L2 · chain | 記憶鏈摘要 |
 | 那天寫入了哪些 patch block | chain ledger (day) | 日鏈增量紀錄（0.5.0） |
 | 這週／這前要盯什麼 | future-sight | 近程前瞻 |
 
@@ -106,15 +108,15 @@
 ```
 activities → dream/run → pending_review → approve | discard
               ↑                              ↓
-         extract + materialize        commit → L2 / chain / future-sight
-         (no L2 write)                 then clear short-term scope S
+         extract + materialize        commit → L2 (nodes + chain) / future-sight
+         (no live L2 write)            then clear short-term scope S
 ```
 
 | EN | 中文 | 說明 | 備註 |
 |----|------|------|------|
-| **extract** | 提取 | 讀 L0／short-term／L2，LLM 產出 patches + report | 技術動詞；UI 常稱入夢 |
-| **materialize** | 具現化／投影 | 把 patches 寫成 draft 檔（尚未 commit） | 舊版直接 apply 到 L2 已廢 |
-| **commit** / **commitDraft** | 提交／正式寫入 | approve 時把 draft 寫入 live store | 失敗則 L2 不變 |
+| **extract** | 提取 | 讀 L0／short-term／L2（nodes＋相關 chain），LLM 產出 patches + report | 技術動詞；UI 常稱入夢 |
+| **materialize** | 具現化／投影 | 把 patches 寫成 draft 檔（尚未 commit） | 舊版直接 apply 到 live L2 已廢 |
+| **commit** / **commitDraft** | 提交／正式寫入 | approve 時把 draft 寫入 live **L2**（nodes 與／或 chain）及 future-sight | 失敗則 live L2 不變 |
 | **pending** / **pending_review** | 待審 | 有一份待審入夢結果（系統內唯一） | `GET /dreams/pending` |
 | **scope S** | 範圍 S | 本次入夢凍結的 L0 event id 集合 | Approve 後只清 S；可跨日 |
 | **supersede** | 取代 | 再 `dream/run` 時丟舊 pending，對目前 short-term 重跑 | 非 merge 兩份報告 |
@@ -148,11 +150,11 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 
 ---
 
-## Node（長期記憶的錨點）
+## Node（L2 主題軸的錨點）
 
 | EN | 中文 | 說明 |
 |----|------|------|
-| **node** | 節點 | 記憶圖實體：人、組織、專案、主題等 |
+| **node** | 節點 | L2 主題軸實體：人、組織、專案、主題等 |
 | **node_refs** | 節點參照 | Activities 可選標註「跟哪些 node 有關」 |
 | **what.md** | 是什麼（facet） | 該 node 當前定義與邊界；MVP 主 facet |
 | **facet** | 理解面向 | what／who／why 等；多數尚未實作 |

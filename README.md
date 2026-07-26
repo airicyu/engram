@@ -9,7 +9,7 @@ Activities → Consolidate → Seek → Memory
    寫入         沉澱／入夢      尋找         翻閱
 ```
 
-**目前版本：** [0.14.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
+**目前版本：** [0.15.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
 
 > **讀文件時：** 這份 README 是給人看的專案說明。給 AI coding agent 的操作邊界與開發脈絡在 [CLAUDE.md](./CLAUDE.md)（Cursor／Claude Code 會自動讀取），請勿把兩者當成同一份文件。
 
@@ -32,7 +32,14 @@ Activities → Consolidate → Seek → Memory
 
 ## 快速開始
 
-需要 [Bun](https://bun.sh)。
+### 前置需求
+
+| 需要 | 說明 |
+|------|------|
+| [Bun](https://bun.sh) | 跑 API／UI／setup |
+| **本機已登入可用的 agent CLI** | Dream extract、rollup、Seek Ask 都會呼叫它。二選一： **[Cursor CLI](https://cursor.com/docs/cli/overview)**（`agent`，預設）或 **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**（`claude`） |
+
+setup 時可選用哪個 agent；也可用環境變數 `ENGRAM_AGENT=cursor`｜`claude`（見 [server/README.md](./server/README.md)）。僅跑 UI／讀既有記憶時可不叫 agent；**入夢與 Ask 沒有可用的 CLI 會失敗**。
 
 ### 1. 首次設定
 
@@ -90,7 +97,7 @@ cd server && bun run reset
 
 - HTTP 契約：[docs/api-docs/README.md](./docs/api-docs/README.md) · [docs/api-docs/api.md](./docs/api-docs/api.md)
 - 元件說明：[server/README.md](./server/README.md) · [web/README.md](./web/README.md)
-- 本版重點：[docs/roadmap/0.14.0/](./docs/roadmap/0.14.0/) · [changelog.md](./changelog.md)
+- 本版重點：[docs/roadmap/0.15.0/](./docs/roadmap/0.15.0/) · [changelog.md](./changelog.md)
 - 尚未排程：[docs/roadmap/backlog/](./docs/roadmap/backlog/)
 
 **原型現況：** 無帳號／多租戶；部分能力（例如 dead-letter 消化、node merge）尚無正式 API。日常請用 UI 或 HTTP API 操作記憶，不要手改記憶庫裡的檔案。
