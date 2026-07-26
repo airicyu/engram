@@ -74,6 +74,7 @@ export function CaptureScene() {
     }
     setMsg({ text: t("capture.ok", { id: data.event_id ?? "" }), kind: "ok" });
     setRaw("");
+    setRefs("");
     await Promise.all([refreshStatus(), refreshL1()]);
   }
 

@@ -542,6 +542,40 @@ body {
   margin-top: 1.25rem;
 }
 
+.retry-panel {
+  margin-top: 1.25rem;
+}
+
+.retry-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+.retry-reason {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.45;
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.retry-reason:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.retry-reason:disabled {
+  opacity: 0.6;
+}
+
 /* —— Recall —— */
 .memory-modes {
   display: flex;

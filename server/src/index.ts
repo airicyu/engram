@@ -10,6 +10,7 @@ import { handleClockGet, handleClockPut, handleClockDelete } from "./api/clock";
 import { loadClockFromDisk } from "./store/clock";
 import {
   handleDreamRun,
+  handleDreamRetry,
   handleDreamPending,
   handleDreamApprove,
   handleDreamDiscard,
@@ -53,6 +54,7 @@ try {
           endpoints: [
             "POST /capture",
             "POST /dream/run",
+            "POST /dream/retry",
             "POST /dream/cancel",
             "GET /dream/pending",
             "GET /dream/events",
@@ -126,6 +128,19 @@ try {
 
     "/dream/run": {
       POST: withRequestLog(() => handleDreamRun()),
+    },
+
+    "/dream/retry": {
+      POST: withRequestLog(async (req) => {
+        let body: { reason?: string; dream_run_id?: string } = {};
+        try {
+          const text = await req.text();
+          if (text.trim()) body = JSON.parse(text) as { reason?: string; dream_run_id?: string };
+        } catch {
+          return Response.json({ error: "invalid JSON body" }, { status: 400 });
+        }
+        return handleDreamRetry(body);
+      }),
     },
 
     "/dream/cancel": {

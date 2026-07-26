@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.12.0 — Dream Retry with Reason (2026-07-26)
+
+Pending review is three-way only: **Approve／Discard／Retry with reason**. No more unreasoned Dream (replace).
+
+### Added
+
+- **`POST /dream/retry`** — `{ reason }` required; optional `dream_run_id`
+- Snapshot previous draft／patches summary + frozen **scope S** → discard pending → new run on **same S** with `review_feedback` in extract context
+- Report／run yaml audit: `retried_from`, `retry_reason`
+- Consolidate UI: reason field + **Retry with reason**
+
+### Changed
+
+- `pending_review` → **`POST /dream/run` 409** `pending_review` (supersede removed)
+- Extract prompt documents `review_feedback` for retries
+
+### Removed
+
+- UI「入夢（取代）／Dream (replace)」
+
+### Non-goals
+
+- Hand-edit patches／draft; multi-turn chat revise UI; Cancel semantics unchanged
+
+---
+
 ## 0.11.0 — Week／Month／Year Memory Chain (2026-07-26)
 
 Higher-granularity memory chain on top of day: summary-only week／month／year with planner→writer cascade inside the same dream pending review.

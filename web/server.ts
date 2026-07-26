@@ -111,6 +111,9 @@ const server = Bun.serve({
     if (url.pathname === "/api/dream/discard" && req.method === "POST") {
       return proxyApi(req, "/dream/discard");
     }
+    if (url.pathname === "/api/dream/retry" && req.method === "POST") {
+      return proxyApi(req, "/dream/retry");
+    }
     if (url.pathname === "/api/memory/l1" && req.method === "GET") {
       return proxyApi(req, "/memory/l1");
     }

@@ -64,10 +64,11 @@ No authentication in the prototype. Timestamps use `ENGRAM_TZ` (default `Asia/Ho
 | `GET` | `/` | Service discovery |
 | `GET` | `/status` | Lock, L1, DLQ, dream status, pending summary |
 | `POST` | `/capture` | Append L0 event + update L1 pool |
-| `POST` | `/dream/run` | Extract → materialize draft → pending_review (async 202) |
+| `POST` | `/dream/run` | Extract → materialize draft → pending_review (async 202); **409** if pending already |
 | `GET` | `/dream/pending` | Active pending report + patches (`present: false` if none) |
 | `POST` | `/dream/approve` | `commitDraft` → L2, clear scope S |
 | `POST` | `/dream/discard` | Drop pending + draft; L1/L2 unchanged |
+| `POST` | `/dream/retry` | Discard pending → re-extract same scope with reason (async 202) |
 | `POST` | `/dream/cancel` | Cancel running dream (kill agent + revert draft) |
 | `GET` | `/future-sight` | Active near-horizon anchors (sweeps expired first) |
 | `GET` | `/memory/l1` | L1 preview for Capture |

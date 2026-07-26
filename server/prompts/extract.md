@@ -14,6 +14,16 @@ Compare L1 (scope `S` — may span **multiple calendar days**) and the correspon
 
 This run does **not** write L2 directly. Patches become a **draft** for human review; only approve commits them.
 
+## Human review feedback (retry)
+
+If the context JSON includes **`review_feedback`**, this extract is a **retry** after a human discarded a previous draft for the **same** `scope`. Treat that object as authoritative:
+
+- **`reason`**: why the previous attempt was wrong and how to change course.
+- **`previous_summary`** / **`previous_patches`**: compact view of what was proposed last time — **do not** reproduce it unchanged; correct course per `reason`.
+- **`retried_from`**: prior `dream_run_id` (audit only).
+
+When `review_feedback` is absent, ignore this section.
+
 ## Timeline rules (STRICT)
 
 1. **Memory-chain = world timeline.** `chain.id` = the calendar day the event **occurred** (already happened), {{TIMEZONE}} `YYYY-MM-DD` — not merely the ingest/encoding day.

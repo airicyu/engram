@@ -60,7 +60,11 @@ export class MockOkRunner implements AgentRunner {
         node,
         facet: "what",
         operation: "append",
-        content: `Mock extract note from L1: ${ctx.l1.summary.slice(0, 120)}`,
+        content: `Mock extract note from L1: ${ctx.l1.summary.slice(0, 120)}${
+          ctx.review_feedback
+            ? ` [retry from ${ctx.review_feedback.retried_from}: ${ctx.review_feedback.reason.slice(0, 80)}]`
+            : ""
+        }`,
       });
     }
 

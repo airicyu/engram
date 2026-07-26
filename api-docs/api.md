@@ -26,6 +26,7 @@ Service discovery.
     "GET /dream/events",
     "POST /dream/approve",
     "POST /dream/discard",
+    "POST /dream/retry",
     "GET /future-sight",
     "GET /memory/l1",
     "GET /memory/search",
@@ -107,7 +108,7 @@ Snapshot of store health, dream state, and async job status.
 | `status` | `"running"` \| `"completed"` \| `"failed"` |
 | `phase` | `"extract"` \| `"materialize"` \| `"pending_review"` |
 | `log_tail` | When `status` is `"running"`: last ≤20 structured events (same shape as `GET /dream/events`) |
-| `result` | On success: `scope`, `patch_count`, `superseded`, `phase` |
+| `result` | On success: `scope`, `patch_count`, `superseded` (always null since 0.12), `phase` |
 | `error` | On failure |
 
 ---
@@ -248,7 +249,7 @@ Append one event to L0 and the L1 mem pool (indexed by event id).
 Async **extract → materialize draft → unique pending**. Does **not** write L2.
 
 - Empty L1 pool → **409** `nothing_to_dream`
-- Existing pending → **supersede** (discard old intent+draft; new extract on current pool)
+- Existing pending → **409** `pending_review`（禁止無理由取代；改用 `POST /dream/retry` 或先 `discard`）
 - Scope **S** = all event ids in the pool at call time
 - Extract input = L0 events for S (may span days) + L1 view for S + existing L2
 - `job_id` / `dream_run_id` shape: `dream-YYYYMMDD-HHmmss-{rand6}` (ENGRAM_TZ local time)
@@ -259,7 +260,7 @@ Async **extract → materialize draft → unique pending**. Does **not** write L
 {
   "job_id": "dream-20260721-220000-a1b2c3",
   "status": "started",
-  "message": "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dream/pending then approve or discard."
+  "message": "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dream/pending then approve, discard, or retry."
 }
 ```
 
@@ -268,11 +269,45 @@ Async **extract → materialize draft → unique pending**. Does **not** write L
 | Status | error | When |
 |--------|-------|------|
 | `409` | `nothing_to_dream` | L1 pool empty |
+| `409` | `pending_review` | Active pending exists — use retry／discard／approve |
 | `409` | `dream_locked` | Another extract／commit in progress |
 
 On extract／materialize failure: `dream_job.status=failed` + `phase`; **no** pending; L1 unchanged.
 
-**Cancelled (0.3):** auto-apply after extract; resume-apply of unapplied patches.
+---
+
+## `POST /dream/retry`
+
+Async. Requires active **pending_review**. Body:
+
+```json
+{ "reason": "…", "dream_run_id": "…" }
+```
+
+- `reason` **required** (non-empty after trim) → else **400** `missing_reason`
+- Optional `dream_run_id` — mismatch → **409** `dream_run_mismatch`
+
+**Semantics**
+
+1. Snapshot current pending: frozen **scope S**, draft／patches summary
+2. **Discard** that pending (status `discarded`; draft removed; L1／L2 unchanged)
+3. Start new dream on **the same S** (not re-scan whole L1 pool)
+4. Extract context includes `review_feedback`: `{ reason, previous_summary, previous_patches }`
+5. New run metadata records `retried_from` + `retry_reason`; report notes the feedback
+6. Completes to a new `pending_review` (failure path same as `/dream/run`)
+
+Consecutive retries: each uses the **just-discarded** attempt’s summary; **S stays the original event ids**; only the **current** reason is passed (not a history stack).
+
+**Response `202`** — same shape as `POST /dream/run`.
+
+**Errors**
+
+| Status | error | When |
+|--------|-------|------|
+| `400` | `missing_reason` | Missing／blank `reason` |
+| `409` | `no_pending` | No pending dream |
+| `409` | `dream_run_mismatch` | Body id ≠ active pending |
+| `409` | `dream_locked` | Extract／commit in progress |
 
 ---
 
@@ -536,7 +571,7 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 | Value | Meaning |
 |-------|---------|
 | `never_dreamed` | No successful extract recorded |
-| `pending_review` | Unique pending run awaiting approve／discard／supersede |
+| `pending_review` | Unique pending run awaiting approve／discard／retry |
 | `l1_clear_pending` | Commit done; scope clear failed — retry approve |
 | `dream_incomplete` | Last extract／materialize failed; L1 retained |
 | `dead_letter_pending` | Legacy DLQ non-empty |
@@ -571,7 +606,7 @@ GET  /status  until dream_status=pending_review (or dream_job failed)
      ↓
 GET  /dream/pending  (read report)
      ↓
-POST /dream/approve   OR   POST /dream/discard   OR   POST /dream/run (supersede)
+POST /dream/approve   OR   POST /dream/discard   OR   POST /dream/retry
      OR   POST /dream/cancel (while running)
      ↓
 GET  /memory/search?q=…

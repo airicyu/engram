@@ -70,8 +70,8 @@ bun run dev:ui                    # web
 |----|------|
 | `curl` / `engram-workbench` skill 打 API | 手改 `events.jsonl`、L1 notes、L2 `what.md` |
 | `POST /capture` 寫入 | 把 fixture seed 當試用資料 |
-| `POST /dream/run` extract → pending | 未經同意就 `reset` 或清 DLQ |
-| `POST /dream/approve`／`discard` | 手改 L1／L2／draft「幫忙改對」 |
+| `POST /dream/run` extract → pending（pending 時 409） | 未經同意就 `reset` 或清 DLQ |
+| `POST /dream/approve`／`discard`／`retry` | 手改 L1／L2／draft「幫忙改對」 |
 | `GET /memory/search` / `GET /memory/l1` / `POST /memory/ask` / `GET /memory/chain` / `GET /memory/nodes` / `GET /status` / `GET /dream/pending` / `GET /future-sight` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 
 API 欄位提醒：
@@ -79,7 +79,9 @@ API 欄位提醒：
 - capture body 用 **`raw`**（不是 `content` / `text`）；**不要**傳 `ts` — 要模擬過去時間先 `PUT /clock`
 - memory search query 用 **`q`**（必填）；可選 **`scope`** = `l1,nodes,chain`（逗號分隔，預設全搜）
 - memory ask body 用 **`q`**
+- dream **retry** body 用 **`reason`**（必填）；對同一凍結 scope 重跑，注入上一輪摘要
 - dream **lock**（extract／commit）時 capture → `409 dream_locked`；**`pending_review` 可 capture**
+- **`pending_review` 時不可**再 `POST /dream/run`（改 approve／discard／retry）
 - **虛擬時鐘：** `PUT /clock` 需 `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`；`DELETE /clock` 恆可；見 `/status.clock`
 - **無資料不用 404**：讀取型「目前沒有內容」回 **200**，在 body 用 `null`／`[]`／`present: false` 等表達；404 留給路徑／方法真正不存在
 
@@ -106,8 +108,8 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.10.0` — Web Vite + React；共用 AppShell 固定寬度
-- **上一版：** `0.9.0` — Time replay：虛擬時鐘（`/clock`）+ fixture day orchestrator（`bun run replay`）
+- **已出貨：** `0.12.0` — Dream Retry with reason（pending 三選一；禁無理由取代）
+- **上一版：** `0.11.0` — Week／Month／Year memory chain
 - **Backlog：** mindzone、future-sight 注入 Memory — 見 `roadmap/backlog/`。
 
 ## 深入閱讀

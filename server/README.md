@@ -44,7 +44,8 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | Method | Path | |
 |--------|------|--|
 | `POST` | `/capture` | `{ "raw", "source?", "node_refs?" }` → `{ event_id }` |
-| `POST` | `/dream/run` | extract → draft → pending_review |
+| `POST` | `/dream/run` | extract → draft → pending_review（pending 時 409） |
+| `POST` | `/dream/retry` | discard pending → same scope + reason → new pending |
 | `POST` | `/dream/cancel` | cancel running dream |
 | `GET` | `/memory/l1` | L1 preview (Capture) |
 | `GET` | `/memory/search?q=&scope=` | keyword hits (`q` required) |

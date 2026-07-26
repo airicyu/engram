@@ -6,7 +6,7 @@
 2. `POST /capture` with `{ "raw": "…" }` (repeat as needed)
 3. `POST /dream/run` → 202; poll `/status` until `dream_status=pending_review` (or `dream_job.status=failed`)
 4. `GET /dream/pending` — read report; check timeline / new nodes
-5. If wrong → `POST /dream/run` again (**supersede**), `POST /dream/discard`, or `POST /dream/cancel` if still running
+5. If wrong direction → `POST /dream/retry` with `{ reason }` (same frozen scope), or `POST /dream/discard`, or `POST /dream/cancel` if still running. Do **not** call `/dream/run` while pending.
 6. If OK → `POST /dream/approve`
 7. `GET /memory/search?q=…&scope=nodes,chain` — verify L2／chain hits
 8. `GET /future-sight` — list active near-horizon anchors (optional)
@@ -17,7 +17,7 @@ New events enter the pool but are **outside** frozen S. Approve clears only S; n
 
 ## Review 禁止事項
 
-Do **not** hand-edit L1／L2／draft／future-sight to “fix” a pending dream. Only supersede／approve／discard.
+Do **not** hand-edit L1／L2／draft／future-sight to “fix” a pending dream. Only retry／approve／discard.
 
 ## Empty patches
 
@@ -25,7 +25,7 @@ Pending with no patches is valid. Approve clears S with **no** L2 write (confirm
 
 ## Future chain.id
 
-Approve returns `409 future_chain_id`. Pending stays. Fix via supersede (emit `future` instead), or wait／discard.
+Approve returns `409 future_chain_id`. Pending stays. Fix via retry with reason (emit `future` instead), or wait／discard.
 
 ## Stale future anchor
 
@@ -41,7 +41,7 @@ Approve returns `409 stale_future_anchor` when a `future` patch has `anchor_end`
 
 ## l1_clear_pending
 
-Commit succeeded but clearing S failed. Call approve again — only retries clear. Do not supersede as if still pending.
+Commit succeeded but clearing S failed. Call approve again — only retries clear. Do not call `/dream/run` as if still pending.
 
 ## Memory ask
 

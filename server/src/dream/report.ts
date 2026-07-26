@@ -12,8 +12,14 @@ export function buildDreamReport(opts: {
   scope: string[];
   events: PoolEntry[];
   patches: Patch[];
+  review_feedback?: {
+    reason: string;
+    previous_summary: string;
+    previous_patches: string[];
+    retried_from: string;
+  };
 }): string {
-  const { dream_run_id, scope, events, patches } = opts;
+  const { dream_run_id, scope, events, patches, review_feedback } = opts;
   const today = calendarDate();
   const lines: string[] = [];
 
@@ -21,6 +27,28 @@ export function buildDreamReport(opts: {
   lines.push("");
   lines.push(`Generated: ${today} (${config.timezone})`);
   lines.push("");
+
+  if (review_feedback) {
+    lines.push("## Retry feedback");
+    lines.push("");
+    lines.push(`- **retried_from:** \`${review_feedback.retried_from}\``);
+    lines.push(`- **reason:** ${review_feedback.reason.trim()}`);
+    lines.push("");
+    if (review_feedback.previous_summary.trim()) {
+      lines.push("### Previous draft summary");
+      lines.push("");
+      lines.push(review_feedback.previous_summary.trim());
+      lines.push("");
+    }
+    if (review_feedback.previous_patches.length > 0) {
+      lines.push("### Previous patches (compact)");
+      lines.push("");
+      for (const line of review_feedback.previous_patches) {
+        lines.push(`- ${line}`);
+      }
+      lines.push("");
+    }
+  }
 
   lines.push("## Scope (L1 event ids to clear on approve)");
   lines.push("");

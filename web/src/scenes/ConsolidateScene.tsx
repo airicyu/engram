@@ -15,19 +15,26 @@ export function ConsolidateScene() {
   const { status, pending, dreaming, setDreaming, refreshStatus } = useStatus();
   const [msg, setMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [resultBody, setResultBody] = useState<string | null>(null);
+  const [retryReason, setRetryReason] = useState("");
 
   const dash = t("consolidate.dash");
   const pendingReview = status?.dream_status === "pending_review";
   const clearRetry = status?.dream_status === "l1_clear_pending";
   const dreamDisabled =
-    !status || status.lock || dreaming || (status.l1_empty && !pendingReview && !clearRetry);
+    !status ||
+    status.lock ||
+    dreaming ||
+    pendingReview ||
+    clearRetry ||
+    status.l1_empty;
   const canReview = !!(pendingReview || clearRetry) && !status?.lock && !dreaming;
+  const canRetry =
+    pendingReview && !status?.lock && !dreaming && retryReason.trim().length > 0;
   const job = status?.dream_job ?? null;
   const progressActive = !!(status?.lock || dreaming || job?.status === "running");
 
   function dreamBtnLabel() {
     if (status?.lock || dreaming) return t("consolidate.dreaming");
-    if (pendingReview) return t("consolidate.dream_replace");
     return t("consolidate.dream");
   }
 
@@ -43,7 +50,11 @@ export function ConsolidateScene() {
       setMsg({ text: t("dream.already"), kind: "error" });
       return;
     }
-    if (status?.l1_empty && status?.dream_status !== "pending_review") {
+    if (pendingReview) {
+      setMsg({ text: t("dream.pending_blocks_run"), kind: "error" });
+      return;
+    }
+    if (status?.l1_empty) {
       setMsg({ text: t("dream.l1_empty"), kind: "error" });
       return;
     }
@@ -105,6 +116,7 @@ export function ConsolidateScene() {
         : t("dream.approve_ok", { count: data.committed?.length ?? 0 });
     setMsg({ text: note, kind: data.l1_clear_pending ? "error" : "ok" });
     setResultBody(JSON.stringify(data, null, 2));
+    setRetryReason("");
     await refreshStatus();
   }
 
@@ -123,6 +135,53 @@ export function ConsolidateScene() {
       return;
     }
     setMsg({ text: t("dream.discard_ok"), kind: "ok" });
+    setRetryReason("");
+    await refreshStatus();
+  }
+
+  async function onRetry() {
+    const reason = retryReason.trim();
+    if (!reason) {
+      setMsg({ text: t("dream.retry_need_reason"), kind: "error" });
+      return;
+    }
+    if (status?.lock || dreaming) {
+      setMsg({ text: t("dream.already"), kind: "error" });
+      return;
+    }
+    setDreaming(true);
+    setMsg({ text: t("dream.retrying"), kind: "" });
+    const { ok, status: http, data } = await api<{
+      job_id?: string;
+      message?: string;
+      error?: string;
+    }>("/dream/retry", {
+      method: "POST",
+      body: JSON.stringify({
+        reason,
+        ...(pending?.dream_run_id ? { dream_run_id: pending.dream_run_id } : {}),
+      }),
+    });
+
+    if (http === 400 || http === 409) {
+      setDreaming(false);
+      setMsg({ text: data?.message || data?.error || t("dream.retry_fail"), kind: "error" });
+      await refreshStatus();
+      return;
+    }
+    if (!ok) {
+      setDreaming(false);
+      setResultBody(JSON.stringify(data, null, 2));
+      setMsg({
+        text: data?.message || data?.error || t("dream.fail", { status: http }),
+        kind: "error",
+      });
+      await refreshStatus();
+      return;
+    }
+    setRetryReason("");
+    setMsg({ text: t("dream.retry_submitted"), kind: "ok" });
+    setResultBody(`job_id: ${data.job_id}\n${data.message || ""}`);
     await refreshStatus();
   }
 
@@ -229,22 +288,56 @@ export function ConsolidateScene() {
               {t("consolidate.discard")}
             </button>
           </div>
+          {pendingReview ? (
+            <div className="retry-panel">
+              <label className="retry-label" htmlFor="dream-retry-reason">
+                {t("consolidate.retry_reason_label")}
+              </label>
+              <textarea
+                id="dream-retry-reason"
+                className="retry-reason"
+                rows={3}
+                value={retryReason}
+                disabled={!!status?.lock || dreaming}
+                placeholder={t("consolidate.retry_reason_placeholder")}
+                onChange={(e) => setRetryReason(e.target.value)}
+              />
+              <div className="consolidate-actions">
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={!canRetry}
+                  onClick={() => void onRetry()}
+                >
+                  {t("consolidate.retry")}
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      <div className="consolidate-actions">
-        <button
-          type="button"
-          className="btn primary"
-          disabled={dreamDisabled}
-          onClick={() => void onDreamRun()}
-        >
-          {dreamBtnLabel()}
-        </button>
-        <button type="button" className="btn ghost" onClick={() => void refreshStatus()}>
-          {t("consolidate.refresh")}
-        </button>
-      </div>
+      {!pendingReview && !clearRetry ? (
+        <div className="consolidate-actions">
+          <button
+            type="button"
+            className="btn primary"
+            disabled={dreamDisabled}
+            onClick={() => void onDreamRun()}
+          >
+            {dreamBtnLabel()}
+          </button>
+          <button type="button" className="btn ghost" onClick={() => void refreshStatus()}>
+            {t("consolidate.refresh")}
+          </button>
+        </div>
+      ) : (
+        <div className="consolidate-actions">
+          <button type="button" className="btn ghost" onClick={() => void refreshStatus()}>
+            {t("consolidate.refresh")}
+          </button>
+        </div>
+      )}
       <Msg text={msg.text} kind={msg.kind} />
 
       {progressActive ? (

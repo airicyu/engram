@@ -17,6 +17,10 @@ export interface DreamRunState {
   created_at: string;
   committed_at?: string;
   superseded_by?: string;
+  /** Prior pending run id when this run was started via POST /dream/retry. */
+  retried_from?: string;
+  /** Human reason supplied with retry (audit only; also in extract context). */
+  retry_reason?: string;
   /** Commit succeeded but clearing L1 scope failed — retry clear on next approve. */
   l1_clear_pending?: boolean;
   patch_count: number;
@@ -92,17 +96,6 @@ export async function getL1ClearPendingRun(): Promise<DreamRunState | null> {
   return found[found.length - 1] ?? null;
 }
 
-/** Supersede the active pending run before starting a newer one. */
-export async function supersedePending(newRunId: string): Promise<DreamRunState | null> {
-  const pending = await getPendingRun();
-  if (!pending) return null;
-  pending.status = "superseded";
-  pending.superseded_by = newRunId;
-  await writeDreamRun(pending);
-  await removeDraft(pending.id);
-  return pending;
-}
-
 /** Mark the pending run discarded and remove its draft. */
 export async function discardPending(dreamRunId?: string): Promise<DreamRunState | null> {
   const pending = await getPendingRun();
@@ -164,6 +157,8 @@ export function newPendingRun(opts: {
   id: string;
   scope: string[];
   patch_count: number;
+  retried_from?: string;
+  retry_reason?: string;
 }): DreamRunState {
   return {
     id: opts.id,
@@ -172,5 +167,7 @@ export function newPendingRun(opts: {
     created_at: nowIso(),
     patch_count: opts.patch_count,
     report_path: `dream/reports/${opts.id}.md`,
+    ...(opts.retried_from ? { retried_from: opts.retried_from } : {}),
+    ...(opts.retry_reason ? { retry_reason: opts.retry_reason } : {}),
   };
 }

@@ -170,6 +170,77 @@ async function main() {
     assert(i3.status === 201, "ingest during pending_review");
     assert(i3.data.event_id === "e0000000003", "third event");
 
+    console.log("Phase 1c: pending blocks /dream/run; retry with reason");
+    const blockedRun = await json("POST", "/dream/run");
+    assert(
+      blockedRun.status === 409 && blockedRun.data.error === "pending_review",
+      "run while pending → 409 pending_review",
+    );
+
+    const missingReason = await json("POST", "/dream/retry", {});
+    assert(
+      missingReason.status === 400 && missingReason.data.error === "missing_reason",
+      "retry without reason → 400",
+    );
+
+    const firstScope = pending.data.scope as string[];
+    assert(Array.isArray(firstScope) && firstScope.length === 2, "baseline scope length 2");
+    const firstRunId = pending.data.dream_run_id as string;
+
+    const retry1 = await json("POST", "/dream/retry", {
+      reason: "Too vague — name the Acme rate-limit discussion explicitly",
+      dream_run_id: firstRunId,
+    });
+    assert(retry1.status === 202, `retry 202 got ${retry1.status} ${JSON.stringify(retry1.data)}`);
+
+    const afterRetry1 = await waitForJob(
+      (job, st) =>
+        job?.status === "completed" &&
+        st.dream_status === "pending_review" &&
+        (job.dream_run_id as string) !== firstRunId,
+    );
+    assert(afterRetry1.dream_status === "pending_review", "pending after retry1");
+
+    const pending2 = await json("GET", "/dream/pending");
+    assert(pending2.status === 200 && pending2.data.present === true, "pending2 present");
+    assert(
+      JSON.stringify(pending2.data.scope) === JSON.stringify(firstScope),
+      "retry1 keeps frozen scope",
+    );
+    assert(
+      typeof pending2.data.report === "string" &&
+        pending2.data.report.includes("Too vague") &&
+        pending2.data.report.includes(firstRunId),
+      "retry1 report has reason + retried_from",
+    );
+    const secondRunId = pending2.data.dream_run_id as string;
+    assert(secondRunId !== firstRunId, "retry1 new run id");
+
+    const poolMid = await readFile(join(TEST_HOME, "short-term-memory/pool.jsonl"), "utf8");
+    assert(poolMid.includes("e0000000001") && poolMid.includes("e0000000003"), "L1 uncleared on retry");
+
+    const retry2 = await json("POST", "/dream/retry", {
+      reason: "Also drop the NewCo propose_node — keep as mention only",
+    });
+    assert(retry2.status === 202, "retry2 202");
+    await waitForJob(
+      (job, st) =>
+        job?.status === "completed" &&
+        st.dream_status === "pending_review" &&
+        (job.dream_run_id as string) !== secondRunId,
+    );
+    const pending3 = await json("GET", "/dream/pending");
+    assert(
+      JSON.stringify(pending3.data.scope) === JSON.stringify(firstScope),
+      "retry2 still same original scope",
+    );
+    assert(
+      typeof pending3.data.report === "string" &&
+        pending3.data.report.includes("Also drop the NewCo") &&
+        pending3.data.report.includes(secondRunId),
+      "retry2 uses immediate previous summary/run id",
+    );
+
     console.log("Phase 2: approve → commit L2 + clear S only");
     const ap = await json("POST", "/dream/approve", {});
     assert(ap.status === 200, `approve 200 got ${ap.status} ${JSON.stringify(ap.data)}`);
@@ -526,7 +597,7 @@ Old foresight that should expire.
 
     await json("DELETE", "/clock");
 
-    console.log("\n✅ All 0.11 self-checks passed");
+    console.log("\n✅ All 0.12 self-checks passed");
   } finally {
     await stopServer(server);
   }
