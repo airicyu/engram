@@ -10,6 +10,7 @@ Reorganize the memory store layout and hard-cut HTTP base paths to match（未�
 - HTTP：**`POST /activities`**；**`/dreams/*`**；**`/memories/*`**（含 **`GET /memories/future-sight`**、**`GET /memories/short-term-memory`**）
 - Disk chain：**`memories/chain/`**（不再 `memories/memory-chain/`）
 - Env／status：**`ENGRAM_STORE_DIR`**（取代 `ENGRAM_HOME`）；**`GET /status.store_dir`**（取代 `engram_home`）
+- HTTP listen：**API／UI／Vite 固定綁 `127.0.0.1`**（本機 `localhost` 可存取；不對 LAN 開放）
 - Removed unused scaffolding：`meta.yaml`、`meta/`、`archive/`、empty dream reviews／dlq-archive、`applied.yaml`、`candidates/nodes.yaml`
 
 ### Non-goals

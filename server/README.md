@@ -33,7 +33,7 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | `ENGRAM_STORE_DIR` | `../data` | memory store root |
 | `ENGRAM_TZ` | `Asia/Hong_Kong` | IANA timezone (overridden by `{ENGRAM_STORE_DIR}/engram.workspace.yaml` `timezone`) |
 | `ENGRAM_MEMORY_LANGUAGE` | `en` | `zh-Hant` \| `zh-Hans` \| `en` when workspace omits `memory_language` |
-| `PORT` | `8787` | HTTP port |
+| `PORT` | `8787` | HTTP port（**固定綁 `127.0.0.1`**，僅本機；`http://localhost:8787` 可用） |
 | `CLAUDE_BIN` | `claude` | Claude Code binary (when `ENGRAM_AGENT=claude`) |
 | `CURSOR_AGENT_BIN` | `agent` | Cursor CLI binary (when `ENGRAM_AGENT=cursor`) |
 | `ENGRAM_AGENT` | `cursor` | `cursor` \| `claude` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |

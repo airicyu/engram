@@ -33,8 +33,8 @@
 
 | 路徑 | 用途 |
 |------|------|
-| `server/` | Bun HTTP API（記憶核心）— 預設 `:8787` |
-| `web/` | Vite + React workbench UI + `/api` proxy — 預設 `:8788` |
+| `server/` | Bun HTTP API（記憶核心）— 預設 `127.0.0.1:8787` |
+| `web/` | Vite + React workbench UI + `/api` proxy — 預設 `127.0.0.1:8788` |
 | `setup-wizard/` | 首次 `bun run setup`（static HTML + mini Bun server） |
 | `docs/api-docs/` | API 說明；契約細節見 `docs/api-docs/api.md` |
 | `data/` | 預設記憶庫路徑（由環境變數 `ENGRAM_STORE_DIR` 指定；勿當原始碼改） |

@@ -46,6 +46,7 @@ let server: ReturnType<typeof Bun.serve>;
 try {
   server = Bun.serve({
   port: config.port,
+  hostname: "127.0.0.1",
   routes: {
     "/": {
       GET: withRequestLog(() =>

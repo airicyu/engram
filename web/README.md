@@ -33,7 +33,7 @@ Env: copy [`.env.example`](.env.example) → `.env`（皆可選）。
 
 | Env | Default | Meaning |
 |-----|---------|---------|
-| `WEB_PORT` | `8788` | UI listen port |
+| `WEB_PORT` | `8788` | UI listen port（**固定綁 `127.0.0.1`**；`http://localhost:8788` 可用） |
 | `ENGRAM_URL` | `http://localhost:8787` | Upstream API (proxied at `/api/*`) |
 
 ## Layout
