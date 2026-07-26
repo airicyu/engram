@@ -16,12 +16,12 @@
 
 | 層 | 角色 |
 |----|------|
-| **L0** | 唯附加事件 log（`memories/activities/events.jsonl`） |
-| **L1** | 短期記憶 pool（`memories/short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
-| **L1.5** | dream intent（`dreams/patches.jsonl` + report）+ draft 投影（`dreams/draft/{run_id}/`）；Approve 才 commit 至 L2 |
-| **L2** | 長期 node 理解（`memories/nodes/{id}/understand/what.md`） |
+| **L0**（activities） | 唯附加事件 log（`memories/activities/events.jsonl`） |
+| **short-term memory** | 短期記憶 pool（`memories/short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
+| **dream staging** | dream intent（`dreams/patches.jsonl` + report）+ draft 投影（`dreams/draft/{run_id}/`）；Approve 才 commit 至 L2 |
+| **L2**（nodes） | 長期 node 理解（`memories/nodes/{id}/understand/what.md`） |
 | **chain** | 日／週／月／年記憶鏈（`memories/chain/days|weeks|months|years/`） |
-| **future-sight** | 近程前瞻錨點（`memories/future-sight/active/`）；過期 → L0/L1 event 後硬清 |
+| **future-sight** | 近程前瞻錨點（`memories/future-sight/active/`）；過期 → L0 + short-term event 後硬清 |
 
 產品循環對齊 UI：**Activities → Consolidate → Seek → Memory**（場景 id：`activities`／`consolidate`／`seek`／`memory`）。
 
@@ -74,10 +74,10 @@ bun run dev:ui                    # web
 
 | 做 | 不做 |
 |----|------|
-| `curl` / `engram-workbench` skill 打 API | 手改 `events.jsonl`、L1 notes、L2 `what.md` |
+| `curl` / `engram-workbench` skill 打 API | 手改 `events.jsonl`、short-term notes、L2 `what.md` |
 | `POST /activities` 寫入 | 把 fixture seed 當試用資料 |
 | `POST /dreams/run` extract → pending（pending 時 409） | 未經同意就 `reset` 或清 DLQ |
-| `POST /dreams/approve`／`discard`／`retry` | 手改 L1／L2／draft「幫忙改對」 |
+| `POST /dreams/approve`／`discard`／`retry` | 手改 short-term／L2／draft「幫忙改對」 |
 | `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 
 API 欄位提醒：
@@ -114,9 +114,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.14.0` — Store layout refactor — 見 `docs/roadmap/0.14.0/`
-- **上一版：** `0.13.0` — Workspace config + `bun run setup` wizard — 見 `docs/roadmap/0.13.0/`
-- **更早：** `0.12.0` — Dream Retry with reason；`0.11.0` — Week／Month／Year memory chain
+- **已出貨：** `0.15.0` — Server src layout + agent shared runners — 見 `docs/roadmap/0.15.0/`
+- **上一版：** `0.14.0` — Store layout refactor — 見 `docs/roadmap/0.14.0/`
+- **更早：** `0.13.0` — Workspace config + setup wizard；`0.12.0` — Dream Retry with reason
 - **Backlog：** mindzone、future-sight 注入 Memory — 見 `docs/roadmap/backlog/`。
 
 ## 深入閱讀

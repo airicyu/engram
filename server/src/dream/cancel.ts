@@ -1,13 +1,13 @@
-/** Cancel a running dream job (stop + revert L1.5 artifacts). */
+/** Cancel a running dream job (stop + revert dream staging artifacts). */
 
 import { killAgentProcess } from "../store/agent-process";
-import { readDreamJob, writeDreamJob } from "../store/dream-job";
-import { removeDraft, listDreamRuns } from "../store/dream-runs";
-import { writeExtractState } from "../store/extract-state";
-import { releaseLock } from "../store/lock";
+import { readDreamJob, writeDreamJob } from "../store/dreams/dream-job";
+import { removeDraft, listDreamRuns } from "../store/dreams/dream-runs";
+import { writeExtractState } from "../store/dreams/extract-state";
+import { releaseLock } from "../store/dreams/lock";
 import { emitDreamEvent } from "./emit-event";
 import { requestDreamCancel } from "./cancel-state";
-import { nowIso } from "../store/events";
+import { nowIso } from "../store/memories/activities";
 
 function dreamProcessKey(dreamRunId: string): string {
   return `dream:${dreamRunId}`;

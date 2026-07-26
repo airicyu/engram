@@ -23,8 +23,9 @@ export interface ExtractContext {
   now: string;
   /** Memory-timeline calendar day YYYY-MM-DD (virtual clock aware). */
   today: string;
-  /** Frozen L1 event ids for this dream (S). Events may span multiple calendar days. */
+  /** Frozen short-term event ids for this dream (S). Events may span multiple calendar days. */
   scope: string[];
+  /** Frozen short-term pool view. JSON key `l1` is frozen (agent context wire). */
   l1: { summary: string; node_notes: Record<string, string> };
   events: Array<{ id: string; ts: string; raw: string; node_refs?: string[] }>;
   l2_current: Array<{ node: string; what_current: string }>;

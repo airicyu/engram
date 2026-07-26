@@ -4,7 +4,7 @@
 
 import { config } from "./config";
 import { ensureEngramHome } from "./store/home";
-import { handleCapture } from "./api/capture";
+import { handleActivities } from "./api/activities";
 import { handleStatus } from "./api/status";
 import { handleClockGet, handleClockPut, handleClockDelete } from "./api/clock";
 import { loadClockFromDisk } from "./store/clock";
@@ -17,13 +17,13 @@ import {
   handleDreamCancel,
 } from "./api/dream";
 import { handleDreamEvents } from "./api/dream-events";
-import { handleMemoryL1 } from "./api/memory/l1";
-import { handleMemorySearchRequest } from "./api/memory/search";
+import { handleShortTermMemory } from "./api/activities/short-term-memory";
+import { handleMemorySearchRequest } from "./api/seek/search";
 import {
   handleMemoryAskPost,
   handleMemoryAskGet,
   handleMemoryAskCancel,
-} from "./api/memory/ask";
+} from "./api/seek/ask";
 import {
   handleChainIndex,
   handleChainDay,
@@ -115,7 +115,7 @@ try {
           node_refs?: string[];
           idempotency_key?: string;
         };
-        const result = await handleCapture(body);
+        const result = await handleActivities(body);
         if (result instanceof Response) return result;
         logInfo("capture ok", {
           event_id: result.event_id,
@@ -210,7 +210,7 @@ try {
     },
 
     "/memories/short-term-memory": {
-      GET: withRequestLog(async () => Response.json(await handleMemoryL1())),
+      GET: withRequestLog(async () => Response.json(await handleShortTermMemory())),
     },
 
     "/memories/search": {

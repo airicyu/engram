@@ -1,8 +1,8 @@
 /** HTTP handler for dream run event logs. */
 
-import { readDreamEvents } from "../store/dream-events";
-import { readDreamJob } from "../store/dream-job";
-import { isLocked } from "../store/lock";
+import { readDreamEvents } from "../store/dreams/dream-events";
+import { readDreamJob } from "../store/dreams/dream-job";
+import { isLocked } from "../store/dreams/lock";
 
 /** Response shape for GET /dream/events. */
 export interface DreamEventsResponse {

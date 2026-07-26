@@ -11,7 +11,7 @@ memory write language: {{MEMORY_LANGUAGE}} — also in context JSON as `memory_l
 
 ## Task
 
-Compare L1 (scope `S` — may span **multiple calendar days**) and the corresponding L0 events against `l2_current` (what Current for each known node). Propose structured patches that distill short-term experience into long-term memory.
+Compare short-term memory (scope `S` — may span **multiple calendar days**) and the corresponding L0 events against `l2_current` (what Current for each known node). Propose structured patches that distill short-term experience into long-term memory.
 
 This run does **not** write L2 directly. Patches become a **draft** for human review; only approve commits them.
 

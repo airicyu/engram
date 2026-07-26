@@ -17,10 +17,10 @@ import {
   StaleFutureAnchorError,
 } from "../dream/run";
 import { cancelDream } from "../dream/cancel";
-import { isL1Empty, listPoolEventIds } from "../store/l1";
-import { isLocked, acquireLock, releaseLock, isLockStale, breakStaleLock, LockError } from "../store/lock";
-import { DreamRunMismatchError, getPendingRun } from "../store/dream-runs";
-import { readDreamJob, writeDreamJob } from "../store/dream-job";
+import { isShortTermMemoryEmpty, listPoolEventIds } from "../store/memories/short-term-memory";
+import { isLocked, acquireLock, releaseLock, isLockStale, breakStaleLock, LockError } from "../store/dreams/lock";
+import { DreamRunMismatchError, getPendingRun } from "../store/dreams/dream-runs";
+import { readDreamJob, writeDreamJob } from "../store/dreams/dream-job";
 import { emitDreamEvent } from "../dream/emit-event";
 import { logError, logInfo } from "../log";
 
@@ -111,11 +111,11 @@ function startDreamJob(
 
 /** POST /dream/run — start asynchronous extract and draft materialization. */
 export async function handleDreamRun(): Promise<Response> {
-  if (await isL1Empty() || (await listPoolEventIds()).length === 0) {
+  if (await isShortTermMemoryEmpty() || (await listPoolEventIds()).length === 0) {
     return Response.json(
       {
         error: "nothing_to_dream",
-        message: "L1 pool is empty — capture something before dreaming.",
+        message: "short-term memory pool is empty — capture something before dreaming.",
       },
       { status: 409 },
     );
@@ -254,7 +254,7 @@ export async function handleDreamPending(): Promise<Response> {
   return Response.json(payload);
 }
 
-/** POST /dream/approve — commit the pending draft and clear its L1 scope. */
+/** POST /dream/approve — commit the pending draft and clear its short-term scope. */
 export async function handleDreamApprove(body?: { dream_run_id?: string }): Promise<Response> {
   if (await isLocked()) {
     return Response.json(
@@ -329,7 +329,7 @@ export async function handleDreamApprove(body?: { dream_run_id?: string }): Prom
   }
 }
 
-/** POST /dream/discard — discard the pending draft without clearing L1. */
+/** POST /dream/discard — discard the pending draft without clearing short-term. */
 export async function handleDreamDiscard(body?: { dream_run_id?: string }): Promise<Response> {
   if (await isLocked()) {
     return Response.json(

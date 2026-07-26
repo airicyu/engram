@@ -3,7 +3,7 @@
 import {
   listActiveAnchors,
   sweepExpiredFutureSight,
-} from "../store/future-sight";
+} from "../store/memories/future-sight";
 
 /** Return active future-sight anchors and anchors swept on this request. */
 export async function handleFutureSight(): Promise<object> {

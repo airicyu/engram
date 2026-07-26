@@ -1,11 +1,11 @@
 /** Post-extract week／month／year rollup: planner → writer → draft append. */
 
-import { readDay, readDaySummary } from "../store/chain";
+import { readDay, readDaySummary } from "../store/memories/chain";
 import {
   higherSummaryExists,
   resolveHigherOperation,
   type HigherChainLevel,
-} from "../store/chain-higher";
+} from "../store/memories/chain-higher";
 import {
   candidatesFromDayIds,
   daysInWeek,
@@ -13,14 +13,14 @@ import {
   isCurrentWeek,
   isCurrentYear,
   weeksOverlappingMonth,
-} from "../store/chain-time";
+} from "../store/memories/chain-time";
 import {
   appendMaterializeDraft,
   readDaySummaryPreferDraft,
   readHigherSummaryCurrentPreferDraft,
-} from "../store/draft";
-import { appendPatches } from "../store/patches";
-import { calendarDate, nowIso } from "../store/events";
+} from "../store/dreams/draft";
+import { appendPatches } from "../store/dreams/patches";
+import { calendarDate, nowIso } from "../store/memories/activities";
 import { config } from "../config";
 import type { ChainPatch, Patch } from "./schema";
 import { emitDreamEvent } from "./emit-event";

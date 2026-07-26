@@ -1,9 +1,9 @@
 /** Human-readable review report renderer for pending dream runs. */
 
 import type { Patch } from "./schema";
-import type { PoolEntry } from "../store/l1";
-import { futureChainIds } from "../store/draft";
-import { calendarDate } from "../store/events";
+import type { PoolEntry } from "../store/memories/short-term-memory";
+import { futureChainIds } from "../store/dreams/draft";
+import { calendarDate } from "../store/memories/activities";
 import { config } from "../config";
 
 /** Build a human-readable dream report from extract outputs. */
@@ -50,7 +50,7 @@ export function buildDreamReport(opts: {
     }
   }
 
-  lines.push("## Scope (L1 event ids to clear on approve)");
+  lines.push("## Scope (short-term event ids to clear on approve)");
   lines.push("");
   if (scope.length === 0) {
     lines.push("- (empty)");
@@ -76,7 +76,7 @@ export function buildDreamReport(opts: {
     lines.push("## No L2 writes proposed");
     lines.push("");
     lines.push(
-      "> **Approving will clear this round's L1 scope (S) with no long-term writes.** " +
+      "> **Approving will clear this round's short-term scope (S) with no long-term writes.** " +
         "Use this when there is nothing worth distilling — confirm discard of short-term only.",
     );
     lines.push("");

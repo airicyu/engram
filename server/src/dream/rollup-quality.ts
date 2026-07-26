@@ -33,4 +33,11 @@ export function assertFusedRollupSummary(level: string, text: string): void {
   if (sectionTitles.length < 1) {
     throw new Error(`${level} writer must include at least one ## section title`);
   }
+
+  // Body must start with a section title — reject agent process narration preamble.
+  if (!/^##\s+\S/.test(t)) {
+    throw new Error(
+      `${level} writer must start with a ## section (got process preamble?)`,
+    );
+  }
 }

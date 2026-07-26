@@ -692,6 +692,14 @@ body {
   overflow: hidden;
 }
 
+/* Side-by-side (and stacked) browse: packet-block's stacked-panel chrome
+   (margin-top / border-top) would push the detail title below the index. */
+.browse-detail.packet-block {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
 @media (min-width: 48rem) {
   .browse-layout {
     display: grid;

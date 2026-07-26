@@ -1,15 +1,15 @@
 /** Status API handler assembling current store and dream pipeline state. */
 
-import { isLocked, isLockStale } from "../store/lock";
-import { isL1Empty } from "../store/l1";
-import { pendingDlqCount } from "../store/dlq";
+import { isLocked, isLockStale } from "../store/dreams/lock";
+import { isShortTermMemoryEmpty } from "../store/memories/short-term-memory";
+import { pendingDlqCount } from "../store/dreams/dlq";
 import { computeDreamStatus, pendingRunSummary } from "../dream/run";
-import { getL1ClearPendingRun } from "../store/dream-runs";
-import { readDreamJob } from "../store/dream-job";
-import { tailDreamEvents } from "../store/dream-events";
-import { getRunningAskJob } from "../store/memory-ask-job";
-import { tailAskEvents } from "../store/memory-ask-events";
-import { countActiveAnchors } from "../store/future-sight";
+import { getShortTermClearPendingRun } from "../store/dreams/dream-runs";
+import { readDreamJob } from "../store/dreams/dream-job";
+import { tailDreamEvents } from "../store/dreams/dream-events";
+import { getRunningAskJob } from "../store/tmp/ask-job";
+import { tailAskEvents } from "../store/tmp/ask-events";
+import { countActiveAnchors } from "../store/memories/future-sight";
 import { config } from "../config";
 import { getClockSnapshot } from "../store/clock";
 
@@ -20,7 +20,7 @@ export async function handleStatus(): Promise<object> {
   const lockStale = lock ? await isLockStale() : false;
   const dream_status = await computeDreamStatus();
   const dream_pending = await pendingRunSummary();
-  const clearPending = await getL1ClearPendingRun();
+  const clearPending = await getShortTermClearPendingRun();
 
   let dreamJobPayload: Record<string, unknown> | null = null;
   if (dreamJob) {
@@ -44,7 +44,7 @@ export async function handleStatus(): Promise<object> {
     memory_language: config.memoryLanguage,
     clock: getClockSnapshot(),
     lock,
-    l1_empty: await isL1Empty(),
+    l1_empty: await isShortTermMemoryEmpty(),
     pending_dlq_count: await pendingDlqCount(),
     future_sight_active_count: await countActiveAnchors(),
     dream_status,

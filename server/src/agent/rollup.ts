@@ -1,8 +1,6 @@
 /** Mock + CLI-backed agents for higher-chain rollup planner／writer. */
 
-import { readFile, mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { config } from "../config";
 import type {
   RollupAgent,
@@ -14,7 +12,15 @@ import {
   isCurrentMonth,
   isCurrentWeek,
   isCurrentYear,
-} from "../store/chain-time";
+} from "../store/memories/chain-time";
+import { setDreamJobAgentPid } from "../store/dreams/dream-job";
+import { loadPrompt, renderPrompt } from "./prompt-template";
+import { withTempJsonContext } from "./temp-context";
+import { runAgentCommand } from "./subprocess";
+import {
+  unwrapCursorResultEnvelope,
+  unwrapFencedOrRaw,
+} from "./cursor-envelope";
 
 /** Deterministic mock: skip still-open current periods; otherwise Y + fused prose. */
 export class MockRollupAgent implements RollupAgent {
@@ -248,28 +254,42 @@ function parsePlanJson(raw: string): RollupPlan {
 }
 
 function parseWriteText(raw: string): string {
-  const trimmed = raw.trim();
-  if (trimmed.startsWith("{")) {
-    try {
-      const envelope = JSON.parse(trimmed) as {
-        type?: string;
-        result?: string;
-        is_error?: boolean;
-      };
-      if (envelope.type === "result") {
-        if (envelope.is_error) throw new Error(envelope.result || "agent error");
-        if (typeof envelope.result === "string") return envelope.result.trim();
-      }
-    } catch (e) {
-      if (e instanceof Error && e.message.includes("agent error")) throw e;
-    }
-  }
-  const fence = trimmed.match(/```(?:markdown|md)?\s*([\s\S]*?)```/);
-  if (fence) return fence[1]!.trim();
-  return trimmed;
+  const unwrapped = unwrapCursorResultEnvelope(raw);
+  const body = unwrapFencedOrRaw(unwrapped);
+  return stripRollupWriterPreamble(body);
 }
 
-async function runCursorPrompt(prompt: string, workDir: string): Promise<string> {
+/**
+ * Cursor agents often narrate ("Reading the write context…") before the markdown.
+ * Keep from the first `##` section title through the end; drop trailing process chatter.
+ */
+export function stripRollupWriterPreamble(text: string): string {
+  const m = text.match(/^##\s+\S/m);
+  if (!m || m.index == null) return text.trim();
+  let body = text.slice(m.index);
+  const lines = body.split(/\n/);
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (
+      i > 0 &&
+      !line.startsWith("##") &&
+      /^(Reading |Checking |Writing |Looking |Saved |Created |已寫入|以下是)/.test(
+        line,
+      )
+    ) {
+      break;
+    }
+    out.push(line);
+  }
+  return out.join("\n").trim();
+}
+
+async function runCursorPrompt(
+  prompt: string,
+  workDir: string,
+  dreamRunId: string,
+): Promise<string> {
   const cmd = [
     config.cursorAgentBin,
     "-p",
@@ -280,50 +300,41 @@ async function runCursorPrompt(prompt: string, workDir: string): Promise<string>
     "--add-dir",
     workDir,
   ];
-  const { ENGRAM_STORE_DIR: _omit, ...agentEnv } = process.env;
-  const proc = Bun.spawn(cmd, {
+  const result = await runAgentCommand({
+    cmd,
     cwd: workDir,
-    env: agentEnv,
-    stdout: "pipe",
-    stderr: "pipe",
+    processKey: `dream:${dreamRunId}`,
+    onPid: (pid) => setDreamJobAgentPid(pid),
+    exitErrorLabel: "rollup agent",
   });
-  const [stdout, , exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
-  if (exitCode !== 0) {
-    throw new Error(`rollup agent exit ${exitCode}`);
-  }
-  return stdout;
+  return result.stdout;
 }
 
 /** Cursor CLI rollup agent (prompts under server/prompts/). */
 export class CursorRollupAgent implements RollupAgent {
   async plan(ctx: RollupPlanContext): Promise<RollupPlan> {
-    const promptPath = join(
-      import.meta.dir,
-      `../../prompts/rollup-plan-${ctx.level}.md`,
+    const promptPath = join(import.meta.dir, "../../prompts/rollup-plan.md");
+    const template = await loadPrompt(promptPath);
+    return withTempJsonContext(
+      {
+        prefix: "engram-rollup-plan",
+        filename: "plan-context.json",
+        value: ctx,
+      },
+      async (workDir, ctxPath) => {
+        const prompt = renderPrompt(template, {
+          CONTEXT_PATH: ctxPath,
+          DREAM_RUN_ID: ctx.dream_run_id,
+          LEVEL: ctx.level,
+          TODAY: ctx.today,
+          NOW: ctx.now,
+          TIMEZONE: ctx.timezone,
+          MEMORY_LANGUAGE: ctx.memory_language,
+        });
+        const stdout = await runCursorPrompt(prompt, workDir, ctx.dream_run_id);
+        return parsePlanJson(parseWriteText(stdout));
+      },
     );
-    const template = await readFile(promptPath, "utf8");
-    const workDir = join(tmpdir(), `engram-rollup-plan-${Date.now()}`);
-    await mkdir(workDir, { recursive: true });
-    try {
-      const ctxPath = join(workDir, "plan-context.json");
-      await writeFile(ctxPath, JSON.stringify(ctx, null, 2), "utf8");
-      const prompt = template
-        .replaceAll("{{CONTEXT_PATH}}", ctxPath)
-        .replaceAll("{{DREAM_RUN_ID}}", ctx.dream_run_id)
-        .replaceAll("{{LEVEL}}", ctx.level)
-        .replaceAll("{{TODAY}}", ctx.today)
-        .replaceAll("{{NOW}}", ctx.now)
-        .replaceAll("{{TIMEZONE}}", ctx.timezone)
-        .replaceAll("{{MEMORY_LANGUAGE}}", ctx.memory_language);
-      const stdout = await runCursorPrompt(prompt, workDir);
-      return parsePlanJson(parseWriteText(stdout));
-    } finally {
-      await rm(workDir, { recursive: true, force: true }).catch(() => {});
-    }
   }
 
   async write(ctx: RollupWriteContext): Promise<string> {
@@ -331,27 +342,29 @@ export class CursorRollupAgent implements RollupAgent {
       import.meta.dir,
       `../../prompts/rollup-write-${ctx.level}.md`,
     );
-    const template = await readFile(promptPath, "utf8");
-    const workDir = join(tmpdir(), `engram-rollup-write-${Date.now()}`);
-    await mkdir(workDir, { recursive: true });
-    try {
-      const ctxPath = join(workDir, "write-context.json");
-      await writeFile(ctxPath, JSON.stringify(ctx, null, 2), "utf8");
-      const prompt = template
-        .replaceAll("{{CONTEXT_PATH}}", ctxPath)
-        .replaceAll("{{DREAM_RUN_ID}}", ctx.dream_run_id)
-        .replaceAll("{{LEVEL}}", ctx.level)
-        .replaceAll("{{ID}}", ctx.id)
-        .replaceAll("{{OPERATION}}", ctx.operation)
-        .replaceAll("{{TODAY}}", ctx.today)
-        .replaceAll("{{NOW}}", ctx.now)
-        .replaceAll("{{TIMEZONE}}", ctx.timezone)
-        .replaceAll("{{MEMORY_LANGUAGE}}", ctx.memory_language);
-      const stdout = await runCursorPrompt(prompt, workDir);
-      return parseWriteText(stdout);
-    } finally {
-      await rm(workDir, { recursive: true, force: true }).catch(() => {});
-    }
+    const template = await loadPrompt(promptPath);
+    return withTempJsonContext(
+      {
+        prefix: "engram-rollup-write",
+        filename: "write-context.json",
+        value: ctx,
+      },
+      async (workDir, ctxPath) => {
+        const prompt = renderPrompt(template, {
+          CONTEXT_PATH: ctxPath,
+          DREAM_RUN_ID: ctx.dream_run_id,
+          LEVEL: ctx.level,
+          ID: ctx.id,
+          OPERATION: ctx.operation,
+          TODAY: ctx.today,
+          NOW: ctx.now,
+          TIMEZONE: ctx.timezone,
+          MEMORY_LANGUAGE: ctx.memory_language,
+        });
+        const stdout = await runCursorPrompt(prompt, workDir, ctx.dream_run_id);
+        return parseWriteText(stdout);
+      },
+    );
   }
 }
 

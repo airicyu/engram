@@ -62,16 +62,16 @@ No authentication in the prototype. Timestamps use effective timezone (workspace
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/` | Service discovery |
-| `GET` | `/status` | Lock, L1, DLQ, dream status, pending summary |
-| `POST` | `/activities` | Append L0 event + update L1 pool |
+| `GET` | `/status` | Lock, short-term empty (`l1_empty`), DLQ, dream status, pending summary |
+| `POST` | `/activities` | Append L0 event + update short-term pool |
 | `POST` | `/dreams/run` | Extract → materialize draft → pending_review (async 202); **409** if pending already |
 | `GET` | `/dreams/pending` | Active pending report + patches (`present: false` if none) |
 | `POST` | `/dreams/approve` | `commitDraft` → L2, clear scope S |
-| `POST` | `/dreams/discard` | Drop pending + draft; L1/L2 unchanged |
+| `POST` | `/dreams/discard` | Drop pending + draft; short-term／L2 unchanged |
 | `POST` | `/dreams/retry` | Discard pending → re-extract same scope with reason (async 202) |
 | `POST` | `/dreams/cancel` | Cancel running dream (kill agent + revert draft) |
 | `GET` | `/memories/future-sight` | Active near-horizon anchors (sweeps expired first) |
-| `GET` | `/memories/short-term-memory` | L1 preview for Capture |
+| `GET` | `/memories/short-term-memory` | Short-term preview for Activities |
 | `GET` | `/memories/search` | Keyword search (`q` required; optional `scope=l1,nodes,chain`) |
 | `GET` | `/memories/chain` | Day chain index (browse) |
 | `GET` | `/memories/chain/{day_id}` | Day chain detail |
@@ -91,9 +91,9 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 | Layer | Role |
 |-------|------|
 | **L0** | Append-only event log (`memories/activities/events.jsonl`) |
-| **L1** | Short-term mem pool (`memories/short-term-memory/pool.jsonl`); cleared by event-id scope S on approve |
-| **L1.5 intent** | Patches + report (`dreams/patches.jsonl`, `dreams/reports/`) — L1→L2 中間態 |
-| **L1.5 draft** | Staged L2 projection (`dreams/draft/{run_id}/`) — not live until approve |
+| **short-term memory** | Short-term pool (`memories/short-term-memory/pool.jsonl`); cleared by event-id scope S on approve. HTTP wire still uses `l1`／`l1_empty` etc. |
+| **dream staging intent** | Patches + report (`dreams/patches.jsonl`, `dreams/reports/`) — short-term→L2 intermediate |
+| **dream staging draft** | Staged L2 projection (`dreams/draft/{run_id}/`) — not live until approve |
 | **L2** | Long-term node understanding (`memories/nodes/{id}/understand/what.md`) |
 | **chain** | World timeline (`memories/chain/days|weeks|months|years/`) — day dual-track; higher summary-only |
 | **future-sight** | Near-horizon anchors (`memories/future-sight/active/`) — not memory-chain; not in `/memories/search` |

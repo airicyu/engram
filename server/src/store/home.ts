@@ -1,8 +1,8 @@
 /** Engram home directory paths and initial store scaffolding. */
 
 import { access, mkdir, writeFile } from "node:fs/promises";
-import { ensureL1SummaryFile } from "./l1";
-import { ensureDreamDirs } from "./dream-runs";
+import { ensureShortTermMemorySummaryFile } from "./memories/short-term-memory";
+import { ensureDreamDirs } from "./dreams/dream-runs";
 import { join } from "node:path";
 import { stringify } from "../yaml";
 import { config } from "../config";
@@ -68,6 +68,6 @@ export async function ensureEngramHome(): Promise<void> {
     await writeFile(candidatesAttr, stringify({ candidates: [] }), "utf8");
   }
 
-  await ensureL1SummaryFile();
+  await ensureShortTermMemorySummaryFile();
   await ensureDreamDirs();
 }

@@ -1,6 +1,6 @@
 ---
 name: engram-workbench
-description: Operate Engram memory via its HTTP API — capture events, run dream extract, review pending, approve/discard/retry/cancel, memory search/ask, check status. Use whenever the user mentions Engram, memory capture, dream run, memory search, L1/L2, candidates, or wants to read or write Engram state. Always call the API; never edit files under ENGRAM_STORE_DIR or data/ directly.
+description: Operate Engram memory via its HTTP API — capture events, run dream extract, review pending, approve/discard/retry/cancel, memory search/ask, check status. Use whenever the user mentions Engram, memory capture, dream run, memory search, short-term/L2, candidates, or wants to read or write Engram state. Always call the API; never edit files under ENGRAM_STORE_DIR or data/ directly.
 ---
 
 # Engram Workbench
@@ -34,7 +34,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 |----|-------|
 | `curl` / `engram-api.sh` against `ENGRAM_URL` | Edit `data/**`, `memories/nodes/**`, `dream/**` |
 | `POST /activities` to capture | Append to `events.jsonl` by hand |
-| `POST /dreams/run` → pending → `approve`／`discard`／`retry`／`cancel` | Hand-edit L1／L2／draft during review |
+| `POST /dreams/run` → pending → `approve`／`discard`／`retry`／`cancel` | Hand-edit short-term／L2／draft during review |
 | `GET /memories/short-term-memory` / `GET /memories/search` / `POST /memories/ask` | Assemble context by reading markdown files |
 | `GET /memories/future-sight` for near-horizon anchors | Hand-edit `future-sight/` |
 | Report `dream_status` from `/status` | Manually fix DLQ via filesystem |
@@ -49,15 +49,15 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 
 | Term | Meaning |
 |------|---------|
-| **Capture** | `POST /activities` — L0 + L1 pool entry |
+| **Capture** | `POST /activities` — L0 + short-term pool entry |
 | **Extract / Dream** | `POST /dreams/run` — patches + draft + report; **does not** write L2；pending 時 409 |
 | **Approve** | `POST /dreams/approve` — `commitDraft` → L2, clear scope S |
-| **Discard** | `POST /dreams/discard` — drop pending; L1／L2 unchanged |
+| **Discard** | `POST /dreams/discard` — drop pending; short-term／L2 unchanged |
 | **Retry** | `POST /dreams/retry` `{ reason }` — discard → same frozen scope + feedback → new pending |
 | **Dream cancel** | `POST /dreams/cancel` — stop running extract; revert draft |
 | **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain`) |
 | **Ask** | `POST /memories/ask` — async AI Q&A; poll `GET /memories/ask/{job_id}` |
-| **Future-sight** | `GET /memories/future-sight` — active near-horizon anchors (sweeps expired → L0+L1 event) |
+| **Future-sight** | `GET /memories/future-sight` — active near-horizon anchors (sweeps expired → L0+short-term event) |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `dead_letter_pending` \| `never_dreamed` |
 
 ## ⚠️ Before any API call
@@ -113,7 +113,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "重試／改方向" | `POST /dreams/retry` + `{ reason }` — **不要**手改檔案；**不要**無理由再 `dream/run` |
 | pending 期間還要記 | 直接 capture（允許） |
 | `l1_clear_pending` | 再 `approve`（只清 S） |
-| extract 失敗 | L1 保留；可重試 `/dreams/run`（無 pending 時） |
+| extract 失敗 | short-term 保留；可重試 `/dreams/run`（無 pending 時） |
 
 ## Sub-files
 

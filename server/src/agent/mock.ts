@@ -2,7 +2,7 @@
 
 import type { AgentRunner, ExtractContext } from "./types";
 import type { Patch } from "../dream/schema";
-import { calendarDate, nowIso } from "../store/events";
+import { calendarDate, nowIso } from "../store/memories/activities";
 
 /** Test runner that always fails extraction. */
 export class MockFailRunner implements AgentRunner {
@@ -60,7 +60,7 @@ export class MockOkRunner implements AgentRunner {
         node,
         facet: "what",
         operation: "append",
-        content: `Mock extract note from L1: ${ctx.l1.summary.slice(0, 120)}${
+        content: `Mock extract note from short-term: ${ctx.l1.summary.slice(0, 120)}${
           ctx.review_feedback
             ? ` [retry from ${ctx.review_feedback.retried_from}: ${ctx.review_feedback.reason.slice(0, 80)}]`
             : ""
@@ -113,7 +113,7 @@ export class MockOkRunner implements AgentRunner {
         id: `fs-${anchor}-deadline`,
         anchor_start: anchor,
         anchor_end: anchor,
-        content: "Mock near-horizon deadline from L1",
+        content: "Mock near-horizon deadline from short-term",
         node_refs: node !== "acme" || ctx.existing_nodes.includes("acme") ? [node] : undefined,
       });
     }

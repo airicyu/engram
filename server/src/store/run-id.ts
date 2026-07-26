@@ -1,6 +1,6 @@
 /** Compact run identifiers for dream / ask jobs. */
 
-import { nowIso } from "./events";
+import { nowIso } from "./memories/activities";
 
 /** `YYYYMMDD-HHmmss` from an ISO local timestamp (`nowIso()` shape). */
 export function compactStampFromIso(at: string): string {

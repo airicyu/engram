@@ -121,7 +121,7 @@ async function main() {
     const events = await readFile(join(TEST_HOME, "memories/activities/events.jsonl"), "utf8");
     assert(events.trim().split("\n").length === 2, "L0 two lines");
     const pool = await readFile(join(TEST_HOME, "memories/short-term-memory/pool.jsonl"), "utf8");
-    assert(pool.includes("e0000000001") && pool.includes("e0000000002"), "L1 pool indexed");
+    assert(pool.includes("e0000000001") && pool.includes("e0000000002"), "short-term pool indexed");
 
     for (const [id, what] of [
       ["acme", "Partner organization we integrate with."],
@@ -220,7 +220,7 @@ async function main() {
     assert(secondRunId !== firstRunId, "retry1 new run id");
 
     const poolMid = await readFile(join(TEST_HOME, "memories/short-term-memory/pool.jsonl"), "utf8");
-    assert(poolMid.includes("e0000000001") && poolMid.includes("e0000000003"), "L1 uncleared on retry");
+    assert(poolMid.includes("e0000000001") && poolMid.includes("e0000000003"), "short-term uncleared on retry");
 
     const retry2 = await json("POST", "/dreams/retry", {
       reason: "Also drop the NewCo propose_node — keep as mention only",
@@ -336,7 +336,7 @@ async function main() {
       "search finds acme node",
     );
 
-    console.log("Phase 3: extract fail → dream_incomplete, L1 kept");
+    console.log("Phase 3: extract fail → dream_incomplete, short-term kept");
     await stopServer(server);
     server = await startServer("mock-fail");
 
@@ -348,7 +348,7 @@ async function main() {
     assert(st.data.dream_status === "dream_incomplete", "status dream_incomplete");
     assert(st.data.dream_job?.phase === "extract", "failed phase extract");
     const l1Kept = await readFile(join(TEST_HOME, "memories/short-term-memory/pool.jsonl"), "utf8");
-    assert(l1Kept.includes("e0000000003"), "L1 retained after extract fail");
+    assert(l1Kept.includes("e0000000003"), "short-term retained after extract fail");
 
     const noPending = await json("GET", "/dreams/pending");
     assert(noPending.data.present === false, "failed materialize/extract does not create pending");
@@ -367,7 +367,7 @@ async function main() {
     const disc = await json("POST", "/dreams/discard", {});
     assert(disc.status === 200 && disc.data.discarded === true, "discard ok");
     const stillPool = await readFile(join(TEST_HOME, "memories/short-term-memory/pool.jsonl"), "utf8");
-    assert(stillPool.includes("e0000000003"), "discard leaves L1");
+    assert(stillPool.includes("e0000000003"), "discard leaves short-term");
 
     console.log("Phase 4b: memory l1 + ask");
     const l1 = await json("GET", "/memories/short-term-memory");
@@ -460,7 +460,7 @@ async function main() {
     const stFs = await json("GET", "/status");
     assert(stFs.data.future_sight_active_count >= 1, "status count");
 
-    // Plant an already-expired anchor; GET should sweep → L0+L1 event + hard delete
+    // Plant an already-expired anchor; GET should sweep → L0+short-term event + hard delete
     await mkdir(join(TEST_HOME, "memories/future-sight/active"), { recursive: true });
     await Bun.write(
       join(TEST_HOME, "memories/future-sight/active/fs-expired-test.md"),
@@ -483,7 +483,7 @@ Old foresight that should expire.
     assert(eventsAfter.includes("system/future_sight_expired"), "L0 expiry event");
     assert(eventsAfter.includes("fs-expired-test"), "L0 mentions id");
     const poolSweep = await readFile(join(TEST_HOME, "memories/short-term-memory/pool.jsonl"), "utf8");
-    assert(poolSweep.includes("Future-sight expired"), "L1 has expiry note");
+    assert(poolSweep.includes("Future-sight expired"), "short-term has expiry note");
 
     console.log("\nPhase 6: virtual clock (time replay)");
     const clock0 = await json("GET", "/clock");
@@ -515,7 +515,7 @@ Old foresight that should expire.
     assert(delClock.status === 200 && delClock.data.mode === "system", "DELETE → system");
 
     console.log("\nPhase 7: higher chain rollup (mock)");
-    // Clear leftover L1 from phase 6 under a clock where past months can roll
+    // Clear leftover short-term from phase 6 under a clock where past months can roll
     await json("PUT", "/clock", { now: "2026-07-01T22:00:00+08:00" });
     for (let i = 0; i < 3; i++) {
       const st = await json("GET", "/status");
@@ -537,7 +537,7 @@ Old foresight that should expire.
     }
     {
       const st = await json("GET", "/status");
-      assert(st.data.l1_empty === true, "L1 cleared before rollup fixture");
+      assert(st.data.l1_empty === true, "short-term cleared before rollup fixture");
     }
 
     await json("PUT", "/clock", { now: "2026-06-20T20:00:00+08:00" });
@@ -600,7 +600,7 @@ Old foresight that should expire.
 
     await json("DELETE", "/clock");
 
-    console.log("\n✅ All 0.14 self-checks passed");
+    console.log("\n✅ All 0.15 self-checks passed");
   } finally {
     await stopServer(server);
   }

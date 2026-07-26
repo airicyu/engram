@@ -3,8 +3,8 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { readFile } from "node:fs/promises";
 import { config } from "../config";
-import { buildAskPrompt, readAskResultFile } from "../agent/memory-ask-invoke";
-import { askJobDir, askResultPath } from "../store/memory-ask-job";
+import { buildAskPrompt, readAskResultFile } from "../agent/ask-invoke";
+import { askJobDir, askResultPath } from "../store/tmp/ask-job";
 
 const q = process.argv[2] ?? "最近做了什麼decision?";
 const jobId = "debug-ask";

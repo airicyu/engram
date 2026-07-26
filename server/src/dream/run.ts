@@ -4,25 +4,25 @@ import type { AgentRunner, ExtractContext, ReviewFeedback } from "../agent/types
 import { ClaudeCodeRunner } from "../agent/claude-code";
 import { CursorCliRunner } from "../agent/cursor-cli";
 import { MockFailRunner, MockOkRunner } from "../agent/mock";
-import { acquireLock, releaseLock, isLocked, LockError } from "../store/lock";
+import { acquireLock, releaseLock, isLocked, LockError } from "../store/dreams/lock";
 import {
   readPoolEntriesForScope,
   listPoolEventIds,
-  isL1Empty,
-  clearL1Scope,
-} from "../store/l1";
-import { calendarDate, nowIso } from "../store/events";
+  isShortTermMemoryEmpty,
+  clearShortTermMemoryScope,
+} from "../store/memories/short-term-memory";
+import { calendarDate, nowIso } from "../store/memories/activities";
 import { makeRunId } from "../store/run-id";
-import { listNodeIds, readAllWhatCurrents } from "../store/nodes";
-import { readDay, readDaySummary } from "../store/chain";
-import { appendPatchesIfNew, patchesForRun } from "../store/patches";
+import { listNodeIds, readAllWhatCurrents } from "../store/memories/nodes";
+import { readDay, readDaySummary } from "../store/memories/chain";
+import { appendPatchesIfNew, patchesForRun } from "../store/dreams/patches";
 import type { Patch } from "./schema";
-import { pendingDlqCount } from "../store/dlq";
-import { readExtractState, writeExtractState } from "../store/extract-state";
+import { pendingDlqCount } from "../store/dreams/dlq";
+import { readExtractState, writeExtractState } from "../store/dreams/extract-state";
 import { logError, logDreamDebug } from "../log";
 import { emitDreamEvent } from "./emit-event";
 import { logExtractContext, summarizePatches } from "../agent/extract-log";
-import { updateDreamJobPhase } from "../store/dream-job";
+import { updateDreamJobPhase } from "../store/dreams/dream-job";
 import { buildDreamReport } from "./report";
 import {
   beginDreamRun,
@@ -36,13 +36,13 @@ import {
   futureChainIds,
   materializeDraft,
   commitDraft,
-} from "../store/draft";
-import { sweepExpiredFutureSight, staleFutureAnchorIds } from "../store/future-sight";
+} from "../store/dreams/draft";
+import { sweepExpiredFutureSight, staleFutureAnchorIds } from "../store/memories/future-sight";
 import { config } from "../config";
 import {
   DreamRunMismatchError,
   discardPending,
-  getL1ClearPendingRun,
+  getShortTermClearPendingRun,
   getPendingRun,
   newPendingRun,
   readReport,
@@ -50,10 +50,10 @@ import {
   writeDreamRun,
   writeReport,
   type DreamRunState,
-} from "../store/dream-runs";
+} from "../store/dreams/dream-runs";
 import { formatRollupReportSection, runRollupCascade } from "./rollup";
 import { pickRollupAgent } from "../agent/rollup";
-import { addInitializedIds, type HigherChainLevel } from "../store/chain-higher";
+import { addInitializedIds, type HigherChainLevel } from "../store/memories/chain-higher";
 
 export { DreamCancelledError } from "./cancel-state";
 
@@ -69,10 +69,10 @@ export class DreamIncompleteError extends Error {
   }
 }
 
-/** Indicates a dream request with no L1 events to process. */
+/** Indicates a dream request with no short-term events to process. */
 export class NothingToDreamError extends Error {
   constructor() {
-    super("L1 pool is empty — nothing to dream");
+    super("short-term memory pool is empty — nothing to dream");
     this.name = "NothingToDreamError";
   }
 }
@@ -147,14 +147,14 @@ function pickRunner(): AgentRunner {
   return new CursorCliRunner();
 }
 
-/** Build the frozen L1, L2, and chain context supplied to an extraction runner. */
+/** Build the frozen short-term, L2, and chain context supplied to an extraction runner. */
 export async function buildExtractContext(
   dreamRunId: string,
   scope: string[],
   reviewFeedback?: ReviewFeedback,
 ): Promise<ExtractContext> {
   const scopeEntries = await readPoolEntriesForScope(scope);
-  // L1 pool already holds id/ts/raw/node_refs for S — avoid readAllEvents() on huge L0 log.
+  // short-term pool already holds id/ts/raw/node_refs for S — avoid readAllEvents() on huge L0 log.
   const events = scopeEntries.map((e) => ({
     id: e.id,
     ts: e.ts,
@@ -247,7 +247,7 @@ export async function runDream(opts?: {
     }
 
     const scope = await listPoolEventIds();
-    if (scope.length === 0 || (await isL1Empty())) {
+    if (scope.length === 0 || (await isShortTermMemoryEmpty())) {
       throw new NothingToDreamError();
     }
 
@@ -556,11 +556,11 @@ export async function computeDreamStatus(): Promise<DreamStatus> {
   const pending = await getPendingRun();
   if (pending) return "pending_review";
 
-  const clearPending = await getL1ClearPendingRun();
+  const clearPending = await getShortTermClearPendingRun();
   if (clearPending) return "l1_clear_pending";
 
   const extractState = await readExtractState();
-  const l1Empty = await isL1Empty();
+  const l1Empty = await isShortTermMemoryEmpty();
   const dlq = await pendingDlqCount();
 
   if (extractState.status === "failed" && !l1Empty) {
@@ -627,15 +627,15 @@ export interface ApproveResult {
   empty_patches: boolean;
 }
 
-/** Commit the pending draft and clear its frozen L1 scope. */
+/** Commit the pending draft and clear its frozen short-term scope. */
 export async function approveDream(opts?: { dream_run_id?: string }): Promise<ApproveResult> {
-  // Retry path: commit already done, only clear L1
-  const clearOnly = await getL1ClearPendingRun();
+  // Retry path: commit already done, only clear short-term memory
+  const clearOnly = await getShortTermClearPendingRun();
   if (clearOnly) {
     if (opts?.dream_run_id && opts.dream_run_id !== clearOnly.id) {
       throw new DreamRunMismatchError(clearOnly.id, opts.dream_run_id);
     }
-    await clearL1Scope(clearOnly.scope);
+    await clearShortTermMemoryScope(clearOnly.scope);
     clearOnly.l1_clear_pending = false;
     await writeDreamRun(clearOnly);
     return {
@@ -680,7 +680,7 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   await writeDreamRun(pending);
 
   try {
-    await clearL1Scope(pending.scope);
+    await clearShortTermMemoryScope(pending.scope);
     pending.l1_clear_pending = false;
     await writeDreamRun(pending);
   } catch (e) {
@@ -706,7 +706,7 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   };
 }
 
-/** Discard the active pending dream without mutating L1 or L2. */
+/** Discard the active pending dream without mutating short-term or L2. */
 export async function discardDream(opts?: { dream_run_id?: string }): Promise<{
   dream_run_id: string;
   discarded: true;

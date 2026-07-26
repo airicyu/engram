@@ -45,7 +45,7 @@ Env: copy [`.env.example`](.env.example) → `.env`（皆可選）。
 
 | Scene | What it does |
 |-------|----------------|
-| **Activities** (`activities`) | `POST /activities` · show L1 via `GET /memories/short-term-memory` |
+| **Activities** (`activities`) | `POST /activities` · show short-term via `GET /memories/short-term-memory` |
 | **Consolidate** | Dream → pending report → Approve／Discard／Cancel；`GET /status` |
 | **Seek** | **Search** — `GET /memories/search?q=&scope=` · **Ask** — `POST /memories/ask` |
 | **Memory** | **Day chain** — `GET /memories/chain` + detail · **Nodes** — `GET /memories/nodes` + detail (client filter) |
@@ -57,7 +57,7 @@ Status light polls `/status`: ~3s while lock／dreaming／ask，~20s during `pen
 Shell strings — **繁體中文** (`zh-Hant`, default) and **English** (`en`). Topbar switcher persists to `localStorage` (`engram.locale`).
 
 - Locale catalogs: `src/i18n/zh-Hant.json`, `src/i18n/en.json`
-- **Not** translated: L1／L2／chain／dream report body, API error `message` text
+- **Not** translated: short-term／L2／chain／dream report body, API error `message` text
 
 ## Source map
 

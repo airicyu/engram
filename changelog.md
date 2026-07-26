@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.15.0 — Server src layout + agent shared runners (2026-07-27)
+
+Internal refactor: align `server/src` with product domains, share agent subprocess helpers, and retire **L1／L1.5** as current terminology（→ **short-term memory**／**dream staging**）. **HTTP paths and JSON wire keys unchanged**（含 `scope=l1`、`l1_empty`）.
+
+### Changed
+
+- **`store/`** 分組鏡像磁碟：`memories/`／`dreams/`／`tmp/`；`events`→`activities`；`l1`→`short-term-memory`
+- **`api/`／業務編排**：Seek → `seek/`＋`api/seek/`；Activities short-term preview；`capture`→`activities`
+- **Agent**：共用 `subprocess`／`temp-context`／`prompt-template`／envelope helper；Claude extract 與 rollup 納入 process registry（cancel 可殺 child）
+- **Prompts**：`rollup-plan.md` 單一檔（原 week／month／year 三份相同內容合併）；**rollup-write week／month／year**：外層仍按 lived dimensions 分 `##`，**節內改為時間線敘事**（禁止無指涉的「這天／今日」）
+- **文件用語**：`domain-language`／`CLAUDE.md`／api-docs／README／workbench skill 對齊 short-term memory／dream staging
+
+### Non-goals
+
+- HTTP URL／JSON 欄位改名；記憶庫磁碟再搬；agent timeout；新記憶功能
+
+---
+
 ## 0.14.0 — Store Layout Refactor (2026-07-27)
 
 Reorganize the memory store layout and hard-cut HTTP base paths to match（未對外開放，無舊 path／env alias）.

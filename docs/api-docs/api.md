@@ -99,7 +99,7 @@ Snapshot of store health, dream state, and async job status.
 | `clock` | object | Memory-timeline clock snapshot (see [Virtual clock](#virtual-clock)) |
 | `lock` | boolean | `true` while extract／materialize／approve commit holds the lock |
 | `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
-| `l1_empty` | boolean | `true` when L1 mem pool has no entries |
+| `l1_empty` | boolean | `true` when short-term memory pool has no entries |
 | `pending_dlq_count` | number | Legacy DLQ count |
 | `future_sight_active_count` | number | Count of `memories/future-sight/active/*.md` (may include overdue until next sweep) |
 | `dream_status` | enum | See [Dream status](#dream-status) |
@@ -229,7 +229,7 @@ Events are stored at `dream/runs/{dream_run_id}/events.jsonl` (append-only). Sup
 
 ## `POST /activities`
 
-Append one event to L0 and the L1 mem pool (indexed by event id).
+Append one event to L0 and the short-term memory pool (indexed by event id).
 
 **Allowed during `pending_review`** (no dream lock). Rejected only while lock is held (extract／commit).
 
@@ -254,10 +254,10 @@ Append one event to L0 and the L1 mem pool (indexed by event id).
 
 Async **extract → materialize draft → unique pending**. Does **not** write L2.
 
-- Empty L1 pool → **409** `nothing_to_dream`
+- Empty short-term memory pool → **409** `nothing_to_dream`
 - Existing pending → **409** `pending_review`（禁止無理由取代；改用 `POST /dreams/retry` 或先 `discard`）
 - Scope **S** = all event ids in the pool at call time
-- Extract input = L0 events for S (may span days) + L1 view for S + existing L2
+- Extract input = L0 events for S (may span days) + short-term view for S + existing L2
 - `job_id` / `dream_run_id` shape: `dream-YYYYMMDD-HHmmss-{rand6}` (ENGRAM_TZ local time)
 
 **Response `202`**
@@ -274,11 +274,11 @@ Async **extract → materialize draft → unique pending**. Does **not** write L
 
 | Status | error | When |
 |--------|-------|------|
-| `409` | `nothing_to_dream` | L1 pool empty |
+| `409` | `nothing_to_dream` | short-term memory pool empty |
 | `409` | `pending_review` | Active pending exists — use retry／discard／approve |
 | `409` | `dream_locked` | Another extract／commit in progress |
 
-On extract／materialize failure: `dream_job.status=failed` + `phase`; **no** pending; L1 unchanged.
+On extract／materialize failure: `dream_job.status=failed` + `phase`; **no** pending; short-term unchanged.
 
 ---
 
@@ -296,8 +296,8 @@ Async. Requires active **pending_review**. Body:
 **Semantics**
 
 1. Snapshot current pending: frozen **scope S**, draft／patches summary
-2. **Discard** that pending (status `discarded`; draft removed; L1／L2 unchanged)
-3. Start new dream on **the same S** (not re-scan whole L1 pool)
+2. **Discard** that pending (status `discarded`; draft removed; short-term／L2 unchanged)
+3. Start new dream on **the same S** (not re-scan whole short-term memory pool)
 4. Extract context includes `review_feedback`: `{ reason, previous_summary, previous_patches }`
 5. New run metadata records `retried_from` + `retry_reason`; report notes the feedback
 6. Completes to a new `pending_review` (failure path same as `/dreams/run`)
@@ -355,7 +355,7 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 
 1. If `l1_clear_pending` → **only retry clear S**
 2. Else require active pending
-3. Reject future `chain.id` → **409** `future_chain_id` + `rejected_chain_ids` (pending／draft／L1／L2 unchanged)
+3. Reject future `chain.id` → **409** `future_chain_id` + `rejected_chain_ids` (pending／draft／short-term／L2 unchanged)
 4. Reject `future` patches with `anchor_end` &lt; today → **409** `stale_future_anchor` + `rejected_future_ids`
 5. Empty patches → no L2／future-sight write; still clear S
 6. Else `commitDraft` → live L2／future-sight; then clear S; best-effort future-sight sweep
@@ -373,13 +373,13 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 }
 ```
 
-**Errors:** `409` `no_pending` \| `dream_run_mismatch` \| `future_chain_id` \| `stale_future_anchor` \| `dream_locked`; `500` commit failure (L2 unchanged, L1 kept).
+**Errors:** `409` `no_pending` \| `dream_run_mismatch` \| `future_chain_id` \| `stale_future_anchor` \| `dream_locked`; `500` commit failure (L2 unchanged, short-term kept).
 
 ---
 
 ## `POST /dreams/discard`
 
-Drop pending intent + draft. L1／L2／active future-sight unchanged. Body optional `dream_run_id`.
+Drop pending intent + draft. short-term／L2／active future-sight unchanged. Body optional `dream_run_id`.
 
 **Response `200`:** `{ "dream_run_id": "…", "discarded": true }`
 
@@ -389,7 +389,7 @@ Drop pending intent + draft. L1／L2／active future-sight unchanged. Body optio
 
 List **active** near-horizon future-sight anchors. Always **200**. Empty → `anchors: []`.
 
-On each call: **lazy sweep** — for each active file with `anchor_end` &lt; today (configured timezone), append L0+L1 event (`source: system/future_sight_expired`) then **hard-delete** the active file. No expired query endpoint.
+On each call: **lazy sweep** — for each active file with `anchor_end` &lt; today (configured timezone), append L0+short-term event (`source: system/future_sight_expired`) then **hard-delete** the active file. No expired query endpoint.
 
 **Response `200`**
 
@@ -416,7 +416,7 @@ On each call: **lazy sweep** — for each active file with `anchor_end` &lt; tod
 
 ## `GET /memories/short-term-memory`
 
-L1 preview for Capture. **Does not** include chain or nodes.
+short-term preview for Activities. **Does not** include chain or nodes.
 
 **Response `200`:** `{ summary, node_notes, present }`
 
@@ -424,7 +424,7 @@ L1 preview for Capture. **Does not** include chain or nodes.
 
 ## `GET /memories/search`
 
-Keyword search across L1, memory-chain days, and L2 nodes. **`q` is required** (`400 missing_q` if omitted or blank). Only **matching** sections are returned.
+Keyword search across short-term memory, memory-chain days, and L2 nodes. **`q` is required** (`400 missing_q` if omitted or blank). Only **matching** sections are returned.
 
 **Query:**
 
@@ -453,7 +453,7 @@ Keyword search across L1, memory-chain days, and L2 nodes. **`q` is required** (
 |-------|---------|
 | `scope` | Scopes searched on this request (echo) |
 | `nodes` | Present only when `nodes` in scope; L2 hits (`node_id` \| `what_content` \| `l1_note`) |
-| `l1` | Present only when `l1` in scope; `null` when no L1 hit |
+| `l1` | Present only when `l1` in scope; `null` when no short-term hit |
 | `chain` | Present only when `chain` in scope; day／week／month／year hits. Each has `id` + `level`; day also keeps `day_id` |
 
 No matches → `200` with requested scope keys empty (`nodes: []`, `l1: null`, or `chain: []`). Does **not** include `dream_status` or future-sight.
@@ -579,7 +579,7 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 | `never_dreamed` | No successful extract recorded |
 | `pending_review` | Unique pending run awaiting approve／discard／retry |
 | `l1_clear_pending` | Commit done; scope clear failed — retry approve |
-| `dream_incomplete` | Last extract／materialize failed; L1 retained |
+| `dream_incomplete` | Last extract／materialize failed; short-term retained |
 | `dead_letter_pending` | Legacy DLQ non-empty |
 | `ok` | Steady state |
 

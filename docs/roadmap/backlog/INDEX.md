@@ -12,5 +12,6 @@
 | Week／month／year chain | 已排進 **[0.11.0](../0.11.0/INDEX.md)** |
 | [Data workspace config](./workspace-config.md) | 已排進 **[0.13.0](../0.13.0/INDEX.md)**（含 setup wizard） |
 | ENGRAM_HOME 目錄重整 | 已排進 **[0.14.0](../0.14.0/INDEX.md)**（layout refactor；無獨立 backlog 檔） |
+| Server `src` 命名／agent 共用 | 已排進 **[0.15.0](../0.15.0/INDEX.md)**（內部 refactor；無獨立 backlog 檔） |
 
-← [0.4.0](../0.4.0/INDEX.md) · 下一版計畫：[0.14.0](../0.14.0/INDEX.md)
+← [0.4.0](../0.4.0/INDEX.md) · 下一版計畫：[0.15.0](../0.15.0/INDEX.md)

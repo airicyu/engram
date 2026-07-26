@@ -1,6 +1,6 @@
 /** Dual-write dream milestones to events.jsonl and server console. */
 
-import { appendDreamEvent, type DreamEvent } from "../store/dream-events";
+import { appendDreamEvent, type DreamEvent } from "../store/dreams/dream-events";
 import { logDream, logError } from "../log";
 
 /** Append a structured dream event and mirror it to console. */

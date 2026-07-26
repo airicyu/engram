@@ -48,7 +48,7 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | `POST` | `/dreams/run` | extract → draft → pending_review（pending 時 409） |
 | `POST` | `/dreams/retry` | discard pending → same scope + reason → new pending |
 | `POST` | `/dreams/cancel` | cancel running dream |
-| `GET` | `/memories/short-term-memory` | L1 preview (Capture) |
+| `GET` | `/memories/short-term-memory` | short-term preview (Activities) |
 | `GET` | `/memories/search?q=&scope=` | keyword hits (`q` required) |
 | `GET` | `/memories/chain` | day chain index (browse) |
 | `GET` | `/memories/chain/{day_id}` | day chain detail |
@@ -62,7 +62,7 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | `GET` | `/memories/nodes/{node_id}` | L2 node detail |
 | `POST` | `/memories/ask` | async AI Q&A |
 | `GET`/`PUT`/`DELETE` | `/clock` | virtual memory timeline (PUT needs env) |
-| `GET` | `/status` | lock, L1, DLQ, dream_status, ask_job, clock |
+| `GET` | `/status` | lock, short-term (`l1_empty`), DLQ, dream_status, ask_job, clock |
 
 Full contract: [../docs/api-docs/api.md](../docs/api-docs/api.md).
 

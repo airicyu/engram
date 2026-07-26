@@ -34,17 +34,17 @@
 
 | EN | 中文 | 說明 | API／動作 | 備註 |
 |----|------|------|-----------|------|
-| **Activities** | 活動 | 把「此刻要記住的事」寫進系統（L0 + L1） | `POST /activities` | UI 場景 id：`activities`；body 用 **`raw`** |
+| **Activities** | 活動 | 把「此刻要記住的事」寫進系統（L0 + short-term memory） | `POST /activities` | UI 場景 id：`activities`；body 用 **`raw`** |
 | **Consolidate** | 沉澱 | 整理短時記憶：AI 出報告，人審後寫入長期 | `POST /dreams/run` → Approve／Discard | 核心是人審關卡 |
 | **Seek** | 尋找 | 用關鍵字或 AI 提問找記憶 | `GET /memories/search`、`POST /memories/ask` | 0.8.0 自 Memory 場景拆出 |
 | **Memory** | 記憶 | 沿時間軸或節點列表翻閱已寫入記憶 | `GET /memories/chain`、`GET /memories/nodes` | 0.8.0 browse；不含 Search／Ask |
-| **Dream** | 入夢 | 對 L1 跑 AI 提取，產出待審報告 | `POST /dreams/run` | 產品語；技術上含 extract |
+| **Dream** | 入夢 | 對 short-term memory 跑 AI 提取，產出待審報告 | `POST /dreams/run` | 產品語；技術上含 extract |
 
 ### Seek（0.8.0）
 
 | EN | 中文 | 說明 | API | 備註 |
 |----|------|------|-----|------|
-| **Search** | 搜尋 | keyword 命中 L1／chain／nodes | `GET /memories/search?q=&scope=` | `q` 必填；`scope` 可選，預設全搜 |
+| **Search** | 搜尋 | keyword 命中 short-term／chain／nodes | `GET /memories/search?q=&scope=` | `q` 必填；`scope` 可選（wire 值仍含 `l1`＝short-term） |
 | **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memories/ask`、`GET /memories/ask/{job_id}` | 同時只允許一個 running job |
 
 ### Memory browse（0.8.0）
@@ -53,7 +53,7 @@
 |----|------|------|-----|------|
 | **Day／week／month／year chain browse** | 記憶鏈翻閱 | 各層 index（新→舊）+ detail | `GET /memories/chain`、`/weeks`、`/months`、`/years`（及 `/{id}`） | 0.11.0 四層；與 Search 分工 |
 | **Nodes browse** | 節點翻閱 | L2 index（字母序）+ what Current detail | `GET /memories/nodes`、`GET /memories/nodes/{node_id}` | filter 在客戶端 |
-| **L1 preview** | L1 預覽 | Activities 場景顯示短期 pool 摘要 | `GET /memories/short-term-memory` | 僅 L1；不在 Memory 場景瀏覽 |
+| **Short-term preview** | 短期記憶預覽 | Activities 場景顯示短期 pool 摘要 | `GET /memories/short-term-memory` | 僅 short-term；不在 Memory 場景瀏覽 |
 
 ### Time replay（0.9.0）
 
@@ -67,22 +67,22 @@
 
 ## 記憶層（資料存在哪一層）
 
-層級編號反映**資料在管線中的位置**，不是檔案目錄名：
+層級／名稱反映**資料在管線中的位置**，不是檔案目錄名：
 
 | 層 | 定位 |
 |----|------|
-| **L0** | 事件（發生了什麼） |
-| **L1** | 短期記憶（尚未沉澱的輸入） |
-| **L1.5** | **L1 → L2 的中間態**（入夢提案 + 待審 draft） |
-| **L2** | 長期理解（已 commit 的語意表面） |
+| **L0**（activities） | 事件（發生了什麼） |
+| **short-term memory** | 短期記憶（尚未沉澱的輸入） |
+| **dream staging** | **short-term → L2 的中間態**（入夢提案 + 待審 draft） |
+| **L2**（nodes） | 長期理解（已 commit 的語意表面） |
 
-> 舊稱 **L0.5**（0.4.1 前）；現稱 **L1.5**（語意上夾在 L1 與 L2 之間，不是 L0 的延伸）。
+> 舊稱 **L1**／**L1.5**（至 0.14）；自 **0.15.0** 起現行文件改用 **short-term memory**／**dream staging**。HTTP wire 名（如 `scope=l1`、`l1_empty`）仍凍結，見 api-docs。
 
 | EN | 中文 | 說明 | 典型路徑 | 可變性 |
 |----|------|------|----------|--------|
 | **L0** | 事件層 | 發生了什麼（原文、時間、來源） | `memories/activities/events.jsonl` | 唯附加 |
-| **L1** | 短期記憶層 | 尚未整理進長期的工作區 pool | `memories/short-term-memory/pool.jsonl` | Activities 寫入；Approve 後清 scope S |
-| **L1.5** | 入夢中間層 | 由 L1 入夢產出、待 Approve 才進 L2（patch + 報告 + draft） | `dreams/patches.jsonl`、`dreams/draft/` | patch log 唯附加 |
+| **short-term memory** | 短期記憶層 | 尚未整理進長期的工作區 pool | `memories/short-term-memory/pool.jsonl` | Activities 寫入；Approve 後清 scope S |
+| **dream staging** | 入夢中間層 | 由 short-term 入夢產出、待 Approve 才進 L2（patch + 報告 + draft） | `dreams/patches.jsonl`、`dreams/draft/` | patch log 唯附加 |
 | **L2** | 長期理解層 | 對 node 目前「相信什麼」 | `memories/nodes/{id}/understand/what.md` | Approve 寫入；可手改 |
 | **chain** | 記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary |
 | **future-sight** | 近程前瞻 | 短期要盯的錨點（deadline 等） | `memories/future-sight/active/` | 過期寫 event 後硬刪 |
@@ -92,8 +92,8 @@
 | 你想問… | EN | 中文 |
 |---------|-----|------|
 | 當時 raw 寫了什麼 | L0 | 事件層 |
-| 還沒入夢／還沒批准的輸入 | L1 | 短期記憶 |
-| AI 那次提案了什麼、draft 長怎樣 | L1.5 | 入夢中間層 |
+| 還沒入夢／還沒批准的輸入 | short-term memory | 短期記憶 |
+| AI 那次提案了什麼、draft 長怎樣 | dream staging | 入夢中間層 |
 | 現在對某主題的穩定理解 | L2 | 長期理解 |
 | 那天整體發生什麼（可讀摘要） | chain summary (day) | 日鏈融合摘要（0.5.0） |
 | 那天寫入了哪些 patch block | chain ledger (day) | 日鏈增量紀錄（0.5.0） |
@@ -104,20 +104,20 @@
 ## Dream 流程（0.3+ 現行）
 
 ```
-capture → dream/run → pending_review → approve | discard
+activities → dream/run → pending_review → approve | discard
               ↑                              ↓
          extract + materialize        commit → L2 / chain / future-sight
-         (no L2 write)                 then clear L1 scope S
+         (no L2 write)                 then clear short-term scope S
 ```
 
 | EN | 中文 | 說明 | 備註 |
 |----|------|------|------|
-| **extract** | 提取 | 讀 L0／L1／L2，LLM 產出 patches + report | 技術動詞；UI 常稱入夢 |
+| **extract** | 提取 | 讀 L0／short-term／L2，LLM 產出 patches + report | 技術動詞；UI 常稱入夢 |
 | **materialize** | 具現化／投影 | 把 patches 寫成 draft 檔（尚未 commit） | 舊版直接 apply 到 L2 已廢 |
 | **commit** / **commitDraft** | 提交／正式寫入 | approve 時把 draft 寫入 live store | 失敗則 L2 不變 |
 | **pending** / **pending_review** | 待審 | 有一份待審入夢結果（系統內唯一） | `GET /dreams/pending` |
 | **scope S** | 範圍 S | 本次入夢凍結的 L0 event id 集合 | Approve 後只清 S；可跨日 |
-| **supersede** | 取代 | 再 `dream/run` 時丟舊 pending，對目前 L1 重跑 | 非 merge 兩份報告 |
+| **supersede** | 取代 | 再 `dream/run` 時丟舊 pending，對目前 short-term 重跑 | 非 merge 兩份報告 |
 | **lock** / **dream lock** | 入夢鎖 | extract／commit 期間互斥 | 鎖住時 Activities → 409 |
 | **dream_run_id** | 入夢執行 ID | 一次入夢的唯一識別碼 | Approve／Discard 可選帶入 |
 | **report** | 報告 | 給人看的 Markdown 摘要 | pending 介面閱讀 |
@@ -168,8 +168,8 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 |------------|------|------|
 | `never_dreamed` | 從未入夢 | 從未成功跑完 extract |
 | `pending_review` | 待審 | 有待審入夢結果 |
-| `l1_clear_pending` | L1 清理待重試 | L2 已 commit，清 L1 失敗 |
-| `dream_incomplete` | 入夢未完成 | extract／materialize 失敗；L1 保留 |
+| `l1_clear_pending` | short-term 清理待重試（wire 名凍結） | L2 已 commit，清 short-term 失敗 |
+| `dream_incomplete` | 入夢未完成 | extract／materialize 失敗；short-term 保留 |
 | `dead_letter_pending` | 死信佇列待處理 | legacy DLQ 非空 |
 | `ok` | 正常 | 穩態 |
 
@@ -178,7 +178,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | EN | 中文 | 說明 |
 |----|------|------|
 | **DLQ** (dead-letter queue) | 死信佇列 | 舊版 apply 失敗的 patch 佇列 |
-| **l1_empty** | L1 是否為空 | pool 無條目時為 true |
+| **l1_empty** | short-term 是否為空（wire 名凍結） | pool 無條目時為 true |
 | **dream_job** | 入夢非同步工作 | `running`／`completed`／`failed` |
 | **search packet** | 搜尋包 | `GET /memories/search` 回傳：僅 keyword 命中的 `l1`／`chain[]`／`nodes` |
 | **ENGRAM_STORE_DIR** | （env 鍵名） | 設定「記憶庫絕對路徑」的環境變數；**不是**記憶庫的領域別名 |
@@ -194,7 +194,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | **sweep** / **lazy sweep** | 懶清掃 | 讀 API 時順便清過期錨點 |
 | **swept_expired** | 本次清掉清單 | 剛移除的過期 anchor id |
 
-過期：寫 L0+L1 system event（`future_sight_expired`），再刪 active 檔。無過期瀏覽 API。
+過期：寫 L0 + short-term system event（`future_sight_expired`），再刪 active 檔。無過期瀏覽 API。
 
 ---
 
@@ -224,7 +224,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | **status light** | 狀態燈 | 頂欄連線／入夢狀態指示 | workbench UI |
 | **scene** | 場景 | Activities／Consolidate／Seek／Memory 四主畫面（id：`activities`…） | workbench UI |
 
-**Workbench UI i18n（0.5.0）：** 僅介面殼層；**English** + **繁體中文**；不翻譯 L1／L2／chain／report 等記憶內容。
+**Workbench UI i18n（0.5.0）：** 僅介面殼層；**English** + **繁體中文**；不翻譯 short-term／L2／chain／report 等記憶內容。
 
 ---
 
@@ -236,7 +236,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | **workspace**（指整個資料夾） | **記憶庫** | 偏好檔另稱 **workspace config** |
 | **ENGRAM_STORE_DIR**（當產品名） | **記憶庫** | 僅保留為 env 鍵 |
 | **Ingest**／**Capture**（舊場景名） | **Activities** | 寫入 API／用語統一（`/ingest` → `/capture` → `/activities`；UI 場景 id：`activities`） |
-| **L0.5** | **L1.5** | 層級命名修正：中間態在 L1 與 L2 之間，非 L0 延伸 |
+| **L0.5** | **L1.5** → **dream staging**（0.15） | 層級命名：中間態在 short-term 與 L2 之間 |
 | **Activate** | **Recall** → **Memory** | 0.4 Activate→Recall；0.7.0 Recall→Memory（場景／讀取域） |
 | **Recall** | **Seek** + **Memory** | 0.7.0 `GET /recall` → search；0.8.0 UI 拆 **尋找**（search+ask）與 **記憶**（browse） |
 | **Extract**（UI） | **Dream**（入夢） | Consolidate 主按鈕改名 |
@@ -252,8 +252,8 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | Path | EN | 中文 |
 |------|-----|------|
 | `memories/activities/events.jsonl` | L0 event log | 事件層 |
-| `memories/short-term-memory/pool.jsonl` | L1 mem pool | 短期 pool |
-| `dreams/patches.jsonl` | L1.5 patch log | 入夢 patch 紀錄 |
+| `memories/short-term-memory/pool.jsonl` | short-term mem pool | 短期 pool |
+| `dreams/patches.jsonl` | dream staging patch log | 入夢 patch 紀錄 |
 | `dreams/draft/{run_id}/` | pending draft | 待審草稿 |
 | `dreams/reports/{run_id}.md` | human report | 人類可讀報告 |
 | `memories/nodes/{id}/understand/what.md` | L2 semantic understanding | L2 語意理解 |

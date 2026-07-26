@@ -11,8 +11,12 @@ Write the summary body in **{{MEMORY_LANGUAGE}}** (`zh-Hant` = Traditional Chine
 
 ## Purpose
 
-This block is **not** a month-by-month chronology.  
-It is a **memory of the year by lived dimensions** — high altitude, still personal, scannable by section title.
+A **year retrospective** — as if someone reviewed the months and wrote what this year *was* about. High altitude, still personal; scannable by life dimension; each section a through-line with **year-scale time sense**.
+
+**Outer structure = lived dimensions** (`##` sections).  
+**Inner structure (inside each section) = chronological** — early year → mid → late year (or spring→summer→autumn…), with clear time anchors.
+
+This is **not** a month-by-month chronology as the page spine (no top-level Jan→Dec tour). Group by what defined the year; **within** each group, tell the arc in time order.
 
 ## How to think (required)
 
@@ -23,15 +27,17 @@ It is a **memory of the year by lived dimensions** — high altitude, still pers
    - side projects／learning／creative work
    - money／housing／admin
    - society／wider world (only if it shaped *this* year for the person)
-2. For **each kept dimension**, one **short paragraph** under its own `##` title: the year’s through-line, turning points, what held steady — **not** a tour of months.
-3. Order by what mattered most that year.
+2. For **each kept dimension**, one **short paragraph** (or two) under its own `##` title: the year’s through-line, turning points, what held steady.
+3. **Inside that section, narrate in time order.** Prefer: 年初／上半年 → 年中 → 下半年／年底, or seasons／named months (`2026-05`, 「五月」, 「盛夏」). When a month or notable day is known from `lower[]`, name it. Do **not** open a section mid-story with no time frame; give the reader「何時」before or with the first beat.
+4. Order **sections** by what mattered most that year. Order **facts inside a section** by time.
+5. More abstract than month; fewer tiny day details — but **keep temporal orientation**. Fuse into coherent prose; do not paste month paragraphs end-to-end.
 
 ## Shape (required)
 
 ```markdown
 ## Short title
 
-Paragraph…
+Paragraph (chronological through-line within the dimension)…
 
 ## Another title
 
@@ -40,16 +46,17 @@ Paragraph…
 
 - Titles: **2–8 words**, content-derived (e.g. `Harbor`, `Engram`, `家人與鄰居`). **Do not** lock to a fixed label set every year.
 - At least **one** `##` section; if ≥2 dimensions have substance, emit ≥2 sections.
-- More abstract than month; fewer concrete day details.
 - Do **not** start with the year id (`2026 —`).
 - Concise; no `…` mid-cuts.
 
 ## Hard bans
 
-- **No “January… February… March…”** (or month-id) spine as the main structure.
+- **No** top-level “January… February… March…” (or month-id) spine as the main page structure.
 - No bullet catalog of month／week ids.
 - No paste／truncate-stack of lower Currents.
 - No `## Current` / `## History` headers.
 - No meta about being a model／writer.
+- No process narration before／after the markdown（“Reading the write context…”, “Writing…”, “已寫入 …”）. **First line must be a `##` title.**
+- No deictic time with no anchor（「這天」「今日」「那天」without saying which day／month／season）.
 
 Ground only in `lower[]` (+ `prior_current` on revise). Complete replacement body on revise.

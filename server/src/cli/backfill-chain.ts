@@ -10,22 +10,22 @@
  */
 
 import { mkdir } from "node:fs/promises";
-import { listChainDayIds, readDaySummary } from "../store/chain";
+import { listChainDayIds, readDaySummary } from "../store/memories/chain";
 import {
   dayToMonthId,
   dayToYearId,
   isValidMonthId,
-} from "../store/chain-time";
+} from "../store/memories/chain-time";
 import { ensureEngramHome } from "../store/home";
 import { config } from "../config";
 import { makeDreamRunId } from "../dream/run";
 import { runRollupCascade } from "../dream/rollup";
 import { MockRollupAgent, pickRollupAgent } from "../agent/rollup";
-import { materializeDraft, commitDraft } from "../store/draft";
-import { addInitializedIds, type HigherChainLevel } from "../store/chain-higher";
+import { materializeDraft, commitDraft } from "../store/dreams/draft";
+import { addInitializedIds, type HigherChainLevel } from "../store/memories/chain-higher";
 import type { Patch } from "../dream/schema";
-import { nowIso } from "../store/events";
-import { draftDir } from "../store/dream-runs";
+import { nowIso } from "../store/memories/activities";
+import { draftDir } from "../store/dreams/dream-runs";
 
 function parseArgs(argv: string[]) {
   let level: "week" | "month" | "year" | "all" = "all";
