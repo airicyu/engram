@@ -123,10 +123,34 @@ const server = Bun.serve({
     if (url.pathname === "/api/memory/chain" && req.method === "GET") {
       return proxyApi(req, "/memory/chain");
     }
+    if (url.pathname === "/api/memory/chain/weeks" && req.method === "GET") {
+      return proxyApi(req, "/memory/chain/weeks");
+    }
+    if (url.pathname === "/api/memory/chain/months" && req.method === "GET") {
+      return proxyApi(req, "/memory/chain/months");
+    }
+    if (url.pathname === "/api/memory/chain/years" && req.method === "GET") {
+      return proxyApi(req, "/memory/chain/years");
+    }
     if (url.pathname === "/api/memory/nodes" && req.method === "GET") {
       return proxyApi(req, "/memory/nodes");
     }
 
+    const weekMatch = url.pathname.match(/^\/api\/memory\/chain\/weeks\/([^/]+)$/);
+    if (weekMatch) {
+      const id = encodeURIComponent(decodeURIComponent(weekMatch[1]!));
+      return proxyApi(req, `/memory/chain/weeks/${id}`);
+    }
+    const monthMatch = url.pathname.match(/^\/api\/memory\/chain\/months\/([^/]+)$/);
+    if (monthMatch) {
+      const id = encodeURIComponent(decodeURIComponent(monthMatch[1]!));
+      return proxyApi(req, `/memory/chain/months/${id}`);
+    }
+    const yearMatch = url.pathname.match(/^\/api\/memory\/chain\/years\/([^/]+)$/);
+    if (yearMatch) {
+      const id = encodeURIComponent(decodeURIComponent(yearMatch[1]!));
+      return proxyApi(req, `/memory/chain/years/${id}`);
+    }
     const chainMatch = url.pathname.match(/^\/api\/memory\/chain\/([^/]+)$/);
     if (chainMatch) {
       const dayId = encodeURIComponent(decodeURIComponent(chainMatch[1]!));

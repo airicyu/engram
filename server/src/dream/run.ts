@@ -52,6 +52,9 @@ import {
   writeReport,
   type DreamRunState,
 } from "../store/dream-runs";
+import { formatRollupReportSection, runRollupCascade } from "./rollup";
+import { pickRollupAgent } from "../agent/rollup";
+import { addInitializedIds, type HigherChainLevel } from "../store/chain-higher";
 
 export { DreamCancelledError } from "./cancel-state";
 
@@ -231,22 +234,51 @@ export async function runDream(opts?: {
     emitDreamEvent(dreamRunId, {
       phase: "materialize",
       event: "materialize_done",
-      message: "Draft materialized",
+      message: "Draft materialized (day)",
     });
 
+    let allPatches = patches;
+    let rollupSection = "";
+    try {
+      throwIfDreamCancelled(dreamRunId);
+      const { patches: rollupPatches, reports } = await runRollupCascade({
+        dreamRunId,
+        dayPatches: patches,
+        agent: pickRollupAgent(),
+      });
+      if (rollupPatches.length > 0) {
+        allPatches = [...patches, ...rollupPatches];
+      }
+      rollupSection = formatRollupReportSection(reports);
+    } catch (e) {
+      await removeDraft(dreamRunId).catch(() => {});
+      if (isDreamCancelled(dreamRunId)) {
+        throw new DreamCancelledError(dreamRunId);
+      }
+      const msg = e instanceof Error ? e.message : String(e);
+      emitDreamEvent(dreamRunId, {
+        phase: "materialize",
+        level: "error",
+        event: "rollup_failed",
+        message: msg,
+      });
+      throw new DreamIncompleteError(dreamRunId, msg, "materialize");
+    }
+
     const poolEntries = await readPoolEntriesForScope(scope);
-    const report = buildDreamReport({
-      dream_run_id: dreamRunId,
-      scope,
-      events: poolEntries,
-      patches,
-    });
+    const report =
+      buildDreamReport({
+        dream_run_id: dreamRunId,
+        scope,
+        events: poolEntries,
+        patches: allPatches,
+      }) + (rollupSection ? `\n${rollupSection}` : "");
     await writeReport(dreamRunId, report);
 
     const run = newPendingRun({
       id: dreamRunId,
       scope,
-      patch_count: patches.length,
+      patch_count: allPatches.length,
     });
     await writeDreamRun(run);
     await writeExtractState({ status: "ok", dream_run_id: dreamRunId });
@@ -254,17 +286,17 @@ export async function runDream(opts?: {
     emitDreamEvent(dreamRunId, {
       phase: "pending_review",
       event: "run_complete",
-      message: `Ready for review (${patches.length} patches)`,
+      message: `Ready for review (${allPatches.length} patches)`,
       detail: {
-        patches: patches.length,
-        future_chain: futureChainIds(patches),
+        patches: allPatches.length,
+        future_chain: futureChainIds(allPatches),
       },
     });
 
     return {
       dream_run_id: dreamRunId,
       scope,
-      patch_count: patches.length,
+      patch_count: allPatches.length,
       superseded: superseded?.id ?? null,
       extract_status: "ok",
       phase: "pending_review",
@@ -386,6 +418,9 @@ export async function getPendingPayload(): Promise<{
     entry_count: number;
     chain_days: string[];
     chain_summary_days: string[];
+    chain_weeks: string[];
+    chain_months: string[];
+    chain_years: string[];
     future_ids: string[];
   } | null;
 }> {
@@ -468,6 +503,7 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   if (!empty_patches) {
     const result = await commitDraft(pending.id);
     committed = result.committed;
+    await recordInitializedFromPatches(patches);
   }
 
   pending.status = "committed";
@@ -556,3 +592,22 @@ export async function pendingRunSummary(): Promise<{
 }
 
 export type { DreamRunState };
+
+async function recordInitializedFromPatches(patches: Patch[]): Promise<void> {
+  const byLevel: Record<HigherChainLevel, string[]> = {
+    week: [],
+    month: [],
+    year: [],
+  };
+  for (const p of patches) {
+    if (p.type !== "chain") continue;
+    if (p.level === "week" || p.level === "month" || p.level === "year") {
+      if (p.summary_operation === "init") {
+        byLevel[p.level].push(p.id);
+      }
+    }
+  }
+  for (const level of ["week", "month", "year"] as HigherChainLevel[]) {
+    await addInitializedIds(level, byLevel[level]);
+  }
+}

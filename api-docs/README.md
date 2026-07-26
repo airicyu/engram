@@ -94,7 +94,7 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 | **L1.5 intent** | Patches + report (`dream/patches.jsonl`, `dream/reports/`) — L1→L2 中間態 |
 | **L1.5 draft** | Staged L2 projection (`dream/draft/{run_id}/`) — not live until approve |
 | **L2** | Long-term node understanding (`nodes/{id}/understand/what.md`) |
-| **chain** | World timeline days (`memory-chain/days/`) — occurrence dates only |
+| **chain** | World timeline (`memory-chain/days|weeks|months|years/`) — day dual-track; higher summary-only |
 | **future-sight** | Near-horizon anchors (`future-sight/active/`) — not memory-chain; not in `/memory/search` |
 | **candidates** | Low-confidence attribution etc. (`candidates/`) — not the primary create-node path |
 

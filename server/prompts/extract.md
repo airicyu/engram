@@ -69,15 +69,16 @@ Update L2 **what** for an existing node **or** a node created via `propose_node`
 
 Day-level **occurrence** on the world timeline. One patch drives **both** tracks:
 
-- **ledger** (`content`) → append-only block on `memory-chain/days/{id}.md`
-- **summary** (`summary` + `summary_operation`) → fused day narrative on `memory-chain/days/{id}.summary.md`
+- **ledger** (`content`) → append-only block on `memory-chain/days/{YYYY-MM}/{id}.md`
+- **summary** (`summary` + `summary_operation`) → fused day narrative on `memory-chain/days/{YYYY-MM}/{id}.summary.md`
+- Week／month／year rollups are a **separate** post-extract pipeline — do **not** emit week／month／year chain patches here.
 
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
 | `level` | string | yes | Must be exactly `"day"` |
 | `id` | string | yes | Occurrence day `YYYY-MM-DD` ≤ today (`{{TODAY}}`, {{TIMEZONE}}). **Never** a future day. |
 | `content` | string | yes | Non-empty **incremental** ledger text (may be fragmentary; need not match summary verbatim) |
-| `summary` | string | yes | **Fused** full-day narrative for Current — absorb prior `chain_summaries_current[day]` + this round's facts; do **not** only repeat `content` |
+| `summary` | string | yes | **Fused** full-day narrative for Current — absorb prior `chain_summaries_current[day]` + this round's facts; do **not** only repeat `content`. Prefer short `##` section titles inside the body when the day has distinct life threads (e.g. `## Harbor` / `## Engram`); titles must be content-derived and brief — not a fixed Work／Family checklist. Do **not** emit `## Current` / `## History` inside `summary` (the store wraps those). |
 | `summary_operation` | string | yes | `"init"` if that day's summary Current is empty／missing; `"revise"` if prior Current exists |
 
 Context fields: `chain_summaries_current` (required for decide init vs revise); `chain_ledgers` optional (audit／debug).

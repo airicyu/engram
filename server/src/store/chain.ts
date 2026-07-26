@@ -1,6 +1,7 @@
 /** Read access for daily memory-chain ledgers and summaries. */
 
 import { access, readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { homePath } from "./home";
 import { extractCurrentSection } from "./nodes";
 
@@ -13,24 +14,46 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-function dayPath(dayId: string): string {
-  return homePath("memory-chain", "days", `${dayId}.md`);
+const DAY_ID_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** `YYYY-MM` parent folder for a day id. */
+export function dayMonthKey(dayId: string): string {
+  if (!DAY_ID_RE.test(dayId)) {
+    throw new Error(`invalid day id: ${dayId}`);
+  }
+  return dayId.slice(0, 7);
 }
 
-function summaryPath(dayId: string): string {
-  return homePath("memory-chain", "days", `${dayId}.summary.md`);
+/** Relative ledger path under ENGRAM_HOME. */
+export function dayLedgerRel(dayId: string): string {
+  return `memory-chain/days/${dayMonthKey(dayId)}/${dayId}.md`;
+}
+
+/** Relative summary path under ENGRAM_HOME. */
+export function daySummaryRel(dayId: string): string {
+  return `memory-chain/days/${dayMonthKey(dayId)}/${dayId}.summary.md`;
+}
+
+/** Absolute ledger path. */
+export function dayLedgerPath(dayId: string): string {
+  return homePath("memory-chain", "days", dayMonthKey(dayId), `${dayId}.md`);
+}
+
+/** Absolute summary path. */
+export function daySummaryPath(dayId: string): string {
+  return homePath("memory-chain", "days", dayMonthKey(dayId), `${dayId}.summary.md`);
 }
 
 /** Ledger: append-only patch blocks. */
 export async function readDay(dayId: string): Promise<string> {
-  const p = dayPath(dayId);
+  const p = dayLedgerPath(dayId);
   if (!(await exists(p))) return "";
   return readFile(p, "utf8");
 }
 
 /** Full summary markdown (`## Current` + `## History`), or "" if missing. */
 export async function readDaySummaryFile(dayId: string): Promise<string> {
-  const p = summaryPath(dayId);
+  const p = daySummaryPath(dayId);
   if (!(await exists(p))) return "";
   return readFile(p, "utf8");
 }
@@ -60,15 +83,19 @@ export async function readDayForRecall(
   return { content: "", source: "empty" };
 }
 
-/** Distinct YYYY-MM-DD ids under memory-chain/days/, newest first. */
+/** Distinct YYYY-MM-DD ids under memory-chain/days/YYYY-MM/, newest first. */
 export async function listChainDayIds(): Promise<string[]> {
   const dir = homePath("memory-chain", "days");
   try {
-    const files = await readdir(dir);
     const ids = new Set<string>();
-    for (const f of files) {
-      const m = f.match(/^(\d{4}-\d{2}-\d{2})(?:\.summary)?\.md$/);
-      if (m) ids.add(m[1]);
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const e of entries) {
+      if (!e.isDirectory() || !/^\d{4}-\d{2}$/.test(e.name)) continue;
+      const files = await readdir(join(dir, e.name));
+      for (const f of files) {
+        const m = f.match(/^(\d{4}-\d{2}-\d{2})(?:\.summary)?\.md$/);
+        if (m) ids.add(m[1]);
+      }
     }
     return [...ids].sort().reverse();
   } catch {

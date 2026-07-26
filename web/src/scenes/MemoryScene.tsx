@@ -4,88 +4,154 @@ import { useI18n } from "../i18n/I18nProvider";
 import { MdBlock } from "../components/ui";
 
 type MemoryMode = "chain" | "nodes";
+type ChainLevel = "day" | "week" | "month" | "year";
 
 type DayIndex = { day_id: string; preview?: string };
+type WeekIndex = { week_id: string; preview?: string };
+type MonthIndex = { month_id: string; preview?: string };
+type YearIndex = { year_id: string; preview?: string };
 type NodeIndex = { node: string; preview?: string };
+
+type ChainItem = { id: string; preview?: string };
 
 export function MemoryScene() {
   const { t } = useI18n();
   const [mode, setMode] = useState<MemoryMode>("chain");
-  const [days, setDays] = useState<DayIndex[] | null>(null);
+  const [chainLevel, setChainLevel] = useState<ChainLevel>("day");
+  const [chainItems, setChainItems] = useState<ChainItem[] | null>(null);
   const [nodes, setNodes] = useState<NodeIndex[] | null>(null);
-  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [dayMeta, setDayMeta] = useState("");
-  const [dayBody, setDayBody] = useState("");
-  const [dayEmpty, setDayEmpty] = useState(false);
+  const [chainMeta, setChainMeta] = useState("");
+  const [chainBody, setChainBody] = useState("");
+  const [chainEmpty, setChainEmpty] = useState(false);
   const [nodeBody, setNodeBody] = useState("");
   const [nodeEmpty, setNodeEmpty] = useState(false);
   const [filter, setFilter] = useState("");
   const [indexEmpty, setIndexEmpty] = useState("");
 
-  const loadChainDay = useCallback(
-    async (dayId: string) => {
-      setSelectedDayId(dayId);
-      setDayMeta("");
-      setDayBody(t("memory.browse_loading"));
-      setDayEmpty(false);
+  const loadChainDetail = useCallback(
+    async (level: ChainLevel, id: string) => {
+      setSelectedChainId(id);
+      setChainMeta("");
+      setChainBody(t("memory.browse_loading"));
+      setChainEmpty(false);
+      const path =
+        level === "day"
+          ? `/memory/chain/${encodeURIComponent(id)}`
+          : level === "week"
+            ? `/memory/chain/weeks/${encodeURIComponent(id)}`
+            : level === "month"
+              ? `/memory/chain/months/${encodeURIComponent(id)}`
+              : `/memory/chain/years/${encodeURIComponent(id)}`;
       const { ok, data } = await api<{
         present?: boolean;
         source?: string;
         content?: string;
-      }>(`/memory/chain/${encodeURIComponent(dayId)}`);
+      }>(path);
       if (!ok) {
-        setDayBody(t("memory.browse_fail"));
-        setDayEmpty(true);
+        setChainBody(t("memory.browse_fail"));
+        setChainEmpty(true);
         return;
       }
       if (!data.present) {
-        setDayBody(t("memory.chain_empty"));
-        setDayEmpty(true);
+        setChainBody(t("memory.chain_empty"));
+        setChainEmpty(true);
         return;
       }
-      const source =
-        data.source === "summary"
-          ? t("memory.source_summary")
-          : data.source === "ledger_fallback"
-            ? t("memory.source_ledger")
-            : data.source || "";
-      setDayMeta(source);
-      setDayBody(data.content?.trim() || t("empty.blank"));
-      setDayEmpty(!data.content?.trim());
+      if (level === "day") {
+        const source =
+          data.source === "summary"
+            ? t("memory.source_summary")
+            : data.source === "ledger_fallback"
+              ? t("memory.source_ledger")
+              : data.source || "";
+        setChainMeta(source);
+      } else {
+        setChainMeta(t("memory.source_summary"));
+      }
+      setChainBody(data.content?.trim() || t("empty.blank"));
+      setChainEmpty(!data.content?.trim());
     },
     [t],
   );
 
   const loadChainIndex = useCallback(async () => {
     setIndexEmpty("");
-    setDayBody(t("memory.browse_loading"));
-    setDayEmpty(false);
-    const { ok, data } = await api<{ present?: boolean; days?: DayIndex[] }>("/memory/chain");
-    if (!ok) {
-      setDays([]);
-      setIndexEmpty(t("memory.browse_fail"));
-      setDayBody(t("memory.browse_fail"));
-      setDayEmpty(true);
-      return;
+    setChainBody(t("memory.browse_loading"));
+    setChainEmpty(false);
+    const level = chainLevel;
+    let items: ChainItem[] = [];
+    let present = false;
+
+    if (level === "day") {
+      const { ok, data } = await api<{ present?: boolean; days?: DayIndex[] }>("/memory/chain");
+      if (!ok) {
+        setChainItems([]);
+        setIndexEmpty(t("memory.browse_fail"));
+        setChainBody(t("memory.browse_fail"));
+        setChainEmpty(true);
+        return;
+      }
+      present = !!data.present;
+      items = (data.days ?? []).map((d) => ({ id: d.day_id, preview: d.preview }));
+    } else if (level === "week") {
+      const { ok, data } = await api<{ present?: boolean; weeks?: WeekIndex[] }>(
+        "/memory/chain/weeks",
+      );
+      if (!ok) {
+        setChainItems([]);
+        setIndexEmpty(t("memory.browse_fail"));
+        setChainBody(t("memory.browse_fail"));
+        setChainEmpty(true);
+        return;
+      }
+      present = !!data.present;
+      items = (data.weeks ?? []).map((d) => ({ id: d.week_id, preview: d.preview }));
+    } else if (level === "month") {
+      const { ok, data } = await api<{ present?: boolean; months?: MonthIndex[] }>(
+        "/memory/chain/months",
+      );
+      if (!ok) {
+        setChainItems([]);
+        setIndexEmpty(t("memory.browse_fail"));
+        setChainBody(t("memory.browse_fail"));
+        setChainEmpty(true);
+        return;
+      }
+      present = !!data.present;
+      items = (data.months ?? []).map((d) => ({ id: d.month_id, preview: d.preview }));
+    } else {
+      const { ok, data } = await api<{ present?: boolean; years?: YearIndex[] }>(
+        "/memory/chain/years",
+      );
+      if (!ok) {
+        setChainItems([]);
+        setIndexEmpty(t("memory.browse_fail"));
+        setChainBody(t("memory.browse_fail"));
+        setChainEmpty(true);
+        return;
+      }
+      present = !!data.present;
+      items = (data.years ?? []).map((d) => ({ id: d.year_id, preview: d.preview }));
     }
-    if (!data.present || !data.days?.length) {
-      setDays([]);
+
+    if (!present || !items.length) {
+      setChainItems([]);
       setIndexEmpty(t("memory.chain_empty"));
-      setSelectedDayId(null);
-      setDayMeta("");
-      setDayBody(t("memory.chain_empty"));
-      setDayEmpty(true);
+      setSelectedChainId(null);
+      setChainMeta("");
+      setChainBody(t("memory.chain_empty"));
+      setChainEmpty(true);
       return;
     }
-    setDays(data.days);
-    setSelectedDayId((prev) => {
-      const next =
-        prev && data.days!.some((d) => d.day_id === prev) ? prev : data.days![0].day_id;
-      void loadChainDay(next);
+    setChainItems(items);
+    setSelectedChainId((prev) => {
+      const next = prev && items.some((d) => d.id === prev) ? prev : items[0]!.id;
+      void loadChainDetail(level, next);
       return next;
     });
-  }, [t, loadChainDay]);
+  }, [t, chainLevel, loadChainDetail]);
 
   const loadNodeDetail = useCallback(
     async (nodeId: string) => {
@@ -138,7 +204,7 @@ export function MemoryScene() {
     if (mode === "chain") void loadChainIndex();
     else void loadNodesIndex();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, chainLevel]);
 
   const filteredNodes = useMemo(() => {
     if (!nodes) return [];
@@ -159,6 +225,13 @@ export function MemoryScene() {
     if (next) void loadNodeDetail(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, nodes, filter]);
+
+  const levelLabel = (level: ChainLevel) => {
+    if (level === "day") return t("memory.chain_level_day");
+    if (level === "week") return t("memory.chain_level_week");
+    if (level === "month") return t("memory.chain_level_month");
+    return t("memory.chain_level_year");
+  };
 
   return (
     <section className="scene scene-fill is-active" role="tabpanel">
@@ -185,34 +258,50 @@ export function MemoryScene() {
       </div>
 
       {mode === "chain" ? (
-        <div className="browse-layout">
-          <div className="browse-index" role="listbox" aria-label={t("memory.mode_chain")}>
-            {indexEmpty ? (
-              <p className="browse-empty">{indexEmpty}</p>
-            ) : (
-              (days ?? []).map((day) => (
-                <button
-                  key={day.day_id}
-                  type="button"
-                  className={`browse-item${day.day_id === selectedDayId ? " is-selected" : ""}`}
-                  role="option"
-                  aria-current={day.day_id === selectedDayId ? "true" : undefined}
-                  onClick={() => void loadChainDay(day.day_id)}
-                >
-                  <span className="browse-item-id">{day.day_id}</span>
-                  {day.preview ? (
-                    <div className="browse-item-preview">{day.preview}</div>
-                  ) : null}
-                </button>
-              ))
-            )}
+        <>
+          <div className="memory-modes" role="tablist" aria-label={t("memory.chain_levels")}>
+            {(["day", "week", "month", "year"] as ChainLevel[]).map((level) => (
+              <button
+                key={level}
+                type="button"
+                className={`mode-btn${chainLevel === level ? " is-active" : ""}`}
+                role="tab"
+                aria-selected={chainLevel === level}
+                onClick={() => setChainLevel(level)}
+              >
+                {levelLabel(level)}
+              </button>
+            ))}
           </div>
-          <article className="browse-detail packet-block">
-            <h2>{selectedDayId ?? "—"}</h2>
-            <p className="browse-meta">{dayMeta}</p>
-            <MdBlock text={dayBody} empty={dayEmpty} />
-          </article>
-        </div>
+          <div className="browse-layout">
+            <div className="browse-index" role="listbox" aria-label={levelLabel(chainLevel)}>
+              {indexEmpty ? (
+                <p className="browse-empty">{indexEmpty}</p>
+              ) : (
+                (chainItems ?? []).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`browse-item${item.id === selectedChainId ? " is-selected" : ""}`}
+                    role="option"
+                    aria-current={item.id === selectedChainId ? "true" : undefined}
+                    onClick={() => void loadChainDetail(chainLevel, item.id)}
+                  >
+                    <span className="browse-item-id">{item.id}</span>
+                    {item.preview ? (
+                      <div className="browse-item-preview">{item.preview}</div>
+                    ) : null}
+                  </button>
+                ))
+              )}
+            </div>
+            <article className="browse-detail packet-block">
+              <h2>{selectedChainId ?? "—"}</h2>
+              <p className="browse-meta">{chainMeta}</p>
+              <MdBlock text={chainBody} empty={chainEmpty} />
+            </article>
+          </div>
+        </>
       ) : (
         <div className="browse-layout">
           <div className="browse-sidebar">

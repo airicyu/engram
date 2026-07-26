@@ -40,9 +40,17 @@ export async function readWhatCurrent(nodeId: string): Promise<string> {
   return extractCurrentSection(text);
 }
 
-/** Extract markdown content from a Current section. */
+/**
+ * Extract the live body from a summary／what markdown file.
+ * - Day／L2: content under `## Current` until `## History` (inner `##` section titles allowed).
+ * - Higher chain (week／month／year): no `## Current` wrapper — whole file is the body.
+ */
 export function extractCurrentSection(md: string): string {
-  const match = md.match(/## Current\s*\n([\s\S]*?)(?=\n## History|\n## [^C]|$)/);
+  if (!/^##\s*Current\b/m.test(md)) {
+    const beforeHistory = md.match(/^([\s\S]*?)(?=\n##\s*History\b|$)/);
+    return (beforeHistory ? beforeHistory[1] : md).trim();
+  }
+  const match = md.match(/##\s*Current\s*\n([\s\S]*?)(?=\n##\s*History\b|$)/);
   if (!match) return md.trim();
   return match[1].trim();
 }

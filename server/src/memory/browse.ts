@@ -1,6 +1,19 @@
-/** Browse index/detail for memory chain days and L2 nodes. */
+/** Browse index/detail for memory chain days/weeks/months/years and L2 nodes. */
 
 import { listChainDayIds, readDayForRecall } from "../store/chain";
+import {
+  listMonthIds,
+  listWeekIds,
+  listYearIds,
+  readHigherSummaryCurrent,
+  type HigherChainLevel,
+} from "../store/chain-higher";
+import {
+  isValidDayId as validDay,
+  isValidMonthId,
+  isValidWeekId,
+  isValidYearId,
+} from "../store/chain-time";
 import { listNodeIds, nodeExists, readWhatCurrent } from "../store/nodes";
 
 const PREVIEW_MAX = 80;
@@ -12,7 +25,19 @@ export function previewText(text: string, max = PREVIEW_MAX): string {
 }
 
 export function isValidDayId(id: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(id);
+  return validDay(id);
+}
+
+export function isValidWeekIdBrowse(id: string): boolean {
+  return isValidWeekId(id);
+}
+
+export function isValidMonthIdBrowse(id: string): boolean {
+  return isValidMonthId(id);
+}
+
+export function isValidYearIdBrowse(id: string): boolean {
+  return isValidYearId(id);
 }
 
 export function isValidNodeId(id: string): boolean {
@@ -49,6 +74,75 @@ export async function getChainDay(dayId: string): Promise<{
     return { day_id: dayId, content: null, source: "empty", present: false };
   }
   return { day_id: dayId, content, source, present: true };
+}
+
+async function listHigherIndex(level: HigherChainLevel): Promise<{
+  items: Array<{ id: string; preview: string }>;
+  present: boolean;
+}> {
+  const ids =
+    level === "week"
+      ? await listWeekIds()
+      : level === "month"
+        ? await listMonthIds()
+        : await listYearIds();
+  const items: Array<{ id: string; preview: string }> = [];
+  for (const id of ids) {
+    const current = await readHigherSummaryCurrent(level, id);
+    if (!current.trim()) continue;
+    items.push({ id, preview: previewText(current) });
+  }
+  return { items, present: items.length > 0 };
+}
+
+async function getHigherDetail(
+  level: HigherChainLevel,
+  id: string,
+): Promise<{ id: string; content: string | null; present: boolean }> {
+  const current = await readHigherSummaryCurrent(level, id);
+  if (!current.trim()) {
+    return { id, content: null, present: false };
+  }
+  return { id, content: current, present: true };
+}
+
+export async function listWeekIndex() {
+  const { items, present } = await listHigherIndex("week");
+  return {
+    weeks: items.map((x) => ({ week_id: x.id, preview: x.preview })),
+    present,
+  };
+}
+
+export async function getChainWeek(weekId: string) {
+  const d = await getHigherDetail("week", weekId);
+  return { week_id: d.id, content: d.content, present: d.present };
+}
+
+export async function listMonthIndex() {
+  const { items, present } = await listHigherIndex("month");
+  return {
+    months: items.map((x) => ({ month_id: x.id, preview: x.preview })),
+    present,
+  };
+}
+
+export async function getChainMonth(monthId: string) {
+  const d = await getHigherDetail("month", monthId);
+  return { month_id: d.id, content: d.content, present: d.present };
+}
+
+export async function listYearIndex() {
+  const { items, present } = await listHigherIndex("year");
+  return {
+    years: items.map((x) => ({ year_id: x.id, preview: x.preview })),
+    present,
+  };
+}
+
+export async function getChainYear(yearId: string) {
+  const d = await getHigherDetail("year", yearId);
+  return { year_id: d.id, content: d.content, present: d.present };
 }
 
 export async function listNodesIndex(): Promise<{

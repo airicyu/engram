@@ -23,7 +23,16 @@ import {
   handleMemoryAskGet,
   handleMemoryAskCancel,
 } from "./api/memory/ask";
-import { handleChainIndex, handleChainDay } from "./api/memory/chain";
+import {
+  handleChainIndex,
+  handleChainDay,
+  handleWeekIndex,
+  handleWeekDetail,
+  handleMonthIndex,
+  handleMonthDetail,
+  handleYearIndex,
+  handleYearDetail,
+} from "./api/memory/chain";
 import { handleNodesIndex, handleNodeDetail } from "./api/memory/nodes";
 import { handleFutureSight } from "./api/future-sight";
 import { logError, logInfo, logMemory, withRequestLog } from "./log";
@@ -53,6 +62,12 @@ try {
             "GET /memory/l1",
             "GET /memory/search",
             "GET /memory/chain",
+            "GET /memory/chain/weeks",
+            "GET /memory/chain/weeks/{week_id}",
+            "GET /memory/chain/months",
+            "GET /memory/chain/months/{month_id}",
+            "GET /memory/chain/years",
+            "GET /memory/chain/years/{year_id}",
             "GET /memory/chain/{day_id}",
             "GET /memory/nodes",
             "GET /memory/nodes/{node_id}",
@@ -215,6 +230,30 @@ try {
       }),
     },
 
+    "/memory/chain/weeks": {
+      GET: withRequestLog(async () => {
+        const body = await handleWeekIndex();
+        logMemory("browse chain weeks", { weeks: body.weeks.length, present: body.present });
+        return Response.json(body);
+      }),
+    },
+
+    "/memory/chain/months": {
+      GET: withRequestLog(async () => {
+        const body = await handleMonthIndex();
+        logMemory("browse chain months", { months: body.months.length, present: body.present });
+        return Response.json(body);
+      }),
+    },
+
+    "/memory/chain/years": {
+      GET: withRequestLog(async () => {
+        const body = await handleYearIndex();
+        logMemory("browse chain years", { years: body.years.length, present: body.present });
+        return Response.json(body);
+      }),
+    },
+
     "/memory/nodes": {
       GET: withRequestLog(async () => {
         const body = await handleNodesIndex();
@@ -238,6 +277,48 @@ try {
 
   fetch: withRequestLog(async (req) => {
     const url = new URL(req.url);
+
+    const weekMatch = url.pathname.match(/^\/memory\/chain\/weeks\/([^/]+)$/);
+    if (weekMatch && req.method === "GET") {
+      const weekId = decodeURIComponent(weekMatch[1]!);
+      const out = await handleWeekDetail(weekId);
+      if ("error" in out) {
+        return Response.json(
+          { error: out.error, message: "week_id must be YYYY-Www (ISO week)" },
+          { status: 400 },
+        );
+      }
+      logMemory("browse chain week", { week_id: out.week_id, present: out.present });
+      return Response.json(out);
+    }
+
+    const monthMatch = url.pathname.match(/^\/memory\/chain\/months\/([^/]+)$/);
+    if (monthMatch && req.method === "GET") {
+      const monthId = decodeURIComponent(monthMatch[1]!);
+      const out = await handleMonthDetail(monthId);
+      if ("error" in out) {
+        return Response.json(
+          { error: out.error, message: "month_id must be YYYY-MM" },
+          { status: 400 },
+        );
+      }
+      logMemory("browse chain month", { month_id: out.month_id, present: out.present });
+      return Response.json(out);
+    }
+
+    const yearMatch = url.pathname.match(/^\/memory\/chain\/years\/([^/]+)$/);
+    if (yearMatch && req.method === "GET") {
+      const yearId = decodeURIComponent(yearMatch[1]!);
+      const out = await handleYearDetail(yearId);
+      if ("error" in out) {
+        return Response.json(
+          { error: out.error, message: "year_id must be YYYY" },
+          { status: 400 },
+        );
+      }
+      logMemory("browse chain year", { year_id: out.year_id, present: out.present });
+      return Response.json(out);
+    }
 
     const chainMatch = url.pathname.match(/^\/memory\/chain\/([^/]+)$/);
     if (chainMatch && req.method === "GET") {

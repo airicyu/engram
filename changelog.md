@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.11.0 — Week／Month／Year Memory Chain (2026-07-26)
+
+Higher-granularity memory chain on top of day: summary-only week／month／year with planner→writer cascade inside the same dream pending review.
+
+### Added
+
+- **Day path grouping** — `memory-chain/days/{YYYY-MM}/{day}.md` (+ `.summary.md`); `bun run chain:migrate-days`
+- **Week／month／year summaries** — store layout + `initialized_{weeks,months,years}.yaml` (initialized ≠ freeze)
+- **Rollup pipeline** — after day extract／materialize: week → month → year planner（Y/N）then writer → same draft／`patches.jsonl` (`level` extended)
+- **Browse API** — `GET /memory/chain/weeks|months|years` (+ `/{id}`); empty → `200` + `present: false`
+- **Search** — chain hits include `level` (+ `id`; day keeps `day_id`)
+- **Web Memory** — Day｜Week｜Month｜Year chain browse
+- **`bun run chain:backfill`** — engineering backfill of higher summaries from day chain
+
+### Changed
+
+- Dream report lists higher-chain rollup decisions／init／revise
+- `memory-ask` prompt paths for grouped days + higher summaries
+- MVP “closed = freeze” superseded by **initialized + revisable** rollup
+- **Rollup writer** — prompts ask for multi-paragraph fused summary; mock／pipeline do **not** mid-cut with `…` (trust agent length judgment)
+- **Higher summaries** — week／month／year keep **latest snapshot only** (whole file = markdown body; no `## Current`／`## History` wrapper)
+- **Month／year writer** — organize by **life dimensions** with short content-derived `##` section titles (not a fixed Work／Family checklist; not calendar-linear tour); week may stay lightly chronological but still sectioned
+- **Day chain `summary`** — may use the same `##` section titles inside Current; store still wraps `## Current`／`## History`
+### Non-goals (unchanged)
+
+- No git store transactions; no higher-level ledgers; no cron scheduler
+
+---
+
 ## 0.10.0 — Web Vite + React (2026-07-25)
 
 Workbench UI rewritten as Vite + React + TypeScript; shared AppShell width for all scenes.

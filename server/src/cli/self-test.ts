@@ -190,19 +190,35 @@ async function main() {
       whatNewco.includes("Mock extract") || whatNewco.includes("Organization mentioned"),
       "L2 newco updated",
     );
-    const days = await readdir(join(TEST_HOME, "memory-chain/days"));
-    const ledgerFiles = days.filter((f) => /^\d{4}-\d{2}-\d{2}\.md$/.test(f));
-    const summaryFiles = days.filter((f) => /^\d{4}-\d{2}-\d{2}\.summary\.md$/.test(f));
-    assert(ledgerFiles.length > 0, "chain ledger day written");
-    assert(summaryFiles.length > 0, "chain summary day written");
-    const sampleDay = ledgerFiles[0].replace(/\.md$/, "");
+    const daysRoot = join(TEST_HOME, "memory-chain/days");
+    const monthDirs = (await readdir(daysRoot, { withFileTypes: true }))
+      .filter((e) => e.isDirectory() && /^\d{4}-\d{2}$/.test(e.name))
+      .map((e) => e.name);
+    assert(monthDirs.length > 0, "chain day files under YYYY-MM/");
+    let sampleDay = "";
+    let sampleMonth = "";
+    for (const month of monthDirs) {
+      const files = await readdir(join(daysRoot, month));
+      const ledger = files.find((f) => /^\d{4}-\d{2}-\d{2}\.md$/.test(f));
+      if (ledger) {
+        sampleDay = ledger.replace(/\.md$/, "");
+        sampleMonth = month;
+        break;
+      }
+    }
+    assert(!!sampleDay, "chain ledger day written");
+    const summaryExists = await readFile(
+      join(daysRoot, sampleMonth, `${sampleDay}.summary.md`),
+      "utf8",
+    ).then(() => true).catch(() => false);
+    assert(summaryExists, "chain summary day written");
     const ledgerBody = await readFile(
-      join(TEST_HOME, "memory-chain/days", `${sampleDay}.md`),
+      join(daysRoot, sampleMonth, `${sampleDay}.md`),
       "utf8",
     );
     assert(ledgerBody.includes("<!-- patch:"), "ledger has patch marker");
     const summaryBody = await readFile(
-      join(TEST_HOME, "memory-chain/days", `${sampleDay}.summary.md`),
+      join(daysRoot, sampleMonth, `${sampleDay}.summary.md`),
       "utf8",
     );
     assert(summaryBody.includes("## Current"), "summary has Current");
@@ -323,6 +339,16 @@ async function main() {
     const badDay = await json("GET", "/memory/chain/not-a-date");
     assert(badDay.status === 400 && badDay.data.error === "invalid_day_id", "invalid day_id");
 
+    const weeksEmpty = await json("GET", "/memory/chain/weeks");
+    assert(weeksEmpty.status === 200, "weeks index 200");
+    assert(typeof weeksEmpty.data.present === "boolean", "weeks present bool");
+    const badWeek = await json("GET", "/memory/chain/weeks/not-a-week");
+    assert(badWeek.status === 400 && badWeek.data.error === "invalid_week_id", "invalid week_id");
+    const badMonth = await json("GET", "/memory/chain/months/2026-13");
+    assert(badMonth.status === 400 && badMonth.data.error === "invalid_month_id", "invalid month_id");
+    const badYear = await json("GET", "/memory/chain/years/20");
+    assert(badYear.status === 400 && badYear.data.error === "invalid_year_id", "invalid year_id");
+
     await stopServer(server);
     server = await startServer("mock-ok");
 
@@ -414,7 +440,93 @@ Old foresight that should expire.
     const delClock = await json("DELETE", "/clock");
     assert(delClock.status === 200 && delClock.data.mode === "system", "DELETE → system");
 
-    console.log("\n✅ All 0.9 self-checks passed");
+    console.log("\nPhase 7: higher chain rollup (mock)");
+    // Clear leftover L1 from phase 6 under a clock where past months can roll
+    await json("PUT", "/clock", { now: "2026-07-01T22:00:00+08:00" });
+    for (let i = 0; i < 3; i++) {
+      const st = await json("GET", "/status");
+      if (st.data.l1_empty === true) break;
+      if (st.data.dream_status === "pending_review") {
+        await json("POST", "/dream/approve", {});
+        continue;
+      }
+      const dClear = await json("POST", "/dream/run");
+      if (dClear.status !== 202) break;
+      await waitForJob(
+        (job, st2) =>
+          job?.dream_run_id === dClear.data.job_id &&
+          job?.status === "completed" &&
+          (st2.dream_status === "pending_review" || st2.dream_status === "ok"),
+      );
+      const pend = await json("GET", "/dream/pending");
+      if (pend.data.present) await json("POST", "/dream/approve", {});
+    }
+    {
+      const st = await json("GET", "/status");
+      assert(st.data.l1_empty === true, "L1 cleared before rollup fixture");
+    }
+
+    await json("PUT", "/clock", { now: "2026-06-20T20:00:00+08:00" });
+    const capJun = await json("POST", "/capture", {
+      raw: "June day event for month rollup",
+      source: "test",
+    });
+    assert(capJun.status === 201, "june capture");
+    await json("PUT", "/clock", { now: "2026-07-02T22:00:00+08:00" });
+    const dRoll = await json("POST", "/dream/run");
+    assert(dRoll.status === 202, "rollup dream 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dRoll.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
+    const pendRoll = await json("GET", "/dream/pending");
+    assert(pendRoll.data.present === true, "rollup pending");
+    const report = String(pendRoll.data.report ?? "");
+    assert(
+      report.includes("Higher chain rollup") || /week|month|year/i.test(report),
+      "report mentions rollup",
+    );
+    const apRoll = await json("POST", "/dream/approve", {});
+    assert(apRoll.status === 200, "approve rollup");
+
+    const monthsIdx = await json("GET", "/memory/chain/months");
+    assert(monthsIdx.status === 200 && monthsIdx.data.present === true, "months present after rollup");
+    assert(
+      (monthsIdx.data.months as Array<{ month_id: string }>).some((m) => m.month_id === "2026-06"),
+      "June month summary exists",
+    );
+
+    await json("PUT", "/clock", { now: "2026-06-29T18:00:00+08:00" });
+    const capBack = await json("POST", "/capture", {
+      raw: "June 29 backfill after month initialized",
+      source: "test",
+    });
+    assert(capBack.status === 201, "backfill capture");
+    await json("PUT", "/clock", { now: "2026-07-03T22:00:00+08:00" });
+    const dRev = await json("POST", "/dream/run");
+    assert(dRev.status === 202, "revise dream 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dRev.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
+    const apRev = await json("POST", "/dream/approve", {});
+    assert(apRev.status === 200, "approve revise rollup");
+    const monthDet = await json("GET", "/memory/chain/months/2026-06");
+    assert(monthDet.status === 200 && monthDet.data.present === true, "june month still present");
+    const monthText = String(monthDet.data.content ?? "");
+    assert(monthText.length > 20, "month summary has content");
+    assert(!/^##\s*Current\b/m.test(monthText), "higher summary has no Current wrapper");
+    assert(/^##\s+\S+/m.test(monthText), "month summary has ## section title");
+    assert(!/^[-*]\s*\d{4}/m.test(monthText), "month summary is not an id-bullet dump");
+    assert(!/summary\s*\(mock\)\s*for/i.test(monthText), "month summary has no mock dump label");
+
+    await json("DELETE", "/clock");
+
+    console.log("\n✅ All 0.11 self-checks passed");
   } finally {
     await stopServer(server);
   }

@@ -54,6 +54,13 @@ export async function appendPatchesIfNew(
   if (await hasPatchesForRun(dreamRunId)) {
     return { written: false, patches: await patchesForRun(dreamRunId) };
   }
+  await appendPatches(patches);
+  return { written: true, patches };
+}
+
+/** Unconditionally append patches (e.g. week／month／year rollup after day extract). */
+export async function appendPatches(patches: Patch[]): Promise<void> {
+  if (patches.length === 0) return;
   const fh = await open(patchesPath(), "a");
   try {
     for (const p of patches) {
@@ -62,5 +69,4 @@ export async function appendPatchesIfNew(
   } finally {
     await fh.close();
   }
-  return { written: true, patches };
 }

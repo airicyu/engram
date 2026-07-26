@@ -20,7 +20,8 @@ now: {{NOW}}
 |------|------|
 | L1 pool | `short-term-memory/pool.jsonl`, `short-term-memory/summary.md` |
 | L2 nodes | `nodes/{id}/understand/what.md` — Current under `## Current` |
-| Day chain | `memory-chain/days/{YYYY-MM-DD}.summary.md` (prefer), `memory-chain/days/{YYYY-MM-DD}.md` ledger |
+| Day chain | `memory-chain/days/{YYYY-MM}/{YYYY-MM-DD}.summary.md` (prefer), `…/{YYYY-MM-DD}.md` ledger |
+| Week／month／year | `memory-chain/weeks/{YYYY-MM}/{YYYY-Www}.summary.md`, `months/{YYYY}/{YYYY-MM}.summary.md`, `years/{YYYY}.summary.md` |
 
 Do **not** read `future-sight/`. Do **not** scan all of `log/events.jsonl` unless necessary — prefer L1, L2, chain.
 

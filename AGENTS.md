@@ -20,7 +20,7 @@
 | **L1** | 短期記憶 pool（`short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
 | **L1.5** | dream intent（`dream/patches.jsonl` + report）+ draft 投影（`dream/draft/{run_id}/`）；Approve 才 commit 至 L2 |
 | **L2** | 長期 node 理解（`nodes/{id}/understand/what.md`） |
-| **chain** | 日級記憶鏈（`memory-chain/days/`） |
+| **chain** | 日／週／月／年記憶鏈（`memory-chain/days|weeks|months|years/`） |
 | **future-sight** | 近程前瞻錨點（`future-sight/active/`）；過期 → L0/L1 event 後硬清 |
 
 產品循環對齊 UI：**Capture → Consolidate → Seek → Memory**（對應 capture / dream / seek+browse）。

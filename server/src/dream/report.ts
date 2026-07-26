@@ -55,8 +55,10 @@ export function buildDreamReport(opts: {
   }
 
   const chains = patches.filter((p): p is Extract<Patch, { type: "chain" }> => p.type === "chain");
+  const dayChains = chains.filter((p) => p.level === "day");
+  const higherChains = chains.filter((p) => p.level !== "day");
   const misfiled = futureChainIds(patches, today);
-  const occurrence = chains.filter((p) => !misfiled.includes(p.id));
+  const occurrence = dayChains.filter((p) => !misfiled.includes(p.id));
 
   lines.push("## Timeline (proposed)");
   lines.push("");
@@ -78,15 +80,26 @@ export function buildDreamReport(opts: {
           lines.push("");
           lines.push("<details><summary>ledger increment</summary>");
           lines.push("");
-          lines.push(c.content.trim());
+          lines.push((c.content ?? "").trim());
           lines.push("");
           lines.push("</details>");
         } else {
-          lines.push(`- ${c.content.trim()}`);
+          lines.push(`- ${(c.content ?? "").trim()}`);
         }
       }
       lines.push("");
     }
+  }
+
+  if (higherChains.length > 0) {
+    lines.push("## Higher chain summaries (proposed)");
+    lines.push("");
+    for (const c of higherChains) {
+      lines.push(
+        `- **${c.level}** \`${c.id}\` (${c.summary_operation ?? "?"}): ${(c.summary ?? "").trim()}`,
+      );
+    }
+    lines.push("");
   }
 
   const futures = patches.filter(
@@ -123,7 +136,7 @@ export function buildDreamReport(opts: {
     lines.push("");
     for (const id of misfiled) {
       const patch = chains.find((c) => c.id === id);
-      lines.push(`- **${id}** — ${patch?.content.trim() ?? "(no content)"}`);
+      lines.push(`- **${id}** — ${patch?.content?.trim() ?? "(no content)"}`);
     }
     lines.push("");
   }

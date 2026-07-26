@@ -30,7 +30,7 @@
 
 | EN | 中文 | 說明 | API | 備註 |
 |----|------|------|-----|------|
-| **Day chain browse** | 記憶鏈翻閱 | 日級 index（新→舊）+ 按需 detail | `GET /memory/chain`、`GET /memory/chain/{day_id}` | 與 Search 分工：列表點選，非 keyword |
+| **Day／week／month／year chain browse** | 記憶鏈翻閱 | 各層 index（新→舊）+ detail | `GET /memory/chain`、`/weeks`、`/months`、`/years`（及 `/{id}`） | 0.11.0 四層；與 Search 分工 |
 | **Nodes browse** | 節點翻閱 | L2 index（字母序）+ what Current detail | `GET /memory/nodes`、`GET /memory/nodes/{node_id}` | filter 在客戶端 |
 | **L1 preview** | L1 預覽 | Capture 場景顯示短期 pool 摘要 | `GET /memory/l1` | 僅 L1；不在 Memory 場景瀏覽 |
 
@@ -63,7 +63,7 @@
 | **L1** | 短期記憶層 | 尚未整理進長期的工作區 pool | `short-term-memory/pool.jsonl` | Capture 寫入；Approve 後清 scope S |
 | **L1.5** | 入夢中間層 | 由 L1 入夢產出、待 Approve 才進 L2（patch + 報告 + draft） | `dream/patches.jsonl`、`dream/draft/` | patch log 唯附加 |
 | **L2** | 長期理解層 | 對 node 目前「相信什麼」 | `nodes/{id}/understand/what.md` | Approve 寫入；可手改 |
-| **chain** | 記憶鏈／時間軸 | 日級公共時間軸（世界發生了什麼） | `memory-chain/days/` | MVP 僅 day 級；0.5.0 起拆 **ledger**／**summary**（見下） |
+| **chain** | 記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memory-chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary |
 | **future-sight** | 近程前瞻 | 短期要盯的錨點（deadline 等） | `future-sight/active/` | 過期寫 event 後硬刪 |
 
 **一句話對照：**
@@ -113,7 +113,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 |-----------|------|------|----------|
 | **propose_node** | 提議新建節點 | 建議新建 node（人／組織／主題） | `nodes/{id}/` |
 | **semantic** (`facet: what`) | 語意更新 | 更新 node「是什麼」 | `understand/what.md` |
-| **chain** (`level: day`) | 日鏈 | 某**發生日**的全局紀錄 | `memory-chain/days/{id}.md`（ledger）；`…/{id}.summary.md`（summary，0.5.0） |
+| **chain** (`level: day`) | 日鏈 | 某**發生日**的全局紀錄 | `memory-chain/days/{YYYY-MM}/{id}.md`（ledger）；`…/{id}.summary.md`（summary，0.5.0） |
 | **future** | 前瞻錨點 | 近程要留意的事 | `future-sight/active/{id}.md` |
 | **episodic** | 情節歸因 | 低信心候選；高信心原型 no-op | attribution 候選 |
 
@@ -183,8 +183,8 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 
 | EN | 中文 | 說明 | 路徑 | 寫入 |
 |----|------|------|------|------|
-| **chain ledger** | 日鏈增量紀錄 | patch block 稽核鏈；append-only | `memory-chain/days/{id}.md` | 機械 append |
-| **chain summary** | 日鏈融合摘要 | 可讀的當日敘事；search 命中時回傳 | `memory-chain/days/{id}.summary.md` | extract 產出 `summary`；approve 機械 revise |
+| **chain ledger** | 日鏈增量紀錄 | patch block 稽核鏈；append-only | `memory-chain/days/{YYYY-MM}/{id}.md` | 機械 append |
+| **chain summary** | 日鏈融合摘要 | 可讀的當日敘事；search 命中時回傳 | `memory-chain/days/{YYYY-MM}/{id}.summary.md` | extract 產出 `summary`；approve 機械 revise |
 
 - 一筆 `chain` patch 同時寫 ledger block 與 summary（`summary_operation`: `init` \| `revise`）。
 - 既有 `days/*.md` 視為 ledger；summary 由下一輪 dream 產生。
@@ -233,8 +233,8 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | `dream/draft/{run_id}/` | pending draft | 待審草稿 |
 | `dream/reports/{run_id}.md` | human report | 人類可讀報告 |
 | `nodes/{id}/understand/what.md` | L2 semantic understanding | L2 語意理解 |
-| `memory-chain/days/*.md` | chain ledger (day) | 日鏈增量紀錄（0.5.0 語義） |
-| `memory-chain/days/*.summary.md` | chain summary (day) | 日鏈融合摘要（0.5.0） |
+| `memory-chain/days/{YYYY-MM}/*.md` | chain ledger (day) | 日鏈增量紀錄（0.5.0 語義；0.11.0 起按月分組） |
+| `memory-chain/days/{YYYY-MM}/*.summary.md` | chain summary (day) | 日鏈融合摘要（0.5.0；0.11.0 起按月分組） |
 | `future-sight/active/*.md` | active future anchor | 活躍前瞻錨點 |
 | `web/` | workbench UI | 工作台介面 |
 | `.claude/skills/engram-workbench/` | engram-workbench skill | 工作台 HTTP skill |

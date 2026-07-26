@@ -50,6 +50,12 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | `GET` | `/memory/search?q=&scope=` | keyword hits (`q` required) |
 | `GET` | `/memory/chain` | day chain index (browse) |
 | `GET` | `/memory/chain/{day_id}` | day chain detail |
+| `GET` | `/memory/chain/weeks` | week index |
+| `GET` | `/memory/chain/weeks/{week_id}` | week detail |
+| `GET` | `/memory/chain/months` | month index |
+| `GET` | `/memory/chain/months/{month_id}` | month detail |
+| `GET` | `/memory/chain/years` | year index |
+| `GET` | `/memory/chain/years/{year_id}` | year detail |
 | `GET` | `/memory/nodes` | L2 node index (browse) |
 | `GET` | `/memory/nodes/{node_id}` | L2 node detail |
 | `POST` | `/memory/ask` | async AI Q&A |
@@ -75,6 +81,19 @@ bun run reset
 # or another home:
 ENGRAM_HOME=/tmp/engram-try bun run reset
 ```
+
+## Chain layout migration / backfill
+
+```bash
+# Flat days/*.md → days/YYYY-MM/… (idempotent)
+ENGRAM_HOME=/path/to/store bun run chain:migrate-days
+
+# Build week／month／year summaries from existing day summaries (engineering)
+ENGRAM_HOME=/path/to/store ENGRAM_AGENT=mock-ok bun run chain:backfill -- --level=all
+# or: --level=month --until=2026-07
+```
+
+Pending drafts are not guaranteed compatible across day-layout migration — discard pending first.
 
 ## Self-test
 

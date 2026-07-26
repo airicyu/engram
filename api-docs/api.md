@@ -30,6 +30,12 @@ Service discovery.
     "GET /memory/l1",
     "GET /memory/search",
     "GET /memory/chain",
+    "GET /memory/chain/weeks",
+    "GET /memory/chain/weeks/{week_id}",
+    "GET /memory/chain/months",
+    "GET /memory/chain/months/{month_id}",
+    "GET /memory/chain/years",
+    "GET /memory/chain/years/{year_id}",
     "GET /memory/chain/{day_id}",
     "GET /memory/nodes",
     "GET /memory/nodes/{node_id}",
@@ -396,7 +402,8 @@ Keyword search across L1, memory-chain days, and L2 nodes. **`q` is required** (
     { "node": "acme", "what_current": "…", "match_reason": "node_id" }
   ],
   "chain": [
-    { "day_id": "2026-07-23", "content": "…", "source": "summary" }
+    { "day_id": "2026-07-23", "id": "2026-07-23", "level": "day", "content": "…", "source": "summary" },
+    { "id": "2026-W28", "level": "week", "content": "…", "source": "summary" }
   ]
 }
 ```
@@ -406,7 +413,7 @@ Keyword search across L1, memory-chain days, and L2 nodes. **`q` is required** (
 | `scope` | Scopes searched on this request (echo) |
 | `nodes` | Present only when `nodes` in scope; L2 hits (`node_id` \| `what_content` \| `l1_note`) |
 | `l1` | Present only when `l1` in scope; `null` when no L1 hit |
-| `chain` | Present only when `chain` in scope; all matching days (summary preferred) |
+| `chain` | Present only when `chain` in scope; day／week／month／year hits. Each has `id` + `level`; day also keeps `day_id` |
 
 No matches → `200` with requested scope keys empty (`nodes: []`, `l1: null`, or `chain: []`). Does **not** include `dream_status` or future-sight.
 
@@ -437,6 +444,30 @@ Day chain **index** (newest first). Lightweight: `day_id` + `preview` + `source`
 | `present` | `days.length > 0` |
 
 Empty store → `{ "days": [], "present": false }`.
+
+---
+
+## `GET /memory/chain/weeks` · `…/months` · `…/years`
+
+Higher-granularity **index** (newest first). Same preview rules as day (80 chars).
+
+**Response `200` examples:**
+
+```json
+{ "weeks": [{ "week_id": "2026-W25", "preview": "…" }], "present": true }
+{ "months": [{ "month_id": "2026-06", "preview": "…" }], "present": true }
+{ "years": [{ "year_id": "2026", "preview": "…" }], "present": true }
+```
+
+Empty → `present: false` and empty array (not 404).
+
+## `GET /memory/chain/weeks/{week_id}` · `…/months/{month_id}` · `…/years/{year_id}`
+
+**Detail** — higher summary markdown body (sectioned with short `##` titles; no `## Current` wrapper).  
+Illegal id → **`400`** (`invalid_week_id` / `invalid_month_id` / `invalid_year_id`).  
+Missing → **`200`** `{ …_id, content: null, present: false }`.
+
+Ids: week `YYYY-Www` (ISO), month `YYYY-MM`, year `YYYY`.
 
 ---
 
@@ -519,7 +550,8 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 |------|------------|
 | `propose_node` | Create live node under `nodes/{id}/` (seed what／meta) |
 | `semantic` (`facet: what`) | Update `nodes/{id}/understand/what.md` |
-| `chain` (`level: day`) | Dual-track: append ledger `memory-chain/days/{id}.md` **and** init／revise summary `memory-chain/days/{id}.summary.md` (`summary`, `summary_operation`: `init`\|`revise`). Occurrence day only; future ids blocked at approve. Legacy patches without `summary` write ledger only. |
+| `chain` (`level: day`) | Dual-track: append ledger `memory-chain/days/{YYYY-MM}/{id}.md` **and** init／revise summary `…/{id}.summary.md`. Occurrence day only; future day ids blocked at approve. Legacy without `summary` → ledger only. |
+| `chain` (`level: week`｜`month`｜`year`) | Summary-only rollup from post-extract planner／writer (not day extract). Paths: `weeks/…`、`months/…`、`years/…`. `summary` + `summary_operation` required; no ledger. |
 | `future` | Write／overwrite `future-sight/active/{id}.md` — near-horizon anchor; stale `anchor_end` blocked |
 | `episodic` (confidence &lt; 0.6) | Attribution candidate |
 | `episodic` (≥ 0.6) | No-op (chronology not in prototype) |

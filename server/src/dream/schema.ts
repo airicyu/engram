@@ -35,16 +35,21 @@ export interface EpisodicPatch extends PatchBase {
   content: string;
 }
 
-/** Daily memory-chain ledger and summary update. */
+/** Daily or higher memory-chain update. */
+export type ChainLevel = "day" | "week" | "month" | "year";
+
 export interface ChainPatch extends PatchBase {
   type: "chain";
-  level: "day";
+  level: ChainLevel;
   id: string;
-  /** Incremental ledger block text → `days/{id}.md` append. */
-  content: string;
   /**
-   * Fused day narrative → `days/{id}.summary.md` Current.
-   * Optional only for legacy patches (ledger-only); new extract must include it.
+   * Day ledger block → `days/…/{id}.md` append.
+   * Required for `level: day`; omit / empty for week／month／year (summary-only).
+   */
+  content?: string;
+  /**
+   * Fused narrative → `*.summary.md` Current.
+   * Optional for legacy day patches (ledger-only); required for week／month／year.
    */
   summary?: string;
   /** Present iff `summary` is set. */
@@ -102,12 +107,29 @@ function optStringArray(obj: Record<string, unknown>, key: string): string[] | u
 }
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const WEEK_RE = /^\d{4}-W\d{2}$/;
+const MONTH_RE = /^\d{4}-\d{2}$/;
+const YEAR_RE = /^\d{4}$/;
 const FUTURE_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 
 function reqDay(obj: Record<string, unknown>, key: string): string {
   const v = reqString(obj, key);
   if (!DAY_RE.test(v)) throw new Error(`invalid YYYY-MM-DD field: ${key}`);
   return v;
+}
+
+function parseChainId(level: ChainLevel, id: string): string {
+  if (level === "day" && DAY_RE.test(id)) return id;
+  if (level === "week" && WEEK_RE.test(id)) {
+    const week = Number(id.slice(6));
+    if (week >= 1 && week <= 53) return id;
+  }
+  if (level === "month" && MONTH_RE.test(id)) {
+    const month = Number(id.slice(5, 7));
+    if (month >= 1 && month <= 12) return id;
+  }
+  if (level === "year" && YEAR_RE.test(id)) return id;
+  throw new Error(`invalid chain id for level ${level}: ${id}`);
 }
 
 /** Validate and normalize one untrusted patch value. */
@@ -162,8 +184,12 @@ export function parsePatch(raw: unknown): Patch {
       };
     }
     case "chain": {
-      const level = reqString(raw, "level");
-      if (level !== "day") throw new Error(`unsupported chain level: ${level}`);
+      const levelRaw = reqString(raw, "level");
+      if (!["day", "week", "month", "year"].includes(levelRaw)) {
+        throw new Error(`unsupported chain level: ${levelRaw}`);
+      }
+      const level = levelRaw as ChainLevel;
+      const id = parseChainId(level, reqString(raw, "id"));
       const hasSummary = raw.summary !== undefined;
       const hasOp = raw.summary_operation !== undefined;
       if (hasSummary !== hasOp) {
@@ -179,15 +205,38 @@ export function parsePatch(raw: unknown): Patch {
         }
         summary_operation = op;
       }
+
+      if (level === "day") {
+        const content = reqString(raw, "content");
+        return {
+          type: "chain",
+          patch_id,
+          dream_run_id,
+          ts,
+          event_refs,
+          level: "day",
+          id,
+          content,
+          summary,
+          summary_operation,
+        };
+      }
+
+      // week / month / year: summary-only
+      if (!summary || !summary_operation) {
+        throw new Error(`${level} chain patch requires summary and summary_operation`);
+      }
+      if (raw.content !== undefined && String(raw.content).trim() !== "") {
+        throw new Error(`${level} chain patch must not include ledger content`);
+      }
       return {
         type: "chain",
         patch_id,
         dream_run_id,
         ts,
         event_refs,
-        level: "day",
-        id: reqString(raw, "id"),
-        content: reqString(raw, "content"),
+        level,
+        id,
         summary,
         summary_operation,
       };

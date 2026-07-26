@@ -1,7 +1,14 @@
-/** Keyword search across L1, L2 nodes, and memory-chain days. */
+/** Keyword search across L1, L2 nodes, and memory-chain (day／week／month／year). */
 
 import { readSummary, readAllNodeNotes } from "../store/l1";
 import { listChainDayIds, readDayForRecall } from "../store/chain";
+import {
+  listMonthIds,
+  listWeekIds,
+  listYearIds,
+  readHigherSummaryCurrent,
+  type HigherChainLevel,
+} from "../store/chain-higher";
 import { listNodeIds, readWhatCurrent } from "../store/nodes";
 
 export const SEARCH_SCOPES = ["l1", "nodes", "chain"] as const;
@@ -21,7 +28,11 @@ export interface MemorySearchL1Hit {
 }
 
 export interface MemorySearchChainHit {
-  day_id: string;
+  /** Present for day hits (compat). */
+  day_id?: string;
+  /** Stable id for this hit (day／week／month／year). */
+  id: string;
+  level: "day" | "week" | "month" | "year";
   content: string;
   source: "summary" | "ledger_fallback";
 }
@@ -81,7 +92,7 @@ export async function searchMemory(
     result.l1 = matchL1(summary, node_notes, qLower);
   }
   if (scopes.includes("chain")) {
-    result.chain = await matchChainDays(qLower);
+    result.chain = await matchChain(qLower);
   }
 
   return result;
@@ -136,16 +147,30 @@ function matchL1(
   return { summary: summaryHit, node_notes: notes };
 }
 
-async function matchChainDays(qLower: string): Promise<MemorySearchChainHit[]> {
+async function matchChain(qLower: string): Promise<MemorySearchChainHit[]> {
   const out: MemorySearchChainHit[] = [];
   for (const day_id of await listChainDayIds()) {
     const day = await readDayForRecall(day_id);
     if (day.source === "empty" || !contains(day.content, qLower)) continue;
     out.push({
       day_id,
+      id: day_id,
+      level: "day",
       content: day.content,
       source: day.source,
     });
   }
+
+  async function matchHigher(level: HigherChainLevel, ids: string[]) {
+    for (const id of ids) {
+      const content = await readHigherSummaryCurrent(level, id);
+      if (!content.trim() || !contains(content, qLower)) continue;
+      out.push({ id, level, content, source: "summary" });
+    }
+  }
+
+  await matchHigher("week", await listWeekIds());
+  await matchHigher("month", await listMonthIds());
+  await matchHigher("year", await listYearIds());
   return out;
 }
