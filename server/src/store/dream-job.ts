@@ -28,7 +28,7 @@ export interface DreamJobState {
 }
 
 function jobPath(): string {
-  return homePath("dream", "dream-job.yaml");
+  return homePath("dreams", "dream-job.yaml");
 }
 
 async function exists(path: string): Promise<boolean> {

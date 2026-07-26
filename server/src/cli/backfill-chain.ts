@@ -2,8 +2,8 @@
  * Backfill week／month／year summaries from existing day chain (force execute).
  *
  * Usage:
- *   ENGRAM_HOME=… ENGRAM_AGENT=mock-ok bun run chain:backfill -- --level=month --until=2026-07
- *   ENGRAM_HOME=… bun run chain:backfill -- --level=all
+ *   ENGRAM_STORE_DIR=… ENGRAM_AGENT=mock-ok bun run chain:backfill -- --level=month --until=2026-07
+ *   ENGRAM_STORE_DIR=… bun run chain:backfill -- --level=all
  *
  * Uses a synthetic dream_run_id; writes patches + materializes + auto-commits
  * (engineering tool — not the interactive pending_review path).
@@ -50,7 +50,7 @@ function dayIncluded(dayId: string, until: string | null): boolean {
 async function main() {
   await ensureEngramHome();
   const { level, until } = parseArgs(process.argv.slice(2));
-  console.log(`backfill under ${config.engramHome} level=${level} until=${until ?? "(none)"}`);
+  console.log(`backfill under ${config.storeDir} level=${level} until=${until ?? "(none)"}`);
 
   const dayIds = (await listChainDayIds()).filter((d) => dayIncluded(d, until));
   if (dayIds.length === 0) {

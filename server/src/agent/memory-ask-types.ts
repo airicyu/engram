@@ -16,7 +16,7 @@ export interface AskAnswer {
 export interface AskInput {
   job_id: string;
   q: string;
-  engram_home: string;
+  store_dir: string;
   timezone: string;
   /** Effective memory write language: zh-Hant | zh-Hans | en. */
   memory_language: string;

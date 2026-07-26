@@ -17,11 +17,11 @@ export interface DreamEvent {
 }
 
 function runDir(dreamRunId: string): string {
-  return homePath("dream", "runs", dreamRunId);
+  return homePath("dreams", "runs", dreamRunId);
 }
 
 function eventsPath(dreamRunId: string): string {
-  return homePath("dream", "runs", dreamRunId, "events.jsonl");
+  return homePath("dreams", "runs", dreamRunId, "events.jsonl");
 }
 
 /** Append one event to the run log. */

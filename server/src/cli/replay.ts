@@ -3,7 +3,7 @@
  *
  * Prerequisites:
  *   - Server running with ENGRAM_ALLOW_VIRTUAL_CLOCK=1
- *   - Prefer a dedicated ENGRAM_HOME (reset before long runs)
+ *   - Prefer a dedicated ENGRAM_STORE_DIR (reset before long runs)
  *
  * Usage:
  *   bun run replay -- --fixture=fixtures/replay-sample.jsonl
@@ -220,13 +220,13 @@ async function main() {
       if (set.status !== 200) {
         throw new Error(`PUT /clock failed: ${JSON.stringify(set.data)}`);
       }
-      const cap = await api(opts.baseUrl, "POST", "/capture", {
+      const cap = await api(opts.baseUrl, "POST", "/activities", {
         raw: ev.raw,
         source: ev.source ?? "replay",
         node_refs: ev.node_refs,
       });
       if (cap.status !== 201) {
-        throw new Error(`POST /capture failed: ${JSON.stringify(cap.data)}`);
+        throw new Error(`POST /activities failed: ${JSON.stringify(cap.data)}`);
       }
       console.log(`  capture ${cap.data.event_id} @ ${ev.ts}`);
     }
@@ -242,9 +242,9 @@ async function main() {
     }
     console.log(`  clock → ${clockDream.data.now} (dream)`);
 
-    const run = await api(opts.baseUrl, "POST", "/dream/run");
+    const run = await api(opts.baseUrl, "POST", "/dreams/run");
     if (run.status !== 202 && run.status !== 200) {
-      throw new Error(`POST /dream/run failed: ${JSON.stringify(run.data)}`);
+      throw new Error(`POST /dreams/run failed: ${JSON.stringify(run.data)}`);
     }
     console.log(`  dream submitted (${run.data.job_id ?? run.data.dream_run_id ?? "ok"})`);
 
@@ -258,18 +258,18 @@ async function main() {
       );
       const st = await api(opts.baseUrl, "GET", "/status");
       if (st.data.dream_status === "pending_review") {
-        const ap = await api(opts.baseUrl, "POST", "/dream/approve");
+        const ap = await api(opts.baseUrl, "POST", "/dreams/approve");
         if (ap.status !== 200) {
-          throw new Error(`POST /dream/approve failed: ${JSON.stringify(ap.data)}`);
+          throw new Error(`POST /dreams/approve failed: ${JSON.stringify(ap.data)}`);
         }
         console.log("  approved (was still pending)");
       } else {
         console.log(`  skipped approve (dream_status=${st.data.dream_status})`);
       }
     } else {
-      const ap = await api(opts.baseUrl, "POST", "/dream/approve");
+      const ap = await api(opts.baseUrl, "POST", "/dreams/approve");
       if (ap.status !== 200) {
-        throw new Error(`POST /dream/approve failed: ${JSON.stringify(ap.data)}`);
+        throw new Error(`POST /dreams/approve failed: ${JSON.stringify(ap.data)}`);
       }
       console.log("  approved");
     }

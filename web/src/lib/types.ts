@@ -1,7 +1,7 @@
-export type SceneId = "capture" | "consolidate" | "seek" | "memory";
+export type SceneId = "activities" | "consolidate" | "seek" | "memory";
 
 export type Status = {
-  engram_home?: string;
+  store_dir?: string;
   lock: boolean;
   l1_empty: boolean;
   pending_dlq_count: number;

@@ -25,7 +25,7 @@ import { emitDreamEvent } from "../dream/emit-event";
 import { logError, logInfo } from "../log";
 
 const DREAM_SUBMITTED_MESSAGE =
-  "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dream/pending then approve, discard, or retry.";
+  "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dreams/pending then approve, discard, or retry.";
 
 function startDreamJob(
   dreamRunId: string,

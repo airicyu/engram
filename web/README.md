@@ -1,6 +1,6 @@
 # Engram Web (0.10.0)
 
-Vite + React + TypeScript workbench for **Capture → Consolidate → Seek → Memory**. Talks only to the HTTP API (never touches `ENGRAM_HOME`).
+Vite + React + TypeScript workbench for **Activities → Consolidate → Seek → Memory**. Talks only to the HTTP API (never touches `ENGRAM_STORE_DIR`).
 
 ## Prerequisites
 
@@ -45,10 +45,10 @@ Env: copy [`.env.example`](.env.example) → `.env`（皆可選）。
 
 | Scene | What it does |
 |-------|----------------|
-| **Capture** | `POST /capture` · show L1 via `GET /memory/l1` |
+| **Activities** (`activities`) | `POST /activities` · show L1 via `GET /memories/short-term-memory` |
 | **Consolidate** | Dream → pending report → Approve／Discard／Cancel；`GET /status` |
-| **Seek** | **Search** — `GET /memory/search?q=&scope=` · **Ask** — `POST /memory/ask` |
-| **Memory** | **Day chain** — `GET /memory/chain` + detail · **Nodes** — `GET /memory/nodes` + detail (client filter) |
+| **Seek** | **Search** — `GET /memories/search?q=&scope=` · **Ask** — `POST /memories/ask` |
+| **Memory** | **Day chain** — `GET /memories/chain` + detail · **Nodes** — `GET /memories/nodes` + detail (client filter) |
 
 Status light polls `/status`: ~3s while lock／dreaming／ask，~20s during `pending_review`，~60s when idle.
 
@@ -65,7 +65,7 @@ Shell strings — **繁體中文** (`zh-Hant`, default) and **English** (`en`). 
 |------|------|
 | `src/App.tsx` | AppShell + scene switch |
 | `src/components/Topbar.tsx` | Brand, scenes, locale, status |
-| `src/scenes/*` | Capture／Consolidate／Seek／Memory |
+| `src/scenes/*` | Activities／Consolidate／Seek／Memory |
 | `src/context/StatusContext.tsx` | `/status` poll |
 | `src/lib/api.ts` | `/api` fetch helper |
 | `server.ts` | Prod static + proxy |

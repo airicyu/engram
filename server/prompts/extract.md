@@ -49,7 +49,7 @@ When `review_feedback` is absent, ignore this section.
 10. For `semantic` / `episodic` on an id not in `existing_nodes`, you MUST also emit `propose_node` for that id in this same array.
 11. Vs L2 Current: supplementary fact → `semantic.operation: "append"`; clearly overturns Current → `"revise"`; resolving an open question → `"resolve_open"`.
 12. For each `chain` patch: set `summary_operation` from `chain_summaries_current` for that `id` (empty → `init`, non-empty → `revise`). `summary` must be the fused full-day text; `content` stays incremental.
-13. Do not write any files under ENGRAM_HOME. Do not call Write/Edit tools. Read the context file only. stdout JSON is the only deliverable.
+13. Do not write any files under ENGRAM_STORE_DIR. Do not call Write/Edit tools. Read the context file only. stdout JSON is the only deliverable.
 
 ## Schema specification
 
@@ -80,8 +80,8 @@ Update L2 **what** for an existing node **or** a node created via `propose_node`
 
 Day-level **occurrence** on the world timeline. One patch drives **both** tracks:
 
-- **ledger** (`content`) → append-only block on `memory/memory-chain/days/{YYYY-MM}/{id}.md`
-- **summary** (`summary` + `summary_operation`) → fused day narrative on `memory/memory-chain/days/{YYYY-MM}/{id}.summary.md`
+- **ledger** (`content`) → append-only block on `memories/chain/days/{YYYY-MM}/{id}.md`
+- **summary** (`summary` + `summary_operation`) → fused day narrative on `memories/chain/days/{YYYY-MM}/{id}.summary.md`
 - Week／month／year rollups are a **separate** post-extract pipeline — do **not** emit week／month／year chain patches here.
 
 | Field | Type | Required | Rules |

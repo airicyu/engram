@@ -64,7 +64,7 @@ export function ConsolidateScene() {
       job_id?: string;
       message?: string;
       error?: string;
-    }>("/dream/run", { method: "POST" });
+    }>("/dreams/run", { method: "POST" });
 
     if (http === 409) {
       setDreaming(false);
@@ -96,7 +96,7 @@ export function ConsolidateScene() {
       committed?: string[];
       message?: string;
       error?: string;
-    }>("/dream/approve", { method: "POST", body: "{}" });
+    }>("/dreams/approve", { method: "POST", body: "{}" });
     if (http === 409) {
       setMsg({ text: data?.message || data?.error || t("dream.approve_fail"), kind: "error" });
       await refreshStatus();
@@ -123,7 +123,7 @@ export function ConsolidateScene() {
   async function onDiscard() {
     setMsg({ text: t("dream.discarding"), kind: "" });
     const { ok, status: http, data } = await api<{ message?: string; error?: string }>(
-      "/dream/discard",
+      "/dreams/discard",
       { method: "POST", body: "{}" },
     );
     if (!ok) {
@@ -155,7 +155,7 @@ export function ConsolidateScene() {
       job_id?: string;
       message?: string;
       error?: string;
-    }>("/dream/retry", {
+    }>("/dreams/retry", {
       method: "POST",
       body: JSON.stringify({
         reason,
@@ -188,7 +188,7 @@ export function ConsolidateScene() {
   async function onCancel() {
     setMsg({ text: t("dream.cancelling"), kind: "" });
     const { ok, status: http, data } = await api<{ message?: string; error?: string }>(
-      "/dream/cancel",
+      "/dreams/cancel",
       { method: "POST", body: "{}" },
     );
     if (!ok) {

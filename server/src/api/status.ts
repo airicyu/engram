@@ -39,7 +39,7 @@ export async function handleStatus(): Promise<object> {
   }
 
   const result: Record<string, unknown> = {
-    engram_home: config.engramHome,
+    store_dir: config.storeDir,
     timezone: config.timezone,
     memory_language: config.memoryLanguage,
     clock: getClockSnapshot(),

@@ -269,7 +269,7 @@ body {
 }
 
 /* —— Forms —— */
-.capture-form textarea,
+.activities-form textarea,
 .recall-form input[type="search"],
 .recall-form.ask-form textarea,
 .field-inline input {
@@ -286,7 +286,7 @@ body {
   box-shadow: var(--shadow);
 }
 
-.capture-form textarea {
+.activities-form textarea {
   font-family: var(--font-read);
   line-height: 1.55;
   resize: vertical;
@@ -310,7 +310,7 @@ body {
   margin-top: 0.75rem;
 }
 
-.capture-form textarea:focus,
+.activities-form textarea:focus,
 .recall-form input:focus,
 .recall-form.ask-form textarea:focus,
 .field-inline input:focus {
@@ -318,7 +318,7 @@ body {
   box-shadow: 0 0 0 3px rgba(31, 107, 99, 0.15);
 }
 
-.capture-form textarea:disabled {
+.activities-form textarea:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -328,6 +328,10 @@ body {
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.form-actions {
   margin-top: 0.85rem;
 }
 

@@ -30,7 +30,7 @@ export function SeekScene() {
   const { t } = useI18n();
   const { askJobId, setAskJobId, askPolling, setAskPolling, status } = useStatus();
   const askAlive = useRef(false);
-  const [mode, setMode] = useState<SeekMode>("search");
+  const [mode, setMode] = useState<SeekMode>("ask");
   const [q, setQ] = useState("");
   const [askQ, setAskQ] = useState("");
   const [scopes, setScopes] = useState({ l1: true, nodes: true, chain: true });
@@ -59,7 +59,7 @@ export function SeekScene() {
     setSearchMsg({ text: t("memory.querying"), kind: "" });
     const params = new URLSearchParams({ q: trimmed });
     if (selected.length < 3) params.set("scope", selected.join(","));
-    const { ok, data } = await api<SearchData>(`/memory/search?${params}`);
+    const { ok, data } = await api<SearchData>(`/memories/search?${params}`);
     if (!ok) {
       setSearchMsg({
         text: data?.message || data?.error || t("memory.search_fail"),
@@ -87,7 +87,7 @@ export function SeekScene() {
     askAlive.current = true;
     setAskPolling(true);
     while (askAlive.current) {
-      const { ok, data } = await api<AskJob>(`/memory/ask/${encodeURIComponent(jobId)}`);
+      const { ok, data } = await api<AskJob>(`/memories/ask/${encodeURIComponent(jobId)}`);
       if (!askAlive.current) break;
       if (!ok || data?.present === false) {
         setAskMsg({ text: t("memory.ask_fail"), kind: "error" });
@@ -129,7 +129,7 @@ export function SeekScene() {
       job_id?: string;
       error?: string;
       message?: string;
-    }>("/memory/ask", { method: "POST", body: JSON.stringify({ q: trimmed }) });
+    }>("/memories/ask", { method: "POST", body: JSON.stringify({ q: trimmed }) });
     if (http === 409 && data?.error === "ask_busy") {
       setAskMsg({ text: t("memory.ask_busy"), kind: "error" });
       return;
@@ -149,7 +149,7 @@ export function SeekScene() {
   async function onAskCancel() {
     if (!askJobId) return;
     askAlive.current = false;
-    await api(`/memory/ask/${encodeURIComponent(askJobId)}/cancel`, {
+    await api(`/memories/ask/${encodeURIComponent(askJobId)}/cancel`, {
       method: "POST",
       body: "{}",
     });
@@ -179,21 +179,21 @@ export function SeekScene() {
       <div className="memory-modes seek-modes" role="tablist" aria-label="Seek mode">
         <button
           type="button"
-          className={`mode-btn${mode === "search" ? " is-active" : ""}`}
-          role="tab"
-          aria-selected={mode === "search"}
-          onClick={() => setMode("search")}
-        >
-          {t("seek.mode_search")}
-        </button>
-        <button
-          type="button"
           className={`mode-btn${mode === "ask" ? " is-active" : ""}`}
           role="tab"
           aria-selected={mode === "ask"}
           onClick={() => setMode("ask")}
         >
           {t("seek.mode_ask")}
+        </button>
+        <button
+          type="button"
+          className={`mode-btn${mode === "search" ? " is-active" : ""}`}
+          role="tab"
+          aria-selected={mode === "search"}
+          onClick={() => setMode("search")}
+        >
+          {t("seek.mode_search")}
         </button>
       </div>
 

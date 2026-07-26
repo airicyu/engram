@@ -1,4 +1,4 @@
-/** Runtime configuration from env + optional `{ENGRAM_HOME}/engram.workspace.yaml`. */
+/** Runtime configuration from env + optional `{ENGRAM_STORE_DIR}/engram.workspace.yaml`. */
 
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -41,8 +41,8 @@ type WorkspaceFile = {
   memory_language?: MemoryLanguage;
 };
 
-function loadWorkspaceFile(engramHome: string): WorkspaceFile | null {
-  const path = join(engramHome, "engram.workspace.yaml");
+function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
+  const path = join(storeDir, "engram.workspace.yaml");
   if (!existsSync(path)) return null;
 
   let raw: string;
@@ -125,13 +125,13 @@ function resolveTimezone(workspace: WorkspaceFile | null): string {
   return DEFAULT_TIMEZONE;
 }
 
-const engramHome = resolve(process.env.ENGRAM_HOME ?? resolve(repoRoot, "data"));
-const workspace = loadWorkspaceFile(engramHome);
+const storeDir = resolve(process.env.ENGRAM_STORE_DIR ?? resolve(repoRoot, "data"));
+const workspace = loadWorkspaceFile(storeDir);
 
 /** Resolved server port, storage home, agent binaries, timezone, memory language. */
 export const config = {
   port: Number(process.env.PORT ?? 8787),
-  engramHome,
+  storeDir,
   claudeBin: process.env.CLAUDE_BIN ?? "claude",
   cursorAgentBin: process.env.CURSOR_AGENT_BIN ?? "agent",
   timezone: resolveTimezone(workspace),

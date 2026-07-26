@@ -6,7 +6,7 @@ import { homePath } from "./home";
 import type { Patch } from "../dream/schema";
 
 function patchesPath(): string {
-  return homePath("dream", "patches.jsonl");
+  return homePath("dreams", "patches.jsonl");
 }
 
 function dreamRunNeedle(dreamRunId: string): string {

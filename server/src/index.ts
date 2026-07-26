@@ -52,30 +52,30 @@ try {
         Response.json({
           name: "engram",
           endpoints: [
-            "POST /capture",
-            "POST /dream/run",
-            "POST /dream/retry",
-            "POST /dream/cancel",
-            "GET /dream/pending",
-            "GET /dream/events",
-            "POST /dream/approve",
-            "POST /dream/discard",
-            "GET /future-sight",
-            "GET /memory/l1",
-            "GET /memory/search",
-            "GET /memory/chain",
-            "GET /memory/chain/weeks",
-            "GET /memory/chain/weeks/{week_id}",
-            "GET /memory/chain/months",
-            "GET /memory/chain/months/{month_id}",
-            "GET /memory/chain/years",
-            "GET /memory/chain/years/{year_id}",
-            "GET /memory/chain/{day_id}",
-            "GET /memory/nodes",
-            "GET /memory/nodes/{node_id}",
-            "POST /memory/ask",
-            "GET /memory/ask/{job_id}",
-            "POST /memory/ask/{job_id}/cancel",
+            "POST /activities",
+            "POST /dreams/run",
+            "POST /dreams/retry",
+            "POST /dreams/cancel",
+            "GET /dreams/pending",
+            "GET /dreams/events",
+            "POST /dreams/approve",
+            "POST /dreams/discard",
+            "GET /memories/future-sight",
+            "GET /memories/short-term-memory",
+            "GET /memories/search",
+            "GET /memories/chain",
+            "GET /memories/chain/weeks",
+            "GET /memories/chain/weeks/{week_id}",
+            "GET /memories/chain/months",
+            "GET /memories/chain/months/{month_id}",
+            "GET /memories/chain/years",
+            "GET /memories/chain/years/{year_id}",
+            "GET /memories/chain/{day_id}",
+            "GET /memories/nodes",
+            "GET /memories/nodes/{node_id}",
+            "POST /memories/ask",
+            "GET /memories/ask/{job_id}",
+            "POST /memories/ask/{job_id}/cancel",
             "GET /clock",
             "PUT /clock",
             "DELETE /clock",
@@ -106,7 +106,7 @@ try {
       DELETE: withRequestLog(async () => Response.json(await handleClockDelete())),
     },
 
-    "/capture": {
+    "/activities": {
       POST: withRequestLog(async (req) => {
         const body = (await req.json()) as {
           raw: string;
@@ -126,11 +126,11 @@ try {
       }),
     },
 
-    "/dream/run": {
+    "/dreams/run": {
       POST: withRequestLog(() => handleDreamRun()),
     },
 
-    "/dream/retry": {
+    "/dreams/retry": {
       POST: withRequestLog(async (req) => {
         let body: { reason?: string; dream_run_id?: string } = {};
         try {
@@ -143,7 +143,7 @@ try {
       }),
     },
 
-    "/dream/cancel": {
+    "/dreams/cancel": {
       POST: withRequestLog(async (req) => {
         let body: { dream_run_id?: string } = {};
         try {
@@ -156,11 +156,11 @@ try {
       }),
     },
 
-    "/dream/pending": {
+    "/dreams/pending": {
       GET: withRequestLog(() => handleDreamPending()),
     },
 
-    "/dream/events": {
+    "/dreams/events": {
       GET: withRequestLog(async (req) => {
         const url = new URL(req.url);
         const runId = url.searchParams.get("run_id");
@@ -171,7 +171,7 @@ try {
       }),
     },
 
-    "/dream/approve": {
+    "/dreams/approve": {
       POST: withRequestLog(async (req) => {
         let body: { dream_run_id?: string } = {};
         try {
@@ -184,7 +184,7 @@ try {
       }),
     },
 
-    "/dream/discard": {
+    "/dreams/discard": {
       POST: withRequestLog(async (req) => {
         let body: { dream_run_id?: string } = {};
         try {
@@ -197,7 +197,7 @@ try {
       }),
     },
 
-    "/future-sight": {
+    "/memories/future-sight": {
       GET: withRequestLog(async () => {
         const body = await handleFutureSight();
         logInfo("future-sight", {
@@ -208,11 +208,11 @@ try {
       }),
     },
 
-    "/memory/l1": {
+    "/memories/short-term-memory": {
       GET: withRequestLog(async () => Response.json(await handleMemoryL1())),
     },
 
-    "/memory/search": {
+    "/memories/search": {
       GET: withRequestLog(async (req) => {
         const params = new URL(req.url).searchParams;
         const q = params.get("q");
@@ -237,7 +237,7 @@ try {
       }),
     },
 
-    "/memory/chain": {
+    "/memories/chain": {
       GET: withRequestLog(async () => {
         const body = await handleChainIndex();
         logMemory("browse chain index", { days: body.days.length, present: body.present });
@@ -245,7 +245,7 @@ try {
       }),
     },
 
-    "/memory/chain/weeks": {
+    "/memories/chain/weeks": {
       GET: withRequestLog(async () => {
         const body = await handleWeekIndex();
         logMemory("browse chain weeks", { weeks: body.weeks.length, present: body.present });
@@ -253,7 +253,7 @@ try {
       }),
     },
 
-    "/memory/chain/months": {
+    "/memories/chain/months": {
       GET: withRequestLog(async () => {
         const body = await handleMonthIndex();
         logMemory("browse chain months", { months: body.months.length, present: body.present });
@@ -261,7 +261,7 @@ try {
       }),
     },
 
-    "/memory/chain/years": {
+    "/memories/chain/years": {
       GET: withRequestLog(async () => {
         const body = await handleYearIndex();
         logMemory("browse chain years", { years: body.years.length, present: body.present });
@@ -269,7 +269,7 @@ try {
       }),
     },
 
-    "/memory/nodes": {
+    "/memories/nodes": {
       GET: withRequestLog(async () => {
         const body = await handleNodesIndex();
         logMemory("browse nodes index", { nodes: body.nodes.length, present: body.present });
@@ -277,7 +277,7 @@ try {
       }),
     },
 
-    "/memory/ask": {
+    "/memories/ask": {
       POST: withRequestLog(async (req) => {
         let body: { q?: string } = {};
         try {
@@ -293,7 +293,7 @@ try {
   fetch: withRequestLog(async (req) => {
     const url = new URL(req.url);
 
-    const weekMatch = url.pathname.match(/^\/memory\/chain\/weeks\/([^/]+)$/);
+    const weekMatch = url.pathname.match(/^\/memories\/chain\/weeks\/([^/]+)$/);
     if (weekMatch && req.method === "GET") {
       const weekId = decodeURIComponent(weekMatch[1]!);
       const out = await handleWeekDetail(weekId);
@@ -307,7 +307,7 @@ try {
       return Response.json(out);
     }
 
-    const monthMatch = url.pathname.match(/^\/memory\/chain\/months\/([^/]+)$/);
+    const monthMatch = url.pathname.match(/^\/memories\/chain\/months\/([^/]+)$/);
     if (monthMatch && req.method === "GET") {
       const monthId = decodeURIComponent(monthMatch[1]!);
       const out = await handleMonthDetail(monthId);
@@ -321,7 +321,7 @@ try {
       return Response.json(out);
     }
 
-    const yearMatch = url.pathname.match(/^\/memory\/chain\/years\/([^/]+)$/);
+    const yearMatch = url.pathname.match(/^\/memories\/chain\/years\/([^/]+)$/);
     if (yearMatch && req.method === "GET") {
       const yearId = decodeURIComponent(yearMatch[1]!);
       const out = await handleYearDetail(yearId);
@@ -335,7 +335,7 @@ try {
       return Response.json(out);
     }
 
-    const chainMatch = url.pathname.match(/^\/memory\/chain\/([^/]+)$/);
+    const chainMatch = url.pathname.match(/^\/memories\/chain\/([^/]+)$/);
     if (chainMatch && req.method === "GET") {
       const dayId = decodeURIComponent(chainMatch[1]!);
       const out = await handleChainDay(dayId);
@@ -349,7 +349,7 @@ try {
       return Response.json(out);
     }
 
-    const nodesMatch = url.pathname.match(/^\/memory\/nodes\/([^/]+)$/);
+    const nodesMatch = url.pathname.match(/^\/memories\/nodes\/([^/]+)$/);
     if (nodesMatch && req.method === "GET") {
       const nodeId = decodeURIComponent(nodesMatch[1]!);
       const out = await handleNodeDetail(nodeId);
@@ -363,7 +363,7 @@ try {
       return Response.json(out);
     }
 
-    const match = url.pathname.match(/^\/memory\/ask\/([^/]+)(\/cancel)?$/);
+    const match = url.pathname.match(/^\/memories\/ask\/([^/]+)(\/cancel)?$/);
     if (match) {
       const jobId = decodeURIComponent(match[1]!);
       if (match[2] === "/cancel" && req.method === "POST") {
@@ -412,7 +412,7 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
 logInfo(`engram listening on ${server.url}`);
-logInfo(`ENGRAM_HOME=${config.engramHome}`);
+logInfo(`ENGRAM_STORE_DIR=${config.storeDir}`);
 logInfo(`ENGRAM_TZ=${config.timezone}`);
 logInfo(`memory_language=${config.memoryLanguage}`);
 logInfo(`ENGRAM_AGENT=${process.env.ENGRAM_AGENT ?? "cursor"}`);

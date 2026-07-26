@@ -24,24 +24,24 @@ export function dayMonthKey(dayId: string): string {
   return dayId.slice(0, 7);
 }
 
-/** Relative ledger path under ENGRAM_HOME. */
+/** Relative ledger path under ENGRAM_STORE_DIR. */
 export function dayLedgerRel(dayId: string): string {
-  return `memory/memory-chain/days/${dayMonthKey(dayId)}/${dayId}.md`;
+  return `memories/chain/days/${dayMonthKey(dayId)}/${dayId}.md`;
 }
 
-/** Relative summary path under ENGRAM_HOME. */
+/** Relative summary path under ENGRAM_STORE_DIR. */
 export function daySummaryRel(dayId: string): string {
-  return `memory/memory-chain/days/${dayMonthKey(dayId)}/${dayId}.summary.md`;
+  return `memories/chain/days/${dayMonthKey(dayId)}/${dayId}.summary.md`;
 }
 
 /** Absolute ledger path. */
 export function dayLedgerPath(dayId: string): string {
-  return homePath("memory", "memory-chain", "days", dayMonthKey(dayId), `${dayId}.md`);
+  return homePath("memories", "chain", "days", dayMonthKey(dayId), `${dayId}.md`);
 }
 
 /** Absolute summary path. */
 export function daySummaryPath(dayId: string): string {
-  return homePath("memory", "memory-chain", "days", dayMonthKey(dayId), `${dayId}.summary.md`);
+  return homePath("memories", "chain", "days", dayMonthKey(dayId), `${dayId}.summary.md`);
 }
 
 /** Ledger: append-only patch blocks. */
@@ -85,7 +85,7 @@ export async function readDayForRecall(
 
 /** Distinct YYYY-MM-DD ids under memory-chain/days/YYYY-MM/, newest first. */
 export async function listChainDayIds(): Promise<string[]> {
-  const dir = homePath("memory", "memory-chain", "days");
+  const dir = homePath("memories", "chain", "days");
   try {
     const ids = new Set<string>();
     const entries = await readdir(dir, { withFileTypes: true });

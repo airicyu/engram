@@ -17,7 +17,7 @@ export async function handleMemoryAskPost(body: { q?: string }): Promise<Respons
       {
         job_id,
         status: "started",
-        message: "Poll GET /memory/ask/{job_id} for progress and answer.",
+        message: "Poll GET /memories/ask/{job_id} for progress and answer.",
       },
       { status: 202 },
     );

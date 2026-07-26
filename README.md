@@ -1,124 +1,103 @@
 # Engram
 
-**Engram** 是個人記憶原型：把日常片段寫進來，定期用 AI「做夢」整理成可審核的長期理解，需要時再回憶相關脈絡。
+個人記憶原型：把日常碎片寫進來，用 AI「做夢」整理成**可審核**的長期理解，需要時再找回來。
 
-它不是筆記 app，也不是聊天紀錄備份，而是一條明確的記憶管線：
+它不是筆記 app，也不是聊天備份。核心是一條有人在迴路裡的記憶管線：
 
 ```
-Capture（記下）→ Consolidate（沉澱）→ Memory（記憶）
+Activities → Consolidate → Seek → Memory
+   寫入         沉澱／入夢      尋找         翻閱
 ```
 
-目前版本：**0.7.0**（見 [version.md](./version.md)、[changelog.md](./changelog.md)）。
+**目前版本：** [0.14.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
+
+> **讀文件時：** 這份 README 是給人看的專案說明。給 AI coding agent 的操作邊界與開發脈絡在 [CLAUDE.md](./CLAUDE.md)（Cursor／Claude Code 會自動讀取），請勿把兩者當成同一份文件。
 
 ---
 
-## 這個產品解決什麼
+## 為什麼做這個
 
-人會持續產生碎片資訊（對話、判斷、待辦線索），但很少有一次整理成「穩定理解」的習慣。Engram 把這件事拆成三步：
+人會持續產生碎片（對話、判斷、待辦線索），卻很少有一次整理成「穩定理解」的習慣。Engram 刻意拆成四步：
 
-1. **快速 Capture** — 先記下來，不要求當下分類完美。
-2. **Consolidate with review** — AI 提出整合方案（報告 + 結構化 patch），**你批准後**才寫入長期記憶。
-3. **Memory** — 關鍵字搜尋（`GET /memory/search`）或 AI 提問（`POST /memory/ask`）。
+1. **先寫下來**（Activities）— 不要求當下分類完美。
+2. **再沉澱**（Consolidate）— AI 提出整合方案；**你批准後**才寫進長期記憶。
+3. **需要時問／搜**（Seek）— 自然語言 Ask，或關鍵字 Search。
+4. **沿時間與主題翻**（Memory）— 記憶鏈與節點瀏覽。
 
-核心設計選擇：**人審關卡**、**分層儲存**（事件 log ≠ 工作記憶 ≠ 長期理解）、**可追蹤的入夢中間態**（L1.5）。
+設計上分開存放：**事件紀錄 ≠ 短期工作區 ≠ 長期理解**；中間還有「待審提案」，避免 AI 直接改寫你的記憶。
 
----
-
-## 記憶分層（簡表）
-
-| 層 | 角色 | 一句話 |
-|----|------|--------|
-| **L0** | 事件 log | 發生了什麼（不可改） |
-| **L1** | 短期 pool | 還沒整理完的輸入 |
-| **L1.5** | 入夢中間態 | AI 提案 + 待審 draft（L1 → L2） |
-| **L2** | Node 理解 | 對人／主題的長期「what」 |
-| **chain** | 日級時間軸 | **ledger**（增量稽核）＋ **summary**（可讀日摘要；search 命中時回傳） |
-| **future-sight** | 近程錨點 | 短期要盯的 deadline／前瞻 |
-
-術語細解見 **[domain-language.md](./domain-language.md)**。
+詞彙與分層細節：[docs/domain-language.md](./docs/domain-language.md)。
 
 ---
 
-## 怎麼跑起來
+## 快速開始
 
 需要 [Bun](https://bun.sh)。
 
-**1. 啟動 API（`:8787`）**
+### 1. 首次設定
+
+會安裝依賴、寫出 `.env`、選定**記憶庫**路徑與時區／寫入語言：
 
 ```bash
-cd server
-bun install
-bun run start
+bun run setup
 ```
 
-**2. 啟動 Web UI（`:8788`，可選）**
+### 2. 啟動
+
+兩個終端（或兩個程序）：
 
 ```bash
-cd web
-bun install
-bun run start
+bun run dev      # API  http://localhost:8787
+bun run dev:ui   # UI   http://localhost:8788
 ```
 
-瀏覽器開 **http://localhost:8788**。根目錄也可用：
+瀏覽器打開 **http://localhost:8788**，從頂欄場景走一遍即可。
+
+| 場景 | 你在做什麼 |
+|------|------------|
+| **Activities** | 寫下此刻要記住的事；下方可預覽短期記憶 |
+| **Consolidate** | 入夢產出報告 → 批准／丟棄／帶理由重試 |
+| **Seek** | 預設 **Ask**（自然語言）；也可切 **Search**（關鍵字） |
+| **Memory** | 沿記憶鏈／節點翻閱已寫入內容 |
+
+### 3. 清空重來（可選）
+
+會清空記憶庫，不可還原：
 
 ```bash
-bun run dev      # server
-bun run dev:ui   # web
+cd server && bun run reset
 ```
 
-**3. 典型操作**
+---
 
-- **Capture** — 在 UI 或 `POST /capture` 寫入 `raw` 文字。
-- **Consolidate** — `POST /dream/run`，等 `pending_review`，讀報告後 **Approve** 或 **Discard**。
-- **Memory** — `GET /memory/search?q=關鍵字&scope=l1,nodes,chain` 或 `POST /memory/ask`。
+## 倉庫地圖
 
-空庫試用請用 `cd server && bun run reset`（破壞性，會清空 `ENGRAM_HOME`）。  
-真人試用請用空 store + capture；機械自測用 `cd server && bun run test:phases`。
+| 路徑 | 給誰看 | 內容 |
+|------|--------|------|
+| [web/](./web/) | 用產品／改 UI | 工作台（Vite + React） |
+| [server/](./server/) | 改記憶核心 | Bun HTTP API |
+| [setup-wizard/](./setup-wizard/) | 首次安裝 | `bun run setup` |
+| [docs/api-docs/](./docs/api-docs/) | 接 API／除錯 | HTTP 契約 |
+| [docs/roadmap/](./docs/roadmap/) | 規劃與設計 | 版本計畫、驗收、推理筆記 |
+| [docs/domain-language.md](./docs/domain-language.md) | 對齊用詞 | 產品領域詞彙 |
+| [CLAUDE.md](./CLAUDE.md) | **AI agent** | 自動注入的開發脈絡（非產品說明） |
+
+**記憶庫**（你的資料）由環境變數 `ENGRAM_STORE_DIR` 指向；setup 時可選路徑（常見為旁鄰的 `engram-data/`，或 repo 內預設 `data/`）。那是執行期資料，不是原始碼。
 
 ---
 
-## 倉庫結構
+## 想再深入
 
-| 路徑 | 說明 |
-|------|------|
-| [server/](./server/) | Bun HTTP API（記憶核心） |
-| [web/](./web/) | 工作台 UI（workbench）+ `/api` proxy |
-| [api-docs/](./api-docs/) | API 說明；契約見 [api-docs/api.md](./api-docs/api.md) |
-| [data/](./data/) | 預設 `ENGRAM_HOME`（執行期 store） |
-| [roadmap/](./roadmap/) | 版本計畫與設計筆記 |
-| [domain-language.md](./domain-language.md) | 產品領域詞彙表 |
-| [AGENTS.md](./AGENTS.md) | 給 coding agent 的專案脈絡 |
+- HTTP 契約：[docs/api-docs/README.md](./docs/api-docs/README.md) · [docs/api-docs/api.md](./docs/api-docs/api.md)
+- 元件說明：[server/README.md](./server/README.md) · [web/README.md](./web/README.md)
+- 本版重點：[docs/roadmap/0.14.0/](./docs/roadmap/0.14.0/) · [changelog.md](./changelog.md)
+- 尚未排程：[docs/roadmap/backlog/](./docs/roadmap/backlog/)
+
+**原型現況：** 無帳號／多租戶；部分能力（例如 dead-letter 消化、node merge）尚無正式 API。日常請用 UI 或 HTTP API 操作記憶，不要手改記憶庫裡的檔案。
 
 ---
 
-## API 一覽
+## 授權與免責
 
-| 方法 | 路徑 | 用途 |
-|------|------|------|
-| `POST` | `/capture` | 寫入 L0 + L1 |
-| `POST` | `/dream/run` | 啟動 dream（extract → draft） |
-| `GET` | `/dream/pending` | 讀待審報告 |
-| `POST` | `/dream/approve` | 批准並 commit |
-| `POST` | `/dream/discard` | 丟棄待審 |
-| `POST` | `/dream/cancel` | 取消 running 入夢 |
-| `GET` | `/memory/l1` | Capture L1 預覽 |
-| `GET` | `/memory/search` | keyword 搜尋（`q` 必填；`scope` 可選） |
-| `POST` | `/memory/ask` | AI 提問（非同步） |
-| `GET` | `/future-sight` | 列出活躍前瞻錨點 |
-| `GET` | `/status` | 健康與 dream 狀態 |
-
-時區由 **`ENGRAM_TZ`** 設定（IANA），預設 **`Asia/Hong_Kong`**。原型無 auth。
-
----
-
-## 邊界與現況
-
-- **操作記憶請走 HTTP API**，不要手改 `data/` 下的 jsonl／md（除開發除錯）。
-- **Recall 目前不注入 future-sight**（0.4.0）；見 [roadmap/backlog/](./roadmap/backlog/)。
-- DLQ 消化、node merge 等尚未有正式 API。
-
----
-
-## 授權
-
-見 [LICENSE](./LICENSE)。
+- 授權：[LICENSE](./LICENSE)（MIT）
+- 使用風險與限制：[DISCLAIMER.md](./DISCLAIMER.md)

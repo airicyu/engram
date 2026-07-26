@@ -27,19 +27,19 @@ async function exists(path: string): Promise<boolean> {
 }
 
 function summaryPath(): string {
-  return homePath("memory", "short-term-memory", SUMMARY_FILE);
+  return homePath("memories", "short-term-memory", SUMMARY_FILE);
 }
 
 function legacySummaryPath(): string {
-  return homePath("memory", "short-term-memory", LEGACY_SUMMARY_FILE);
+  return homePath("memories", "short-term-memory", LEGACY_SUMMARY_FILE);
 }
 
 function poolPath(): string {
-  return homePath("memory", "short-term-memory", POOL_FILE);
+  return homePath("memories", "short-term-memory", POOL_FILE);
 }
 
 function nodeNotesPath(nodeId: string): string {
-  return homePath("memory", "short-term-memory", "nodes", nodeId, "notes.md");
+  return homePath("memories", "short-term-memory", "nodes", nodeId, "notes.md");
 }
 
 /** Rename the legacy L1 summary file when needed. */
@@ -52,7 +52,7 @@ export async function migrateL1SummaryFile(): Promise<void> {
 }
 
 async function ensurePoolFile(): Promise<void> {
-  await mkdir(homePath("memory", "short-term-memory"), { recursive: true });
+  await mkdir(homePath("memories", "short-term-memory"), { recursive: true });
   if (!(await exists(poolPath()))) {
     await writeFile(poolPath(), "", "utf8");
   }
@@ -110,11 +110,11 @@ function formatLine(entry: PoolEntry): string {
 }
 
 async function renderPresentation(entries: PoolEntry[]): Promise<void> {
-  await mkdir(homePath("memory", "short-term-memory"), { recursive: true });
+  await mkdir(homePath("memories", "short-term-memory"), { recursive: true });
   const summary = entries.map(formatLine).join("\n");
   await writeFile(summaryPath(), summary ? summary + "\n" : "", "utf8");
 
-  const nodesDir = homePath("memory", "short-term-memory", "nodes");
+  const nodesDir = homePath("memories", "short-term-memory", "nodes");
   if (await exists(nodesDir)) {
     await rm(nodesDir, { recursive: true, force: true });
   }
@@ -129,7 +129,7 @@ async function renderPresentation(entries: PoolEntry[]): Promise<void> {
     }
   }
   for (const [nodeId, list] of byNode) {
-    const dir = homePath("memory", "short-term-memory", "nodes", nodeId);
+    const dir = homePath("memories", "short-term-memory", "nodes", nodeId);
     await mkdir(dir, { recursive: true });
     const body = list.map(formatLine).join("\n");
     await writeFile(nodeNotesPath(nodeId), body ? body + "\n" : "", "utf8");

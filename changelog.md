@@ -2,29 +2,29 @@
 
 ## 0.14.0 — Store Layout Refactor (2026-07-27)
 
-Reorganize `ENGRAM_HOME` into live memory／dream pipeline／ephemeral tmp. HTTP API unchanged.
+Reorganize the memory store layout and hard-cut HTTP base paths to match（未對外開放，無舊 path／env alias）.
 
 ### Changed
 
-- **Live memory** under `memory/` — L0 `memory/activities/events.jsonl`; L1 `memory/short-term-memory/`; chain `memory/memory-chain/`; L2 `memory/nodes/`; future-sight `memory/future-sight/active/`
-- **Ask jobs** → `tmp/ask/jobs/`; virtual clock → `tmp/clock.json`
-- **Attribution candidates** → `dream/candidates/attribution.yaml`
-- Removed unused scaffolding：`meta.yaml`、`meta/`、`archive/`、`dream/reviews/`、`dream/dead-letter-archive/`、`dream/applied.yaml`、`candidates/nodes.yaml`
-- **`bun run store:migrate-layout`** — one-shot rename migrate（discard pending first）
+- Live memory under `memories/`；dream pipeline under `dreams/`；ask／clock under `tmp/`
+- HTTP：**`POST /activities`**；**`/dreams/*`**；**`/memories/*`**（含 **`GET /memories/future-sight`**、**`GET /memories/short-term-memory`**）
+- Disk chain：**`memories/chain/`**（不再 `memories/memory-chain/`）
+- Env／status：**`ENGRAM_STORE_DIR`**（取代 `ENGRAM_HOME`）；**`GET /status.store_dir`**（取代 `engram_home`）
+- Removed unused scaffolding：`meta.yaml`、`meta/`、`archive/`、empty dream reviews／dlq-archive、`applied.yaml`、`candidates/nodes.yaml`
 
 ### Non-goals
 
-- New memory features；HTTP path／field renames；long dual-read of old paths
+- New memory features；long dual-read of old disk／URL／env names
 
 ---
 
 ## 0.13.0 — Workspace Config + First-run Setup (2026-07-26)
 
-Per-`ENGRAM_HOME` preferences plus a first-run setup wizard.
+Per-`ENGRAM_STORE_DIR` preferences plus a first-run setup wizard.
 
 ### Added
 
-- **`{ENGRAM_HOME}/engram.workspace.yaml`** — optional `timezone` (IANA) + `memory_language` (`zh-Hant`｜`zh-Hans`｜`en`); unknown keys／invalid values → server refuses to start
+- **`{ENGRAM_STORE_DIR}/engram.workspace.yaml`** — optional `timezone` (IANA) + `memory_language` (`zh-Hant`｜`zh-Hans`｜`en`); unknown keys／invalid values → server refuses to start
 - **Effective language priority:** workspace → `ENGRAM_MEMORY_LANGUAGE` → **`en`**
 - **`GET /status.memory_language`** — always one of the three codes
 - Prompt injection `{{MEMORY_LANGUAGE}}` for extract／rollup／memory-ask (new prose only; L0 untouched)
@@ -74,7 +74,7 @@ Higher-granularity memory chain on top of day: summary-only week／month／year 
 
 ### Added
 
-- **Day path grouping** — `memory-chain/days/{YYYY-MM}/{day}.md` (+ `.summary.md`); `bun run chain:migrate-days`
+- **Day path grouping** — `memory-chain/days/{YYYY-MM}/{day}.md` (+ `.summary.md`)
 - **Week／month／year summaries** — store layout + `initialized_{weeks,months,years}.yaml` (initialized ≠ freeze)
 - **Rollup pipeline** — after day extract／materialize: week → month → year planner（Y/N）then writer → same draft／`patches.jsonl` (`level` extended)
 - **Browse API** — `GET /memory/chain/weeks|months|years` (+ `/{id}`); empty → `200` + `present: false`
@@ -126,7 +126,7 @@ Virtual memory clock + day-by-day fixture replay (capture → dream → approve)
 
 ### Added
 
-- **Virtual clock** — `nowIso()` / `calendarDate()` read a settable timeline; persist `ENGRAM_HOME/meta/clock.json`
+- **Virtual clock** — `nowIso()` / `calendarDate()` read a settable timeline; persist `ENGRAM_STORE_DIR/meta/clock.json`
 - **`GET /clock`** / **`PUT /clock`** / **`DELETE /clock`** — inspect / set / clear virtual now (`PUT` requires `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`)
 - **`/status.clock`** — `{ mode, now, today, timezone, allow_set }`
 - Extract context + prompts: explicit **`today`** / **`now`** (also memory-ask)
@@ -176,7 +176,7 @@ Rename Recall → **Memory**; keyword search with optional **scope**; async AI a
 
 - **`GET /memory/l1`** — Capture L1 preview (summary + node_notes only)
 - **`GET /memory/search?q=&scope=`** — keyword hits only (`q` required; `scope=l1,nodes,chain` optional, default all)
-- **`POST /memory/ask`** + **`GET /memory/ask/{job_id}`** + **`POST /memory/ask/{job_id}/cancel`** — async AI Q&A (`ENGRAM_AGENT=mock-ask-ok` for tests); agent reads `ENGRAM_HOME` directly
+- **`POST /memory/ask`** + **`GET /memory/ask/{job_id}`** + **`POST /memory/ask/{job_id}/cancel`** — async AI Q&A (`ENGRAM_AGENT=mock-ask-ok` for tests); agent reads `ENGRAM_STORE_DIR` directly
 - **`POST /dream/cancel`** — cancel running dream (kill agent + revert L1.5 draft)
 - **`/status` `ask_job`** — running ask summary + `log_tail`
 - Workbench **Memory** scene (Search with scope checkboxes | Ask); Consolidate **Cancel** during dream
@@ -242,7 +242,7 @@ Memory-chain **ledger + summary** dual-track; workbench UI English／繁體中�
 - 熱路徑：DLQ count／L1 empty → `wc -l`；`patchesForRun` → `grep -F`；dream extract 事件來自 L1 scope（避免掃巨大 L0）
 - 依賴：移除 npm **`yaml`**；TypeScript **~7**；`tsconfig` 去掉 deprecated `baseUrl`／`paths`
 - Web status poll：lock **5s**／pending **20s**／idle **60s**
-- 產品中文用語：Capture→**記下**、Consolidate→**沉澱**、Recall→**回憶**、Dream→**入夢**（`domain-language.md`）
+- 產品中文用語：Capture→**記下**、Consolidate→**沉澱**、Recall→**回憶**、Dream→**入夢**（`docs/domain-language.md`）
 - Server 模組／主要 export 補責任註解
 
 ### Removed
@@ -367,7 +367,7 @@ First runnable memory loop: **ingest → dream (extract + apply) → activate**,
 
 ### Added
 
-- **Bun HTTP server** (`server/`) with `ENGRAM_HOME` store layout and Asia/Taipei timestamps
+- **Bun HTTP server** (`server/`) with `ENGRAM_STORE_DIR` store layout and Asia/Taipei timestamps
 - **`POST /ingest`** — append L0 event + update L1 (`today-summary`, optional node notes); rejects with `409` while dream lock held
 - **`POST /dream/run`** — lock → Claude Code extract → L1.5 patches → apply → clear L1; resume apply-only when patches exist and L1 still present
 - **`GET /activate`** — activation packet: L1, day chain, matched L2 `what` Current (optional `?q=`)
@@ -376,7 +376,7 @@ First runnable memory loop: **ingest → dream (extract + apply) → activate**,
 - **Patch types (prototype):** `semantic/what`, `chain/day`, `propose_node`; low-confidence `episodic` → attribution candidates; high-confidence episodic not applied yet
 - **AgentRunner** — `ClaudeCodeRunner` (headless `claude -p`) plus `mock-ok` / `mock-fail` for tests
 - **CLI** — `reset`, `fixture:apply`, `test:phases`
-- **API docs** — `api-docs/`
+- **API docs** — `docs/api-docs/`
 - **Workbench skill** — `.claude/skills/engram-workbench` (HTTP-only control plane)
 
 ### Out of scope (prototype)
@@ -390,4 +390,4 @@ First runnable memory loop: **ingest → dream (extract + apply) → activate**,
 ### Notes
 
 - Validates the MVP question: ≤3 nodes + L0 + L1 + dream run (what + day + candidates + L1.5) vs full rewrite
-- Clients and skills must use the HTTP API; do not edit `ENGRAM_HOME` for operational writes
+- Clients and skills must use the HTTP API; do not edit `ENGRAM_STORE_DIR` for operational writes

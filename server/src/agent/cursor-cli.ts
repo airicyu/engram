@@ -57,7 +57,7 @@ export class CursorCliRunner implements AgentRunner {
         workDir,
       ];
 
-      const { ENGRAM_HOME: _omit, ...agentEnv } = process.env;
+      const { ENGRAM_STORE_DIR: _omit, ...agentEnv } = process.env;
       const started = performance.now();
       const proc = Bun.spawn(cmd, {
         cwd: workDir,

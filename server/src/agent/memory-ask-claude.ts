@@ -32,7 +32,7 @@ export class MemoryAskClaudeRunner implements MemoryAskRunner {
 
     logMemory("agent spawn", { job_id: input.job_id, runner: RUNNER });
 
-    const { ENGRAM_HOME: _omit, ...agentEnv } = process.env;
+    const { ENGRAM_STORE_DIR: _omit, ...agentEnv } = process.env;
     const started = performance.now();
     const proc = Bun.spawn(cmd, {
       cwd: jobDir,

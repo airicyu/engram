@@ -38,12 +38,12 @@ export function MemoryScene() {
       setChainEmpty(false);
       const path =
         level === "day"
-          ? `/memory/chain/${encodeURIComponent(id)}`
+          ? `/memories/chain/${encodeURIComponent(id)}`
           : level === "week"
-            ? `/memory/chain/weeks/${encodeURIComponent(id)}`
+            ? `/memories/chain/weeks/${encodeURIComponent(id)}`
             : level === "month"
-              ? `/memory/chain/months/${encodeURIComponent(id)}`
-              : `/memory/chain/years/${encodeURIComponent(id)}`;
+              ? `/memories/chain/months/${encodeURIComponent(id)}`
+              : `/memories/chain/years/${encodeURIComponent(id)}`;
       const { ok, data } = await api<{
         present?: boolean;
         source?: string;
@@ -85,7 +85,7 @@ export function MemoryScene() {
     let present = false;
 
     if (level === "day") {
-      const { ok, data } = await api<{ present?: boolean; days?: DayIndex[] }>("/memory/chain");
+      const { ok, data } = await api<{ present?: boolean; days?: DayIndex[] }>("/memories/chain");
       if (!ok) {
         setChainItems([]);
         setIndexEmpty(t("memory.browse_fail"));
@@ -97,7 +97,7 @@ export function MemoryScene() {
       items = (data.days ?? []).map((d) => ({ id: d.day_id, preview: d.preview }));
     } else if (level === "week") {
       const { ok, data } = await api<{ present?: boolean; weeks?: WeekIndex[] }>(
-        "/memory/chain/weeks",
+        "/memories/chain/weeks",
       );
       if (!ok) {
         setChainItems([]);
@@ -110,7 +110,7 @@ export function MemoryScene() {
       items = (data.weeks ?? []).map((d) => ({ id: d.week_id, preview: d.preview }));
     } else if (level === "month") {
       const { ok, data } = await api<{ present?: boolean; months?: MonthIndex[] }>(
-        "/memory/chain/months",
+        "/memories/chain/months",
       );
       if (!ok) {
         setChainItems([]);
@@ -123,7 +123,7 @@ export function MemoryScene() {
       items = (data.months ?? []).map((d) => ({ id: d.month_id, preview: d.preview }));
     } else {
       const { ok, data } = await api<{ present?: boolean; years?: YearIndex[] }>(
-        "/memory/chain/years",
+        "/memories/chain/years",
       );
       if (!ok) {
         setChainItems([]);
@@ -159,7 +159,7 @@ export function MemoryScene() {
       setNodeBody(t("memory.browse_loading"));
       setNodeEmpty(false);
       const { ok, data } = await api<{ present?: boolean; what_current?: string }>(
-        `/memory/nodes/${encodeURIComponent(nodeId)}`,
+        `/memories/nodes/${encodeURIComponent(nodeId)}`,
       );
       if (!ok) {
         setNodeBody(t("memory.browse_fail"));
@@ -181,7 +181,7 @@ export function MemoryScene() {
     setIndexEmpty("");
     setNodeBody(t("memory.browse_loading"));
     setNodeEmpty(false);
-    const { ok, data } = await api<{ present?: boolean; nodes?: NodeIndex[] }>("/memory/nodes");
+    const { ok, data } = await api<{ present?: boolean; nodes?: NodeIndex[] }>("/memories/nodes");
     if (!ok) {
       setNodes([]);
       setIndexEmpty(t("memory.browse_fail"));

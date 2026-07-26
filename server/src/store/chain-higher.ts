@@ -27,17 +27,17 @@ export type HigherChainLevel = Exclude<ChainLevel, "day">;
 
 export function weekSummaryRel(weekId: string): string {
   if (!isValidWeekId(weekId)) throw new Error(`invalid week id: ${weekId}`);
-  return `memory/memory-chain/weeks/${weekMonthKey(weekId)}/${weekId}.summary.md`;
+  return `memories/chain/weeks/${weekMonthKey(weekId)}/${weekId}.summary.md`;
 }
 
 export function monthSummaryRel(monthId: string): string {
   if (!isValidMonthId(monthId)) throw new Error(`invalid month id: ${monthId}`);
-  return `memory/memory-chain/months/${monthYearKey(monthId)}/${monthId}.summary.md`;
+  return `memories/chain/months/${monthYearKey(monthId)}/${monthId}.summary.md`;
 }
 
 export function yearSummaryRel(yearId: string): string {
   if (!isValidYearId(yearId)) throw new Error(`invalid year id: ${yearId}`);
-  return `memory/memory-chain/years/${yearId}.summary.md`;
+  return `memories/chain/years/${yearId}.summary.md`;
 }
 
 export function higherSummaryRel(level: HigherChainLevel, id: string): string {
@@ -117,7 +117,7 @@ async function listIdsFromGroupedSummaries(
 
 export async function listWeekIds(): Promise<string[]> {
   return listIdsFromGroupedSummaries(
-    ["memory", "memory-chain", "weeks"],
+    ["memories", "chain", "weeks"],
     /^(\d{4}-W\d{2})\.summary\.md$/,
     /^\d{4}-\d{2}$/,
   );
@@ -125,7 +125,7 @@ export async function listWeekIds(): Promise<string[]> {
 
 export async function listMonthIds(): Promise<string[]> {
   return listIdsFromGroupedSummaries(
-    ["memory", "memory-chain", "months"],
+    ["memories", "chain", "months"],
     /^(\d{4}-\d{2})\.summary\.md$/,
     /^\d{4}$/,
   );
@@ -133,13 +133,13 @@ export async function listMonthIds(): Promise<string[]> {
 
 export async function listYearIds(): Promise<string[]> {
   return listIdsFromGroupedSummaries(
-    ["memory", "memory-chain", "years"],
+    ["memories", "chain", "years"],
     /^(\d{4})\.summary\.md$/,
   );
 }
 
 function initializedYamlPath(level: HigherChainLevel): string {
-  return homePath("memory", "memory-chain", `initialized_${level}s.yaml`);
+  return homePath("memories", "chain", `initialized_${level}s.yaml`);
 }
 
 export async function readInitializedIds(level: HigherChainLevel): Promise<string[]> {

@@ -10,3 +10,4 @@ web/dist/
 .DS_Store
 .env
 **/.env
+engram.code-workspace

@@ -9,7 +9,7 @@ import { logMemoryDebug, previewText } from "../log";
 /** Build the memory-ask prompt with job-specific paths. */
 export function buildAskPrompt(template: string, input: AskInput): string {
   return template
-    .replaceAll("{{ENGRAM_HOME}}", input.engram_home)
+    .replaceAll("{{ENGRAM_STORE_DIR}}", input.store_dir)
     .replaceAll("{{RESULT_PATH}}", askResultPath(input.job_id))
     .replaceAll("{{QUESTION}}", input.q)
     .replaceAll("{{JOB_ID}}", input.job_id)

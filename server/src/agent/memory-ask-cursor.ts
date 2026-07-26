@@ -16,7 +16,7 @@ import { logMemory, previewText } from "../log";
 const PROMPT_PATH = join(import.meta.dir, "../../prompts/memory-ask.md");
 const RUNNER = "cursor";
 
-/** Ask via the configured Cursor agent binary with ENGRAM_HOME attached. */
+/** Ask via the configured Cursor agent binary with ENGRAM_STORE_DIR attached. */
 export class MemoryAskCursorRunner implements MemoryAskRunner {
   async ask(input: AskInput): Promise<AskAnswer> {
     const promptTemplate = await readFile(PROMPT_PATH, "utf8");
@@ -30,17 +30,17 @@ export class MemoryAskCursorRunner implements MemoryAskRunner {
       prompt,
       "--yolo",
       "--add-dir",
-      input.engram_home,
+      input.store_dir,
       "--add-dir",
       jobDir,
     ];
 
     logMemory("agent spawn", { job_id: input.job_id, runner: RUNNER });
 
-    const { ENGRAM_HOME: _omit, ...agentEnv } = process.env;
+    const { ENGRAM_STORE_DIR: _omit, ...agentEnv } = process.env;
     const started = performance.now();
     const proc = Bun.spawn(cmd, {
-      cwd: input.engram_home,
+      cwd: input.store_dir,
       env: agentEnv,
       stdout: "pipe",
       stderr: "pipe",

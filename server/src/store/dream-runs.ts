@@ -28,7 +28,7 @@ export interface DreamRunState {
 }
 
 function runsDir(): string {
-  return homePath("dream", "runs");
+  return homePath("dreams", "runs");
 }
 
 function runPath(id: string): string {
@@ -47,8 +47,8 @@ async function exists(path: string): Promise<boolean> {
 /** Ensure directories used for dream runs, drafts, and reports exist. */
 export async function ensureDreamDirs(): Promise<void> {
   await mkdir(runsDir(), { recursive: true });
-  await mkdir(homePath("dream", "draft"), { recursive: true });
-  await mkdir(homePath("dream", "reports"), { recursive: true });
+  await mkdir(homePath("dreams", "draft"), { recursive: true });
+  await mkdir(homePath("dreams", "reports"), { recursive: true });
 }
 
 /** Persist dream-run metadata. */
@@ -123,12 +123,12 @@ export class DreamRunMismatchError extends Error {
 
 /** Resolve the draft directory for a dream run. */
 export function draftDir(dreamRunId: string): string {
-  return homePath("dream", "draft", dreamRunId);
+  return homePath("dreams", "draft", dreamRunId);
 }
 
 /** Resolve the review report path for a dream run. */
 export function reportPath(dreamRunId: string): string {
-  return homePath("dream", "reports", `${dreamRunId}.md`);
+  return homePath("dreams", "reports", `${dreamRunId}.md`);
 }
 
 /** Remove a dream run's draft projection. */
@@ -166,7 +166,7 @@ export function newPendingRun(opts: {
     scope: opts.scope,
     created_at: nowIso(),
     patch_count: opts.patch_count,
-    report_path: `dream/reports/${opts.id}.md`,
+    report_path: `dreams/reports/${opts.id}.md`,
     ...(opts.retried_from ? { retried_from: opts.retried_from } : {}),
     ...(opts.retry_reason ? { retry_reason: opts.retry_reason } : {}),
   };

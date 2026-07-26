@@ -16,31 +16,31 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-/** Resolve a path within the configured ENGRAM_HOME. */
+/** Resolve a path within the configured ENGRAM_STORE_DIR. */
 export function homePath(...parts: string[]): string {
-  return join(config.engramHome, ...parts);
+  return join(config.storeDir, ...parts);
 }
 
 /** Create the required store directories and empty metadata files (0.14 layout). */
 export async function ensureEngramHome(): Promise<void> {
   const dirs = [
     "",
-    "memory/activities",
-    "memory/short-term-memory",
-    "memory/short-term-memory/nodes",
-    "memory/memory-chain",
-    "memory/memory-chain/days",
-    "memory/memory-chain/weeks",
-    "memory/memory-chain/months",
-    "memory/memory-chain/years",
-    "memory/nodes",
-    "memory/future-sight",
-    "memory/future-sight/active",
-    "dream",
-    "dream/runs",
-    "dream/draft",
-    "dream/reports",
-    "dream/candidates",
+    "memories/activities",
+    "memories/short-term-memory",
+    "memories/short-term-memory/nodes",
+    "memories/chain",
+    "memories/chain/days",
+    "memories/chain/weeks",
+    "memories/chain/months",
+    "memories/chain/years",
+    "memories/nodes",
+    "memories/future-sight",
+    "memories/future-sight/active",
+    "dreams",
+    "dreams/runs",
+    "dreams/draft",
+    "dreams/reports",
+    "dreams/candidates",
     "tmp/ask/jobs",
   ];
 
@@ -48,22 +48,22 @@ export async function ensureEngramHome(): Promise<void> {
     await mkdir(homePath(d), { recursive: true });
   }
 
-  const eventsPath = homePath("memory", "activities", "events.jsonl");
+  const eventsPath = homePath("memories", "activities", "events.jsonl");
   if (!(await exists(eventsPath))) {
     await writeFile(eventsPath, "", "utf8");
   }
 
-  const patchesPath = homePath("dream", "patches.jsonl");
+  const patchesPath = homePath("dreams", "patches.jsonl");
   if (!(await exists(patchesPath))) {
     await writeFile(patchesPath, "", "utf8");
   }
 
-  const dlqPath = homePath("dream", "dead-letter.jsonl");
+  const dlqPath = homePath("dreams", "dead-letter.jsonl");
   if (!(await exists(dlqPath))) {
     await writeFile(dlqPath, "", "utf8");
   }
 
-  const candidatesAttr = homePath("dream", "candidates", "attribution.yaml");
+  const candidatesAttr = homePath("dreams", "candidates", "attribution.yaml");
   if (!(await exists(candidatesAttr))) {
     await writeFile(candidatesAttr, stringify({ candidates: [] }), "utf8");
   }

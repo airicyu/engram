@@ -139,7 +139,7 @@ export function buildDreamReport(opts: {
     lines.push("_None._");
   } else {
     lines.push(
-      "> Near-horizon anchors — will write `memory/future-sight/active/` on approve. " +
+      "> Near-horizon anchors — will write `memories/future-sight/active/` on approve. " +
         "`anchor_end` must be ≥ today or approve returns `409 stale_future_anchor`.",
     );
     lines.push("");

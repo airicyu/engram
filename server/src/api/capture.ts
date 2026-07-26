@@ -4,7 +4,7 @@ import { appendEvent, nextEventId, nowIso } from "../store/events";
 import { appendPoolEntry } from "../store/l1";
 import { isLocked } from "../store/lock";
 
-/** Request payload accepted by POST /capture. */
+/** Request payload accepted by POST /activities. */
 export interface CaptureBody {
   raw: string;
   source?: string;

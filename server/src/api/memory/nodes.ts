@@ -1,4 +1,4 @@
-/** GET /memory/nodes — node index; GET /memory/nodes/{node_id} — node detail. */
+/** GET /memories/nodes — node index; GET /memories/nodes/{node_id} — node detail. */
 
 import {
   getNodeDetail,

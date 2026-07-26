@@ -14,7 +14,7 @@ export interface DeadLetterEntry {
 }
 
 function dlqPath(): string {
-  return homePath("dream", "dead-letter.jsonl");
+  return homePath("dreams", "dead-letter.jsonl");
 }
 
 /** Read all pending dead-letter entries. */

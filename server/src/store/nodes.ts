@@ -16,7 +16,7 @@ async function exists(path: string): Promise<boolean> {
 
 /** List all persisted L2 node identifiers. */
 export async function listNodeIds(): Promise<string[]> {
-  const nodesDir = homePath("memory", "nodes");
+  const nodesDir = homePath("memories", "nodes");
   if (!(await exists(nodesDir))) return [];
   const entries = await readdir(nodesDir, { withFileTypes: true });
   return entries.filter((e) => e.isDirectory()).map((e) => e.name).sort();
@@ -24,12 +24,12 @@ export async function listNodeIds(): Promise<string[]> {
 
 /** Return whether a node directory exists. */
 export async function nodeExists(nodeId: string): Promise<boolean> {
-  return exists(homePath("memory", "nodes", nodeId));
+  return exists(homePath("memories", "nodes", nodeId));
 }
 
 /** Resolve a node's long-term understanding file. */
 export function whatPath(nodeId: string): string {
-  return homePath("memory", "nodes", nodeId, "understand", "what.md");
+  return homePath("memories", "nodes", nodeId, "understand", "what.md");
 }
 
 /** Read the Current section of a node's understanding file. */
@@ -60,7 +60,7 @@ export async function seedNode(
   nodeId: string,
   meta: { kind: string; aliases?: string[]; what?: string },
 ): Promise<void> {
-  const base = homePath("memory", "nodes", nodeId);
+  const base = homePath("memories", "nodes", nodeId);
   await mkdir(join(base, "understand"), { recursive: true });
   await mkdir(join(base, "chronology"), { recursive: true });
 

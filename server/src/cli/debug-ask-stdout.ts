@@ -14,7 +14,7 @@ const promptTemplate = await readFile(PROMPT_PATH, "utf8");
 const prompt = buildAskPrompt(promptTemplate, {
   job_id: jobId,
   q,
-  engram_home: config.engramHome,
+  store_dir: config.storeDir,
   timezone: config.timezone,
   memory_language: config.memoryLanguage,
   dream_status: "ok",
@@ -31,14 +31,14 @@ const cmd = [
   prompt,
   "--yolo",
   "--add-dir",
-  config.engramHome,
+  config.storeDir,
   "--add-dir",
   jobDir,
 ];
 
 console.error("spawn:", cmd[0], "-p <prompt>", ...cmd.slice(2));
 const proc = Bun.spawn(cmd, {
-  cwd: config.engramHome,
+  cwd: config.storeDir,
   stdout: "pipe",
   stderr: "pipe",
 });

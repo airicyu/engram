@@ -93,84 +93,84 @@ const server = Bun.serve({
     if (url.pathname === "/api/status" && req.method === "GET") {
       return proxyApi(req, "/status");
     }
-    if (url.pathname === "/api/capture" && req.method === "POST") {
-      return proxyApi(req, "/capture");
+    if (url.pathname === "/api/activities" && req.method === "POST") {
+      return proxyApi(req, "/activities");
     }
-    if (url.pathname === "/api/dream/run" && req.method === "POST") {
-      return proxyApi(req, "/dream/run");
+    if (url.pathname === "/api/dreams/run" && req.method === "POST") {
+      return proxyApi(req, "/dreams/run");
     }
-    if (url.pathname === "/api/dream/cancel" && req.method === "POST") {
-      return proxyApi(req, "/dream/cancel");
+    if (url.pathname === "/api/dreams/cancel" && req.method === "POST") {
+      return proxyApi(req, "/dreams/cancel");
     }
-    if (url.pathname === "/api/dream/pending" && req.method === "GET") {
-      return proxyApi(req, "/dream/pending");
+    if (url.pathname === "/api/dreams/pending" && req.method === "GET") {
+      return proxyApi(req, "/dreams/pending");
     }
-    if (url.pathname === "/api/dream/approve" && req.method === "POST") {
-      return proxyApi(req, "/dream/approve");
+    if (url.pathname === "/api/dreams/approve" && req.method === "POST") {
+      return proxyApi(req, "/dreams/approve");
     }
-    if (url.pathname === "/api/dream/discard" && req.method === "POST") {
-      return proxyApi(req, "/dream/discard");
+    if (url.pathname === "/api/dreams/discard" && req.method === "POST") {
+      return proxyApi(req, "/dreams/discard");
     }
-    if (url.pathname === "/api/dream/retry" && req.method === "POST") {
-      return proxyApi(req, "/dream/retry");
+    if (url.pathname === "/api/dreams/retry" && req.method === "POST") {
+      return proxyApi(req, "/dreams/retry");
     }
-    if (url.pathname === "/api/memory/l1" && req.method === "GET") {
-      return proxyApi(req, "/memory/l1");
+    if (url.pathname === "/api/memories/short-term-memory" && req.method === "GET") {
+      return proxyApi(req, "/memories/short-term-memory");
     }
-    if (url.pathname === "/api/memory/search" && req.method === "GET") {
-      return proxyApi(req, "/memory/search");
+    if (url.pathname === "/api/memories/search" && req.method === "GET") {
+      return proxyApi(req, "/memories/search");
     }
-    if (url.pathname === "/api/memory/ask" && req.method === "POST") {
-      return proxyApi(req, "/memory/ask");
+    if (url.pathname === "/api/memories/ask" && req.method === "POST") {
+      return proxyApi(req, "/memories/ask");
     }
-    if (url.pathname === "/api/memory/chain" && req.method === "GET") {
-      return proxyApi(req, "/memory/chain");
+    if (url.pathname === "/api/memories/chain" && req.method === "GET") {
+      return proxyApi(req, "/memories/chain");
     }
-    if (url.pathname === "/api/memory/chain/weeks" && req.method === "GET") {
-      return proxyApi(req, "/memory/chain/weeks");
+    if (url.pathname === "/api/memories/chain/weeks" && req.method === "GET") {
+      return proxyApi(req, "/memories/chain/weeks");
     }
-    if (url.pathname === "/api/memory/chain/months" && req.method === "GET") {
-      return proxyApi(req, "/memory/chain/months");
+    if (url.pathname === "/api/memories/chain/months" && req.method === "GET") {
+      return proxyApi(req, "/memories/chain/months");
     }
-    if (url.pathname === "/api/memory/chain/years" && req.method === "GET") {
-      return proxyApi(req, "/memory/chain/years");
+    if (url.pathname === "/api/memories/chain/years" && req.method === "GET") {
+      return proxyApi(req, "/memories/chain/years");
     }
-    if (url.pathname === "/api/memory/nodes" && req.method === "GET") {
-      return proxyApi(req, "/memory/nodes");
+    if (url.pathname === "/api/memories/nodes" && req.method === "GET") {
+      return proxyApi(req, "/memories/nodes");
     }
 
-    const weekMatch = url.pathname.match(/^\/api\/memory\/chain\/weeks\/([^/]+)$/);
+    const weekMatch = url.pathname.match(/^\/api\/memories\/chain\/weeks\/([^/]+)$/);
     if (weekMatch) {
       const id = encodeURIComponent(decodeURIComponent(weekMatch[1]!));
-      return proxyApi(req, `/memory/chain/weeks/${id}`);
+      return proxyApi(req, `/memories/chain/weeks/${id}`);
     }
-    const monthMatch = url.pathname.match(/^\/api\/memory\/chain\/months\/([^/]+)$/);
+    const monthMatch = url.pathname.match(/^\/api\/memories\/chain\/months\/([^/]+)$/);
     if (monthMatch) {
       const id = encodeURIComponent(decodeURIComponent(monthMatch[1]!));
-      return proxyApi(req, `/memory/chain/months/${id}`);
+      return proxyApi(req, `/memories/chain/months/${id}`);
     }
-    const yearMatch = url.pathname.match(/^\/api\/memory\/chain\/years\/([^/]+)$/);
+    const yearMatch = url.pathname.match(/^\/api\/memories\/chain\/years\/([^/]+)$/);
     if (yearMatch) {
       const id = encodeURIComponent(decodeURIComponent(yearMatch[1]!));
-      return proxyApi(req, `/memory/chain/years/${id}`);
+      return proxyApi(req, `/memories/chain/years/${id}`);
     }
-    const chainMatch = url.pathname.match(/^\/api\/memory\/chain\/([^/]+)$/);
+    const chainMatch = url.pathname.match(/^\/api\/memories\/chain\/([^/]+)$/);
     if (chainMatch) {
       const dayId = encodeURIComponent(decodeURIComponent(chainMatch[1]!));
-      return proxyApi(req, `/memory/chain/${dayId}`);
+      return proxyApi(req, `/memories/chain/${dayId}`);
     }
-    const nodesMatch = url.pathname.match(/^\/api\/memory\/nodes\/([^/]+)$/);
+    const nodesMatch = url.pathname.match(/^\/api\/memories\/nodes\/([^/]+)$/);
     if (nodesMatch) {
       const nodeId = encodeURIComponent(decodeURIComponent(nodesMatch[1]!));
-      return proxyApi(req, `/memory/nodes/${nodeId}`);
+      return proxyApi(req, `/memories/nodes/${nodeId}`);
     }
-    const askMatch = url.pathname.match(/^\/api\/memory\/ask\/([^/]+)(\/cancel)?$/);
+    const askMatch = url.pathname.match(/^\/api\/memories\/ask\/([^/]+)(\/cancel)?$/);
     if (askMatch) {
       const jobId = encodeURIComponent(decodeURIComponent(askMatch[1]!));
       if (askMatch[2] === "/cancel") {
-        return proxyApi(req, `/memory/ask/${jobId}/cancel`);
+        return proxyApi(req, `/memories/ask/${jobId}/cancel`);
       }
-      return proxyApi(req, `/memory/ask/${jobId}`);
+      return proxyApi(req, `/memories/ask/${jobId}`);
     }
 
     if (url.pathname.startsWith("/api/")) {

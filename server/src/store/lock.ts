@@ -12,7 +12,7 @@ export interface LockMeta {
 }
 
 function lockPath(): string {
-  return homePath("dream", "dream.lock");
+  return homePath("dreams", "dream.lock");
 }
 
 /** Return whether the dream lock file exists. */

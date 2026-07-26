@@ -37,7 +37,7 @@ export function StatusProvider({ children }: { children: ReactNode }) {
   dreamingRef.current = dreaming;
 
   const refreshPending = useCallback(async () => {
-    const { ok, data } = await api<Pending>("/dream/pending");
+    const { ok, data } = await api<Pending>("/dreams/pending");
     if (!ok) {
       setPending(null);
       return;

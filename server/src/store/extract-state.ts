@@ -13,7 +13,7 @@ export type ExtractState = {
 };
 
 function statePath(): string {
-  return homePath("dream", "extract-state.yaml");
+  return homePath("dreams", "extract-state.yaml");
 }
 
 async function exists(path: string): Promise<boolean> {

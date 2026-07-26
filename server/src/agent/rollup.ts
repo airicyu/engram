@@ -280,7 +280,7 @@ async function runCursorPrompt(prompt: string, workDir: string): Promise<string>
     "--add-dir",
     workDir,
   ];
-  const { ENGRAM_HOME: _omit, ...agentEnv } = process.env;
+  const { ENGRAM_STORE_DIR: _omit, ...agentEnv } = process.env;
   const proc = Bun.spawn(cmd, {
     cwd: workDir,
     env: agentEnv,

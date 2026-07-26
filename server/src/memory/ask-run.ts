@@ -89,7 +89,7 @@ async function runAskJob(jobId: string, q: string, startedAt: string): Promise<v
     level: "info",
     event: "store_map_ready",
     message: "Store map ready for agent",
-    detail: { engram_home: config.engramHome, dream_status },
+    detail: { store_dir: config.storeDir, dream_status },
   });
 
   if (cancelledJobs.has(jobId)) {
@@ -109,7 +109,7 @@ async function runAskJob(jobId: string, q: string, startedAt: string): Promise<v
     const result = await runner.ask({
       job_id: jobId,
       q,
-      engram_home: config.engramHome,
+      store_dir: config.storeDir,
       timezone: config.timezone,
       memory_language: config.memoryLanguage,
       dream_status,

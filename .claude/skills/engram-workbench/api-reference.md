@@ -1,6 +1,6 @@
 # Engram API Reference (workbench)
 
-Canonical spec: [../../../api-docs/api.md](../../../api-docs/api.md)
+Canonical spec: [../../../docs/api-docs/api.md](../../../docs/api-docs/api.md)
 
 ## Config
 
@@ -29,7 +29,7 @@ curl -s -X POST "$ENGRAM_URL/dream/run"
 # poll until dream_status=pending_review
 curl -s "$ENGRAM_URL/dream/pending"
 curl -s -X POST "$ENGRAM_URL/dream/approve" -H 'content-type: application/json' -d '{}'
-curl -s "$ENGRAM_URL/memory/l1"
+curl -s "$ENGRAM_URL/memories/short-term-memory"
 curl -s "$ENGRAM_URL/memory/search?q=alice&scope=nodes,chain"
 curl -s -X POST "$ENGRAM_URL/memory/ask" \
   -H 'content-type: application/json' \
@@ -43,19 +43,19 @@ curl -s "$ENGRAM_URL/future-sight"
 
 Includes `dream_status`, `dream_pending`, `l1_clear_pending`, `future_sight_active_count`, `dream_job`, `ask_job`.
 
-### `GET /dream/pending`
+### `GET /dreams/pending`
 
 Always 200. `present: false` when empty.
 
-### `POST /dream/approve`
+### `POST /dreams/approve`
 
 May return `409` with `future_chain_id` + `rejected_chain_ids`, or `stale_future_anchor` + `rejected_future_ids` (pending kept).
 
-### `GET /memory/search`
+### `GET /memories/search`
 
 `q` required. `scope` optional (`l1,nodes,chain`; default all). Returns only requested scopes with keyword hits.
 
-### `GET /future-sight`
+### `GET /memories/future-sight`
 
 Always 200. Sweeps expired anchors (L0+L1 event + hard delete), then returns active `anchors`. No `/future-sight/expired`.
 
