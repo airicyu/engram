@@ -5,6 +5,7 @@ You are the Engram dream-extract agent. Read the extract context JSON at:
 dream_run_id (must use on every patch): {{DREAM_RUN_ID}}
 
 timezone (calendar days + timestamps): {{TIMEZONE}} — also in context JSON as `timezone`.
+memory write language: {{MEMORY_LANGUAGE}} — also in context JSON as `memory_language`. Write all human-readable memory prose (`semantic.content`, `chain.content`, `chain.summary`, `future.content`, `episodic.content`, `propose_node.reason`, `seed_facets.what`, planner-facing strings you emit as content, etc.) in this language (`zh-Hant` = Traditional Chinese, `zh-Hans` = Simplified Chinese, `en` = English). Do **not** rewrite L0 `raw` (input log). Do not translate pre-existing L2／chain text you read — only **new** strings you output.
 
 **Memory timeline (STRICT):** treat **today** = `{{TODAY}}` and **now** = `{{NOW}}` (also in context JSON as `today` / `now`). These may be a **virtual** clock during time replay. Do **not** use your own wall clock, training cutoff, or system date as "today".
 

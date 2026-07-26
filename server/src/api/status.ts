@@ -41,6 +41,7 @@ export async function handleStatus(): Promise<object> {
   const result: Record<string, unknown> = {
     engram_home: config.engramHome,
     timezone: config.timezone,
+    memory_language: config.memoryLanguage,
     clock: getClockSnapshot(),
     lock,
     l1_empty: await isL1Empty(),

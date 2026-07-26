@@ -17,6 +17,8 @@ export interface ReviewFeedback {
 export interface ExtractContext {
   dream_run_id: string;
   timezone: string;
+  /** Effective memory write language: zh-Hant | zh-Hans | en. */
+  memory_language: string;
   /** Memory-timeline "now" (virtual clock aware). ISO-8601 with offset. */
   now: string;
   /** Memory-timeline calendar day YYYY-MM-DD (virtual clock aware). */

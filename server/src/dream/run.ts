@@ -196,6 +196,7 @@ export async function buildExtractContext(
   return {
     dream_run_id: dreamRunId,
     timezone: config.timezone,
+    memory_language: config.memoryLanguage,
     now: nowIso(),
     today,
     scope,

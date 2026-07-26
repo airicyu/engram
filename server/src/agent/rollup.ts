@@ -317,7 +317,8 @@ export class CursorRollupAgent implements RollupAgent {
         .replaceAll("{{LEVEL}}", ctx.level)
         .replaceAll("{{TODAY}}", ctx.today)
         .replaceAll("{{NOW}}", ctx.now)
-        .replaceAll("{{TIMEZONE}}", ctx.timezone);
+        .replaceAll("{{TIMEZONE}}", ctx.timezone)
+        .replaceAll("{{MEMORY_LANGUAGE}}", ctx.memory_language);
       const stdout = await runCursorPrompt(prompt, workDir);
       return parsePlanJson(parseWriteText(stdout));
     } finally {
@@ -344,7 +345,8 @@ export class CursorRollupAgent implements RollupAgent {
         .replaceAll("{{OPERATION}}", ctx.operation)
         .replaceAll("{{TODAY}}", ctx.today)
         .replaceAll("{{NOW}}", ctx.now)
-        .replaceAll("{{TIMEZONE}}", ctx.timezone);
+        .replaceAll("{{TIMEZONE}}", ctx.timezone)
+        .replaceAll("{{MEMORY_LANGUAGE}}", ctx.memory_language);
       const stdout = await runCursorPrompt(prompt, workDir);
       return parseWriteText(stdout);
     } finally {

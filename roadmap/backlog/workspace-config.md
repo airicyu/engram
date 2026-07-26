@@ -2,7 +2,7 @@
 
 ← [backlog](./INDEX.md) · **已排進 [0.13.0](../0.13.0/INDEX.md)**
 
-> **狀態：** 已排進 **0.13.0**（自足計畫見該版 INDEX + reasoning）。  
+> **狀態：** 已併入 **0.13.0**（見該版 INDEX + reasoning）。  
 > 同版另含首次 **setup wizard**（`setup-wizard/`、`bun run setup`）。
 
 ## 定案摘要（0.13.0）

@@ -2,7 +2,7 @@
 
 ← [changelog](../../changelog.md) · 上游：[0.12.0](../0.12.0/INDEX.md) · current: [version](../../version.md) · 構想來源：[backlog/workspace-config.md](../backlog/workspace-config.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md)
 
-> **狀態：** **planned（0.13.0）** — Briefing 已定案；**讀完本頁 + [docs/reasoning.md](./docs/reasoning.md) 即可開工**，無需依賴聊天紀錄。  
+> **狀態：** **shipped（0.13.0）**  
 > 兩塊：**A** per-`ENGRAM_HOME` workspace 偏好；**B** 首次 `bun run setup` wizard（產出 `.env` + data home + workspace yaml）。
 
 ## 產品句
@@ -113,14 +113,14 @@
 
 ## 驗收總表
 
-- [ ] 無 workspace 檔：timezone＝`ENGRAM_TZ` 鏈；`memory_language` effective＝`en`（**有意異於 0.12「未約束」**）
-- [ ] 合法 yaml 覆蓋 timezone／language；`/status` 反映 effective
-- [ ] 壞檔／未知鍵／非法值 → server 拒啟
-- [ ] 新寫入路徑遵循語言；L0 與舊 L2 不被改寫
-- [ ] `bun run setup`：install → random port → console URL → 開瀏覽器 → 表單 → 寫檔 → 200 → shutdown
-- [ ] 語言選項 UI 顯示 English／繁體中文／简体中文（非 raw code 當唯一標籤）
-- [ ] 既有 `.env` 無 overwrite → 409；有 overwrite → 可寫入
-- [ ] `bun run test:phases` 全過；api-docs／changelog／version／AGENTS 已更新
+- [x] 無 workspace 檔：timezone＝`ENGRAM_TZ` 鏈；`memory_language` effective＝`en`（**有意異於 0.12「未約束」**）
+- [x] 合法 yaml 覆蓋 timezone／language；`/status` 反映 effective
+- [x] 壞檔／未知鍵／非法值 → server 拒啟
+- [x] 新寫入路徑遵循語言；L0 與舊 L2 不被改寫
+- [x] `bun run setup`：install → random port → console URL → 開瀏覽器 → 表單 → 寫檔 → 200 → shutdown
+- [x] 語言選項 UI 顯示 English／繁體中文／简体中文（非 raw code 當唯一標籤）
+- [x] 既有 `.env` 無 overwrite → 409；有 overwrite → 可寫入
+- [x] `bun run test:phases` 全過；api-docs／changelog／version／AGENTS 已更新
 
 ---
 

@@ -25,7 +25,9 @@
 
 產品循環對齊 UI：**Capture → Consolidate → Seek → Memory**（對應 capture / dream / seek+browse）。
 
-時區由 **`ENGRAM_TZ`** 設定（IANA），預設 **`Asia/Hong_Kong`**。原型無 auth。
+時區由 **有效 timezone** 決定：`{ENGRAM_HOME}/engram.workspace.yaml` → `ENGRAM_TZ` → 預設 **`Asia/Hong_Kong`**。  
+記憶寫入語言：workspace `memory_language` → `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。
+
 
 ## 倉庫結構
 
@@ -33,6 +35,7 @@
 |------|------|
 | `server/` | Bun HTTP API（記憶核心）— 預設 `:8787` |
 | `web/` | Vite + React workbench UI + `/api` proxy — 預設 `:8788` |
+| `setup-wizard/` | 首次 `bun run setup`（static HTML + mini Bun server） |
 | `api-docs/` | API 說明；契約細節見 `api-docs/api.md` |
 | `data/` | 預設 `ENGRAM_HOME`（執行期 store，勿當原始碼改） |
 | `roadmap/` | 版本計畫；寫法見 [`roadmap/GUIDELINES.md`](./roadmap/GUIDELINES.md)；大功能先寫 plan、同意後再實作 |
@@ -50,6 +53,9 @@
 常用指令：
 
 ```bash
+# 首次設定（安裝依賴 + wizard）
+bun run setup
+
 # API
 cd server && bun run dev          # watch，:8787
 cd server && bun run reset        # 清空 ENGRAM_HOME（破壞性，需確認）
@@ -108,9 +114,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.12.0` — Dream Retry with reason（pending 三選一；禁無理由取代）
-- **下一版：** `0.13.0` — Workspace config（timezone／記憶寫入語言 per `ENGRAM_HOME`）＋首次 `bun run setup` wizard — 見 `roadmap/0.13.0/`
-- **上一版：** `0.11.0` — Week／Month／Year memory chain
+- **已出貨：** `0.13.0` — Workspace config + `bun run setup` wizard — 見 `roadmap/0.13.0/`
+- **上一版：** `0.12.0` — Dream Retry with reason（pending 三選一；禁無理由取代）
+- **更早：** `0.11.0` — Week／Month／Year memory chain
 - **Backlog：** mindzone、future-sight 注入 Memory — 見 `roadmap/backlog/`。
 
 ## 深入閱讀

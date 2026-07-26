@@ -14,6 +14,7 @@ export function buildAskPrompt(template: string, input: AskInput): string {
     .replaceAll("{{QUESTION}}", input.q)
     .replaceAll("{{JOB_ID}}", input.job_id)
     .replaceAll("{{TIMEZONE}}", input.timezone)
+    .replaceAll("{{MEMORY_LANGUAGE}}", input.memory_language)
     .replaceAll("{{DREAM_STATUS}}", input.dream_status)
     .replaceAll("{{TODAY}}", input.today)
     .replaceAll("{{NOW}}", input.now);

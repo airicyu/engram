@@ -18,6 +18,8 @@ export interface AskInput {
   q: string;
   engram_home: string;
   timezone: string;
+  /** Effective memory write language: zh-Hant | zh-Hans | en. */
+  memory_language: string;
   dream_status: string;
   /** Memory-timeline "now" (virtual clock aware). */
   now: string;

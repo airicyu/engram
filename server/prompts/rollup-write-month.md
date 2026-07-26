@@ -5,7 +5,9 @@ Write the **full new summary body** for one **month** memory-chain file.
 Read JSON context at: `{{CONTEXT_PATH}}`
 
 - id=`{{ID}}` · operation=`{{OPERATION}}`
-- today=`{{TODAY}}` · now=`{{NOW}}` · tz=`{{TIMEZONE}}` · run=`{{DREAM_RUN_ID}}`
+- today=`{{TODAY}}` · now=`{{NOW}}` · tz=`{{TIMEZONE}}` · lang=`{{MEMORY_LANGUAGE}}` · run=`{{DREAM_RUN_ID}}`
+
+Write the summary body in **{{MEMORY_LANGUAGE}}** (`zh-Hant` = Traditional Chinese, `zh-Hans` = Simplified Chinese, `en` = English). On revise, rewrite the full body in that language (do not leave mixed-language prior text).
 
 ## Purpose
 

@@ -91,6 +91,8 @@ async function main() {
     assert(s0.status === 200, "status 200");
     assert(s0.data.lock === false, "lock false");
     assert(s0.data.dream_status === "never_dreamed", "never_dreamed");
+    assert(s0.data.memory_language === "en", "default memory_language en");
+    assert(typeof s0.data.timezone === "string" && s0.data.timezone.length > 0, "timezone present");
 
     const emptyChain = await json("GET", "/memory/chain");
     assert(emptyChain.status === 200 && emptyChain.data.present === false, "empty chain index");
@@ -597,7 +599,7 @@ Old foresight that should expire.
 
     await json("DELETE", "/clock");
 
-    console.log("\n✅ All 0.12 self-checks passed");
+    console.log("\n✅ All 0.13 self-checks passed");
   } finally {
     await stopServer(server);
   }

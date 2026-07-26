@@ -45,6 +45,7 @@ export interface RollupPlanContext {
   dream_run_id: string;
   level: HigherChainLevel;
   timezone: string;
+  memory_language: string;
   now: string;
   today: string;
   candidates: string[];
@@ -63,6 +64,7 @@ export interface RollupWriteContext {
   id: string;
   operation: "init" | "revise";
   timezone: string;
+  memory_language: string;
   now: string;
   today: string;
   /** Lower-layer Current texts (prefer draft). */
@@ -110,6 +112,7 @@ async function buildPlanContext(
     dream_run_id: dreamRunId,
     level,
     timezone: config.timezone,
+    memory_language: config.memoryLanguage,
     now: nowIso(),
     today,
     candidates,
@@ -261,6 +264,7 @@ async function runLevel(opts: {
       id: t.id,
       operation: t.operation,
       timezone: config.timezone,
+      memory_language: config.memoryLanguage,
       now: ts,
       today,
       lower,

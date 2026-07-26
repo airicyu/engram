@@ -16,7 +16,10 @@ const prompt = buildAskPrompt(promptTemplate, {
   q,
   engram_home: config.engramHome,
   timezone: config.timezone,
+  memory_language: config.memoryLanguage,
   dream_status: "ok",
+  now: new Date().toISOString(),
+  today: new Date().toISOString().slice(0, 10),
 });
 
 const jobDir = askJobDir(jobId);

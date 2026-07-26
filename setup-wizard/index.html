@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Engram setup</title>
+  <style>
+    :root {
+      --bg: #f4f5f3;
+      --ink: #1a1a1a;
+      --muted: #5c5c5c;
+      --line: #d8d8d4;
+      --accent: #0f766e;
+      --err: #b91c1c;
+      --ok: #166534;
+      --card: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family:
+        "Segoe UI", "PingFang TC", "PingFang SC", "Noto Sans TC", "Noto Sans SC",
+        "Microsoft JhengHei", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+    .top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem 1rem;
+      margin-bottom: 0.35rem;
+    }
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    .ui-lang {
+      display: inline-flex;
+      gap: 0.25rem;
+      padding: 0.2rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+    }
+    .ui-lang button {
+      font: inherit;
+      font-size: 0.85rem;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .ui-lang button[aria-pressed="true"] {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+    .lede {
+      color: var(--muted);
+      margin: 0 0 1.5rem;
+    }
+    form {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1.25rem 1.35rem 1.5rem;
+      display: grid;
+      gap: 1.1rem;
+    }
+    fieldset {
+      border: 0;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.45rem;
+    }
+    legend, label.block {
+      font-size: 0.95rem;
+      font-weight: 650;
+    }
+    .hint { color: var(--muted); font-size: 0.875rem; margin: 0; }
+    select, input[type="text"], input[type="number"] {
+      width: 100%;
+      font: inherit;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .choices { display: grid; gap: 0.4rem; }
+    .choice {
+      display: flex;
+      gap: 0.55rem;
+      align-items: flex-start;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .choice:has(input:checked) {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .choice span { line-height: 1.4; }
+    .choice code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    #manualPath { display: none; margin-top: 0.35rem; }
+    #manualPath.show { display: block; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+    .overwrite {
+      display: none;
+      gap: 0.45rem;
+      padding: 0.75rem;
+      border: 1px solid #f59e0b;
+      background: #fffbeb;
+      border-radius: 8px;
+    }
+    .overwrite.show { display: grid; }
+    button[type="submit"] {
+      justify-self: start;
+      font: inherit;
+      font-weight: 650;
+      padding: 0.65rem 1.15rem;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+    button[type="submit"]:disabled { opacity: 0.55; cursor: wait; }
+    #msg {
+      display: none;
+      padding: 0.75rem 0.9rem;
+      border-radius: 8px;
+      line-height: 1.4;
+      margin-bottom: 1rem;
+    }
+    #msg.show { display: block; }
+    #msg.err { background: #fef2f2; color: var(--err); border: 1px solid #fecaca; }
+    #msg.ok { background: #f0fdf4; color: var(--ok); border: 1px solid #bbf7d0; }
+    #done {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+    #done.show { display: block; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top">
+      <h1>Engram</h1>
+      <div class="ui-lang" role="group" aria-label="UI language">
+        <button type="button" data-ui-lang="en" aria-pressed="false">English</button>
+        <button type="button" data-ui-lang="zh-Hant" aria-pressed="false">繁體中文</button>
+      </div>
+    </div>
+    <p class="lede" data-i18n="lede"></p>
+
+    <div id="msg" role="status"></div>
+    <div id="done">
+      <h2 data-i18n="doneTitle" style="margin:0 0 0.5rem;font-size:1.25rem;"></h2>
+      <p class="hint" data-i18n="doneHint" style="margin:0 0 0.75rem;"></p>
+      <pre id="doneDetail" style="white-space:pre-wrap;font-size:0.85rem;margin:0;"></pre>
+    </div>
+
+    <form id="form">
+      <fieldset>
+        <legend data-i18n="tzTitle"></legend>
+        <p class="hint" data-i18n="tzHint"></p>
+        <div class="choices">
+          <label class="choice">
+            <input type="radio" name="tzMode" value="detected" checked />
+            <span><span data-i18n="tzRecommended"></span> <strong id="detectedLabel">…</strong></span>
+          </label>
+          <label class="choice">
+            <input type="radio" name="tzMode" value="list" />
+            <span data-i18n="tzChooseList"></span>
+          </label>
+        </div>
+        <select id="timezoneList" disabled></select>
+      </fieldset>
+
+      <fieldset>
+        <legend data-i18n="memLangTitle"></legend>
+        <p class="hint" data-i18n="memLangHint"></p>
+        <div class="choices" id="langChoices">
+          <label class="choice"><input type="radio" name="memory_language" value="en" checked /> <span>English</span></label>
+          <label class="choice"><input type="radio" name="memory_language" value="zh-Hant" /> <span>繁體中文</span></label>
+          <label class="choice"><input type="radio" name="memory_language" value="zh-Hans" /> <span>简体中文</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend data-i18n="homeTitle"></legend>
+        <div class="choices" id="homeChoices"></div>
+        <input id="manualPath" type="text" />
+      </fieldset>
+
+      <fieldset>
+        <legend data-i18n="agentTitle"></legend>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="agent" value="claude" checked /> <span>Claude Code</span></label>
+          <label class="choice"><input type="radio" name="agent" value="cursor" /> <span>Cursor CLI</span></label>
+        </div>
+      </fieldset>
+
+      <div class="row">
+        <fieldset>
+          <label class="block" for="server_port" data-i18n="serverPort"></label>
+          <input id="server_port" type="number" min="1" max="65535" value="8787" />
+        </fieldset>
+        <fieldset>
+          <label class="block" for="web_port" data-i18n="webPort"></label>
+          <input id="web_port" type="number" min="1" max="65535" value="8788" />
+        </fieldset>
+      </div>
+
+      <div class="overwrite" id="overwriteBox">
+        <strong data-i18n="overwriteTitle"></strong>
+        <p class="hint" id="overwriteHint"></p>
+        <label><input type="checkbox" id="overwrite" /> <span data-i18n="overwriteConfirm"></span></label>
+      </div>
+
+      <button type="submit" id="submit" data-i18n="submit"></button>
+    </form>
+  </main>
+  <script>
+    const STR = {
+      en: {
+        title: "Engram setup",
+        lede: "First-run setup — choose where memories live, how they are written, and which agent to use.",
+        tzTitle: "Timezone",
+        tzHint: "Recommended: system-detected zone. Pick another from the list if needed (IANA ids only — not +8).",
+        tzRecommended: "Recommended:",
+        tzChooseList: "Choose from list",
+        memLangTitle: "Memory write language",
+        memLangHint: "Language for new chain / node / ask text (not this setup page, and not the workbench UI shell).",
+        homeTitle: "Engram data home",
+        homeRecommended: "recommended",
+        homeManual: "Enter absolute path manually",
+        homePlaceholder: "/absolute/path/to/engram-data",
+        agentTitle: "Agent CLI",
+        serverPort: "Server port",
+        webPort: "Web port",
+        overwriteTitle: "Existing .env files detected",
+        overwritePresent: "Present:",
+        overwriteConfirm: "Confirm overwrite server/.env and web/.env",
+        submit: "Save and finish",
+        doneTitle: "Setup complete",
+        doneHint: "You can close this tab. The setup server will shut down shortly.",
+        saved: "Saved. You can close this tab.",
+        needOverwrite: "Confirm overwrite to continue.",
+      },
+      "zh-Hant": {
+        title: "Engram 初始設定",
+        lede: "首次設定 — 選擇記憶資料位置、寫入語言，以及要用的 agent。",
+        tzTitle: "時區",
+        tzHint: "建議使用系統偵測到的時區。若不符再從列表選（須為 IANA 名稱，例如 Asia/Hong_Kong，不要填 +8）。",
+        tzRecommended: "建議：",
+        tzChooseList: "從列表選擇",
+        memLangTitle: "記憶寫入語言",
+        memLangHint: "之後寫入 chain／node／ask 的語言（不是本設定頁介面，也不是 workbench UI 外殼語言）。",
+        homeTitle: "Engram 資料目錄",
+        homeRecommended: "建議",
+        homeManual: "手動輸入絕對路徑",
+        homePlaceholder: "/絕對路徑/engram-data",
+        agentTitle: "Agent CLI",
+        serverPort: "Server 埠",
+        webPort: "Web 埠",
+        overwriteTitle: "偵測到既有 .env",
+        overwritePresent: "已存在：",
+        overwriteConfirm: "確認覆寫 server/.env 與 web/.env",
+        submit: "儲存並完成",
+        doneTitle: "設定完成",
+        doneHint: "可以關閉此分頁。設定伺服器稍後會自動結束。",
+        saved: "已儲存。可以關閉此分頁。",
+        needOverwrite: "請勾選確認覆寫後再繼續。",
+      },
+    };
+
+    const UI_KEY = "engram.setup.uiLang";
+    function detectUiLang() {
+      try {
+        const saved = localStorage.getItem(UI_KEY);
+        if (saved === "en" || saved === "zh-Hant") return saved;
+      } catch {}
+      const nav = (navigator.language || "").toLowerCase();
+      return nav.startsWith("zh") ? "zh-Hant" : "en";
+    }
+
+    let uiLang = detectUiLang();
+    let meta = null;
+    let lastOverwriteFiles = [];
+
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Hong_Kong";
+    const zones = (typeof Intl.supportedValuesOf === "function"
+      ? Intl.supportedValuesOf("timeZone")
+      : [
+          "Asia/Hong_Kong", "Asia/Taipei", "Asia/Shanghai", "Asia/Singapore",
+          "Asia/Tokyo", "Europe/London", "America/New_York", "UTC",
+        ]).slice().sort();
+
+    document.getElementById("detectedLabel").textContent = detected;
+    const timezoneList = document.getElementById("timezoneList");
+    for (const z of zones) {
+      const opt = document.createElement("option");
+      opt.value = z;
+      opt.textContent = z;
+      if (z === detected) opt.selected = true;
+      timezoneList.appendChild(opt);
+    }
+
+    function t(key) {
+      return STR[uiLang][key] || STR.en[key] || key;
+    }
+
+    function applyUiLang() {
+      document.documentElement.lang = uiLang === "zh-Hant" ? "zh-Hant" : "en";
+      document.title = t("title");
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = t(el.getAttribute("data-i18n"));
+      });
+      document.getElementById("manualPath").placeholder = t("homePlaceholder");
+      document.querySelectorAll(".ui-lang button").forEach((btn) => {
+        btn.setAttribute("aria-pressed", btn.getAttribute("data-ui-lang") === uiLang ? "true" : "false");
+      });
+      try { localStorage.setItem(UI_KEY, uiLang); } catch {}
+      renderHomeChoices();
+      renderOverwriteHint();
+    }
+
+    document.querySelectorAll(".ui-lang button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        uiLang = btn.getAttribute("data-ui-lang");
+        applyUiLang();
+      });
+    });
+
+    function syncTzMode() {
+      const mode = document.querySelector('input[name="tzMode"]:checked').value;
+      timezoneList.disabled = mode !== "list";
+    }
+    document.querySelectorAll('input[name="tzMode"]').forEach((el) => el.addEventListener("change", syncTzMode));
+    syncTzMode();
+
+    const homeChoices = document.getElementById("homeChoices");
+    const manualPath = document.getElementById("manualPath");
+    const overwriteBox = document.getElementById("overwriteBox");
+    const msg = document.getElementById("msg");
+    const form = document.getElementById("form");
+    const done = document.getElementById("done");
+
+    function showMsg(text, kind) {
+      msg.textContent = text;
+      msg.className = "show " + kind;
+    }
+
+    function selectedDataHome() {
+      const choice = document.querySelector('input[name="data_home_mode"]:checked');
+      if (!choice) return "";
+      if (choice.value === "manual") return manualPath.value.trim();
+      return choice.value;
+    }
+
+    function syncManual() {
+      const choice = document.querySelector('input[name="data_home_mode"]:checked');
+      manualPath.classList.toggle("show", choice && choice.value === "manual");
+    }
+
+    function homeOptionLabel(opt) {
+      if (opt.id === "repo") {
+        return uiLang === "zh-Hant"
+          ? `<ENGRAM_PROGRAM>/engram-data（${t("homeRecommended")}）`
+          : `<ENGRAM_PROGRAM>/engram-data (${t("homeRecommended")})`;
+      }
+      if (opt.id === "sibling") return `<ENGRAM_PROGRAM>/../engram-data`;
+      return opt.label;
+    }
+
+    function renderHomeChoices() {
+      if (!meta) return;
+      const prev = document.querySelector('input[name="data_home_mode"]:checked');
+      const prevVal = prev ? prev.value : null;
+      homeChoices.innerHTML = "";
+      meta.data_home_options.forEach((opt, i) => {
+        const label = document.createElement("label");
+        label.className = "choice";
+        const checked = prevVal ? prevVal === opt.path : i === 0;
+        label.innerHTML =
+          `<input type="radio" name="data_home_mode" value="${opt.path}" ${checked ? "checked" : ""} />` +
+          `<span>${homeOptionLabel(opt)}<br/><code>${opt.path}</code></span>`;
+        homeChoices.appendChild(label);
+      });
+      const manual = document.createElement("label");
+      manual.className = "choice";
+      const manChecked = prevVal === "manual";
+      manual.innerHTML =
+        `<input type="radio" name="data_home_mode" value="manual" ${manChecked ? "checked" : ""} />` +
+        `<span>${t("homeManual")}</span>`;
+      homeChoices.appendChild(manual);
+      homeChoices.querySelectorAll('input[name="data_home_mode"]').forEach((el) =>
+        el.addEventListener("change", syncManual)
+      );
+      syncManual();
+    }
+
+    function renderOverwriteHint() {
+      if (!lastOverwriteFiles.length) return;
+      document.getElementById("overwriteHint").textContent =
+        `${t("overwritePresent")} ${lastOverwriteFiles.join(", ")}`;
+    }
+
+    async function boot() {
+      const res = await fetch("/meta");
+      meta = await res.json();
+      document.getElementById("server_port").value = meta.default_server_port;
+      document.getElementById("web_port").value = meta.default_web_port;
+
+      if (meta.env_exists.server || meta.env_exists.web) {
+        overwriteBox.classList.add("show");
+        lastOverwriteFiles = [
+          meta.env_exists.server ? "server/.env" : null,
+          meta.env_exists.web ? "web/.env" : null,
+        ].filter(Boolean);
+      }
+
+      const prefer = meta.default_memory_language || "en";
+      const langRadio = document.querySelector(`input[name="memory_language"][value="${prefer}"]`);
+      if (langRadio) langRadio.checked = true;
+
+      applyUiLang();
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.className = "";
+      const tzMode = document.querySelector('input[name="tzMode"]:checked').value;
+      const timezone = tzMode === "detected" ? detected : timezoneList.value;
+      const memory_language = document.querySelector('input[name="memory_language"]:checked').value;
+      const agent = document.querySelector('input[name="agent"]:checked').value;
+      const data_home = selectedDataHome();
+      const server_port = Number(document.getElementById("server_port").value);
+      const web_port = Number(document.getElementById("web_port").value);
+      const overwrite = document.getElementById("overwrite").checked;
+
+      const submit = document.getElementById("submit");
+      submit.disabled = true;
+      try {
+        const res = await fetch("/setup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            timezone,
+            memory_language,
+            data_home,
+            agent,
+            server_port,
+            web_port,
+            overwrite,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          overwriteBox.classList.add("show");
+          lastOverwriteFiles = [
+            data.existing?.server ? "server/.env" : null,
+            data.existing?.web ? "web/.env" : null,
+          ].filter(Boolean);
+          renderOverwriteHint();
+          showMsg(t("needOverwrite"), "err");
+          return;
+        }
+        if (!res.ok) {
+          const detail = data.fields
+            ? Object.entries(data.fields).map(([k, v]) => `${k}: ${v}`).join("; ")
+            : data.message || data.error || res.statusText;
+          showMsg(detail, "err");
+          return;
+        }
+        form.style.display = "none";
+        done.classList.add("show");
+        document.getElementById("doneDetail").textContent = JSON.stringify(data, null, 2);
+        showMsg(t("saved"), "ok");
+      } catch (err) {
+        showMsg(String(err), "err");
+      } finally {
+        submit.disabled = false;
+      }
+    });
+
+    applyUiLang();
+    boot().catch((err) => showMsg(String(err), "err"));
+  </script>
+</body>
+</html>

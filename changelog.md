@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.13.0 — Workspace Config + First-run Setup (2026-07-26)
+
+Per-`ENGRAM_HOME` preferences plus a first-run setup wizard.
+
+### Added
+
+- **`{ENGRAM_HOME}/engram.workspace.yaml`** — optional `timezone` (IANA) + `memory_language` (`zh-Hant`｜`zh-Hans`｜`en`); unknown keys／invalid values → server refuses to start
+- **Effective language priority:** workspace → `ENGRAM_MEMORY_LANGUAGE` → **`en`**
+- **`GET /status.memory_language`** — always one of the three codes
+- Prompt injection `{{MEMORY_LANGUAGE}}` for extract／rollup／memory-ask (new prose only; L0 untouched)
+- **`bun run setup`** — `setup-wizard/` mini Bun server (random port, console URL, open browser); writes `server/.env`、`web/.env`、data home、workspace yaml; overwrite requires confirm (`409` then `overwrite: true`)
+
+### Changed
+
+- Timezone resolution: workspace overlay on `ENGRAM_TZ`／default `Asia/Hong_Kong`
+- Default memory write language is explicit **`en`** when unset (intentional vs 0.12 unconstrained)
+
+### Non-goals
+
+- Runtime workspace settings API／Workbench settings page／hot reload
+- Bare UTC offset as timezone; rewriting old L2／L0
+
+---
+
 ## 0.12.0 — Dream Retry with Reason (2026-07-26)
 
 Pending review is three-way only: **Approve／Discard／Retry with reason**. No more unreasoned Dream (replace).

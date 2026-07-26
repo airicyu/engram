@@ -12,7 +12,8 @@ Read JSON context at: `{{CONTEXT_PATH}}`
 - `operation` must match each target's `suggested_operation` from context.
 - Prefer **execute: false** when every candidate is still the open current period (`is_current_period: true`) and changes are minor.
 - Prefer **execute: true** for past periods (especially after backfill / catch-up).
-- Timeline: today=`{{TODAY}}` now=`{{NOW}}` tz=`{{TIMEZONE}}` run=`{{DREAM_RUN_ID}}`
+- Timeline: today=`{{TODAY}}` now=`{{NOW}}` tz=`{{TIMEZONE}}` lang=`{{MEMORY_LANGUAGE}}` run=`{{DREAM_RUN_ID}}`
+- Write any human-readable `reason` strings in **{{MEMORY_LANGUAGE}}** (`zh-Hant`／`zh-Hans`／`en`).
 
 ## Schema
 

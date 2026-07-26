@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run --cwd server dev",
-    "dev:ui": "bun run --cwd web dev"
+    "dev:ui": "bun run --cwd web dev",
+    "setup": "bun run setup-wizard/server.ts"
   }
 }

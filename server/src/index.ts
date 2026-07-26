@@ -414,5 +414,6 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 logInfo(`engram listening on ${server.url}`);
 logInfo(`ENGRAM_HOME=${config.engramHome}`);
 logInfo(`ENGRAM_TZ=${config.timezone}`);
+logInfo(`memory_language=${config.memoryLanguage}`);
 logInfo(`ENGRAM_AGENT=${process.env.ENGRAM_AGENT ?? "cursor"}`);
 logInfo(`ENGRAM_ALLOW_VIRTUAL_CLOCK=${config.allowVirtualClock ? "1" : "0"}`);

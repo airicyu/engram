@@ -42,6 +42,7 @@ export class CursorCliRunner implements AgentRunner {
         .replaceAll("{{CONTEXT_PATH}}", ctxPath)
         .replaceAll("{{DREAM_RUN_ID}}", ctx.dream_run_id)
         .replaceAll("{{TIMEZONE}}", ctx.timezone)
+        .replaceAll("{{MEMORY_LANGUAGE}}", ctx.memory_language)
         .replaceAll("{{TODAY}}", ctx.today)
         .replaceAll("{{NOW}}", ctx.now);
 

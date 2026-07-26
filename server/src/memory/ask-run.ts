@@ -111,6 +111,7 @@ async function runAskJob(jobId: string, q: string, startedAt: string): Promise<v
       q,
       engram_home: config.engramHome,
       timezone: config.timezone,
+      memory_language: config.memoryLanguage,
       dream_status,
       now: nowIso(),
       today: calendarDate(),

@@ -26,12 +26,13 @@ curl -s 'http://localhost:8787/memory/nodes'
 curl -s -X POST http://localhost:8787/dream/run
 ```
 
-Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；皆可選）。
+Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；皆可選）。首次也可用 repo 根目錄 `bun run setup`。
 
 | Var | Default | Meaning |
 |-----|---------|---------|
 | `ENGRAM_HOME` | `../data` | memory store root |
-| `ENGRAM_TZ` | `Asia/Hong_Kong` | IANA timezone for calendar days + event timestamps |
+| `ENGRAM_TZ` | `Asia/Hong_Kong` | IANA timezone (overridden by `{ENGRAM_HOME}/engram.workspace.yaml` `timezone`) |
+| `ENGRAM_MEMORY_LANGUAGE` | `en` | `zh-Hant` \| `zh-Hans` \| `en` when workspace omits `memory_language` |
 | `PORT` | `8787` | HTTP port |
 | `CLAUDE_BIN` | `claude` | Claude Code binary (when `ENGRAM_AGENT=claude`) |
 | `CURSOR_AGENT_BIN` | `agent` | Cursor CLI binary (when `ENGRAM_AGENT=cursor`) |

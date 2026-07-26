@@ -2,7 +2,11 @@
 
 Base URL: `http://localhost:8787` (override with `PORT`).
 
-All timestamps and calendar dates use the configured IANA timezone (`ENGRAM_TZ`, default **`Asia/Hong_Kong`**).
+All timestamps and calendar dates use the **effective** IANA timezone: `{ENGRAM_HOME}/engram.workspace.yaml` `timezone` if set, else `ENGRAM_TZ`, else **`Asia/Hong_Kong`**.
+
+**Memory write language** (`memory_language`): workspace yaml → `ENGRAM_MEMORY_LANGUAGE` → **`en`**. Allowed values only: `zh-Hant`｜`zh-Hans`｜`en`. Controls language of **new** dream／rollup／ask prose (not L0 `raw`, not workbench UI i18n). Invalid workspace yaml／unknown keys／illegal values → **server refuses to start**.
+
+First-run bootstrap: repo root `bun run setup` (wizard under `setup-wizard/`).
 
 When a **virtual clock** is set (`PUT /clock`, requires `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`), capture timestamps, dream “today” gates, and agent `today`/`now` follow that timeline instead of the wall clock. See [Virtual clock](#virtual-clock).
 
@@ -64,6 +68,7 @@ Snapshot of store health, dream state, and async job status.
 {
   "engram_home": "/path/to/data",
   "timezone": "Asia/Hong_Kong",
+  "memory_language": "en",
   "clock": {
     "mode": "system",
     "now": "2026-07-24T23:00:00+08:00",
@@ -89,7 +94,8 @@ Snapshot of store health, dream state, and async job status.
 | Field | Type | Meaning |
 |-------|------|---------|
 | `engram_home` | string | Resolved `ENGRAM_HOME` path |
-| `timezone` | string | IANA zone (`ENGRAM_TZ`, default `Asia/Hong_Kong`) |
+| `timezone` | string | Effective IANA zone (workspace yaml → `ENGRAM_TZ` → `Asia/Hong_Kong`) |
+| `memory_language` | string | Effective write language: `zh-Hant`｜`zh-Hans`｜`en` |
 | `clock` | object | Memory-timeline clock snapshot (see [Virtual clock](#virtual-clock)) |
 | `lock` | boolean | `true` while extract／materialize／approve commit holds the lock |
 | `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
