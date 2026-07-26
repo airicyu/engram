@@ -35,7 +35,7 @@
 | `web/` | Vite + React workbench UI + `/api` proxy — 預設 `:8788` |
 | `api-docs/` | API 說明；契約細節見 `api-docs/api.md` |
 | `data/` | 預設 `ENGRAM_HOME`（執行期 store，勿當原始碼改） |
-| `roadmap/` | 版本計畫；大功能先寫 plan、同意後再實作 |
+| `roadmap/` | 版本計畫；寫法見 [`roadmap/GUIDELINES.md`](./roadmap/GUIDELINES.md)；大功能先寫 plan、同意後再實作 |
 | `.claude/skills/` | Workbench / kill-port 等技能 |
 
 版本真相：`version.md`、`changelog.md`。
@@ -100,7 +100,7 @@ API 欄位提醒：
 
 ## 開發慣例
 
-1. **先 plan 後實作**：roadmap 條目未同意前，不大改記憶契約或 patch schema。
+1. **先 plan 後實作**：roadmap 條目未同意前，不大改記憶契約或 patch schema。Roadmap 必須 **self-sufficient**（新開 agent 不靠對話殘留也能開工）；見 [`roadmap/GUIDELINES.md`](./roadmap/GUIDELINES.md)。
 2. **UI 跟記憶循環走**：是個人記憶工作台，不是 admin dashboard；不要首屏塞 stats／多欄卡片牆。
 3. **最小改動**：只改任務需要的檔案；不順便重構、不亂加 markdown 文件。
 4. **契約文件優先**：改 API 行為時同步 `api-docs/`；改版本時更新 `version.md` / `changelog.md`。
@@ -109,11 +109,13 @@ API 欄位提醒：
 ## 目前版本脈絡
 
 - **已出貨：** `0.12.0` — Dream Retry with reason（pending 三選一；禁無理由取代）
+- **下一版：** `0.13.0` — Workspace config（timezone／記憶寫入語言 per `ENGRAM_HOME`）＋首次 `bun run setup` wizard — 見 `roadmap/0.13.0/`
 - **上一版：** `0.11.0` — Week／Month／Year memory chain
 - **Backlog：** mindzone、future-sight 注入 Memory — 見 `roadmap/backlog/`。
 
 ## 深入閱讀
 
+- Roadmap 寫作：`roadmap/GUIDELINES.md`
 - API 總覽：`api-docs/README.md`
 - API 契約：`api-docs/api.md`
 - Server：`server/README.md`
