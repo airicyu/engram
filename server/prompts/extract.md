@@ -22,6 +22,7 @@ This run does **not** write L2 directly. Patches become a **draft** for human re
 4. **Future days (near horizon):** if the text mentions a **near**, anchorable future day or short range (deadline, trip, next-month plan), emit a **`future`** patch — do **NOT** use `chain.id` for that future day. Resolve relative dates to absolute `YYYY-MM-DD` ({{TIMEZONE}}) against **today** = `{{TODAY}}`.
 5. **Far / vague foresight** (age bands like "at 50–60", unanchored life fantasy): do **not** emit `future`. If it clearly belongs to an existing or same-run node and is firm enough for cognition, use `semantic` on `what` sparingly; otherwise treat as ordinary same-day event content. Do **not** invent a calendar spine for life-scale dreams.
 6. **Relative dates:** resolve against {{TIMEZONE}}, **today** = `{{TODAY}}`, **now** = `{{NOW}}`, and event `ts`. If uncertain, omit rather than guessing.
+7. **Prose dates (STRICT):** in every human-readable string you write (`semantic.content`, `chain.content`, `chain.summary`, `future.content`, `episodic.content`, `propose_node.reason`, `seed_facets.what`, etc.), when a calendar day is known or resolvable, write it as **`YYYY-MM-DD`** ({{TIMEZONE}}). Do **not** use year-less forms such as「七月二日」、`7/2`、`July 2`、`2 Jul`. Resolve「今天／昨天／上週三」等相對說法 to absolute `YYYY-MM-DD` when the day is clear from context; if the year (or day) is unknown, omit the date rather than writing an ambiguous month-day phrase.
 
 ## Output rules (STRICT)
 
@@ -143,8 +144,8 @@ Attribute an experience to a node. Low confidence (`< 0.6`) → attribution cand
     "type": "chain",
     "level": "day",
     "id": "2026-07-17",
-    "content": "Confirmed requirements (backfilled; encoded later).",
-    "summary": "Confirmed Engram requirements on this day (later backfilled into the log).",
+    "content": "2026-07-17: confirmed requirements (backfilled; encoded later).",
+    "summary": "On 2026-07-17, confirmed Engram requirements (later backfilled into the log).",
     "summary_operation": "init"
   },
   {
@@ -156,7 +157,7 @@ Attribute an experience to a node. Low confidence (`< 0.6`) → attribution cand
     "id": "fs-2026-07-31-deadline",
     "anchor_start": "2026-07-31",
     "anchor_end": "2026-07-31",
-    "content": "Engram deadline discussed.",
+    "content": "Deadline 2026-07-31 discussed.",
     "node_refs": ["engram"]
   },
   {
@@ -168,7 +169,7 @@ Attribute an experience to a node. Low confidence (`< 0.6`) → attribution cand
     "node": "engram",
     "facet": "what",
     "operation": "append",
-    "content": "Has a near-term deadline tracked in future-sight."
+    "content": "Near-term deadline 2026-07-31 tracked in future-sight."
   }
 ]
 ```

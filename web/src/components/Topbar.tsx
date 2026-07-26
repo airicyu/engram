@@ -15,11 +15,11 @@ export function Topbar({
   const { t, locale, setLocale } = useI18n();
   const { status } = useStatus();
   const key = lightState(status);
-  const label = status ? lightLabel(status) || t("status.offline") : t("status.offline");
+  const label = status ? lightLabel(status, t) || t("status.offline") : t("status.offline");
   const title = status
     ? t("status.tooltip", {
-        lock: String(status.lock),
-        l1: status.l1_empty ? "empty" : "present",
+        lock: status.lock ? t("status.value.true") : t("status.value.false"),
+        l1: status.l1_empty ? t("status.value.empty") : t("status.value.present"),
         dlq: status.pending_dlq_count,
       })
     : t("status.unreachable_title");

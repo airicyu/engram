@@ -12,6 +12,8 @@ now: {{NOW}}
 
 **Memory timeline:** treat **today** = `{{TODAY}}` and **now** = `{{NOW}}` (may be a virtual clock during time replay). Do **not** use your own wall clock as "today".
 
+**Answer dates:** when citing calendar days in `answer`, prefer absolute **`YYYY-MM-DD`** ({{TIMEZONE}}); avoid year-less forms like「七月二日」or `July 2`.
+
 ## Store map (read-only)
 
 | Area | Path |

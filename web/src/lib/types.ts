@@ -57,10 +57,33 @@ export function lightState(status: Status | null): string {
   return status.dream_status || "unknown";
 }
 
-export function lightLabel(status: Status | null): string {
+export function lightLabel(
+  status: Status | null,
+  t: (k: string) => string,
+): string {
   if (!status) return "";
-  if (status.lock) return "dreaming";
-  return status.dream_status;
+  if (status.lock) return t("status.dream.dreaming");
+  return translateDreamStatus(status.dream_status, t);
+}
+
+export function translateDreamStatus(
+  dreamStatus: string,
+  t: (k: string) => string,
+): string {
+  const key = `status.dream.${dreamStatus}`;
+  const translated = t(key);
+  return translated !== key ? translated : dreamStatus;
+}
+
+export function translateDreamPhase(
+  phase: string | undefined,
+  t: (k: string) => string,
+  fallback = "—",
+): string {
+  if (!phase) return fallback;
+  const key = `consolidate.phase.${phase}`;
+  const translated = t(key);
+  return translated !== key ? translated : phase;
 }
 
 export function formatElapsed(startedAt?: string): string {

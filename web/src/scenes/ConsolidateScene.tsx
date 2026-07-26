@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { api } from "../lib/api";
-import { adviceFor, formatElapsed } from "../lib/types";
+import {
+  adviceFor,
+  formatElapsed,
+  translateDreamPhase,
+  translateDreamStatus,
+} from "../lib/types";
 import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
 import { MdBlock, Msg } from "../components/ui";
@@ -142,14 +147,24 @@ export function ConsolidateScene() {
 
   const pendingMeta = pending?.present
     ? [
-        pending.dream_run_id ? `run ${pending.dream_run_id}` : null,
-        pending.scope ? `scope ${pending.scope.length}` : null,
-        pending.draft_summary ? `draft ${pending.draft_summary.entry_count} paths` : null,
-        Array.isArray(pending.patches) ? `patches ${pending.patches.length}` : null,
+        pending.dream_run_id ? t("pending.meta_run", { id: pending.dream_run_id }) : null,
+        pending.scope ? t("pending.meta_scope", { count: pending.scope.length }) : null,
+        pending.draft_summary
+          ? t("pending.meta_draft", { count: pending.draft_summary.entry_count ?? 0 })
+          : null,
+        Array.isArray(pending.patches)
+          ? t("pending.meta_patches", { count: pending.patches.length })
+          : null,
       ]
         .filter(Boolean)
         .join(" · ")
     : "";
+
+  const progressPhase = translateDreamPhase(
+    job?.phase || (status?.lock ? "extract" : undefined),
+    t,
+    dash,
+  );
 
   return (
     <section className="scene is-active" role="tabpanel">
@@ -157,19 +172,31 @@ export function ConsolidateScene() {
       <div className="status-panel">
         <dl className="status-grid">
           <div>
-            <dt>dream_status</dt>
-            <dd>{status ? status.dream_status : dash}</dd>
+            <dt>{t("consolidate.label_dream_status")}</dt>
+            <dd>{status ? translateDreamStatus(status.dream_status, t) : dash}</dd>
           </div>
           <div>
-            <dt>lock</dt>
-            <dd>{status ? String(status.lock) : dash}</dd>
+            <dt>{t("consolidate.label_lock")}</dt>
+            <dd>
+              {status
+                ? status.lock
+                  ? t("status.value.true")
+                  : t("status.value.false")
+                : dash}
+            </dd>
           </div>
           <div>
-            <dt>L1</dt>
-            <dd>{status ? (status.l1_empty ? "empty" : "present") : dash}</dd>
+            <dt>{t("memory.l1_title")}</dt>
+            <dd>
+              {status
+                ? status.l1_empty
+                  ? t("status.value.empty")
+                  : t("status.value.present")
+                : dash}
+            </dd>
           </div>
           <div>
-            <dt>DLQ</dt>
+            <dt>{t("consolidate.label_dlq")}</dt>
             <dd>{status ? String(status.pending_dlq_count) : dash}</dd>
           </div>
         </dl>
@@ -224,7 +251,7 @@ export function ConsolidateScene() {
         <div className="dream-progress">
           <p className="dream-progress-meta">
             {t("consolidate.progress_phase", {
-              phase: job?.phase || (status?.lock ? "extract" : "—"),
+              phase: progressPhase,
               elapsed: formatElapsed(job?.started_at),
             })}
           </p>
