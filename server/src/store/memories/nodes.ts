@@ -1,4 +1,4 @@
-/** L2 node discovery, initialization, and Current-section access. */
+/** L2 node discovery, initialization, and what.md body access. */
 
 import { access, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -32,7 +32,7 @@ export function whatPath(nodeId: string): string {
   return homePath("memories", "nodes", nodeId, "understand", "what.md");
 }
 
-/** Read the Current section of a node's understanding file. */
+/** Read the narrative body of a node's understanding file (whole file in 0.16). */
 export async function readWhatCurrent(nodeId: string): Promise<string> {
   const path = whatPath(nodeId);
   if (!(await exists(path))) return "";
@@ -41,12 +41,13 @@ export async function readWhatCurrent(nodeId: string): Promise<string> {
 }
 
 /**
- * Extract the live body from a summary／what markdown file.
- * - Day／L2: content under `## Current` until `## History` (inner `##` section titles allowed).
- * - Higher chain (week／month／year): no `## Current` wrapper — whole file is the body.
+ * Extract the live narrative body from a summary／what markdown file.
+ * - 0.16+: whole file is the body (day summary、what.md、week／month／year).
+ * - Pre-0.16 day／L2: peel `## Current` until `## History` so unmigrated stores still read.
  */
 export function extractCurrentSection(md: string): string {
   if (!/^##\s*Current\b/m.test(md)) {
+    // 0.16 whole-file body, or higher-chain snapshot; drop legacy History tail if present.
     const beforeHistory = md.match(/^([\s\S]*?)(?=\n##\s*History\b|$)/);
     return (beforeHistory ? beforeHistory[1] : md).trim();
   }
@@ -81,11 +82,7 @@ export async function seedNode(
   const what = whatPath(nodeId);
   if (!(await exists(what))) {
     const body = meta.what?.trim() ?? "";
-    await writeFile(
-      what,
-      `## Current\n\n${body}\n\n## History\n`,
-      "utf8",
-    );
+    await writeFile(what, body ? `${body}\n` : "", "utf8");
   }
 
   const indexPath = join(base, "INDEX.md");
@@ -94,7 +91,7 @@ export async function seedNode(
   }
 }
 
-/** Read Current text for every persisted node. */
+/** Read what.md body for every persisted node. */
 export async function readAllWhatCurrents(): Promise<Array<{ node: string; what_current: string }>> {
   const ids = await listNodeIds();
   const out: Array<{ node: string; what_current: string }> = [];

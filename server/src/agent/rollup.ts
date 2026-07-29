@@ -210,13 +210,16 @@ function classifyLifeDim(text: string): LifeDim {
 
 /**
  * First sentence only — keep the full sentence; never mid-cut with ….
- * Skips leading week/month openers (`2026-W22 —`, `2026-05 —`) only;
+ * Skips leading week/month openers (`2026-W22-0525 —`, `2026-W22 —`, `2026-05 —`) only;
  * never strips day dates like `2026-05-02。`.
  */
 function firstSentence(text: string): string {
   let oneLine = text.replace(/\s+/g, " ").trim();
   if (!oneLine) return "";
-  oneLine = oneLine.replace(/^(?:\d{4}-W\d{2}\s*[:.—-]\s*|\d{4}-\d{2}\s+—\s*)+/u, "");
+  oneLine = oneLine.replace(
+    /^(?:\d{4}-W\d{2}(?:-\d{4})?\s*[:.—-]\s*|\d{4}-\d{2}\s+—\s*)+/u,
+    "",
+  );
   const cjk = oneLine.match(/^(.+?[。．!？?])(?:\s|$)/u);
   if (cjk) return cjk[1]!;
   const ascii = oneLine.match(/^(.{12,}?[.!?])(?:\s|$)/);
@@ -224,11 +227,11 @@ function firstSentence(text: string): string {
   return oneLine;
 }
 
-/** Drop nested openers like `During 2026-W23,` / `2026-W23:` / `2026-05 — ` (em dash). */
+/** Drop nested openers like `During 2026-W23-0601,` / `2026-W23:` / `2026-05 — ` (em dash). */
 function stripPeriodPrefix(s: string): string {
   return s
     .replace(/^(?:During|In|Across)\s+\S+\s*[,—:-]\s*/i, "")
-    .replace(/^\d{4}-W\d{2}\s*[,—:-]\s*/i, "")
+    .replace(/^\d{4}-W\d{2}(?:-\d{4})?\s*[,—:-]\s*/i, "")
     .replace(/^\d{4}-\d{2}\s+—\s*/, "")
     .trim();
 }
@@ -237,7 +240,7 @@ function ensureSentence(s: string): string {
   const t = s.trim();
   if (!t) return t;
   if (/[。．!？?]$/u.test(t)) return t;
-  if (/\d{4}(?:-W\d{2}|-\d{2})$/.test(t)) return t; // bare id — don't force `.`
+  if (/\d{4}(?:-W\d{2}(?:-\d{4})?|-\d{2})$/.test(t)) return t; // bare id — don't force `.`
   return t + ".";
 }
 

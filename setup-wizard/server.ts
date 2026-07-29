@@ -93,13 +93,28 @@ ENGRAM_URL=http://localhost:${input.serverPort}
 `;
 }
 
+function readProductVersion(): string {
+  try {
+    const line = readFileSync(join(repoRoot, "version.md"), "utf8")
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .find((l) => l.length > 0);
+    if (line && /^\d+\.\d+\.\d+$/.test(line)) return line;
+  } catch {
+    /* ignore */
+  }
+  return "0.16.0";
+}
+
 function buildWorkspaceYaml(input: {
   timezone: string;
   memoryLanguage: MemoryLanguage;
+  storeVersion: string;
 }): string {
   return `# Engram workspace preferences (per memory store)
 timezone: ${input.timezone}
 memory_language: ${input.memoryLanguage}
+store_version: ${input.storeVersion}
 `;
 }
 
@@ -219,7 +234,11 @@ function validateAndApply(body: SetupBody): Response {
     );
     writeAtomic(
       join(storeDir, "engram.workspace.yaml"),
-      buildWorkspaceYaml({ timezone, memoryLanguage }),
+      buildWorkspaceYaml({
+        timezone,
+        memoryLanguage,
+        storeVersion: readProductVersion(),
+      }),
     );
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

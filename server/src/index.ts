@@ -39,7 +39,13 @@ import { handleFutureSight } from "./api/future-sight";
 import { logError, logInfo, logMemory, withRequestLog } from "./log";
 import { killAllTrackedAgentProcesses } from "./store/agent-process";
 
-await ensureEngramHome();
+try {
+  await ensureEngramHome();
+} catch (e) {
+  const msg = e instanceof Error ? e.message : String(e);
+  logError(`store ensure failed: ${msg}`);
+  process.exit(1);
+}
 await loadClockFromDisk();
 
 let server: ReturnType<typeof Bun.serve>;
@@ -300,7 +306,7 @@ try {
       const out = await handleWeekDetail(weekId);
       if ("error" in out) {
         return Response.json(
-          { error: out.error, message: "week_id must be YYYY-Www (ISO week)" },
+          { error: out.error, message: "week_id must be YYYY-Www-MMDD (ISO week; MMDD = Monday)" },
           { status: 400 },
         );
       }
@@ -414,6 +420,7 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 
 logInfo(`engram listening on ${server.url}`);
 logInfo(`ENGRAM_STORE_DIR=${config.storeDir}`);
+logInfo(`ENGRAM_TEMP_DIR=${config.tempDir}`);
 logInfo(`ENGRAM_TZ=${config.timezone}`);
 logInfo(`memory_language=${config.memoryLanguage}`);
 logInfo(`ENGRAM_AGENT=${process.env.ENGRAM_AGENT ?? "cursor"}`);

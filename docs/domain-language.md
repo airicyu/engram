@@ -52,7 +52,7 @@
 | EN | 中文 | 說明 | API | 備註 |
 |----|------|------|-----|------|
 | **Day／week／month／year chain browse** | 記憶鏈翻閱 | 各層 index（新→舊）+ detail | `GET /memories/chain`、`/weeks`、`/months`、`/years`（及 `/{id}`） | 0.11.0 四層；與 Search 分工 |
-| **Nodes browse** | 節點翻閱 | L2 index（字母序）+ what Current detail | `GET /memories/nodes`、`GET /memories/nodes/{node_id}` | filter 在客戶端 |
+| **Nodes browse** | 節點翻閱 | L2 index（字母序）+ what.md 正文 detail | `GET /memories/nodes`、`GET /memories/nodes/{node_id}` | filter 在客戶端 |
 | **Short-term preview** | 短期記憶預覽 | Activities 場景顯示短期 pool 摘要 | `GET /memories/short-term-memory` | 僅 short-term；不在 Memory 場景瀏覽 |
 
 ### Time replay（0.9.0）
@@ -83,7 +83,7 @@
 |----|------|------|----------|--------|
 | **L0** | 事件層 | 發生了什麼（原文、時間、來源） | `memories/activities/events.jsonl` | 唯附加 |
 | **short-term memory** | 短期記憶層 | 尚未整理進長期的工作區 pool | `memories/short-term-memory/pool.jsonl` | Activities 寫入；Approve 後清 scope S |
-| **dream staging** | 入夢中間層 | 由 short-term 入夢產出、待 Approve 才進 L2（patch + 報告 + draft） | `dreams/patches.jsonl`、`dreams/draft/` | patch log 唯附加 |
+| **dream staging** | 入夢中間層 | 由 short-term 入夢產出、待 Approve 才進 L2（draft＋report） | `dreams/draft/`、`dreams/reports/` | `dreams/` 不進 store git |
 | **L2 · nodes** | 長期節點理解 | 對某主題／人目前「相信什麼」 | `memories/nodes/{id}/understand/what.md` | Approve 寫入；可手改 |
 | **L2 · chain** | 長期記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary |
 | **future-sight** | 近程前瞻 | 短期要盯的錨點（deadline 等） | `memories/future-sight/active/` | 過期寫 event 後硬刪 |
@@ -103,50 +103,51 @@
 
 ---
 
-## Dream 流程（0.3+ 現行）
+## Dream 流程（0.16+ 現行）
 
 ```
-activities → dream/run → pending_review → approve | discard
+activities → dreams/run → pending_review → approve | discard | retry
               ↑                              ↓
-         extract + materialize        commit → L2 (nodes + chain) / future-sight
-         (no live L2 write)            then clear short-term scope S
+         AI 改 draft 檔 + report     deploy → L2 + git commit
+         (不寫 live L2)               then clear short-term scope S
 ```
 
 | EN | 中文 | 說明 | 備註 |
 |----|------|------|------|
-| **extract** | 提取 | 讀 L0／short-term／L2（nodes＋相關 chain），LLM 產出 patches + report | 技術動詞；UI 常稱入夢 |
-| **materialize** | 具現化／投影 | 把 patches 寫成 draft 檔（尚未 commit） | 舊版直接 apply 到 live L2 已廢 |
-| **commit** / **commitDraft** | 提交／正式寫入 | approve 時把 draft 寫入 live **L2**（nodes 與／或 chain）及 future-sight | 失敗則 live L2 不變 |
-| **pending** / **pending_review** | 待審 | 有一份待審入夢結果（系統內唯一） | `GET /dreams/pending` |
+| **dream (file pipeline)** | 入夢（檔案管線） | AI 在 `dreams/draft/{run_id}/` 改檔並寫協定 report | 0.16 主路徑；廢 typed Patch[] 驅動 |
+| **file_update** | 檔案覆寫 | 整檔寫入 summary／what／future-sight 等 | 無 `## Current`／`## History` |
+| **file_append** | 檔案附加 | 僅 day ledger；sidecar 或程式級 append | 保留 patch metadata |
+| **deploy** | 部署 | approve：deletes → draft→live copy | 失敗只還原 touched paths |
+| **store git** | 記憶庫 git | approve 後 `git commit`（含 `dream_run_id`） | local only；不追 `dreams/`／`tmp/` |
+| **pending** / **pending_review** | 待審 | 有一份待審入夢結果（系統內唯一） | `GET /dreams/pending`（report＋`draft_summary`） |
 | **scope S** | 範圍 S | 本次入夢凍結的 L0 event id 集合 | Approve 後只清 S；可跨日 |
-| **supersede** | 取代 | 再 `dream/run` 時丟舊 pending，對目前 short-term 重跑 | 非 merge 兩份報告 |
-| **lock** / **dream lock** | 入夢鎖 | extract／commit 期間互斥 | 鎖住時 Activities → 409 |
+| **lock** / **dream lock** | 入夢鎖 | 入夢／deploy 期間互斥 | 鎖住時 Activities → 409；pending 可寫 activities |
 | **dream_run_id** | 入夢執行 ID | 一次入夢的唯一識別碼 | Approve／Discard 可選帶入 |
-| **report** | 報告 | 給人看的 Markdown 摘要 | pending 介面閱讀 |
-| **draft** | 草稿投影 | approve 前的暫存目錄 | `dreams/draft/{id}/` |
-| **draft_summary** | 草稿摘要 | API 回傳的 entry 數、chain 天數等 | `GET /dreams/pending` |
+| **report** | 報告 | 固定結構 narrative＋Appendix 路徑 | pending 介面閱讀 |
+| **draft** | 草稿工作樹 | approve 前的暫存目錄 | `dreams/draft/{id}/` |
+| **draft_summary** | 草稿摘要 | entry 數、chain／future 路徑摘要 | `GET /dreams/pending` |
 
 ---
 
-## Patch（Dream 的結構化提案）
+## 檔案變更（Dream 產出；0.16）
 
-Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做哪類寫入。
+入夢不再以 typed JSON **patch union** 為主契約；intent＝draft 裡改了哪些檔。歷史用語「patch metadata」仍可出現在 **day ledger** 的 `<!-- patch:… -->` block。
 
-| EN (type) | 中文 | 說明 | 寫入目標 |
-|-----------|------|------|----------|
-| **propose_node** | 提議新建節點 | 建議新建 node（人／組織／主題） | `memories/nodes/{id}/` |
-| **semantic** (`facet: what`) | 語意更新 | 更新 node「是什麼」 | `understand/what.md` |
-| **chain** (`level: day`) | 日鏈 | 某**發生日**的全局紀錄 | `memories/chain/days/{YYYY-MM}/{id}.md`（ledger）；`…/{id}.summary.md`（summary，0.5.0） |
-| **future** | 前瞻錨點 | 近程要留意的事 | `future-sight/active/{id}.md` |
-| **episodic** | 情節歸因 | 低信心候選；高信心原型 no-op | attribution 候選 |
+| 產物 | 說明 | 寫入目標 |
+|------|------|----------|
+| 新建／更新 node | 主題理解 | `memories/nodes/{id}/understand/what.md`（整檔） |
+| day ledger block | 日鏈增量稽核 | `memories/chain/days/{YYYY-MM}/{id}.md`（append-only） |
+| day／week／month／year summary | 可讀敘事 snapshot | 對應 `*.summary.md`（整檔） |
+| future-sight | 近程錨點 | `future-sight/active/{id}.md` |
+| deletes | 白名單刪除清單 | draft `deletes.txt` → deploy 先刪 |
 
 **Approve 閘門錯誤：**
 
 | EN (error) | 中文 | 說明 |
 |------------|------|------|
-| `future_chain_id` | 未來日鏈 ID | chain 日期 id 不能是未來日 |
+| `future_chain_id` | 未來日鏈 ID | draft 中的 day id 不能是未來日 |
 | `stale_future_anchor` | 過期前瞻錨點 | `anchor_end` 已過，拒絕寫入 |
-| `empty_patches` | 空 patch 集 | 無 L2 寫入，但仍清 scope S |
+| `empty_patches` | 無檔案變更 | 無 L2 寫入（wire 欄位名沿用），但仍清 scope S |
 
 ---
 
@@ -171,15 +172,13 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | `never_dreamed` | 從未入夢 | 從未成功跑完 extract |
 | `pending_review` | 待審 | 有待審入夢結果 |
 | `l1_clear_pending` | short-term 清理待重試（wire 名凍結） | L2 已 commit，清 short-term 失敗 |
-| `dream_incomplete` | 入夢未完成 | extract／materialize 失敗；short-term 保留 |
-| `dead_letter_pending` | 死信佇列待處理 | legacy DLQ 非空 |
+| `dream_incomplete` | 入夢未完成 | 入夢／finalize 失敗；short-term 保留 |
 | `ok` | 正常 | 穩態 |
 
 ### 其他常見欄位
 
 | EN | 中文 | 說明 |
 |----|------|------|
-| **DLQ** (dead-letter queue) | 死信佇列 | 舊版 apply 失敗的 patch 佇列 |
 | **l1_empty** | short-term 是否為空（wire 名凍結） | pool 無條目時為 true |
 | **dream_job** | 入夢非同步工作 | `running`／`completed`／`failed` |
 | **search packet** | 搜尋包 | `GET /memories/search` 回傳：僅 keyword 命中的 `l1`／`chain[]`／`nodes` |
@@ -243,7 +242,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 | **Recall** | **Seek** + **Memory** | 0.7.0 `GET /recall` → search；0.8.0 UI 拆 **尋找**（search+ask）與 **記憶**（browse） |
 | **Extract**（UI） | **Dream**（入夢） | Consolidate 主按鈕改名 |
 | **auto-apply** | **pending + approve** | 不再 extract 後直接寫 L2 |
-| **apply**（舊） | **materialize + commit** | 拆成 draft 投影與人審 commit |
+| **apply**（舊） | **deploy + git commit** | 0.16：draft 部署進 live 再 commit；更早曾稱 materialize＋commit |
 | **candidates**（建 node） | **propose_node on approve** | 建 node 改在 approve 時 |
 | **operator** / **operator UI** | **workbench** | 工作台與 `engram-workbench` skill（0.5.0） |
 
@@ -255,7 +254,7 @@ Dream extract 產出多筆 **patch**；每筆描述 approve 後要對 store 做�
 |------|-----|------|
 | `memories/activities/events.jsonl` | L0 event log | 事件層 |
 | `memories/short-term-memory/pool.jsonl` | short-term mem pool | 短期 pool |
-| `dreams/patches.jsonl` | dream staging patch log | 入夢 patch 紀錄 |
+| `dreams/patches.jsonl` | （考古）舊 patch log | 0.16 不再作為入夢驅動；可留檔 |
 | `dreams/draft/{run_id}/` | pending draft | 待審草稿 |
 | `dreams/reports/{run_id}.md` | human report | 人類可讀報告 |
 | `memories/nodes/{id}/understand/what.md` | L2 semantic understanding | L2 語意理解 |

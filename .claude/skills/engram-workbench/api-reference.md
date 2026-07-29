@@ -67,7 +67,6 @@ Always 200. Sweeps expired anchors (L0+L1 event + hard delete), then returns act
 | `pending_review` | Awaiting approve／discard／retry |
 | `l1_clear_pending` | Retry approve to clear S only |
 | `dream_incomplete` | Extract／materialize failed; L1 kept |
-| `dead_letter_pending` | Legacy DLQ |
 | `ok` | Steady |
 
 ## Strict fields

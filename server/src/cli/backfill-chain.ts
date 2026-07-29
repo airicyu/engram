@@ -5,11 +5,10 @@
  *   ENGRAM_STORE_DIR=… ENGRAM_AGENT=mock-ok bun run chain:backfill -- --level=month --until=2026-07
  *   ENGRAM_STORE_DIR=… bun run chain:backfill -- --level=all
  *
- * Uses a synthetic dream_run_id; writes patches + materializes + auto-commits
+ * Uses a synthetic dream_run_id; writes draft files + auto-commits
  * (engineering tool — not the interactive pending_review path).
  */
 
-import { mkdir } from "node:fs/promises";
 import { listChainDayIds, readDaySummary } from "../store/memories/chain";
 import {
   dayToMonthId,
@@ -21,11 +20,9 @@ import { config } from "../config";
 import { makeDreamRunId } from "../dream/run";
 import { runRollupCascade } from "../dream/rollup";
 import { MockRollupAgent, pickRollupAgent } from "../agent/rollup";
-import { materializeDraft, commitDraft } from "../store/dreams/draft";
+import { commitDraft } from "../store/dreams/draft";
+import { prepareDreamDraft, finalizeDraftFromDisk } from "../store/dreams/file-pipeline";
 import { addInitializedIds, type HigherChainLevel } from "../store/memories/chain-higher";
-import type { Patch } from "../dream/schema";
-import { nowIso } from "../store/memories/activities";
-import { draftDir } from "../store/dreams/dream-runs";
 
 function parseArgs(argv: string[]) {
   let level: "week" | "month" | "year" | "all" = "all";
@@ -58,58 +55,47 @@ async function main() {
     return;
   }
 
-  const ts = nowIso();
   const dreamRunId = makeDreamRunId();
-  const dayPatches: Patch[] = [];
-  for (const id of dayIds) {
-    const summary = await readDaySummary(id);
-    if (!summary.trim()) continue;
-    dayPatches.push({
-      type: "chain",
-      patch_id: `p-backfill-day-${id}`,
-      dream_run_id: dreamRunId,
-      ts,
-      level: "day",
-      id,
-      content: `(backfill marker for ${id})`,
-      summary,
-      summary_operation: "revise",
-    });
-  }
+  const summaryDayIds = (
+    await Promise.all(
+      dayIds.map(async (id) => ({ id, summary: await readDaySummary(id) })),
+    )
+  ).filter(({ summary }) => summary.trim()).map(({ id }) => id);
 
   const forceLevels: HigherChainLevel[] =
     level === "week" || level === "month" || level === "year"
       ? [level]
       : ["week", "month", "year"];
 
-  await mkdir(draftDir(dreamRunId), { recursive: true });
-  await materializeDraft(dreamRunId, []);
+  await prepareDreamDraft(dreamRunId);
 
   const agent =
     process.env.ENGRAM_AGENT === "mock-ok" || process.env.ENGRAM_AGENT?.startsWith("mock")
       ? new MockRollupAgent()
       : pickRollupAgent();
 
-  const { patches, reports } = await runRollupCascade({
+  const { written, reports } = await runRollupCascade({
     dreamRunId,
-    dayPatches,
+    dayIds: summaryDayIds,
     agent,
     forceLevels,
   });
+  await finalizeDraftFromDisk(dreamRunId);
 
   console.log("reports:", JSON.stringify(reports, null, 2));
-  if (patches.length === 0) {
-    console.log("no higher patches produced");
-    return;
-  }
-
   const { committed } = await commitDraft(dreamRunId);
   const byLevel: Record<HigherChainLevel, string[]> = { week: [], month: [], year: [] };
-  for (const p of patches) {
-    if (p.type !== "chain") continue;
-    if (p.level === "week" || p.level === "month" || p.level === "year") {
-      if (p.summary_operation === "init") byLevel[p.level].push(p.id);
-    }
+  for (const path of written) {
+    const level = path.startsWith("memories/chain/weeks/")
+      ? "week"
+      : path.startsWith("memories/chain/months/")
+        ? "month"
+        : path.startsWith("memories/chain/years/")
+          ? "year"
+          : null;
+    const id = path.match(/\/([^/]+)\.summary\.md$/)?.[1];
+    if (!level || !id) continue;
+    byLevel[level].push(id);
   }
   for (const lv of forceLevels) {
     await addInitializedIds(lv, byLevel[lv]);

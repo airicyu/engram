@@ -1,7 +1,8 @@
 /** Append-only structured event log for memory ask jobs. */
 
 import { appendFile, mkdir, readFile } from "node:fs/promises";
-import { homePath } from "../home";
+import { join } from "node:path";
+import { runtimeTempPath } from "../../runtime-temp";
 
 /** Pipeline phase recorded on an ask event. */
 export type AskEventPhase = "prepare" | "agent" | "parse";
@@ -17,11 +18,11 @@ export interface AskEvent {
 }
 
 function jobDir(jobId: string): string {
-  return homePath("tmp", "ask", "jobs", jobId);
+  return runtimeTempPath("ask", "jobs", jobId);
 }
 
 function eventsPath(jobId: string): string {
-  return homePath("tmp", "ask", "jobs", jobId, "events.jsonl");
+  return join(jobDir(jobId), "events.jsonl");
 }
 
 /** Append one event to the ask job log. */

@@ -13,6 +13,7 @@ import {
   isValidMonthId,
   isValidWeekId,
   isValidYearId,
+  weekDateRange,
 } from "../store/memories/chain-time";
 import { listNodeIds, nodeExists, readWhatCurrent } from "../store/memories/nodes";
 
@@ -109,14 +110,18 @@ async function getHigherDetail(
 export async function listWeekIndex() {
   const { items, present } = await listHigherIndex("week");
   return {
-    weeks: items.map((x) => ({ week_id: x.id, preview: x.preview })),
+    weeks: items.map((x) => {
+      const { start, end } = weekDateRange(x.id);
+      return { week_id: x.id, start, end, preview: x.preview };
+    }),
     present,
   };
 }
 
 export async function getChainWeek(weekId: string) {
   const d = await getHigherDetail("week", weekId);
-  return { week_id: d.id, content: d.content, present: d.present };
+  const { start, end } = weekDateRange(weekId);
+  return { week_id: d.id, start, end, content: d.content, present: d.present };
 }
 
 export async function listMonthIndex() {

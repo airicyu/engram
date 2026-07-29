@@ -118,7 +118,7 @@ async function listIdsFromGroupedSummaries(
 export async function listWeekIds(): Promise<string[]> {
   return listIdsFromGroupedSummaries(
     ["memories", "chain", "weeks"],
-    /^(\d{4}-W\d{2})\.summary\.md$/,
+    /^(\d{4}-W\d{2}-\d{4})\.summary\.md$/,
     /^\d{4}-\d{2}$/,
   );
 }

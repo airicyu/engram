@@ -4,7 +4,6 @@ export type Status = {
   store_dir?: string;
   lock: boolean;
   l1_empty: boolean;
-  pending_dlq_count: number;
   dream_status: string;
   dream_pending?: {
     dream_run_id: string;
@@ -47,8 +46,12 @@ export type Pending = {
   dream_run_id?: string | null;
   scope?: string[];
   report?: string | null;
-  draft_summary?: { entry_count?: number } | null;
-  patches?: unknown[];
+  draft_summary?: {
+    entry_count?: number;
+    future_ids?: string[];
+    chain_days?: string[];
+    chain_summary_days?: string[];
+  } | null;
 };
 
 export function lightState(status: Status | null): string {
@@ -125,9 +128,6 @@ export function adviceFor(status: Status | null, t: (k: string, v?: Record<strin
   if (status.dream_status === "pending_review") return t("advice.pending_review");
   if (status.dream_status === "l1_clear_pending") return t("advice.l1_clear_pending");
   if (status.dream_status === "dream_incomplete") return t("advice.dream_incomplete");
-  if (status.dream_status === "dead_letter_pending") {
-    return t("advice.dlq", { count: status.pending_dlq_count });
-  }
   if (status.l1_empty) {
     if (status.dream_status === "never_dreamed") return t("advice.never_dreamed");
     return t("advice.l1_empty");

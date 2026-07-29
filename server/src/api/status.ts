@@ -2,7 +2,6 @@
 
 import { isLocked, isLockStale } from "../store/dreams/lock";
 import { isShortTermMemoryEmpty } from "../store/memories/short-term-memory";
-import { pendingDlqCount } from "../store/dreams/dlq";
 import { computeDreamStatus, pendingRunSummary } from "../dream/run";
 import { getShortTermClearPendingRun } from "../store/dreams/dream-runs";
 import { readDreamJob } from "../store/dreams/dream-job";
@@ -10,8 +9,9 @@ import { tailDreamEvents } from "../store/dreams/dream-events";
 import { getRunningAskJob } from "../store/tmp/ask-job";
 import { tailAskEvents } from "../store/tmp/ask-events";
 import { countActiveAnchors } from "../store/memories/future-sight";
-import { config } from "../config";
+import { config, peekStoreVersion } from "../config";
 import { getClockSnapshot } from "../store/clock";
+import { isStoreGitReady } from "../store/git";
 
 /** Return the status document exposed by GET /status. */
 export async function handleStatus(): Promise<object> {
@@ -40,12 +40,15 @@ export async function handleStatus(): Promise<object> {
 
   const result: Record<string, unknown> = {
     store_dir: config.storeDir,
+    store_git: await isStoreGitReady(),
+    store_version: peekStoreVersion(),
+    product_version: config.productVersion,
+    temp_dir: config.tempDir,
     timezone: config.timezone,
     memory_language: config.memoryLanguage,
     clock: getClockSnapshot(),
     lock,
     l1_empty: await isShortTermMemoryEmpty(),
-    pending_dlq_count: await pendingDlqCount(),
     future_sight_active_count: await countActiveAnchors(),
     dream_status,
     dream_pending: dream_pending

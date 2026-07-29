@@ -1,6 +1,8 @@
 /** Dream orchestration: extract, materialize, review, approve, and discard. */
 
-import type { AgentRunner, ExtractContext, ReviewFeedback } from "../agent/types";
+import { readFile, readdir } from "node:fs/promises";
+import { join } from "node:path";
+import type { AgentRunner, DreamContext, ReviewFeedback } from "../agent/types";
 import { ClaudeCodeRunner } from "../agent/claude-code";
 import { CursorCliRunner } from "../agent/cursor-cli";
 import { MockFailRunner, MockOkRunner } from "../agent/mock";
@@ -15,15 +17,12 @@ import { calendarDate, nowIso } from "../store/memories/activities";
 import { makeRunId } from "../store/run-id";
 import { listNodeIds, readAllWhatCurrents } from "../store/memories/nodes";
 import { readDay, readDaySummary } from "../store/memories/chain";
-import { appendPatchesIfNew, patchesForRun } from "../store/dreams/patches";
-import type { Patch } from "./schema";
-import { pendingDlqCount } from "../store/dreams/dlq";
 import { readExtractState, writeExtractState } from "../store/dreams/extract-state";
 import { logError, logDreamDebug } from "../log";
 import { emitDreamEvent } from "./emit-event";
-import { logExtractContext, summarizePatches } from "../agent/extract-log";
+import { logExtractContext } from "../agent/extract-log";
 import { updateDreamJobPhase } from "../store/dreams/dream-job";
-import { buildDreamReport } from "./report";
+import { finalizeDreamReport } from "./report-finalize";
 import {
   beginDreamRun,
   endDreamRun,
@@ -33,11 +32,15 @@ import {
 } from "./cancel-state";
 import {
   draftSummary,
-  futureChainIds,
-  materializeDraft,
   commitDraft,
+  readManifest,
 } from "../store/dreams/draft";
-import { sweepExpiredFutureSight, staleFutureAnchorIds } from "../store/memories/future-sight";
+import { prepareDreamDraft, finalizeDraftFromDisk, readDraftDeletes } from "../store/dreams/file-pipeline";
+import {
+  commitDirtyMemorySnapshot,
+  stageAndCommitPaths,
+} from "../store/git";
+import { parseFutureSightMarkdown, sweepExpiredFutureSight } from "../store/memories/future-sight";
 import { config } from "../config";
 import {
   DreamRunMismatchError,
@@ -48,7 +51,8 @@ import {
   readReport,
   removeDraft,
   writeDreamRun,
-  writeReport,
+  draftDir,
+  reportPath,
   type DreamRunState,
 } from "../store/dreams/dream-runs";
 import { formatRollupReportSection, runRollupCascade } from "./rollup";
@@ -89,31 +93,21 @@ export class PendingReviewError extends Error {
   }
 }
 
-/** Compact one-line descriptions of patches for retry context. */
-export function compactPatchLines(patches: Patch[]): string[] {
-  return patches.map((p) => {
-    switch (p.type) {
-      case "semantic":
-        return `${p.patch_id}:semantic ${p.node}/${p.facet} ${p.operation}: ${p.content.slice(0, 160)}`;
-      case "chain":
-        return `${p.patch_id}:chain ${p.level}/${p.id} (${p.summary_operation ?? "?"}): ${(p.summary ?? p.content ?? "").slice(0, 160)}`;
-      case "future":
-        return `${p.patch_id}:future ${p.id} ${p.anchor_start}→${p.anchor_end}: ${p.content.slice(0, 160)}`;
-      case "propose_node":
-        return `${p.patch_id}:propose_node ${p.proposed_id}: ${p.reason.slice(0, 160)}`;
-      case "episodic":
-        return `${p.patch_id}:episodic ${p.node}: ${p.content.slice(0, 160)}`;
-      default:
-        return `${(p as Patch).patch_id}:${(p as Patch).type}`;
-    }
-  });
+/** Compact one-line descriptions of draft changes for retry context. */
+export function compactChangeLines(draft: Awaited<ReturnType<typeof draftSummary>>): string[] {
+  if (!draft) return [];
+  const lines: string[] = [];
+  for (const d of draft.chain_summary_days) lines.push(`day summary ${d}`);
+  for (const d of draft.chain_days) lines.push(`day ledger ${d}`);
+  for (const id of draft.chain_weeks) lines.push(`week summary ${id}`);
+  for (const id of draft.chain_months) lines.push(`month summary ${id}`);
+  for (const id of draft.chain_years) lines.push(`year summary ${id}`);
+  for (const id of draft.future_ids) lines.push(`future ${id}`);
+  return lines;
 }
 
 /** Build a short previous-attempt summary for retry feedback. */
-export function formatPreviousSummary(
-  draft: Awaited<ReturnType<typeof draftSummary>>,
-  patches: Patch[],
-): string {
+export function formatPreviousSummary(draft: Awaited<ReturnType<typeof draftSummary>>): string {
   const parts: string[] = [];
   if (draft) {
     parts.push(`draft entries: ${draft.entry_count}`);
@@ -130,7 +124,6 @@ export function formatPreviousSummary(
   } else {
     parts.push("draft: (none)");
   }
-  parts.push(`patches: ${patches.length}`);
   return parts.join("; ");
 }
 
@@ -147,12 +140,12 @@ function pickRunner(): AgentRunner {
   return new CursorCliRunner();
 }
 
-/** Build the frozen short-term, L2, and chain context supplied to an extraction runner. */
-export async function buildExtractContext(
+/** Build the frozen short-term, L2, and chain context supplied to a dream runner. */
+export async function buildDreamContext(
   dreamRunId: string,
   scope: string[],
   reviewFeedback?: ReviewFeedback,
-): Promise<ExtractContext> {
+): Promise<DreamContext> {
   const scopeEntries = await readPoolEntriesForScope(scope);
   // short-term pool already holds id/ts/raw/node_refs for S — avoid readAllEvents() on huge L0 log.
   const events = scopeEntries.map((e) => ({
@@ -186,8 +179,8 @@ export async function buildExtractContext(
   }
   const days = [...candidateDays].sort();
 
-  const chain_summaries_current: ExtractContext["chain_summaries_current"] = [];
-  const chain_ledgers: NonNullable<ExtractContext["chain_ledgers"]> = [];
+  const chain_summaries_current: DreamContext["chain_summaries_current"] = [];
+  const chain_ledgers: NonNullable<DreamContext["chain_ledgers"]> = [];
   for (const day of days) {
     chain_summaries_current.push({ day, current: await readDaySummary(day) });
     chain_ledgers.push({ day, content: await readDay(day) });
@@ -206,9 +199,15 @@ export async function buildExtractContext(
     existing_nodes,
     chain_summaries_current,
     chain_ledgers,
+    store_dir: config.storeDir,
+    draft_dir: draftDir(dreamRunId),
+    report_path: reportPath(dreamRunId),
     ...(reviewFeedback ? { review_feedback: reviewFeedback } : {}),
   };
 }
+
+/** @deprecated Use buildDreamContext. */
+export const buildExtractContext = buildDreamContext;
 
 /** Result returned after a dream reaches pending review. */
 export interface DreamRunResult {
@@ -319,12 +318,11 @@ export async function retryDream(opts: {
       throw new DreamRunMismatchError(pending.id, opts.dream_run_id);
     }
 
-    const prevPatches = await patchesForRun(pending.id);
     const prevDraft = await draftSummary(pending.id);
     const reviewFeedback: ReviewFeedback = {
       reason,
-      previous_summary: formatPreviousSummary(prevDraft, prevPatches),
-      previous_patches: compactPatchLines(prevPatches),
+      previous_summary: formatPreviousSummary(prevDraft),
+      previous_changes: compactChangeLines(prevDraft),
       retried_from: pending.id,
     };
     const scope = [...pending.scope];
@@ -384,7 +382,8 @@ async function executeDreamPipeline(opts: {
     },
   });
 
-  const patches = await doExtract(dreamRunId, scope, runner, reviewFeedback);
+  await prepareDreamDraft(dreamRunId);
+  await doDreamFiles(dreamRunId, scope, runner, reviewFeedback);
 
   throwIfDreamCancelled(dreamRunId);
 
@@ -392,17 +391,11 @@ async function executeDreamPipeline(opts: {
   emitDreamEvent(dreamRunId, {
     phase: "materialize",
     event: "materialize_start",
-    message: `Materializing ${patches.length} patch(es)`,
-    detail: {
-      patches: patches.length,
-      types: summarizePatches(patches),
-    },
+    message: "Finalizing draft files",
   });
 
   try {
-    await materializeDraft(dreamRunId, patches, {
-      shouldAbort: () => isDreamCancelled(dreamRunId),
-    });
+    await finalizeDraftFromDisk(dreamRunId);
   } catch (e) {
     await removeDraft(dreamRunId).catch(() => {});
     if (isDreamCancelled(dreamRunId)) {
@@ -421,22 +414,23 @@ async function executeDreamPipeline(opts: {
   emitDreamEvent(dreamRunId, {
     phase: "materialize",
     event: "materialize_done",
-    message: "Draft materialized (day)",
+    message: "Draft files finalized",
   });
 
-  let allPatches = patches;
   let rollupSection = "";
   try {
     throwIfDreamCancelled(dreamRunId);
-    const { patches: rollupPatches, reports } = await runRollupCascade({
+    const draft = await draftSummary(dreamRunId);
+    const dayIds = draft?.chain_summary_days?.length
+      ? draft.chain_summary_days
+      : (draft?.chain_days ?? []);
+    const { reports } = await runRollupCascade({
       dreamRunId,
-      dayPatches: patches,
+      dayIds,
       agent: pickRollupAgent(),
     });
-    if (rollupPatches.length > 0) {
-      allPatches = [...patches, ...rollupPatches];
-    }
     rollupSection = formatRollupReportSection(reports);
+    await finalizeDraftFromDisk(dreamRunId);
   } catch (e) {
     await removeDraft(dreamRunId).catch(() => {});
     if (isDreamCancelled(dreamRunId)) {
@@ -453,20 +447,19 @@ async function executeDreamPipeline(opts: {
   }
 
   const poolEntries = await readPoolEntriesForScope(scope);
-  const report =
-    buildDreamReport({
-      dream_run_id: dreamRunId,
-      scope,
-      events: poolEntries,
-      patches: allPatches,
-      review_feedback: reviewFeedback,
-    }) + (rollupSection ? `\n${rollupSection}` : "");
-  await writeReport(dreamRunId, report);
+  await finalizeDreamReport({
+    dream_run_id: dreamRunId,
+    scope,
+    events: poolEntries,
+    review_feedback: reviewFeedback,
+    rollup_section: rollupSection,
+  });
+  const entryCount = (await draftSummary(dreamRunId))?.entry_count ?? 0;
 
   const run = newPendingRun({
     id: dreamRunId,
     scope,
-    patch_count: allPatches.length,
+    patch_count: entryCount,
     retried_from: reviewFeedback?.retried_from,
     retry_reason: reviewFeedback?.reason,
   });
@@ -476,10 +469,9 @@ async function executeDreamPipeline(opts: {
   emitDreamEvent(dreamRunId, {
     phase: "pending_review",
     event: "run_complete",
-    message: `Ready for review (${allPatches.length} patches)`,
+    message: `Ready for review (${entryCount} draft entries)`,
     detail: {
-      patches: allPatches.length,
-      future_chain: futureChainIds(allPatches),
+      entries: entryCount,
       retried_from: reviewFeedback?.retried_from ?? null,
     },
   });
@@ -487,7 +479,7 @@ async function executeDreamPipeline(opts: {
   return {
     dream_run_id: dreamRunId,
     scope,
-    patch_count: allPatches.length,
+    patch_count: entryCount,
     superseded: null,
     retried_from: reviewFeedback?.retried_from ?? null,
     extract_status: "ok",
@@ -495,14 +487,14 @@ async function executeDreamPipeline(opts: {
   };
 }
 
-async function doExtract(
+async function doDreamFiles(
   dreamRunId: string,
   scope: string[],
   runner?: AgentRunner,
   reviewFeedback?: ReviewFeedback,
-): Promise<Patch[]> {
+): Promise<void> {
   const agent = runner ?? pickRunner();
-  const ctx = await buildExtractContext(dreamRunId, scope, reviewFeedback);
+  const ctx = await buildDreamContext(dreamRunId, scope, reviewFeedback);
 
   logExtractContext({
     dream_run_id: dreamRunId,
@@ -513,9 +505,8 @@ async function doExtract(
     l2_nodes: ctx.l2_current.length,
   });
 
-  let patches: Patch[];
   try {
-    patches = await agent.extract(ctx);
+    await agent.dream(ctx);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     emitDreamEvent(dreamRunId, {
@@ -531,22 +522,12 @@ async function doExtract(
       "extract",
     );
   }
-
-  patches = patches.map((p) => ({ ...p, dream_run_id: dreamRunId }));
-
-  const { patches: stored } = await appendPatchesIfNew(dreamRunId, patches);
-  logDreamDebug("patches stored", {
-    dream_run_id: dreamRunId,
-    count: stored.length,
-  });
-  return stored;
 }
 
 /** High-level state reported for the dream pipeline. */
 export type DreamStatus =
   | "ok"
   | "pending_review"
-  | "dead_letter_pending"
   | "dream_incomplete"
   | "never_dreamed"
   | "l1_clear_pending";
@@ -561,7 +542,6 @@ export async function computeDreamStatus(): Promise<DreamStatus> {
 
   const extractState = await readExtractState();
   const l1Empty = await isShortTermMemoryEmpty();
-  const dlq = await pendingDlqCount();
 
   if (extractState.status === "failed" && !l1Empty) {
     return "dream_incomplete";
@@ -571,7 +551,6 @@ export async function computeDreamStatus(): Promise<DreamStatus> {
     return "never_dreamed";
   }
 
-  if (dlq > 0) return "dead_letter_pending";
   return "ok";
 }
 
@@ -581,7 +560,6 @@ export async function getPendingPayload(): Promise<{
   dream_run_id: string | null;
   scope: string[];
   report: string | null;
-  patches: Patch[];
   draft_summary: {
     entry_count: number;
     chain_days: string[];
@@ -599,12 +577,10 @@ export async function getPendingPayload(): Promise<{
       dream_run_id: null,
       scope: [],
       report: null,
-      patches: [],
       draft_summary: null,
     };
   }
 
-  const patches = await patchesForRun(pending.id);
   const report = await readReport(pending.id);
   const draft_summary = await draftSummary(pending.id);
 
@@ -613,7 +589,6 @@ export async function getPendingPayload(): Promise<{
     dream_run_id: pending.id,
     scope: pending.scope,
     report,
-    patches,
     draft_summary,
   };
 }
@@ -638,6 +613,10 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
     await clearShortTermMemoryScope(clearOnly.scope);
     clearOnly.l1_clear_pending = false;
     await writeDreamRun(clearOnly);
+    await stageAndCommitPaths(
+      ["memories/short-term-memory"],
+      `engram: dream ${clearOnly.id} (scope clear)`,
+    ).catch((e) => logError("git commit after scope clear failed", e, { dream_run_id: clearOnly.id }));
     return {
       dream_run_id: clearOnly.id,
       committed: [],
@@ -655,23 +634,35 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
     throw new DreamRunMismatchError(pending.id, opts.dream_run_id);
   }
 
-  const patches = await patchesForRun(pending.id);
-  const rejected = futureChainIds(patches);
+  const draft = await draftSummary(pending.id);
+  const rejected = [...new Set([
+    ...(draft?.chain_days ?? []),
+    ...(draft?.chain_summary_days ?? []),
+  ])]
+    .filter((id) => id > calendarDate())
+    .sort();
   if (rejected.length > 0) {
     throw new FutureChainIdError(rejected);
   }
-  const stale = staleFutureAnchorIds(patches);
+  const stale = await staleDraftFutureAnchorIds(pending.id);
   if (stale.length > 0) {
     throw new StaleFutureAnchorError(stale);
   }
 
+  // Preserve unrelated L0／short-term dirty state before deploy (path rollback must not erase them).
+  await commitDirtyMemorySnapshot(`engram: autosave before ${pending.id}`).catch((e) =>
+    logError("autosave before dream deploy failed", e, { dream_run_id: pending.id }),
+  );
+
   let committed: string[] = [];
-  const empty_patches = patches.length === 0;
+  const manifest = await readManifest(pending.id);
+  const deletes = await readDraftDeletes(pending.id);
+  const empty_patches = !(manifest?.entries.length) && !deletes.length;
 
   if (!empty_patches) {
     const result = await commitDraft(pending.id);
     committed = result.committed;
-    await recordInitializedFromPatches(patches);
+    await recordInitializedFromManifest(manifest);
   }
 
   pending.status = "committed";
@@ -686,6 +677,22 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   } catch (e) {
     logError("l1 clear after commit failed", e, { dream_run_id: pending.id });
     // keep l1_clear_pending
+  }
+
+  const gitPaths = [...committed];
+  if (!pending.l1_clear_pending) {
+    gitPaths.push("memories/short-term-memory");
+  }
+  if (gitPaths.length > 0) {
+    try {
+      await stageAndCommitPaths(
+        [...new Set(gitPaths)],
+        `engram: dream ${pending.id}`,
+      );
+    } catch (e) {
+      logError("git commit after dream deploy failed", e, { dream_run_id: pending.id });
+      // Live deploy already applied; do not roll back L2 here — operator can inspect git status.
+    }
   }
 
   await removeDraft(pending.id).catch(() => {});
@@ -769,19 +776,46 @@ export async function pendingRunSummary(): Promise<{
 
 export type { DreamRunState };
 
-async function recordInitializedFromPatches(patches: Patch[]): Promise<void> {
+async function staleDraftFutureAnchorIds(dreamRunId: string): Promise<string[]> {
+  const activeDir = join(draftDir(dreamRunId), "memories", "future-sight", "active");
+  let names: string[];
+  try {
+    names = await readdir(activeDir);
+  } catch {
+    return [];
+  }
+
+  const today = calendarDate();
+  const stale: string[] = [];
+  for (const name of names) {
+    if (!name.endsWith(".md")) continue;
+    const id = name.slice(0, -3);
+    const anchor = parseFutureSightMarkdown(await readFile(join(activeDir, name), "utf8"), id);
+    if (anchor.anchor_end < today) stale.push(anchor.id);
+  }
+  return [...new Set(stale)].sort();
+}
+
+async function recordInitializedFromManifest(
+  manifest: Awaited<ReturnType<typeof readManifest>>,
+): Promise<void> {
   const byLevel: Record<HigherChainLevel, string[]> = {
     week: [],
     month: [],
     year: [],
   };
-  for (const p of patches) {
-    if (p.type !== "chain") continue;
-    if (p.level === "week" || p.level === "month" || p.level === "year") {
-      if (p.summary_operation === "init") {
-        byLevel[p.level].push(p.id);
-      }
-    }
+  for (const entry of manifest?.entries ?? []) {
+    if (entry.op !== "create") continue;
+    const level = entry.path.startsWith("memories/chain/weeks/")
+      ? "week"
+      : entry.path.startsWith("memories/chain/months/")
+        ? "month"
+        : entry.path.startsWith("memories/chain/years/")
+          ? "year"
+          : null;
+    const id = entry.path.match(/\/([^/]+)\.summary\.md$/)?.[1];
+    if (!level || !id) continue;
+    byLevel[level].push(id);
   }
   for (const level of ["week", "month", "year"] as HigherChainLevel[]) {
     await addInitializedIds(level, byLevel[level]);

@@ -1,6 +1,14 @@
 # Engram Server (Prototype)
 
-Bun HTTP API for Engram MVP memory: capture → dream (extract+apply) → memory.
+Bun HTTP API for Engram MVP memory: capture → dream (draft file pipeline) → approve (deploy + git) → memory.
+
+## Prerequisites
+
+| Dependency | Notes |
+|------------|--------|
+| **Bun** | Runtime |
+| **Git** | Required on PATH — each `ENGRAM_STORE_DIR` is a local git repo (0.16+); server refuses to start without it |
+| **Agent CLI** | Cursor `agent` (default) or Claude Code when `ENGRAM_AGENT=claude` |
 
 ## Real trial (empty store)
 
@@ -31,6 +39,7 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | Var | Default | Meaning |
 |-----|---------|---------|
 | `ENGRAM_STORE_DIR` | `../data` | memory store root |
+| `ENGRAM_TEMP_DIR` | `/tmp` | host temp for ask jobs + dream agent workdirs (outside store) |
 | `ENGRAM_TZ` | `Asia/Hong_Kong` | IANA timezone (overridden by `{ENGRAM_STORE_DIR}/engram.workspace.yaml` `timezone`) |
 | `ENGRAM_MEMORY_LANGUAGE` | `en` | `zh-Hant` \| `zh-Hans` \| `en` when workspace omits `memory_language` |
 | `PORT` | `8787` | HTTP port（**固定綁 `127.0.0.1`**，僅本機；`http://localhost:8787` 可用） |
@@ -45,9 +54,10 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | Method | Path | |
 |--------|------|--|
 | `POST` | `/activities` | `{ "raw", "source?", "node_refs?" }` → `{ event_id }` |
-| `POST` | `/dreams/run` | extract → draft → pending_review（pending 時 409） |
+| `POST` | `/dreams/run` | AI edits draft＋report → pending_review（pending 時 409） |
 | `POST` | `/dreams/retry` | discard pending → same scope + reason → new pending |
 | `POST` | `/dreams/cancel` | cancel running dream |
+| `POST` | `/dreams/approve` | deploy＋git commit → L2；clear scope S |
 | `GET` | `/memories/short-term-memory` | short-term preview (Activities) |
 | `GET` | `/memories/search?q=&scope=` | keyword hits (`q` required) |
 | `GET` | `/memories/chain` | day chain index (browse) |
@@ -62,7 +72,7 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | `GET` | `/memories/nodes/{node_id}` | L2 node detail |
 | `POST` | `/memories/ask` | async AI Q&A |
 | `GET`/`PUT`/`DELETE` | `/clock` | virtual memory timeline (PUT needs env) |
-| `GET` | `/status` | lock, short-term (`l1_empty`), DLQ, dream_status, ask_job, clock |
+| `GET` | `/status` | lock, short-term (`l1_empty`), dream_status, ask_job, clock |
 
 Full contract: [../docs/api-docs/api.md](../docs/api-docs/api.md).
 

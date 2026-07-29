@@ -51,14 +51,14 @@ export async function readDay(dayId: string): Promise<string> {
   return readFile(p, "utf8");
 }
 
-/** Full summary markdown (`## Current` + `## History`), or "" if missing. */
+/** Full day summary markdown (0.16: whole file = latest narrative), or "" if missing. */
 export async function readDaySummaryFile(dayId: string): Promise<string> {
   const p = daySummaryPath(dayId);
   if (!(await exists(p))) return "";
   return readFile(p, "utf8");
 }
 
-/** Summary Current section only, or "" if missing / empty. */
+/** Day summary narrative body, or "" if missing / empty. */
 export async function readDaySummary(dayId: string): Promise<string> {
   const file = await readDaySummaryFile(dayId);
   if (!file.trim()) return "";
@@ -66,7 +66,7 @@ export async function readDaySummary(dayId: string): Promise<string> {
 }
 
 /**
- * Recall / display: prefer summary Current; fallback to ledger when no summary
+ * Recall / display: prefer summary body; fallback to ledger when no summary
  * (legacy transition). Returns which source was used.
  */
 export async function readDayForRecall(

@@ -1,32 +1,38 @@
-/** Claude Code-backed and static dream extraction runners. */
+/** Claude Code-backed dream file-pipeline runner (0.16). */
 
 import { join } from "node:path";
+import { access } from "node:fs/promises";
 import { config } from "../config";
-import type { AgentRunner, ExtractContext } from "./types";
-import type { Patch } from "../dream/schema";
-import { parseExtractStdout } from "../dream/schema";
+import type { AgentRunner, DreamContext } from "./types";
 import {
   logAgentResult,
   logAgentSpawn,
-  logExtractParseFailed,
-  logExtractParsed,
 } from "./extract-log";
 import { setDreamJobAgentPid } from "../store/dreams/dream-job";
 import { loadPrompt, renderPrompt } from "./prompt-template";
 import { withTempJsonContext } from "./temp-context";
 import { runAgentCommand } from "./subprocess";
 
-const PROMPT_PATH = join(import.meta.dir, "../../prompts/extract.md");
+const PROMPT_PATH = join(import.meta.dir, "../../prompts/dream-files.md");
 const RUNNER = "claude";
 
-/** Extract patches by invoking the configured Claude Code binary. */
+async function exists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Edit draft files + report via Claude Code CLI. */
 export class ClaudeCodeRunner implements AgentRunner {
-  async extract(ctx: ExtractContext): Promise<Patch[]> {
+  async dream(ctx: DreamContext): Promise<void> {
     const promptTemplate = await loadPrompt(PROMPT_PATH);
     const procKey = `dream:${ctx.dream_run_id}`;
 
-    return withTempJsonContext(
-      { prefix: "engram-extract", filename: "extract-context.json", value: ctx },
+    await withTempJsonContext(
+      { prefix: "engram-dream", filename: "dream-context.json", value: ctx },
       async (workDir, ctxPath) => {
         const meta = {
           dream_run_id: ctx.dream_run_id,
@@ -41,6 +47,9 @@ export class ClaudeCodeRunner implements AgentRunner {
           MEMORY_LANGUAGE: ctx.memory_language,
           TODAY: ctx.today,
           NOW: ctx.now,
+          STORE_DIR: ctx.store_dir,
+          DRAFT_DIR: ctx.draft_dir,
+          REPORT_PATH: ctx.report_path,
         });
 
         const cmd = [
@@ -50,7 +59,7 @@ export class ClaudeCodeRunner implements AgentRunner {
           "--output-format",
           "text",
           "--allowedTools",
-          "Read",
+          "Read,Write,Edit,Bash",
         ];
 
         logAgentSpawn({
@@ -62,13 +71,13 @@ export class ClaudeCodeRunner implements AgentRunner {
             "--output-format",
             "text",
             "--allowedTools",
-            "Read",
+            "Read,Write,Edit,Bash",
           ],
         });
 
         const result = await runAgentCommand({
           cmd,
-          cwd: workDir,
+          cwd: ctx.store_dir,
           processKey: procKey,
           onPid: (pid) => setDreamJobAgentPid(pid),
           exitErrorLabel: "claude",
@@ -81,26 +90,17 @@ export class ClaudeCodeRunner implements AgentRunner {
           stderr: result.stderr,
         });
 
-        try {
-          const patches = parseExtractStdout(result.stdout);
-          logExtractParsed(ctx.dream_run_id, patches);
-          return patches;
-        } catch (e) {
-          logExtractParseFailed(ctx.dream_run_id, RUNNER, result.stdout, e);
-          throw e;
+        if (!(await exists(ctx.report_path))) {
+          throw new Error("dream agent finished but report file is missing");
         }
       },
     );
   }
 }
 
-/** For tests: inject pre-parsed patches without calling Claude. */
+/** For tests: no-op dream (caller prepares draft／report). */
 export class StaticRunner implements AgentRunner {
-  constructor(private patches: Patch[]) {}
-  async extract(_ctx: ExtractContext): Promise<Patch[]> {
-    return this.patches.map((p) => ({
-      ...p,
-      dream_run_id: _ctx.dream_run_id,
-    }));
+  async dream(_ctx: DreamContext): Promise<void> {
+    // intentionally empty — fixtures prepare files
   }
 }

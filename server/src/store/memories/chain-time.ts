@@ -1,7 +1,8 @@
 /** Calendar / ISO-week helpers for memory-chain ids (day → week → month → year). */
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-const WEEK_RE = /^(\d{4})-W(\d{2})$/;
+/** Canonical week id: ISO week-year + week + Monday MMDD. Example: `2026-W30-0720`. */
+const WEEK_RE = /^(\d{4})-W(\d{2})-(\d{2})(\d{2})$/;
 const MONTH_RE = /^\d{4}-\d{2}$/;
 const YEAR_RE = /^\d{4}$/;
 
@@ -11,11 +12,37 @@ export function isValidDayId(id: string): boolean {
   return DAY_RE.test(id);
 }
 
+function mondayFromIsoWeek(isoYear: number, week: number): string {
+  const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7;
+  const monday = new Date(jan4);
+  monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (week - 1) * 7);
+  return formatDayUtc(monday);
+}
+
+function mmddFromDayId(dayId: string): string {
+  return `${dayId.slice(5, 7)}${dayId.slice(8, 10)}`;
+}
+
+function formatWeekId(isoYear: number, week: number, mondayDayId: string): string {
+  return `${isoYear}-W${String(week).padStart(2, "0")}-${mmddFromDayId(mondayDayId)}`;
+}
+
+/**
+ * Valid week id: `YYYY-Www-MMDD` where MMDD is the **Monday** of that ISO week
+ * (must match the Monday derived from ISO week-year + week number).
+ */
 export function isValidWeekId(id: string): boolean {
   const m = id.match(WEEK_RE);
   if (!m) return false;
+  const isoYear = Number(m[1]);
   const week = Number(m[2]);
-  return week >= 1 && week <= 53;
+  if (week < 1 || week > 53) return false;
+  const mm = Number(m[3]);
+  const dd = Number(m[4]);
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return false;
+  const expectedMonday = mondayFromIsoWeek(isoYear, week);
+  return mmddFromDayId(expectedMonday) === `${m[3]}${m[4]}`;
 }
 
 export function isValidMonthId(id: string): boolean {
@@ -40,7 +67,7 @@ function formatDayUtc(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** ISO week id `YYYY-Www` for a calendar day (ISO week-year). */
+/** ISO week id `YYYY-Www-MMDD` for a calendar day (MMDD = that week's Monday). */
 export function dayToWeekId(dayId: string): string {
   if (!isValidDayId(dayId)) throw new Error(`invalid day id: ${dayId}`);
   const d = parseDayUtc(dayId);
@@ -49,7 +76,8 @@ export function dayToWeekId(dayId: string): string {
   const isoYear = d.getUTCFullYear();
   const yearStart = new Date(Date.UTC(isoYear, 0, 1));
   const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return `${isoYear}-W${String(weekNo).padStart(2, "0")}`;
+  const monday = mondayFromIsoWeek(isoYear, weekNo);
+  return formatWeekId(isoYear, weekNo, monday);
 }
 
 export function dayToMonthId(dayId: string): string {
@@ -62,17 +90,23 @@ export function dayToYearId(dayId: string): string {
   return dayId.slice(0, 4);
 }
 
-/** Monday (UTC calendar) of an ISO week. */
+/** Monday (UTC calendar) of an ISO week id `YYYY-Www-MMDD`. */
 export function weekMonday(weekId: string): string {
   const m = weekId.match(WEEK_RE);
   if (!m) throw new Error(`invalid week id: ${weekId}`);
   const isoYear = Number(m[1]);
   const week = Number(m[2]);
-  const jan4 = new Date(Date.UTC(isoYear, 0, 4));
-  const jan4Day = jan4.getUTCDay() || 7;
-  const monday = new Date(jan4);
-  monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (week - 1) * 7);
-  return formatDayUtc(monday);
+  const monday = mondayFromIsoWeek(isoYear, week);
+  if (mmddFromDayId(monday) !== `${m[3]}${m[4]}`) {
+    throw new Error(`invalid week id (MMDD is not Monday): ${weekId}`);
+  }
+  return monday;
+}
+
+/** Inclusive Mon–Sun as `{ start, end }` (`YYYY-MM-DD`). */
+export function weekDateRange(weekId: string): { start: string; end: string } {
+  const days = daysInWeek(weekId);
+  return { start: days[0]!, end: days[6]! };
 }
 
 /** Parent folder `YYYY-MM` for a week (= Monday's calendar month). */
@@ -163,4 +197,18 @@ export function isCurrentWeek(weekId: string, today: string): boolean {
 
 export function isCurrentYear(yearId: string, today: string): boolean {
   return dayToYearId(today) === yearId;
+}
+
+/**
+ * Upgrade legacy `YYYY-Www` → canonical `YYYY-Www-MMDD` (Monday).
+ * Returns null if already canonical or unrecognised.
+ */
+export function upgradeLegacyWeekId(id: string): string | null {
+  const legacy = id.match(/^(\d{4})-W(\d{2})$/);
+  if (!legacy) return null;
+  const isoYear = Number(legacy[1]);
+  const week = Number(legacy[2]);
+  if (week < 1 || week > 53) return null;
+  const monday = mondayFromIsoWeek(isoYear, week);
+  return formatWeekId(isoYear, week, monday);
 }

@@ -94,6 +94,18 @@ async function main() {
     assert(s0.data.dream_status === "never_dreamed", "never_dreamed");
     assert(s0.data.memory_language === "en", "default memory_language en");
     assert(typeof s0.data.timezone === "string" && s0.data.timezone.length > 0, "timezone present");
+    assert(s0.data.store_git === true, "store_git true after ensure");
+    assert(typeof s0.data.product_version === "string" && /^\d+\.\d+\.\d+$/.test(s0.data.product_version), "product_version semver");
+    assert(s0.data.store_version === s0.data.product_version, "new store stamped store_version");
+    const gitHead = Bun.spawnSync(["git", "-C", TEST_HOME, "rev-parse", "--verify", "HEAD"]);
+    assert(gitHead.exitCode === 0, "store has initial HEAD commit");
+    const gi = await readFile(join(TEST_HOME, ".gitignore"), "utf8");
+    assert(gi.includes("dreams/") && gi.includes("tmp/"), ".gitignore excludes dreams/ and tmp/");
+    const trackedDreams = Bun.spawnSync(["git", "-C", TEST_HOME, "ls-files", "dreams"]);
+    assert(
+      trackedDreams.exitCode === 0 && trackedDreams.stdout.toString().trim() === "",
+      "dreams/ not tracked in store git",
+    );
 
     const emptyChain = await json("GET", "/memories/chain");
     assert(emptyChain.status === 200 && emptyChain.data.present === false, "empty chain index");
@@ -131,7 +143,7 @@ async function main() {
       await mkdir(join(TEST_HOME, `memories/nodes/${id}/understand`), { recursive: true });
       await Bun.write(
         join(TEST_HOME, `memories/nodes/${id}/understand/what.md`),
-        `## Current\n\n${what}\n\n## History\n`,
+        `${what}\n`,
       );
       await Bun.write(join(TEST_HOME, `memories/nodes/${id}/node.meta.yaml`), `id: ${id}\nkind: org\n`);
     }
@@ -249,6 +261,20 @@ async function main() {
     assert(ap.status === 200, `approve 200 got ${ap.status} ${JSON.stringify(ap.data)}`);
     assert(ap.data.l1_clear_pending === false, "l1 cleared");
     assert(Array.isArray(ap.data.committed) && ap.data.committed.length > 0, "committed paths");
+    const approvedRunId = String(ap.data.dream_run_id ?? "");
+    assert(approvedRunId.length > 0, "approve returns dream_run_id");
+    const gitLog = Bun.spawnSync(["git", "-C", TEST_HOME, "log", "-5", "--oneline"]);
+    assert(gitLog.exitCode === 0, "store git log ok");
+    const logText = gitLog.stdout.toString();
+    assert(
+      logText.includes(approvedRunId) || logText.includes(`dream ${approvedRunId}`),
+      `git commit mentions dream_run_id; log=${logText}`,
+    );
+    const dreamsTracked = Bun.spawnSync(["git", "-C", TEST_HOME, "ls-files", "dreams"]);
+    assert(
+      dreamsTracked.exitCode === 0 && dreamsTracked.stdout.toString().trim() === "",
+      "dreams/ still not tracked after approve",
+    );
 
     const poolAfter = await readFile(join(TEST_HOME, "memories/short-term-memory/pool.jsonl"), "utf8");
     assert(poolAfter.includes("e0000000003"), "new ingest kept in pool");
@@ -291,12 +317,21 @@ async function main() {
       "utf8",
     );
     assert(ledgerBody.includes("<!-- patch:"), "ledger has patch marker");
+    assert(
+      !/^#\s*\d{4}-\d{2}-\d{2}\s*$/m.test(ledgerBody),
+      "ledger has no date heading",
+    );
     const summaryBody = await readFile(
       join(daysRoot, sampleMonth, `${sampleDay}.summary.md`),
       "utf8",
     );
-    assert(summaryBody.includes("## Current"), "summary has Current");
+    assert(!/^##\s*Current\b/m.test(summaryBody), "summary has no Current wrapper");
+    assert(!/^##\s*History\b/m.test(summaryBody), "summary has no History");
     assert(summaryBody.includes("Day summary (mock)") || summaryBody.includes("Day ledger"), "summary content");
+    assert(
+      !/^##\s*Current\b/m.test(whatNewco) && !/^##\s*History\b/m.test(whatNewco),
+      "what.md has no Current/History",
+    );
 
     const searchChain = await json("GET", "/memories/search?q=summary");
     assert(searchChain.status === 200, "search 200");
@@ -418,6 +453,22 @@ async function main() {
     assert(typeof weeksEmpty.data.present === "boolean", "weeks present bool");
     const badWeek = await json("GET", "/memories/chain/weeks/not-a-week");
     assert(badWeek.status === 400 && badWeek.data.error === "invalid_week_id", "invalid week_id");
+    const legacyWeek = await json("GET", "/memories/chain/weeks/2026-W30");
+    assert(
+      legacyWeek.status === 400 && legacyWeek.data.error === "invalid_week_id",
+      "legacy YYYY-Www rejected",
+    );
+    const badMonday = await json("GET", "/memories/chain/weeks/2026-W30-0721");
+    assert(
+      badMonday.status === 400 && badMonday.data.error === "invalid_week_id",
+      "MMDD must be Monday",
+    );
+    const weekShape = await json("GET", "/memories/chain/weeks/2026-W30-0720");
+    assert(weekShape.status === 200, "valid week detail 200");
+    assert(weekShape.data.week_id === "2026-W30-0720", "week_id echo");
+    assert(weekShape.data.start === "2026-07-20" && weekShape.data.end === "2026-07-26", "week start/end");
+    assert(weekShape.data.present === false, "missing week present false");
+    assert(weekShape.data.content === null, "missing week content null");
     const badMonth = await json("GET", "/memories/chain/months/2026-13");
     assert(badMonth.status === 400 && badMonth.data.error === "invalid_month_id", "invalid month_id");
     const badYear = await json("GET", "/memories/chain/years/20");
@@ -445,8 +496,11 @@ async function main() {
       typeof pendFs.data.report === "string" && pendFs.data.report.includes("Proposed future-sight"),
       "report has future-sight section",
     );
-    const patchTypes = (pendFs.data.patches as { type: string }[]).map((p) => p.type);
-    assert(patchTypes.includes("future"), `pending has future patch, got ${patchTypes.join(",")}`);
+    assert(
+      Array.isArray(pendFs.data.draft_summary?.future_ids) &&
+        (pendFs.data.draft_summary.future_ids as string[]).length >= 1,
+      "pending draft has future_ids",
+    );
     const apFs = await json("POST", "/dreams/approve", {});
     assert(apFs.status === 200, `future approve 200: ${JSON.stringify(apFs.data)}`);
     assert(
@@ -600,7 +654,7 @@ Old foresight that should expire.
 
     await json("DELETE", "/clock");
 
-    console.log("\n✅ All 0.15 self-checks passed");
+    console.log("\n✅ All 0.16 self-checks passed");
   } finally {
     await stopServer(server);
   }

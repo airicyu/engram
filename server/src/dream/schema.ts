@@ -6,8 +6,7 @@ export type Patch =
   | EpisodicPatch
   | ChainPatch
   | FuturePatch
-  | ProposeNodePatch
-  | DlqReviewPatch;
+  | ProposeNodePatch;
 
 interface PatchBase {
   patch_id: string;
@@ -77,14 +76,6 @@ export interface ProposeNodePatch extends PatchBase {
   seed_facets?: { what?: string };
 }
 
-/** Review decision for dead-letter patches. */
-export interface DlqReviewPatch extends PatchBase {
-  type: "dlq_review";
-  consumed_ids: string[];
-  report_ref: string;
-  disposition: "apply" | "discard";
-}
-
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -107,7 +98,8 @@ function optStringArray(obj: Record<string, unknown>, key: string): string[] | u
 }
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-const WEEK_RE = /^\d{4}-W\d{2}$/;
+/** Week: `YYYY-Www-MMDD` (MMDD = Monday); full check via isValidWeekId. */
+const WEEK_RE = /^\d{4}-W\d{2}-\d{4}$/;
 const MONTH_RE = /^\d{4}-\d{2}$/;
 const YEAR_RE = /^\d{4}$/;
 const FUTURE_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
@@ -121,7 +113,9 @@ function reqDay(obj: Record<string, unknown>, key: string): string {
 function parseChainId(level: ChainLevel, id: string): string {
   if (level === "day" && DAY_RE.test(id)) return id;
   if (level === "week" && WEEK_RE.test(id)) {
-    const week = Number(id.slice(6));
+    // Defer Monday consistency to callers that use chain-time.isValidWeekId;
+    // legacy patch archaeology may only need shape.
+    const week = Number(id.slice(6, 8));
     if (week >= 1 && week <= 53) return id;
   }
   if (level === "month" && MONTH_RE.test(id)) {
@@ -279,24 +273,6 @@ export function parsePatch(raw: unknown): Patch {
         seed_facets: isObject(raw.seed_facets)
           ? { what: typeof raw.seed_facets.what === "string" ? raw.seed_facets.what : undefined }
           : undefined,
-      };
-    }
-    case "dlq_review": {
-      const consumed = optStringArray(raw, "consumed_ids");
-      if (!consumed) throw new Error("consumed_ids required");
-      const disposition = reqString(raw, "disposition");
-      if (disposition !== "apply" && disposition !== "discard") {
-        throw new Error(`invalid disposition: ${disposition}`);
-      }
-      return {
-        type: "dlq_review",
-        patch_id,
-        dream_run_id,
-        ts,
-        event_refs,
-        consumed_ids: consumed,
-        report_ref: reqString(raw, "report_ref"),
-        disposition,
       };
     }
     default:

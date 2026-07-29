@@ -1,6 +1,8 @@
 # Engram API Documentation
 
-HTTP API for the Engram memory prototype: **capture → dream extract (draft) → approve → memory**.
+HTTP API for the Engram memory prototype: **capture → dream (draft files + report) → approve (deploy + git) → memory**.
+
+**Runtime deps:** Bun, **Git** (store must be a local repo), Agent CLI (Cursor／Claude).
 
 ## Quick start
 
@@ -62,7 +64,7 @@ No authentication in the prototype. Timestamps use effective timezone (workspace
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/` | Service discovery |
-| `GET` | `/status` | Lock, short-term empty (`l1_empty`), DLQ, dream status, pending summary |
+| `GET` | `/status` | Lock, short-term empty (`l1_empty`), dream status, pending summary |
 | `POST` | `/activities` | Append L0 event + update short-term pool |
 | `POST` | `/dreams/run` | Extract → materialize draft → pending_review (async 202); **409** if pending already |
 | `GET` | `/dreams/pending` | Active pending report + patches (`present: false` if none) |
@@ -105,6 +107,5 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 
 These require manual steps (or future APIs):
 
-- Settle `dead-letter.jsonl`
 - Node merge / fusion
 - Wipe store → `cd server && bun run reset` (destructive; confirm first)

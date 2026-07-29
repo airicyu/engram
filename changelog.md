@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.16.0 — Store git 事務 ＋ 入夢改 draft 檔案作業 (2026-07-29)
+
+記憶庫以 **local git** 做 approve 事務與歷史；入夢改為 **一套 prompt → AI 直接改 draft 檔**；廢 typed JSON patch 驅動的 extract→materialize；報告改固定結構 narrative；day summary／node `what.md` 廢 `## Current`／`## History`。
+
+### Added
+
+- Store **必備 git**：`ensureEngramHome` 幂等 `git init`／`.gitignore`（`tmp/`、`dreams/`、`log/`）／初始 commit；無 git → 拒絕啟動；`GET /status.store_git`
+- **`ENGRAM_TEMP_DIR`**（預設 `/tmp`）：ask job 與 dream agent disposable workdir；不再寫入記憶庫 `tmp/ask/`（store `tmp/` 僅留 `clock.json` 等）
+- Approve：**deletes → deploy → `git commit`**（message 含 `dream_run_id`）；失敗只還原 touched paths（禁止整庫 `reset --hard`）
+- 入夢 file pipeline：`AgentRunner.dream`、`dreams/draft/{run_id}/`、ledger append sidecar、`deletes.txt`、協定 report（server 校對 Appendix）
+- Migration skill：`.claude/skills/engram-migration/`（含 `migrate-0.15-to-0.16` 機械腳本）
+
+### Changed
+
+- Pending：以 **report＋`draft_summary`** 為主（不再回 typed `patches` 陣列）
+- Day summary／`what.md`：整檔＝最新敘事；day ledger：無檔頂 `# 日期`，保留 patch metadata
+- Rollup：寫入同一 draft，不再走 typed patch materialize
+- Consolidate UI：展示 report；去掉 patch 計數
+- Ask／dream temp：統一走 `ENGRAM_TEMP_DIR`（dream 結束後清 disposable dir；ask 仍 prune 保留最近 N 筆）
+- **Week chain id**：`YYYY-Www` → **`YYYY-Www-MMDD`**（`MMDD`＝ISO 週一）；`GET /memories/chain/weeks`（及 detail）回 `start`／`end`（Mon–Sun 完整日期）；Memory UI 展示區間
+- **`store_version`**：寫在 `engram.workspace.yaml`；`GET /status` 回 `store_version`＋`product_version`；缺鍵不拒啟；migrate／新建 store 才 stamp
+
+### Removed（主路徑）
+
+- Typed `Patch[]` → `materializeDraft` 作為入夢驅動（`patches.jsonl` 可留考古，不再寫入驅動）
+
+### Non-goals
+
+- 遠端 GitHub 同步；入夢直寫 live；Mindzone／node merge／DLQ UI
+
+### Migrate
+
+- 0.15 store → 見 `.claude/skills/engram-migration/migrate-0.15-to-0.16.md`（含 week 檔名升級為 `YYYY-Www-MMDD`）
+- 已是 0.16 但 week 仍為舊 `YYYY-Www`：重跑同腳本之 week rename（幂等），或見 [`docs/roadmap/0.16.0/docs/week-id-mmdd.md`](./docs/roadmap/0.16.0/docs/week-id-mmdd.md)
+
+---
+
 ## 0.15.0 — Server src layout + agent shared runners (2026-07-27)
 
 Internal refactor: align `server/src` with product domains, share agent subprocess helpers, and retire **L1／L1.5** as current terminology（→ **short-term memory**／**dream staging**）. **HTTP paths and JSON wire keys unchanged**（含 `scope=l1`、`l1_empty`）.

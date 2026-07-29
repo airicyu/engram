@@ -4,7 +4,11 @@ Base URL: `http://localhost:8787` (override with `PORT`).
 
 All timestamps and calendar dates use the **effective** IANA timezone: `{ENGRAM_STORE_DIR}/engram.workspace.yaml` `timezone` if set, else `ENGRAM_TZ`, else **`Asia/Hong_Kong`**.
 
-**Memory write language** (`memory_language`): workspace yaml → `ENGRAM_MEMORY_LANGUAGE` → **`en`**. Allowed values only: `zh-Hant`｜`zh-Hans`｜`en`. Controls language of **new** dream／rollup／ask prose (not L0 `raw`, not workbench UI i18n). Invalid workspace yaml／unknown keys／illegal values → **server refuses to start**.
+**Memory write language** (`memory_language`): workspace yaml → `ENGRAM_MEMORY_LANGUAGE` → **`en`**. Allowed values only: `zh-Hant`｜`zh-Hans`｜`en`. Controls language of **new** dream／rollup／ask prose (not L0 `raw`, not workbench UI i18n).  
+
+**Store structure version** (`store_version`): optional semver in the same workspace yaml（例 `0.16.0`）. Missing → `GET /status.store_version` is `null`（server still starts）. Present but not `X.Y.Z` → **server refuses to start**. Server never auto-rewrites an existing／missing value to the product version on boot.
+
+Invalid workspace yaml／unknown keys／illegal values → **server refuses to start**.
 
 First-run bootstrap: repo root `bun run setup` (wizard under `setup-wizard/`).
 
@@ -67,6 +71,10 @@ Snapshot of store health, dream state, and async job status.
 ```json
 {
   "store_dir": "/path/to/data",
+  "store_git": true,
+  "store_version": "0.16.0",
+  "product_version": "0.16.0",
+  "temp_dir": "/tmp",
   "timezone": "Asia/Hong_Kong",
   "memory_language": "en",
   "clock": {
@@ -78,7 +86,6 @@ Snapshot of store health, dream state, and async job status.
   },
   "lock": false,
   "l1_empty": false,
-  "pending_dlq_count": 0,
   "future_sight_active_count": 0,
   "dream_status": "pending_review",
   "dream_pending": {
@@ -94,13 +101,16 @@ Snapshot of store health, dream state, and async job status.
 | Field | Type | Meaning |
 |-------|------|---------|
 | `store_dir` | string | Resolved `ENGRAM_STORE_DIR` path |
+| `store_git` | boolean | `true` when `ENGRAM_STORE_DIR` is a usable local git work tree (0.16+; server refuses to start otherwise) |
+| `store_version` | string \| null | Disk **structure** generation from `engram.workspace.yaml` `store_version`（semver）；missing key → `null`（not a start failure） |
+| `product_version` | string | Engram product version from repo `version.md`（for comparison； mismatch does **not** refuse start） |
+| `temp_dir` | string | Resolved `ENGRAM_TEMP_DIR` (default `/tmp`) — ask jobs + dream agent disposable workdirs |
 | `timezone` | string | Effective IANA zone (workspace yaml → `ENGRAM_TZ` → `Asia/Hong_Kong`) |
 | `memory_language` | string | Effective write language: `zh-Hant`｜`zh-Hans`｜`en` |
 | `clock` | object | Memory-timeline clock snapshot (see [Virtual clock](#virtual-clock)) |
 | `lock` | boolean | `true` while extract／materialize／approve commit holds the lock |
 | `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
 | `l1_empty` | boolean | `true` when short-term memory pool has no entries |
-| `pending_dlq_count` | number | Legacy DLQ count |
 | `future_sight_active_count` | number | Count of `memories/future-sight/active/*.md` (may include overdue until next sweep) |
 | `dream_status` | enum | See [Dream status](#dream-status) |
 | `dream_pending` | object? | Active pending summary, or `null` |
@@ -146,7 +156,7 @@ Memory-timeline clock used by capture `ts`, dream “today” gates (chain／fut
 
 ### `PUT /clock`
 
-Requires `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`. Persists to `ENGRAM_STORE_DIR/tmp/clock.json`.
+Requires `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`. Persists to `ENGRAM_STORE_DIR/tmp/clock.json` (ask jobs live under `ENGRAM_TEMP_DIR`, not the store).
 
 **Body** — one of:
 
@@ -298,7 +308,7 @@ Async. Requires active **pending_review**. Body:
 1. Snapshot current pending: frozen **scope S**, draft／patches summary
 2. **Discard** that pending (status `discarded`; draft removed; short-term／L2 unchanged)
 3. Start new dream on **the same S** (not re-scan whole short-term memory pool)
-4. Extract context includes `review_feedback`: `{ reason, previous_summary, previous_patches }`
+4. Dream context includes `review_feedback`: `{ reason, previous_summary, previous_changes }`
 5. New run metadata records `retried_from` + `retry_reason`; report notes the feedback
 6. Completes to a new `pending_review` (failure path same as `/dreams/run`)
 
@@ -329,18 +339,20 @@ Always **200**. No pending → empty shape (not 404).
   "dream_run_id": null,
   "scope": [],
   "report": null,
-  "patches": [],
   "draft_summary": null
 }
 ```
 
-**Present:** `present: true` plus filled fields; optional `draft_summary`:
+**Present:** `present: true` plus filled fields; `report` is fixed-structure markdown; `draft_summary` summarizes draft paths (0.16+: no typed `patches` array):
 
 ```json
 {
   "entry_count": 3,
   "chain_days": ["2026-07-22"],
   "chain_summary_days": ["2026-07-22"],
+  "chain_weeks": [],
+  "chain_months": [],
+  "chain_years": [],
   "future_ids": ["fs-2026-07-31-deadline"]
 }
 ```
@@ -355,11 +367,11 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 
 1. If `l1_clear_pending` → **only retry clear S**
 2. Else require active pending
-3. Reject future `chain.id` → **409** `future_chain_id` + `rejected_chain_ids` (pending／draft／short-term／L2 unchanged)
-4. Reject `future` patches with `anchor_end` &lt; today → **409** `stale_future_anchor` + `rejected_future_ids`
-5. Empty patches → no L2／future-sight write; still clear S
-6. Else `commitDraft` → live L2／future-sight; then clear S; best-effort future-sight sweep
-7. Clear S failure → run `committed` + `l1_clear_pending`; next approve retries clear only
+3. Reject future day ids in draft chain paths → **409** `future_chain_id` + `rejected_chain_ids` (pending／draft／short-term／L2 unchanged)
+4. Reject draft future-sight anchors with `anchor_end` &lt; today → **409** `stale_future_anchor` + `rejected_future_ids`
+5. Empty draft (no manifest entries and no deletes) → no L2／future-sight write; still clear S
+6. Else deploy draft → live (deletes then copy); path-only git rollback on deploy failure; then clear S; `git commit` message contains `dream_run_id` (also stages short-term clear); best-effort future-sight sweep
+7. Clear S failure → run `committed` + `l1_clear_pending`; L2 may already be git-committed; next approve retries clear only (+ scope-clear commit)
 
 **Response `200`**
 
@@ -444,7 +456,7 @@ Keyword search across short-term memory, memory-chain days, and L2 nodes. **`q` 
   ],
   "chain": [
     { "day_id": "2026-07-23", "id": "2026-07-23", "level": "day", "content": "…", "source": "summary" },
-    { "id": "2026-W28", "level": "week", "content": "…", "source": "summary" }
+    { "id": "2026-W28-0706", "level": "week", "content": "…", "source": "summary" }
   ]
 }
 ```
@@ -495,10 +507,16 @@ Higher-granularity **index** (newest first). Same preview rules as day (80 chars
 **Response `200` examples:**
 
 ```json
-{ "weeks": [{ "week_id": "2026-W25", "preview": "…" }], "present": true }
+{ "weeks": [{ "week_id": "2026-W25-0615", "start": "2026-06-15", "end": "2026-06-21", "preview": "…" }], "present": true }
 { "months": [{ "month_id": "2026-06", "preview": "…" }], "present": true }
 { "years": [{ "year_id": "2026", "preview": "…" }], "present": true }
 ```
+
+| Field (weeks) | Meaning |
+|---------------|---------|
+| `week_id` | `YYYY-Www-MMDD` — ISO week-year + week；**`MMDD` = that week's Monday** (not an arbitrary day in the week) |
+| `start` / `end` | Inclusive Mon–Sun as full `YYYY-MM-DD` (derived from id; always present for a valid id) |
+| `preview` | First **80** chars (whitespace-normalized) |
 
 Empty → `present: false` and empty array (not 404).
 
@@ -506,10 +524,21 @@ Empty → `present: false` and empty array (not 404).
 
 **Detail** — higher summary markdown body (sectioned with short `##` titles; no `## Current` wrapper).  
 Illegal id → **`400`** (`invalid_week_id` / `invalid_month_id` / `invalid_year_id`).  
-Missing → **`200`** `{ …_id, content: null, present: false }`.
+Missing → **`200`** `{ …_id, content: null, present: false }`（week 仍含可推得之 `start`／`end`）。
 
-Ids: week `YYYY-Www` (ISO), month `YYYY-MM`, year `YYYY`.
+Ids: week **`YYYY-Www-MMDD`**（ISO week；`MMDD`＝週一；與週一不符 → `invalid_week_id`），month `YYYY-MM`，year `YYYY`.
 
+Week detail example:
+
+```json
+{
+  "week_id": "2026-W30-0720",
+  "start": "2026-07-20",
+  "end": "2026-07-26",
+  "content": "## …\n",
+  "present": true
+}
+```
 ---
 
 ## `GET /memories/chain/{day_id}`
@@ -542,7 +571,7 @@ Empty → `{ "nodes": [], "present": false }`.
 
 ## `GET /memories/nodes/{node_id}`
 
-Single node **detail** — **Current** section of `what.md` only.  
+Single node **detail** — narrative body of `what.md` (0.16+: whole file; pre-0.16 stores may still use `## Current`).  
 Illegal path chars → **`400 invalid_node_id`**.  
 Missing node → **200** `{ node, what_current: null, present: false }`.
 
@@ -580,7 +609,6 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 | `pending_review` | Unique pending run awaiting approve／discard／retry |
 | `l1_clear_pending` | Commit done; scope clear failed — retry approve |
 | `dream_incomplete` | Last extract／materialize failed; short-term retained |
-| `dead_letter_pending` | Legacy DLQ non-empty |
 | `ok` | Steady state |
 
 ---

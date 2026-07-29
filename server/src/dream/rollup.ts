@@ -1,8 +1,9 @@
-/** Post-extract week／month／year rollup: planner → writer → draft append. */
+/** Post-extract week／month／year rollup: planner → writer → draft file updates. */
 
 import { readDay, readDaySummary } from "../store/memories/chain";
 import {
   higherSummaryExists,
+  higherSummaryRel,
   resolveHigherOperation,
   type HigherChainLevel,
 } from "../store/memories/chain-higher";
@@ -15,16 +16,14 @@ import {
   weeksOverlappingMonth,
 } from "../store/memories/chain-time";
 import {
-  appendMaterializeDraft,
   readDaySummaryPreferDraft,
   readHigherSummaryCurrentPreferDraft,
 } from "../store/dreams/draft";
-import { appendPatches } from "../store/dreams/patches";
+import { writeDraftMemoryFile } from "../store/dreams/file-pipeline";
 import { calendarDate, nowIso } from "../store/memories/activities";
 import { config } from "../config";
-import type { ChainPatch, Patch } from "./schema";
 import { emitDreamEvent } from "./emit-event";
-import { isDreamCancelled, throwIfDreamCancelled } from "./cancel-state";
+import { throwIfDreamCancelled } from "./cancel-state";
 import { assertFusedRollupSummary } from "./rollup-quality";
 
 export interface RollupPlanTarget {
@@ -84,12 +83,8 @@ export interface RollupLevelReport {
   targets: Array<{ id: string; operation: "init" | "revise"; reason: string }>;
 }
 
-function dayIdsFromPatches(patches: Patch[]): string[] {
-  const ids = new Set<string>();
-  for (const p of patches) {
-    if (p.type === "chain" && p.level === "day") ids.add(p.id);
-  }
-  return [...ids].sort();
+function dayIdsFromList(dayIds: string[]): string[] {
+  return [...new Set(dayIds)].sort();
 }
 
 async function buildPlanContext(
@@ -224,7 +219,7 @@ async function runLevel(opts: {
   agent: RollupAgent;
   today: string;
   forceExecute?: boolean;
-}): Promise<{ patches: ChainPatch[]; report: RollupLevelReport }> {
+}): Promise<{ written: string[]; report: RollupLevelReport }> {
   const { dreamRunId, level, candidates, agent, today, forceExecute } = opts;
   const planCtx = await buildPlanContext(dreamRunId, level, candidates, today);
   let plan = await agent.plan(planCtx);
@@ -249,10 +244,10 @@ async function runLevel(opts: {
   };
 
   if (!plan.execute || plan.targets.length === 0) {
-    return { patches: [], report };
+    return { written: [], report };
   }
 
-  const patches: ChainPatch[] = [];
+  const written: string[] = [];
   const ts = nowIso();
   for (const t of plan.targets) {
     throwIfDreamCancelled(dreamRunId);
@@ -271,35 +266,27 @@ async function runLevel(opts: {
       prior_current,
     });
     assertFusedRollupSummary(level, summary);
-    patches.push({
-      type: "chain",
-      patch_id: `p-rollup-${level}-${t.id}-${Date.now()}-${patches.length}`,
-      dream_run_id: dreamRunId,
-      ts,
-      level,
-      id: t.id,
-      summary: summary.trim(),
-      summary_operation: t.operation,
-    });
+    const rel = higherSummaryRel(level, t.id);
+    await writeDraftMemoryFile(dreamRunId, rel, summary.trim());
+    written.push(rel);
   }
-  return { patches, report };
+  return { written, report };
 }
 
 /**
- * After day materialize: cascade week → month → year planners/writers into the
- * same draft + patches.jsonl.
+ * After day draft files exist: cascade week → month → year into the same draft.
  */
 export async function runRollupCascade(opts: {
   dreamRunId: string;
-  dayPatches: Patch[];
+  dayIds: string[];
   agent: RollupAgent;
   forceLevels?: HigherChainLevel[];
-}): Promise<{ patches: Patch[]; reports: RollupLevelReport[] }> {
+}): Promise<{ written: string[]; reports: RollupLevelReport[] }> {
   const { dreamRunId, agent } = opts;
   const today = calendarDate();
-  const dayIds = dayIdsFromPatches(opts.dayPatches);
+  const dayIds = dayIdsFromList(opts.dayIds);
   const candidates = candidatesFromDayIds(dayIds);
-  const allPatches: Patch[] = [];
+  const allWritten: string[] = [];
   const reports: RollupLevelReport[] = [];
 
   const levels: HigherChainLevel[] = ["week", "month", "year"];
@@ -320,7 +307,7 @@ export async function runRollupCascade(opts: {
     });
 
     const forceExecute = opts.forceLevels?.includes(level);
-    const { patches, report } = await runLevel({
+    const { written, report } = await runLevel({
       dreamRunId,
       level,
       candidates: cand,
@@ -337,19 +324,10 @@ export async function runRollupCascade(opts: {
       detail: report,
     });
 
-    if (patches.length === 0) continue;
-
-    await appendPatches(patches);
-    await appendMaterializeDraft(dreamRunId, patches, {
-      shouldAbort: () => isDreamCancelled(dreamRunId),
-    });
-    allPatches.push(...patches);
-
-    // Expand month/year candidates if week writers created new coverage? Not needed —
-    // candidates already derived from day ids.
+    allWritten.push(...written);
   }
 
-  return { patches: allPatches, reports };
+  return { written: allWritten, reports };
 }
 
 function planMessage(report: RollupLevelReport): string {

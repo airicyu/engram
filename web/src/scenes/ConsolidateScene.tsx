@@ -211,9 +211,6 @@ export function ConsolidateScene() {
         pending.draft_summary
           ? t("pending.meta_draft", { count: pending.draft_summary.entry_count ?? 0 })
           : null,
-        Array.isArray(pending.patches)
-          ? t("pending.meta_patches", { count: pending.patches.length })
-          : null,
       ]
         .filter(Boolean)
         .join(" · ")
@@ -253,10 +250,6 @@ export function ConsolidateScene() {
                   : t("status.value.present")
                 : dash}
             </dd>
-          </div>
-          <div>
-            <dt>{t("consolidate.label_dlq")}</dt>
-            <dd>{status ? String(status.pending_dlq_count) : dash}</dd>
           </div>
         </dl>
         <p className="status-advice">{adviceFor(status, t)}</p>

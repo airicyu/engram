@@ -15,7 +15,10 @@ export type MemoryLanguage = (typeof MEMORY_LANGUAGES)[number];
 
 export const DEFAULT_MEMORY_LANGUAGE: MemoryLanguage = "en";
 
-const WORKSPACE_KEYS = new Set(["timezone", "memory_language"]);
+const WORKSPACE_KEYS = new Set(["timezone", "memory_language", "store_version"]);
+
+/** Semver X.Y.Z (no prerelease／build). */
+const STORE_VERSION_RE = /^\d+\.\d+\.\d+$/;
 
 function failWorkspace(message: string): never {
   console.error(`engram workspace config: ${message}`);
@@ -36,9 +39,29 @@ export function isMemoryLanguage(value: unknown): value is MemoryLanguage {
   return typeof value === "string" && (MEMORY_LANGUAGES as readonly string[]).includes(value);
 }
 
+export function isStoreVersion(value: unknown): value is string {
+  return typeof value === "string" && STORE_VERSION_RE.test(value.trim());
+}
+
+/** Read product version from repo `version.md` (first non-empty line). */
+export function readProductVersion(root = repoRoot): string {
+  const path = join(root, "version.md");
+  try {
+    const line = readFileSync(path, "utf8")
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .find((l) => l.length > 0);
+    if (line && STORE_VERSION_RE.test(line)) return line;
+  } catch {
+    /* fall through */
+  }
+  return "0.0.0";
+}
+
 type WorkspaceFile = {
   timezone?: string;
   memory_language?: MemoryLanguage;
+  store_version?: string;
 };
 
 function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
@@ -66,7 +89,9 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
   const obj = parsed as Record<string, unknown>;
   for (const key of Object.keys(obj)) {
     if (!WORKSPACE_KEYS.has(key)) {
-      failWorkspace(`${path}: unknown key "${key}" (allowed: timezone, memory_language)`);
+      failWorkspace(
+        `${path}: unknown key "${key}" (allowed: timezone, memory_language, store_version)`,
+      );
     }
   }
 
@@ -92,6 +117,16 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
       );
     }
     out.memory_language = lang;
+  }
+
+  if ("store_version" in obj) {
+    const ver = obj.store_version;
+    if (!isStoreVersion(ver)) {
+      failWorkspace(
+        `${path}: store_version must be semver X.Y.Z (got ${JSON.stringify(ver)})`,
+      );
+    }
+    out.store_version = ver.trim();
   }
 
   return out;
@@ -127,16 +162,49 @@ function resolveTimezone(workspace: WorkspaceFile | null): string {
 
 const storeDir = resolve(process.env.ENGRAM_STORE_DIR ?? resolve(repoRoot, "data"));
 const workspace = loadWorkspaceFile(storeDir);
+const productVersion = readProductVersion();
+
+/**
+ * Re-read `store_version` from disk (valid X.Y.Z or null).
+ * Does not refuse on missing; invalid → null here (startup already validated if key was present at boot).
+ */
+export function peekStoreVersion(dir = storeDir): string | null {
+  const path = join(dir, "engram.workspace.yaml");
+  if (!existsSync(path)) return null;
+  try {
+    const parsed = parseYaml(readFileSync(path, "utf8"));
+    if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    if (!("store_version" in parsed)) return null;
+    const ver = (parsed as Record<string, unknown>).store_version;
+    return isStoreVersion(ver) ? ver.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveTempDir(): string {
+  const raw = (process.env.ENGRAM_TEMP_DIR ?? "/tmp").trim() || "/tmp";
+  return resolve(raw);
+}
 
 /** Resolved server port, storage home, agent binaries, timezone, memory language. */
 export const config = {
   port: Number(process.env.PORT ?? 8787),
   storeDir,
+  /** Host temp root for ask jobs + dream agent workdirs (not inside the memory store). */
+  tempDir: resolveTempDir(),
   claudeBin: process.env.CLAUDE_BIN ?? "claude",
   cursorAgentBin: process.env.CURSOR_AGENT_BIN ?? "agent",
   timezone: resolveTimezone(workspace),
   /** Effective write language for chain／node／ask (always one of MEMORY_LANGUAGES). */
   memoryLanguage: resolveMemoryLanguage(workspace),
+  /**
+   * Disk structure generation from workspace `store_version` at process start, or null if unset.
+   * Prefer {@link peekStoreVersion} for live status (file may be stamped after boot).
+   */
+  storeVersion: workspace?.store_version ?? null,
+  /** Engram product version (`version.md`). */
+  productVersion,
   /** When true, PUT /clock may set a virtual memory timeline. */
   allowVirtualClock: process.env.ENGRAM_ALLOW_VIRTUAL_CLOCK === "1",
 };

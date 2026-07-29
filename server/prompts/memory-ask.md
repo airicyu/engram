@@ -22,9 +22,9 @@ now: {{NOW}}
 | Area | Path |
 |------|------|
 | Short-term memory (L1) | `memories/short-term-memory/pool.jsonl`, `memories/short-term-memory/summary.md`, optional `memories/short-term-memory/nodes/{id}/notes.md` |
-| L2 nodes | `memories/nodes/{id}/understand/what.md` — Current under `## Current` |
-| Day chain | `memories/chain/days/{YYYY-MM}/{YYYY-MM-DD}.summary.md` (prefer), `…/{YYYY-MM-DD}.md` ledger |
-| Week／month／year | `memories/chain/weeks/{YYYY-MM}/{YYYY-Www}.summary.md`, `months/{YYYY}/{YYYY-MM}.summary.md`, `years/{YYYY}.summary.md` |
+| L2 nodes | `memories/nodes/{id}/understand/what.md` — whole file = latest understanding |
+| Day chain | `memories/chain/days/{YYYY-MM}/{YYYY-MM-DD}.summary.md` (prefer; whole file = day narrative), `…/{YYYY-MM-DD}.md` ledger |
+| Week／month／year | `memories/chain/weeks/{YYYY-MM}/{YYYY-Www-MMDD}.summary.md`（`MMDD`＝該週週一）, `months/{YYYY}/{YYYY-MM}.summary.md`, `years/{YYYY}.summary.md` |
 
 Do **not** read `memories/future-sight/`. Do **not** scan all of `memories/activities/events.jsonl` unless necessary — prefer short-term, L2, chain.
 
@@ -36,7 +36,7 @@ You must **actively read files** and **synthesize**. Do **not** answer from a si
    - Read `memories/short-term-memory/summary.md` and／or `pool.jsonl` (and relevant `nodes/*/notes.md` if the question names a person／topic).
    - Short-term = **not yet consolidated** (may include today／recent captures that are **not** in day／week chain yet). Treat it as first-class evidence.
 2. **Then** read durable memory as needed for the question:
-   - Person／topic → matching L2 `what.md` Current
+   - Person／topic → matching L2 `what.md` body
    - 「最近／這陣子／lately／recent」→ recent **day** and／or **week** summaries (and month if the span is larger)
    - Specific day／week／month／year → that chain file
 3. **Synthesize** one answer: weave short-term + chain + L2 into a coherent reply. If short-term and chain disagree or one is newer, say so (e.g. short-term has today’s capture not yet in the day summary).

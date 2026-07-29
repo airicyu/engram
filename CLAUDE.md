@@ -12,22 +12,25 @@
 
 ## 這是什麼
 
-**Engram** 是個人記憶原型：透過 HTTP API 走完 **activities → dream（extract + apply）→ memory**。
+**Engram** 是個人記憶原型：透過 HTTP API 走完 **activities → dream（draft 檔案作業）→ approve（deploy＋git）→ memory**。
 
 | 層 | 角色 |
 |----|------|
 | **L0**（activities） | 唯附加事件 log（`memories/activities/events.jsonl`） |
 | **short-term memory** | 短期記憶 pool（`memories/short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
-| **dream staging** | dream intent（`dreams/patches.jsonl` + report）+ draft 投影（`dreams/draft/{run_id}/`）；Approve 才 commit 至 **L2** |
+| **dream staging** | draft 工作樹（`dreams/draft/{run_id}/`）＋協定 report（`dreams/reports/`）；Approve 才 deploy 至 **L2** 並 `git commit` |
 | **L2** | **長期已沉澱記憶**＝**nodes**（主題理解）＋**chain**（時間軸）；見下行兩欄 |
-| └ **nodes** | `memories/nodes/{id}/understand/what.md` |
-| └ **chain** | `memories/chain/days|weeks|months|years/` |
+| └ **nodes** | `memories/nodes/{id}/understand/what.md`（整檔＝最新理解） |
+| └ **chain** | `memories/chain/days|weeks|months|years/`（day summary＝整檔敘事；ledger＝append-only） |
 | **future-sight** | 近程前瞻錨點（`memories/future-sight/active/`）；過期 → L0 + short-term event 後硬清 |
+| **store git** | `ENGRAM_STORE_DIR` 必為 local git；追蹤 `memories/**`＋`engram.workspace.yaml`；**不**追 `dreams/`、store `tmp/` |
+| **runtime temp** | `ENGRAM_TEMP_DIR`（預設 `/tmp`）：ask jobs＋dream agent disposable workdirs；不在記憶庫內 |
 
 產品循環對齊 UI：**Activities → Consolidate → Seek → Memory**（場景 id：`activities`／`consolidate`／`seek`／`memory`）。
 
 時區由 **有效 timezone** 決定：記憶庫內 `engram.workspace.yaml` → 環境變數 `ENGRAM_TZ` → 預設 **`Asia/Hong_Kong`**。  
-記憶寫入語言：workspace config `memory_language` → 環境變數 `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。
+記憶寫入語言：workspace config `memory_language` → 環境變數 `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。  
+記憶庫結構世代：workspace **`store_version`**（semver，例 `0.16.0`）；缺鍵時 `GET /status.store_version` 為 `null`（不拒啟）；migrate／新建才 stamp——見 `docs/roadmap/0.16.0/docs/store-version.md`。
 
 
 ## 倉庫結構
@@ -77,7 +80,7 @@ bun run dev:ui                    # web
 |----|------|
 | `curl` / `engram-workbench` skill 打 API | 手改 `events.jsonl`、short-term notes、L2 `what.md` |
 | `POST /activities` 寫入 | 把 fixture seed 當試用資料 |
-| `POST /dreams/run` extract → pending（pending 時 409） | 未經同意就 `reset` 或清 DLQ |
+| `POST /dreams/run` extract／file pipeline → pending（pending 時 409） | 未經同意就 `reset` |
 | `POST /dreams/approve`／`discard`／`retry` | 手改 short-term／L2／draft「幫忙改對」 |
 | `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 
@@ -87,7 +90,7 @@ API 欄位提醒：
 - memory search query 用 **`q`**（必填）；可選 **`scope`** = `l1,nodes,chain`（逗號分隔，預設全搜）
 - memory ask body 用 **`q`**
 - dream **retry** body 用 **`reason`**（必填）；對同一凍結 scope 重跑，注入上一輪摘要
-- dream **lock**（extract／commit）時 activities → `409 dream_locked`；**`pending_review` 可寫 activities**
+- dream **lock**（入夢／deploy）時 activities → `409 dream_locked`；**`pending_review` 可寫 activities**
 - **`pending_review` 時不可**再 `POST /dreams/run`（改 approve／discard／retry）
 - **虛擬時鐘：** `PUT /clock` 需 `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`；`DELETE /clock` 恆可；見 `/status.clock`
 - **無資料不用 404**：讀取型「目前沒有內容」回 **200**，在 body 用 `null`／`[]`／`present: false` 等表達；404 留給路徑／方法真正不存在
@@ -99,7 +102,6 @@ API 欄位提醒：
 
 下列需人工／未來 API，勿假裝已有端點：
 
-- 消化 `dead-letter.jsonl`
 - Node merge／融合（見 roadmap；另版）
 - 清空 store → 僅 `cd server && bun run reset`（先確認）
 
@@ -115,10 +117,11 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.15.0` — Server src layout + agent shared runners — 見 `docs/roadmap/0.15.0/`
-- **上一版：** `0.14.0` — Store layout refactor — 見 `docs/roadmap/0.14.0/`
-- **更早：** `0.13.0` — Workspace config + setup wizard；`0.12.0` — Dream Retry with reason
+- **已出貨：** `0.16.0` — Store git 事務＋入夢 draft 檔案作業 — 見 `docs/roadmap/0.16.0/`
+- **上一版：** `0.15.0` — Server src layout + agent shared runners — 見 `docs/roadmap/0.15.0/`
+- **更早：** `0.14.0` — Store layout refactor；`0.13.0` — Workspace config + setup wizard；`0.12.0` — Dream Retry with reason
 - **Backlog：** mindzone、future-sight 注入 Memory — 見 `docs/roadmap/backlog/`。
+- **遷移：** 0.15→0.16 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）
 
 ## 深入閱讀
 

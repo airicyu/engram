@@ -17,6 +17,7 @@ import {
   higherSummaryRel,
   type HigherChainLevel,
 } from "../memories/chain-higher";
+import { restoreTouchedPaths } from "../git";
 
 /** Operation represented by a draft manifest entry. */
 export type ManifestOp = "create" | "update";
@@ -86,7 +87,7 @@ async function readWhatFromRoots(
   if (await exists(live)) {
     return { content: await readFile(live, "utf8"), source: "live" };
   }
-  return { content: "## Current\n\n\n## History\n", source: "empty" };
+  return { content: "", source: "empty" };
 }
 
 async function readDayFromRoots(
@@ -118,10 +119,10 @@ async function readDaySummaryFromRoots(
   if (await exists(live)) {
     return { content: await readFile(live, "utf8"), source: "live" };
   }
-  return { content: "## Current\n\n\n## History\n", source: "empty" };
+  return { content: "", source: "empty" };
 }
 
-/** Prefer draft, then live, for day summary Current (week rollup). */
+/** Prefer draft, then live, for day summary body (week rollup). */
 export async function readDaySummaryPreferDraft(
   dreamRunId: string,
   dayId: string,
@@ -208,7 +209,7 @@ async function seedNodeInDraft(
   const whatFile = draftPath(dreamRunId, ...whatRel.split("/"));
   if (!(await exists(whatFile))) {
     const body = meta.what?.trim() ?? "";
-    await writeFile(whatFile, `## Current\n\n${body}\n\n## History\n`, "utf8");
+    await writeFile(whatFile, body ? `${body}\n` : "", "utf8");
     trackEntry(
       entries,
       seen,
@@ -239,38 +240,23 @@ async function applySemanticToDraft(
   }
 
   const { content: file } = await readWhatFromRoots(dreamRunId, nodeId);
-  let normalized = file;
-  if (!normalized.includes("## Current")) {
-    normalized = `## Current\n\n${normalized.trim()}\n\n## History\n`;
-  }
-  if (!normalized.includes("## History")) {
-    normalized = normalized.trimEnd() + "\n\n## History\n";
-  }
+  const current = extractCurrentSection(file);
 
-  const current = extractCurrentSection(normalized);
-  const historyMatch = normalized.match(/## History\s*\n([\s\S]*)$/);
-  let historyBody = historyMatch ? historyMatch[1] : "";
-
-  const refs = (patch.event_refs ?? []).join(",");
-  const stamp = `### ${calendarDate(patch.ts)} · patch:${patch.patch_id} · events:[${refs}]\n`;
-
-  let newCurrent: string;
+  let newBody: string;
   if (patch.operation === "revise" || patch.operation === "resolve_open") {
-    if (current.trim()) {
-      historyBody = `${stamp}${current.trim()}\n\n` + historyBody;
-    }
-    newCurrent = patch.content.trim();
+    // 0.16: whole file = latest narrative; no in-file History.
+    newBody = patch.content.trim();
   } else {
-    newCurrent = current.trim()
+    newBody = current.trim()
       ? `${current.trim()}\n\n${patch.content.trim()}`
       : patch.content.trim();
   }
 
-  const out = `## Current\n\n${newCurrent}\n\n## History\n${historyBody.startsWith("\n") ? historyBody : "\n" + historyBody}`;
+  const out = newBody.endsWith("\n") ? newBody : `${newBody}\n`;
   const rel = `memories/nodes/${nodeId}/understand/what.md`;
   const dest = draftPath(dreamRunId, ...rel.split("/"));
   await ensureParent(dest);
-  await writeFile(dest, out.endsWith("\n") ? out : out + "\n", "utf8");
+  await writeFile(dest, out, "utf8");
   trackEntry(entries, seen, rel, await exists(livePath("memories", "nodes", nodeId, "understand", "what.md")));
 }
 
@@ -300,7 +286,7 @@ async function applyChainLedgerToDraft(
 
   const next = existing.trim()
     ? `${existing.trimEnd()}\n${block}`
-    : `# ${dayId}\n\n${block}`;
+    : block;
 
   const rel = dayLedgerRel(dayId);
   const dest = draftPath(dreamRunId, ...rel.split("/"));
@@ -311,8 +297,8 @@ async function applyChainLedgerToDraft(
 
 /**
  * Summary: mechanical init/revise of `*.summary.md`.
- * Day: L2-shaped Current/History (no-op when patch lacks summary — legacy ledger-only).
- * Week／month／year: snapshot only — replace whole file; **no History**.
+ * All levels: whole file = latest narrative snapshot (0.16; no Current／History).
+ * Day: no-op when patch lacks summary — legacy ledger-only.
  */
 async function applyChainSummaryToDraft(
   dreamRunId: string,
@@ -324,11 +310,10 @@ async function applyChainSummaryToDraft(
 
   const id = patch.id;
   const level = patch.level;
-  const newCurrent = patch.summary.trim();
+  const newBody = patch.summary.trim();
+  const out = newBody.endsWith("\n") ? newBody : `${newBody}\n`;
 
-  // Higher chain: latest snapshot only (whole file = markdown body; no Current／History).
   if (level === "week" || level === "month" || level === "year") {
-    const out = newCurrent.endsWith("\n") ? newCurrent : `${newCurrent}\n`;
     const rel = higherSummaryRel(level, id);
     const dest = draftPath(dreamRunId, ...rel.split("/"));
     await ensureParent(dest);
@@ -337,37 +322,10 @@ async function applyChainSummaryToDraft(
     return;
   }
 
-  const { content: file, source } = await readDaySummaryFromRoots(dreamRunId, id);
-
-  let normalized = file;
-  if (!normalized.includes("## Current")) {
-    normalized = `## Current\n\n${normalized.trim()}\n\n## History\n`;
-  }
-  if (!normalized.includes("## History")) {
-    normalized = normalized.trimEnd() + "\n\n## History\n";
-  }
-
-  const current = extractCurrentSection(normalized);
-  const historyMatch = normalized.match(/## History\s*\n([\s\S]*)$/);
-  let historyBody = historyMatch ? historyMatch[1] : "";
-
-  const refs = (patch.event_refs ?? []).join(",");
-  const stamp = `### ${calendarDate(patch.ts)} · patch:${patch.patch_id} · events:[${refs}]\n`;
-
-  let nextCurrent: string;
-  const op = patch.summary_operation;
-  if (op === "revise" && current.trim() && source !== "empty") {
-    historyBody = `${stamp}${current.trim()}\n\n` + historyBody;
-    nextCurrent = newCurrent;
-  } else {
-    nextCurrent = newCurrent;
-  }
-
-  const out = `## Current\n\n${nextCurrent}\n\n## History\n${historyBody.startsWith("\n") ? historyBody : "\n" + historyBody}`;
   const rel = daySummaryRel(id);
   const dest = draftPath(dreamRunId, ...rel.split("/"));
   await ensureParent(dest);
-  await writeFile(dest, out.endsWith("\n") ? out : out + "\n", "utf8");
+  await writeFile(dest, out, "utf8");
   trackEntry(entries, seen, rel, await exists(daySummaryPath(id)));
 }
 
@@ -523,10 +481,6 @@ export async function materializeDraft(
           // ≥ 0.6: chronology not implemented — no-op
           break;
         }
-        case "dlq_review":
-          // Prototype: ignore (do not fail whole materialize)
-          logDream("materialize skip dlq_review", { dream_run_id: dreamRunId, patch_id: patch.patch_id });
-          break;
         default: {
           const _e: never = patch;
           throw new Error(`unhandled patch: ${JSON.stringify(_e)}`);
@@ -626,9 +580,6 @@ export async function appendMaterializeDraft(
           }
           break;
         }
-        case "dlq_review":
-          logDream("materialize skip dlq_review", { dream_run_id: dreamRunId, patch_id: patch.patch_id });
-          break;
         default: {
           const _e: never = patch;
           throw new Error(`unhandled patch: ${JSON.stringify(_e)}`);
@@ -665,8 +616,8 @@ export async function readManifest(dreamRunId: string): Promise<DraftManifest | 
 }
 
 /**
- * Atomically-ish commit draft → live ENGRAM_STORE_DIR.
- * On in-process failure, best-effort rollback of files written this call.
+ * Deploy draft → live: deletes first, then copy manifest entries.
+ * On failure, restore only touched paths via git checkout／rm (no whole-store reset, no bak files).
  */
 export async function commitDraft(dreamRunId: string): Promise<{ committed: string[] }> {
   const manifest = await readManifest(dreamRunId);
@@ -675,9 +626,36 @@ export async function commitDraft(dreamRunId: string): Promise<{ committed: stri
   }
 
   const committed: string[] = [];
-  const backups: Array<{ rel: string; backup: string | null; existed: boolean }> = [];
+  /** Paths we mutated on live during this call (for git path rollback). */
+  const touched: string[] = [];
+
+  async function readDeletes(): Promise<string[]> {
+    const p = draftPath(dreamRunId, "deletes.txt");
+    if (!(await exists(p))) return [];
+    const text = await readFile(p, "utf8");
+    const out: string[] = [];
+    for (const line of text.split(/\r?\n/)) {
+      const t = line.trim();
+      if (!t || t.startsWith("#")) continue;
+      const norm = t.replace(/\\/g, "/").replace(/^\/+/, "");
+      if (!norm.startsWith("memories/") || norm.split("/").includes("..")) {
+        throw new Error(`invalid delete path: ${t}`);
+      }
+      out.push(norm);
+    }
+    return [...new Set(out)];
+  }
 
   try {
+    for (const rel of await readDeletes()) {
+      const dest = livePath(...rel.split("/"));
+      if (await exists(dest)) {
+        await rm(dest, { force: true });
+        touched.push(rel);
+      }
+      committed.push(rel);
+    }
+
     for (const entry of manifest.entries) {
       const src = draftPath(dreamRunId, ...entry.path.split("/"));
       const dest = livePath(...entry.path.split("/"));
@@ -685,56 +663,21 @@ export async function commitDraft(dreamRunId: string): Promise<{ committed: stri
         throw new Error(`draft missing file: ${entry.path}`);
       }
 
-      const existed = await exists(dest);
-      let backup: string | null = null;
-      if (existed) {
-        backup = `${dest}.engram-bak-${Date.now()}`;
-        await copyFile(dest, backup);
-      }
-
       await ensureParent(dest);
       await copyFile(src, dest);
       committed.push(entry.path);
-      backups.push({ rel: entry.path, backup, existed });
+      touched.push(entry.path);
     }
   } catch (e) {
-    // Best-effort rollback
-    for (const b of [...backups].reverse()) {
-      const dest = livePath(...b.rel.split("/"));
-      try {
-        if (b.existed && b.backup) {
-          await copyFile(b.backup, dest);
-        } else if (!b.existed && (await exists(dest))) {
-          await rm(dest, { force: true });
-        }
-      } catch {
-        // ignore rollback errors
-      }
-    }
-    for (const b of backups) {
-      if (b.backup) {
-        try {
-          await rm(b.backup, { force: true });
-        } catch {
-          // ignore
-        }
-      }
+    try {
+      await restoreTouchedPaths(touched);
+    } catch {
+      // best-effort; rethrow original
     }
     throw e;
   }
 
-  // Cleanup backups on success
-  for (const b of backups) {
-    if (b.backup) {
-      try {
-        await rm(b.backup, { force: true });
-      } catch {
-        // ignore
-      }
-    }
-  }
-
-  return { committed };
+  return { committed: [...new Set(committed)] };
 }
 
 /** Summarize the paths and memory domains represented in a draft. */

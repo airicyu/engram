@@ -1,20 +1,18 @@
-/** Shared contracts for agents that extract dream patches from memory context. */
-
-import type { Patch } from "../dream/schema";
+/** Shared contracts for dream file-pipeline agents (0.16). */
 
 /** Human feedback from a discarded pending run, injected on retry. */
 export interface ReviewFeedback {
   reason: string;
   /** Compact draft／report summary of the previous attempt. */
   previous_summary: string;
-  /** One-line summaries of previous patches. */
-  previous_patches: string[];
+  /** One-line summaries of previous touched paths (or legacy patch lines). */
+  previous_changes: string[];
   /** Discarded dream_run_id this retry replaces. */
   retried_from: string;
 }
 
-/** Frozen memory context supplied to an extraction agent. */
-export interface ExtractContext {
+/** Frozen memory context supplied to a dream agent. */
+export interface DreamContext {
   dream_run_id: string;
   timezone: string;
   /** Effective memory write language: zh-Hant | zh-Hans | en. */
@@ -23,7 +21,7 @@ export interface ExtractContext {
   now: string;
   /** Memory-timeline calendar day YYYY-MM-DD (virtual clock aware). */
   today: string;
-  /** Frozen short-term event ids for this dream (S). Events may span multiple calendar days. */
+  /** Frozen short-term event ids for this dream (S). */
   scope: string[];
   /** Frozen short-term pool view. JSON key `l1` is frozen (agent context wire). */
   l1: { summary: string; node_notes: Record<string, string> };
@@ -31,17 +29,26 @@ export interface ExtractContext {
   l2_current: Array<{ node: string; what_current: string }>;
   existing_nodes: string[];
   /**
-   * Day-chain summary Current for candidate occurrence days (encoding days from
-   * scoped events + today). Empty string = no summary yet → use init.
+   * Day-chain summary body for candidate occurrence days.
+   * Empty string = no summary yet.
    */
   chain_summaries_current: Array<{ day: string; current: string }>;
-  /** Optional ledger full text for the same days (debug / human review). */
+  /** Optional ledger full text for the same days. */
   chain_ledgers?: Array<{ day: string; content: string }>;
+  /** Absolute ENGRAM_STORE_DIR. */
+  store_dir: string;
+  /** Absolute path to dreams/draft/{run_id}/. */
+  draft_dir: string;
+  /** Absolute path to dreams/reports/{run_id}.md. */
+  report_path: string;
   /** Present on retry-with-reason; absent on a fresh dream/run. */
   review_feedback?: ReviewFeedback;
 }
 
-/** Runner capable of extracting proposed patches from a context snapshot. */
+/** @deprecated Use DreamContext — alias kept for transitional imports. */
+export type ExtractContext = DreamContext;
+
+/** Runner that edits draft files and writes the dream report (no typed Patch[]). */
 export interface AgentRunner {
-  extract(ctx: ExtractContext): Promise<Patch[]>;
+  dream(ctx: DreamContext): Promise<void>;
 }

@@ -3,6 +3,7 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { ensureShortTermMemorySummaryFile } from "./memories/short-term-memory";
 import { ensureDreamDirs } from "./dreams/dream-runs";
+import { ensureStoreGit } from "./git";
 import { join } from "node:path";
 import { stringify } from "../yaml";
 import { config } from "../config";
@@ -41,7 +42,7 @@ export async function ensureEngramHome(): Promise<void> {
     "dreams/draft",
     "dreams/reports",
     "dreams/candidates",
-    "tmp/ask/jobs",
+    "tmp",
   ];
 
   for (const d of dirs) {
@@ -58,11 +59,6 @@ export async function ensureEngramHome(): Promise<void> {
     await writeFile(patchesPath, "", "utf8");
   }
 
-  const dlqPath = homePath("dreams", "dead-letter.jsonl");
-  if (!(await exists(dlqPath))) {
-    await writeFile(dlqPath, "", "utf8");
-  }
-
   const candidatesAttr = homePath("dreams", "candidates", "attribution.yaml");
   if (!(await exists(candidatesAttr))) {
     await writeFile(candidatesAttr, stringify({ candidates: [] }), "utf8");
@@ -70,4 +66,29 @@ export async function ensureEngramHome(): Promise<void> {
 
   await ensureShortTermMemorySummaryFile();
   await ensureDreamDirs();
+  await ensureWorkspaceFile();
+  // 0.16: store must be a local git repo (no git binary / ensure failure → refuse start).
+  await ensureStoreGit();
+}
+
+/**
+ * Create `engram.workspace.yaml` only when missing.
+ * Never backfills `store_version` onto an existing file (avoids mis-labeling older stores).
+ */
+async function ensureWorkspaceFile(): Promise<void> {
+  const path = homePath("engram.workspace.yaml");
+  if (await exists(path)) return;
+  const storeVersion = config.productVersion;
+  const doc = {
+    timezone: config.timezone,
+    memory_language: config.memoryLanguage,
+    store_version: storeVersion,
+  };
+  await writeFile(
+    path,
+    `# Engram workspace preferences (per memory store)\n${stringify(doc)}`,
+    "utf8",
+  );
+  // Same process: status should see the new stamp without restart.
+  (config as { storeVersion: string | null }).storeVersion = storeVersion;
 }

@@ -39,7 +39,7 @@ Paragraph…
 
 - Titles: **2–8 words**, content-derived (e.g. `Harbor`, `Engram`, `Cafe 與鄰居`). **Forbidden** as a rigid every-time set: `Work` / `Family` / `關於工作` / `關於家庭`.
 - Prefer **2–4** sections when the week has multiple threads; a thin week may be **one** `##` section.
-- Do **not** start with the week id (`2026-W22 —`).
+- Do **not** start with the week id (`2026-W22-0525 —`).
 - Be concise; fuse related beats into flowing prose — not a stack of disconnected sentences. No mechanical `…` truncation.
 
 ## Revise

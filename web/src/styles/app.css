@@ -215,8 +215,7 @@ body {
   animation: pulse 1.2s ease-in-out infinite;
 }
 
-.status-dot[data-state="dream_incomplete"],
-.status-dot[data-state="dead_letter_pending"] {
+.status-dot[data-state="dream_incomplete"] {
   background: var(--warn);
 }
 

@@ -28,7 +28,7 @@ This is **not** a chronological diary of every day／week as the page spine (no 
    - money／housing／admin
    - society／news／wider world (only if it touched *this* person’s month)
 2. For **each kept dimension**, write **one short paragraph** (or two if the arc needs a beat) under its own `##` title — outcomes, tensions, turning points.
-3. **Inside that section, narrate in time order.** Prefer: 月初／上旬 → 月中 → 下旬／月底 (or equivalent in {{MEMORY_LANGUAGE}}). When a concrete day or week is known from `lower[]`, name it (`2026-07-18`, `2026-W29`, 「七月中」). Phrase anonymous beats as「有一天／某週末」only when the exact day is truly unknown — **never**「這天」with no referent.
+3. **Inside that section, narrate in time order.** Prefer: 月初／上旬 → 月中 → 下旬／月底 (or equivalent in {{MEMORY_LANGUAGE}}). When a concrete day or week is known from `lower[]`, name it (`2026-07-18`, `2026-W29-0713`, 「七月中」). Phrase anonymous beats as「有一天／某週末」only when the exact day is truly unknown — **never**「這天」with no referent.
 4. Order **sections** by importance for *this* month (most defining first). Order **facts inside a section** by time.
 5. Fuse: rewrite into coherent prose. Do **not** merely concatenate lower sentences.
 

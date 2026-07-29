@@ -40,7 +40,7 @@ When `review_feedback` is absent, ignore this section.
 1. Reply with **ONLY** a JSON array of patch objects. No prose, no markdown fences, no commentary before or after the array.
 2. The array **may be empty** `[]` when nothing is worth writing to L2 (human approve will still clear scope S).
 3. Every object MUST match exactly one schema below — no extra fields, no missing required fields, no alternate field names.
-4. Allowed `type` values: `semantic` | `chain` | `future` | `propose_node` | `episodic`. Do **not** emit `dlq_review`.
+4. Allowed `type` values: `semantic` | `chain` | `future` | `propose_node` | `episodic`.
 5. `patch_id` must be unique within the array (e.g. `p001`, `p002`, …).
 6. `dream_run_id` on every patch MUST equal `{{DREAM_RUN_ID}}`.
 7. `ts` MUST be ISO-8601 with the numeric offset for context `timezone` (`{{TIMEZONE}}`).
@@ -89,8 +89,8 @@ Day-level **occurrence** on the world timeline. One patch drives **both** tracks
 | `level` | string | yes | Must be exactly `"day"` |
 | `id` | string | yes | Occurrence day `YYYY-MM-DD` ≤ today (`{{TODAY}}`, {{TIMEZONE}}). **Never** a future day. |
 | `content` | string | yes | Non-empty **incremental** ledger text (may be fragmentary; need not match summary verbatim) |
-| `summary` | string | yes | **Fused** full-day narrative for Current — absorb prior `chain_summaries_current[day]` + this round's facts; do **not** only repeat `content`. Prefer short `##` section titles inside the body when the day has distinct life threads (e.g. `## Harbor` / `## Engram`); titles must be content-derived and brief — not a fixed Work／Family checklist. Do **not** emit `## Current` / `## History` inside `summary` (the store wraps those). |
-| `summary_operation` | string | yes | `"init"` if that day's summary Current is empty／missing; `"revise"` if prior Current exists |
+| `summary` | string | yes | **Fused** full-day narrative — absorb prior `chain_summaries_current[day]` + this round's facts; do **not** only repeat `content`. Prefer short `##` section titles inside the body when the day has distinct life threads (e.g. `## Harbor` / `## Engram`); titles must be content-derived and brief — not a fixed Work／Family checklist. The store writes `summary` as the **whole** `*.summary.md` file — do **not** emit `## Current` / `## History`. |
+| `summary_operation` | string | yes | `"init"` if that day's summary is empty／missing; `"revise"` if prior summary body exists |
 
 Context fields: `chain_summaries_current` (required for decide init vs revise); `chain_ledgers` optional (audit／debug).
 

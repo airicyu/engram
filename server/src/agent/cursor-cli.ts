@@ -1,32 +1,39 @@
-/** Cursor CLI-backed runner for extracting dream patches. */
+/** Cursor CLI-backed runner for the 0.16 dream file pipeline. */
 
 import { join } from "node:path";
+import { access } from "node:fs/promises";
 import { config } from "../config";
-import type { AgentRunner, ExtractContext } from "./types";
-import type { Patch } from "../dream/schema";
-import { parseAgentExtractOutput } from "../dream/schema";
+import type { AgentRunner, DreamContext } from "./types";
 import {
   logAgentResult,
   logAgentSpawn,
-  logExtractParseFailed,
-  logExtractParsed,
 } from "./extract-log";
 import { setDreamJobAgentPid } from "../store/dreams/dream-job";
 import { loadPrompt, renderPrompt } from "./prompt-template";
 import { withTempJsonContext } from "./temp-context";
 import { runAgentCommand } from "./subprocess";
 
-const PROMPT_PATH = join(import.meta.dir, "../../prompts/extract.md");
+const PROMPT_PATH = join(import.meta.dir, "../../prompts/dream-files.md");
 const RUNNER = "cursor";
 
-/** Extract patches by invoking the configured Cursor agent binary. */
+async function exists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Edit draft files + report by invoking the configured Cursor agent binary. */
 export class CursorCliRunner implements AgentRunner {
-  async extract(ctx: ExtractContext): Promise<Patch[]> {
+  async dream(ctx: DreamContext): Promise<void> {
     const promptTemplate = await loadPrompt(PROMPT_PATH);
     const procKey = `dream:${ctx.dream_run_id}`;
 
-    return withTempJsonContext(
-      { prefix: "engram-extract", filename: "extract-context.json", value: ctx },
+    // Context JSON in a temp dir; agent also gets --add-dir for store (draft + report).
+    await withTempJsonContext(
+      { prefix: "engram-dream", filename: "dream-context.json", value: ctx },
       async (workDir, ctxPath) => {
         const meta = {
           dream_run_id: ctx.dream_run_id,
@@ -41,6 +48,9 @@ export class CursorCliRunner implements AgentRunner {
           MEMORY_LANGUAGE: ctx.memory_language,
           TODAY: ctx.today,
           NOW: ctx.now,
+          STORE_DIR: ctx.store_dir,
+          DRAFT_DIR: ctx.draft_dir,
+          REPORT_PATH: ctx.report_path,
         });
 
         const cmd = [
@@ -52,6 +62,8 @@ export class CursorCliRunner implements AgentRunner {
           "--yolo",
           "--add-dir",
           workDir,
+          "--add-dir",
+          ctx.store_dir,
         ];
 
         logAgentSpawn({
@@ -65,6 +77,8 @@ export class CursorCliRunner implements AgentRunner {
             "--yolo",
             "--add-dir",
             workDir,
+            "--add-dir",
+            ctx.store_dir,
           ],
         });
 
@@ -83,13 +97,8 @@ export class CursorCliRunner implements AgentRunner {
           stderr: result.stderr,
         });
 
-        try {
-          const patches = parseAgentExtractOutput(result.stdout);
-          logExtractParsed(ctx.dream_run_id, patches);
-          return patches;
-        } catch (e) {
-          logExtractParseFailed(ctx.dream_run_id, RUNNER, result.stdout, e);
-          throw e;
+        if (!(await exists(ctx.report_path))) {
+          throw new Error("dream agent finished but report file is missing");
         }
       },
     );

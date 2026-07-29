@@ -20,7 +20,6 @@ export function Topbar({
     ? t("status.tooltip", {
         lock: status.lock ? t("status.value.true") : t("status.value.false"),
         l1: status.l1_empty ? t("status.value.empty") : t("status.value.present"),
-        dlq: status.pending_dlq_count,
       })
     : t("status.unreachable_title");
 

@@ -3,9 +3,9 @@
 import { access, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parse, stringify } from "../../yaml";
-import { homePath } from "../home";
 import { makeRunId } from "../run-id";
 import { nowIso } from "../memories/activities";
+import { runtimeTempPath } from "../../runtime-temp";
 
 /** Lifecycle states for a memory ask job. */
 export type AskJobStatus = "running" | "completed" | "failed" | "cancelled";
@@ -39,7 +39,8 @@ export interface AskJobState {
 const KEEP_JOBS = 5;
 
 function jobsRoot(): string {
-  return homePath("tmp", "ask", "jobs");
+  // Outside memory store — under ENGRAM_TEMP_DIR/engram/ask/jobs (default /tmp/…).
+  return runtimeTempPath("ask", "jobs");
 }
 
 /** Job workspace directory for one ask run. */

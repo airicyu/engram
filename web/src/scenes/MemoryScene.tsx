@@ -7,12 +7,12 @@ type MemoryMode = "chain" | "nodes";
 type ChainLevel = "day" | "week" | "month" | "year";
 
 type DayIndex = { day_id: string; preview?: string };
-type WeekIndex = { week_id: string; preview?: string };
+type WeekIndex = { week_id: string; start?: string; end?: string; preview?: string };
 type MonthIndex = { month_id: string; preview?: string };
 type YearIndex = { year_id: string; preview?: string };
 type NodeIndex = { node: string; preview?: string };
 
-type ChainItem = { id: string; preview?: string };
+type ChainItem = { id: string; preview?: string; range?: string };
 
 export function MemoryScene() {
   const { t } = useI18n();
@@ -48,6 +48,8 @@ export function MemoryScene() {
         present?: boolean;
         source?: string;
         content?: string;
+        start?: string;
+        end?: string;
       }>(path);
       if (!ok) {
         setChainBody(t("memory.browse_fail"));
@@ -67,6 +69,8 @@ export function MemoryScene() {
               ? t("memory.source_ledger")
               : data.source || "";
         setChainMeta(source);
+      } else if (level === "week" && data.start && data.end) {
+        setChainMeta(`${data.start} – ${data.end} · ${t("memory.source_summary")}`);
       } else {
         setChainMeta(t("memory.source_summary"));
       }
@@ -107,7 +111,11 @@ export function MemoryScene() {
         return;
       }
       present = !!data.present;
-      items = (data.weeks ?? []).map((d) => ({ id: d.week_id, preview: d.preview }));
+      items = (data.weeks ?? []).map((d) => ({
+        id: d.week_id,
+        preview: d.preview,
+        range: d.start && d.end ? `${d.start} – ${d.end}` : undefined,
+      }));
     } else if (level === "month") {
       const { ok, data } = await api<{ present?: boolean; months?: MonthIndex[] }>(
         "/memories/chain/months",
@@ -288,6 +296,9 @@ export function MemoryScene() {
                     onClick={() => void loadChainDetail(chainLevel, item.id)}
                   >
                     <span className="browse-item-id">{item.id}</span>
+                    {item.range ? (
+                      <div className="browse-item-preview">{item.range}</div>
+                    ) : null}
                     {item.preview ? (
                       <div className="browse-item-preview">{item.preview}</div>
                     ) : null}

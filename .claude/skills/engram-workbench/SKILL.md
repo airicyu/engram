@@ -37,11 +37,10 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /dreams/run` → pending → `approve`／`discard`／`retry`／`cancel` | Hand-edit short-term／L2／draft during review |
 | `GET /memories/short-term-memory` / `GET /memories/search` / `POST /memories/ask` | Assemble context by reading markdown files |
 | `GET /memories/future-sight` for near-horizon anchors | Hand-edit `future-sight/` |
-| Report `dream_status` from `/status` | Manually fix DLQ via filesystem |
+| Report `dream_status` from `/status` | Hand-edit dream state files |
 
 ### Not exposed by API (prototype)
 
-- Settle `dead-letter.jsonl`
 - Node merge／fusion
 - Wipe store → `cd server && bun run reset` (destructive; confirm first)
 
@@ -50,15 +49,17 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | Term | Meaning |
 |------|---------|
 | **Capture** | `POST /activities` — L0 + short-term pool entry |
-| **Extract / Dream** | `POST /dreams/run` — patches + draft + report; **does not** write L2；pending 時 409 |
-| **Approve** | `POST /dreams/approve` — `commitDraft` → L2, clear scope S |
-| **Discard** | `POST /dreams/discard` — drop pending; short-term／L2 unchanged |
+| **Extract / Dream** | `POST /dreams/run` — AI 改 draft＋寫 report；**不**寫 L2；pending 時 409 |
+| **Approve** | `POST /dreams/approve` — deploy draft→live＋git commit → clear scope S |
+| **Discard** | `POST /dreams/discard` — drop pending；short-term／L2 不變 |
 | **Retry** | `POST /dreams/retry` `{ reason }` — discard → same frozen scope + feedback → new pending |
-| **Dream cancel** | `POST /dreams/cancel` — stop running extract; revert draft |
+| **Dream cancel** | `POST /dreams/cancel` — stop running dream；revert draft |
 | **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain`) |
-| **Ask** | `POST /memories/ask` — async AI Q&A; poll `GET /memories/ask/{job_id}` |
+| **Ask** | `POST /memories/ask` — async AI Q&A；poll `GET /memories/ask/{job_id}` |
 | **Future-sight** | `GET /memories/future-sight` — active near-horizon anchors (sweeps expired → L0+short-term event) |
-| **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `dead_letter_pending` \| `never_dreamed` |
+| **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `never_dreamed` |
+| **store_git** | `GET /status.store_git` — 記憶庫是否為可用 local git（0.16+；否則 server 拒啟） |
+| **store_version** | `GET /status.store_version` — 記憶庫結構世代（`engram.workspace.yaml`；缺鍵 → `null`）；對照 `product_version` |
 
 ## ⚠️ Before any API call
 
