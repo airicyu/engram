@@ -1,7 +1,5 @@
 /** Dream orchestration: extract, materialize, review, approve, and discard. */
 
-import { readFile, readdir } from "node:fs/promises";
-import { join } from "node:path";
 import type { AgentRunner, DreamContext, ReviewFeedback } from "../agent/types";
 import { ClaudeCodeRunner } from "../agent/claude-code";
 import { CursorCliRunner } from "../agent/cursor-cli";
@@ -40,7 +38,7 @@ import {
   commitDirtyMemorySnapshot,
   stageAndCommitPaths,
 } from "../store/git";
-import { parseFutureSightMarkdown, sweepExpiredFutureSight } from "../store/memories/future-sight";
+import { maintainFutureSight, listAnchors } from "../store/memories/future-sight";
 import { config } from "../config";
 import {
   DreamRunMismatchError,
@@ -382,6 +380,36 @@ async function executeDreamPipeline(opts: {
     },
   });
 
+  // 0.17: calendar maintain before agent (may git-commit; no AI).
+  try {
+    const maint = await maintainFutureSight({
+      mode: "full",
+      target: "live",
+      commit: true,
+    });
+    if (maint.changed) {
+      emitDreamEvent(dreamRunId, {
+        phase: "extract",
+        event: "future_sight_maintain",
+        message: `Future-sight maintain: expired=${maint.expired.length} out_of_window=${maint.out_of_window.length}`,
+        detail: {
+          expired: maint.expired,
+          out_of_window: maint.out_of_window,
+          committed: maint.committed,
+        },
+      });
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    emitDreamEvent(dreamRunId, {
+      phase: "extract",
+      level: "error",
+      event: "future_sight_maintain_failed",
+      message: msg,
+    });
+    throw new DreamIncompleteError(dreamRunId, `future-sight maintain failed: ${msg}`, "extract");
+  }
+
   await prepareDreamDraft(dreamRunId);
   await doDreamFiles(dreamRunId, scope, runner, reviewFeedback);
 
@@ -644,6 +672,23 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   if (rejected.length > 0) {
     throw new FutureChainIdError(rejected);
   }
+
+  // 0.17: full maintain on draft before deploy (correct zones／sort; expired → 409).
+  const draftRoot = draftDir(pending.id);
+  const draftMaint = await maintainFutureSight({
+    mode: "full",
+    target: "draft",
+    baseDir: draftRoot,
+    commit: false,
+  });
+  if (draftMaint.stale_expired.length > 0) {
+    throw new StaleFutureAnchorError(draftMaint.stale_expired);
+  }
+  if (draftMaint.changed) {
+    // Rebucket may create／rewrite zone files not yet in manifest.
+    await finalizeDraftFromDisk(pending.id);
+  }
+  // Re-scan after maintain (defence).
   const stale = await staleDraftFutureAnchorIds(pending.id);
   if (stale.length > 0) {
     throw new StaleFutureAnchorError(stale);
@@ -697,12 +742,7 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
 
   await removeDraft(pending.id).catch(() => {});
 
-  // Lazy sweep after successful approve (best-effort)
-  try {
-    await sweepExpiredFutureSight();
-  } catch (e) {
-    logError("future-sight sweep after approve failed", e, { dream_run_id: pending.id });
-  }
+  // 0.17: deploy 後不強制再 maintain（入夢前／GET 已覆蓋日曆語意）
 
   return {
     dream_run_id: pending.id,
@@ -777,23 +817,9 @@ export async function pendingRunSummary(): Promise<{
 export type { DreamRunState };
 
 async function staleDraftFutureAnchorIds(dreamRunId: string): Promise<string[]> {
-  const activeDir = join(draftDir(dreamRunId), "memories", "future-sight", "active");
-  let names: string[];
-  try {
-    names = await readdir(activeDir);
-  } catch {
-    return [];
-  }
-
   const today = calendarDate();
-  const stale: string[] = [];
-  for (const name of names) {
-    if (!name.endsWith(".md")) continue;
-    const id = name.slice(0, -3);
-    const anchor = parseFutureSightMarkdown(await readFile(join(activeDir, name), "utf8"), id);
-    if (anchor.anchor_end < today) stale.push(anchor.id);
-  }
-  return [...new Set(stale)].sort();
+  const listed = await listAnchors(draftDir(dreamRunId));
+  return listed.filter((a) => a.anchor_end < today).map((a) => a.id).sort();
 }
 
 async function recordInitializedFromManifest(

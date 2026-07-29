@@ -2,6 +2,7 @@
 
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { ensureShortTermMemorySummaryFile } from "./memories/short-term-memory";
+import { ensureFutureSightFiles } from "./memories/future-sight";
 import { ensureDreamDirs } from "./dreams/dream-runs";
 import { ensureStoreGit } from "./git";
 import { join } from "node:path";
@@ -36,7 +37,6 @@ export async function ensureEngramHome(): Promise<void> {
     "memories/chain/years",
     "memories/nodes",
     "memories/future-sight",
-    "memories/future-sight/active",
     "dreams",
     "dreams/runs",
     "dreams/draft",
@@ -65,6 +65,7 @@ export async function ensureEngramHome(): Promise<void> {
   }
 
   await ensureShortTermMemorySummaryFile();
+  await ensureFutureSightFiles();
   await ensureDreamDirs();
   await ensureWorkspaceFile();
   // 0.16: store must be a local git repo (no git binary / ensure failure → refuse start).

@@ -58,7 +58,7 @@
 ## 非目標
 
 - 新功能：mindzone、future-sight 注入 search／ask、DLQ settlement UI、node merge
-- Store local git 事務（見 [backlog/store-git-transactions.md](../backlog/store-git-transactions.md)）
+- Store local git 事務（已出貨 → [0.16.0](../0.16.0/INDEX.md)）
 - 改 JSON 欄位名（HTTP base path 本版已硬切）；舊 URL alias
 - 長期雙讀舊路徑、或「順便」重構 dream 狀態機
 - 強制改名 `short-term-memory`（本版維持）

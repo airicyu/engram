@@ -3,7 +3,7 @@
 ← [changelog](../../../changelog.md) · 上游：[0.3.0](../0.3.0/INDEX.md) · current: [version](../../../version.md)
 
 > **狀態：** **已實作（0.4.0）** — 見 `version.md`／`changelog.md`。  
-> Backlog：[mindzone](../backlog/near-future-mindzone.md) · [Recall 注入](../backlog/recall-future-sight.md)
+> Backlog（仍開）：[Recall 注入](../backlog/recall-future-sight.md) · mindzone／熱區語意已併入 [0.17.0](../0.17.0/INDEX.md)
 
 ## 文件地圖
 

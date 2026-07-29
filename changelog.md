@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.17.0 — 未來視雙區（hot／later）＋入夢前機械維護 (2026-07-29)
+
+未來視由一錨一檔改為 **`hot.md`／`later.md` 兩整檔**；入夢前純 script 過期／出窗／重桶並 git commit；入夢 AI 維護內容後同一人審 deploy。舊 backlog「mindzone」語意＝hot 區，不另開記憶層。
+
+### Added
+
+- Config：`future_sight_window_days`（預設 90）、`future_sight_hot_days`（預設 30）；優先序 **workspace → 否則 env → 預設**（同 timezone）
+- `maintainFutureSight`：入夢前 full＋commit；`GET /memories/future-sight` expire-only＋commit；approve 前對 draft full maintain
+- Status：`future_sight_hot_count`／`future_sight_later_count`（保留 `future_sight_active_count`＝總數）
+- GET 錨點帶 `zone: hot|later`；先 hot 再 later
+- Migration：`.claude/skills/engram-migration/migrate-0.16-to-0.17.md`＋腳本
+
+### Changed
+
+- 存法：`memories/future-sight/hot.md`＋`later.md`；廢 `active/{id}.md`
+- Item 格式：`## {id}`＋yaml fence（**僅** `anchor_start`／`anchor_end`）＋正文；排序近→遠；**不**存 `node_refs`／`event_refs`／`dream_run_id`／`committed_at`
+- 過期與出窗 event 同 `source: system/future_sight_expired`，以 `ingest_meta.reason` 區分
+- Dream prompt 強制對照兩檔做內容加減改
+- Discard **不**回滾入夢前維護 commit
+### Non-goals
+
+- Seek／ask 注入未來視；獨立 mindzone；日曆／待辦 UI；強制 `hot_days < window_days`
+
+### Migrate
+
+- 0.16 store → 見 `.claude/skills/engram-migration/migrate-0.16-to-0.17.md`
+
+---
+
 ## 0.16.0 — Store git 事務 ＋ 入夢改 draft 檔案作業 (2026-07-29)
 
 記憶庫以 **local git** 做 approve 事務與歷史；入夢改為 **一套 prompt → AI 直接改 draft 檔**；廢 typed JSON patch 驅動的 extract→materialize；報告改固定結構 narrative；day summary／node `what.md` 廢 `## Current`／`## History`。

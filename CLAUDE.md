@@ -22,7 +22,7 @@
 | **L2** | **長期已沉澱記憶**＝**nodes**（主題理解）＋**chain**（時間軸）；見下行兩欄 |
 | └ **nodes** | `memories/nodes/{id}/understand/what.md`（整檔＝最新理解） |
 | └ **chain** | `memories/chain/days|weeks|months|years/`（day summary＝整檔敘事；ledger＝append-only） |
-| **future-sight** | 近程前瞻錨點（`memories/future-sight/active/`）；過期 → L0 + short-term event 後硬清 |
+| **future-sight** | 近程前瞻錨點（`memories/future-sight/hot.md`＋`later.md`）；入夢前 script 過期／重桶並 git commit；GET 懶清過期 |
 | **store git** | `ENGRAM_STORE_DIR` 必為 local git；追蹤 `memories/**`＋`engram.workspace.yaml`；**不**追 `dreams/`、store `tmp/` |
 | **runtime temp** | `ENGRAM_TEMP_DIR`（預設 `/tmp`）：ask jobs＋dream agent disposable workdirs；不在記憶庫內 |
 
@@ -117,11 +117,11 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.16.0` — Store git 事務＋入夢 draft 檔案作業 — 見 `docs/roadmap/0.16.0/`
-- **上一版：** `0.15.0` — Server src layout + agent shared runners — 見 `docs/roadmap/0.15.0/`
-- **更早：** `0.14.0` — Store layout refactor；`0.13.0` — Workspace config + setup wizard；`0.12.0` — Dream Retry with reason
-- **Backlog：** mindzone、future-sight 注入 Memory — 見 `docs/roadmap/backlog/`。
-- **遷移：** 0.15→0.16 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）
+- **已出貨：** `0.17.0` — 未來視雙區＋入夢前機械維護 — 見 `docs/roadmap/0.17.0/`
+- **上一版：** `0.16.0` — Store git 事務＋入夢 draft 檔案作業 — 見 `docs/roadmap/0.16.0/`
+- **更早：** `0.15.0` — Server src layout + agent shared runners；`0.14.0` — Store layout refactor
+- **Backlog：** Recall 注入未來視 — 見 `docs/roadmap/backlog/`。
+- **遷移：** 0.16→0.17 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）
 
 ## 深入閱讀
 

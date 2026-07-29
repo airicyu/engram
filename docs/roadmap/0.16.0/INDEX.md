@@ -3,7 +3,7 @@
 ← [changelog](../../../changelog.md) · 上游：[0.15.0](../0.15.0/INDEX.md) · current: [version](../../../version.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md)
 
 > **狀態：** **shipped**（2026-07-29）  
-> 來源：[backlog/store-git-transactions.md](../backlog/store-git-transactions.md)（本版定案已 supersede 該檔「原地改 live／取消 draft」舊構想）  
+> 來源：舊 backlog「store git／簡化 draft」構想已併入本版定案（已 supersede「原地改 live／取消 draft」）  
 > 本版是 **大改**：記憶庫以 **local git** 做 approve 事務與歷史；入夢改為 **一套 prompt → AI 直接改 draft 檔**；廢 typed JSON patch 驅動的 extract→materialize；報告改為固定結構 narrative；day summary 與 node `what.md` 廢 `## Current`／`## History`。
 
 ## 產品句
@@ -164,7 +164,7 @@
 | `server/src/store/dreams/draft.ts` | 現行 materialize／commitDraft（將被新 pipeline 取代或大幅刪） |
 | `server/src/dream/run.ts` | 入夢編排／approve／discard |
 | `server/src/dream/rollup.ts` | PreferDraft；改 file draft |
-| `server/src/dream/report.ts` | 現行機械 report（改協定／AI＋校驗） |
+| `server/src/dream/report-finalize.ts` | 協定 report 骨架／校對（0.16+） |
 | `server/src/dream/schema.ts` | 舊 Patch union（主契約廢除） |
 | `server/prompts/extract.md` | 舊 extract；改寫或替換為 dream file prompt |
 | `server/src/cli/reset.ts`／`self-test.ts` | reset／契約回歸 |

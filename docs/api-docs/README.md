@@ -98,7 +98,7 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 | **dream staging draft** | Staged L2 projection (`dreams/draft/{run_id}/`) — not live until approve |
 | **L2** | Long-term node understanding (`memories/nodes/{id}/understand/what.md`) |
 | **chain** | World timeline (`memories/chain/days|weeks|months|years/`) — day dual-track; higher summary-only |
-| **future-sight** | Near-horizon anchors (`memories/future-sight/active/`) — not memory-chain; not in `/memories/search` |
+| **future-sight** | Near-horizon anchors (`memories/future-sight/hot.md`＋`later.md`) — not memory-chain; not in `/memories/search` |
 | **candidates** | Low-confidence attribution (`dreams/candidates/`) — not the primary create-node path |
 
 **Lock rule:** capture is blocked only while extract/materialize/commit holds the dream lock. **`pending_review` allows capture** (new events ∉ frozen S).

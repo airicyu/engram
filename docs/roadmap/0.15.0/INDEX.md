@@ -68,7 +68,7 @@
 - 再搬記憶庫磁碟；migrate CLI
 - Agent timeout；統一 extract／ask／rollup 輸出協定
 - 重寫 dream 狀態機、DLQ UI、node merge、mindzone、future-sight 注入 Seek
-- Store local git 事務（見 [backlog/store-git-transactions.md](../backlog/store-git-transactions.md)）
+- Store local git 事務（已出貨 → [0.16.0](../0.16.0/INDEX.md)）
 - 回溯改寫已 shipped roadmap 內文
 
 ---

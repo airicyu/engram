@@ -1,6 +1,6 @@
 # 0.13.0 — Workspace Config + First-run Setup
 
-← [changelog](../../../changelog.md) · 上游：[0.12.0](../0.12.0/INDEX.md) · current: [version](../../../version.md) · 構想來源：[backlog/workspace-config.md](../backlog/workspace-config.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md)
+← [changelog](../../../changelog.md) · 上游：[0.12.0](../0.12.0/INDEX.md) · current: [version](../../../version.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md)
 
 > **狀態：** **shipped（0.13.0）**  
 > 兩塊：**A** per-`ENGRAM_HOME` workspace 偏好；**B** 首次 `bun run setup` wizard（產出 `.env` + data home + workspace yaml）。

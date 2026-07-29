@@ -86,7 +86,7 @@
 | **dream staging** | 入夢中間層 | 由 short-term 入夢產出、待 Approve 才進 L2（draft＋report） | `dreams/draft/`、`dreams/reports/` | `dreams/` 不進 store git |
 | **L2 · nodes** | 長期節點理解 | 對某主題／人目前「相信什麼」 | `memories/nodes/{id}/understand/what.md` | Approve 寫入；可手改 |
 | **L2 · chain** | 長期記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary |
-| **future-sight** | 近程前瞻 | 短期要盯的錨點（deadline 等） | `memories/future-sight/active/` | 過期寫 event 後硬刪 |
+| **future-sight** | 近程前瞻 | 短期要盯的錨點（deadline 等）；hot＝近窗熱區 | `memories/future-sight/hot.md`＋`later.md` | 入夢前／GET 機械過期；內容經入夢＋人審 |
 
 **一句話對照：**
 
@@ -138,7 +138,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 | 新建／更新 node | 主題理解 | `memories/nodes/{id}/understand/what.md`（整檔） |
 | day ledger block | 日鏈增量稽核 | `memories/chain/days/{YYYY-MM}/{id}.md`（append-only） |
 | day／week／month／year summary | 可讀敘事 snapshot | 對應 `*.summary.md`（整檔） |
-| future-sight | 近程錨點 | `future-sight/active/{id}.md` |
+| future-sight | 近程錨點 | `future-sight/hot.md`／`later.md` |
 | deletes | 白名單刪除清單 | draft `deletes.txt` → deploy 先刪 |
 
 **Approve 閘門錯誤：**
@@ -192,10 +192,11 @@ activities → dreams/run → pending_review → approve | discard | retry
 |----|------|------|
 | **anchor** | 錨點 | 一則近程要留意的事 |
 | **anchor_start** / **anchor_end** | 錨點起訖日 | 有效區間（設定時區日級；預設 Asia/Hong_Kong） |
-| **sweep** / **lazy sweep** | 懶清掃 | 讀 API 時順便清過期錨點 |
+| **zone** | 分區 | `hot`（近窗熱區）／`later`（仍在 window 內） |
+| **sweep** / **lazy sweep** | 懶清掃 | GET 時過期清（不重桶）；入夢前 full maintain |
 | **swept_expired** | 本次清掉清單 | 剛移除的過期 anchor id |
 
-過期：寫 L0 + short-term system event（`future_sight_expired`），再刪 active 檔。無過期瀏覽 API。
+過期／出窗：寫 L0 + short-term system event（`source: system/future_sight_expired`，`reason` 區分），再從兩檔移除。無過期瀏覽 API。Seek／search **不**注入未來視。
 
 ---
 
@@ -260,7 +261,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 | `memories/nodes/{id}/understand/what.md` | L2 semantic understanding | L2 語意理解 |
 | `memories/chain/days/{YYYY-MM}/*.md` | chain ledger (day) | 日鏈增量紀錄（0.5.0 語義；0.11.0 起按月分組） |
 | `memories/chain/days/{YYYY-MM}/*.summary.md` | chain summary (day) | 日鏈融合摘要（0.5.0；0.11.0 起按月分組） |
-| `memories/future-sight/active/*.md` | active future anchor | 活躍前瞻錨點 |
+| `memories/future-sight/hot.md`／`later.md` | future-sight zones | 近程前瞻雙區 |
 | `web/` | workbench UI | 工作台介面 |
 | `.claude/skills/engram-workbench/` | engram-workbench skill | 工作台 HTTP skill |
 

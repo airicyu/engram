@@ -56,7 +56,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Dream cancel** | `POST /dreams/cancel` — stop running dream；revert draft |
 | **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain`) |
 | **Ask** | `POST /memories/ask` — async AI Q&A；poll `GET /memories/ask/{job_id}` |
-| **Future-sight** | `GET /memories/future-sight` — active near-horizon anchors (sweeps expired → L0+short-term event) |
+| **Future-sight** | `GET /memories/future-sight` — `hot`／`later` 錨點（GET 只清過期並可 git commit；重桶在入夢前） |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `never_dreamed` |
 | **store_git** | `GET /status.store_git` — 記憶庫是否為可用 local git（0.16+；否則 server 拒啟） |
 | **store_version** | `GET /status.store_version` — 記憶庫結構世代（`engram.workspace.yaml`；缺鍵 → `null`）；對照 `product_version` |
@@ -77,7 +77,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `GET /memories/short-term-memory` | none | `summary`, `node_notes`, `present` |
 | `GET /memories/search` | `q` (required); `scope` optional | keyword hits per scope |
 | `POST /memories/ask` | `q` | `202` + `job_id` |
-| `GET /memories/future-sight` | none | `anchors`, `swept_expired` |
+| `GET /memories/future-sight` | none | `anchors`（含 `zone`）、`swept_expired` |
 | `GET /clock` | none | `mode`, `now`, `today`, `allow_set` |
 | `PUT /clock` | `now` **or** `day` (+ optional `time`) | needs `ENGRAM_ALLOW_VIRTUAL_CLOCK=1` |
 | `DELETE /clock` | none | back to system clock |
@@ -109,7 +109,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "取消入夢" | `POST /dreams/cancel` (running only) |
 | "搜尋記憶" | `GET /memories/search?q=…&scope=…` |
 | "問記憶庫" | `POST /memories/ask`；poll job |
-| "近期前瞻／未來視" | `GET /memories/future-sight`（過期會 mark event 後清掉） |
+| "近期前瞻／未來視" | `GET /memories/future-sight`（過期清掉；discard 不回滾入夢前維護 commit） |
 | "丟掉這次夢" | `POST /dreams/discard` |
 | "重試／改方向" | `POST /dreams/retry` + `{ reason }` — **不要**手改檔案；**不要**無理由再 `dream/run` |
 | pending 期間還要記 | 直接 capture（允許） |

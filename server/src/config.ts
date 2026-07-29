@@ -15,7 +15,16 @@ export type MemoryLanguage = (typeof MEMORY_LANGUAGES)[number];
 
 export const DEFAULT_MEMORY_LANGUAGE: MemoryLanguage = "en";
 
-const WORKSPACE_KEYS = new Set(["timezone", "memory_language", "store_version"]);
+const WORKSPACE_KEYS = new Set([
+  "timezone",
+  "memory_language",
+  "store_version",
+  "future_sight_window_days",
+  "future_sight_hot_days",
+]);
+
+export const DEFAULT_FUTURE_SIGHT_WINDOW_DAYS = 90;
+export const DEFAULT_FUTURE_SIGHT_HOT_DAYS = 30;
 
 /** Semver X.Y.Z (no prerelease／build). */
 const STORE_VERSION_RE = /^\d+\.\d+\.\d+$/;
@@ -62,7 +71,22 @@ type WorkspaceFile = {
   timezone?: string;
   memory_language?: MemoryLanguage;
   store_version?: string;
+  future_sight_window_days?: number;
+  future_sight_hot_days?: number;
 };
+
+/** Positive integer day-count (future-sight windows). */
+export function isPositiveIntDays(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+function parsePositiveIntDays(raw: string, label: string): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) {
+    failWorkspace(`${label} must be a positive integer (got ${JSON.stringify(raw)})`);
+  }
+  return n;
+}
 
 function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
   const path = join(storeDir, "engram.workspace.yaml");
@@ -90,7 +114,7 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
   for (const key of Object.keys(obj)) {
     if (!WORKSPACE_KEYS.has(key)) {
       failWorkspace(
-        `${path}: unknown key "${key}" (allowed: timezone, memory_language, store_version)`,
+        `${path}: unknown key "${key}" (allowed: timezone, memory_language, store_version, future_sight_window_days, future_sight_hot_days)`,
       );
     }
   }
@@ -129,7 +153,45 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
     out.store_version = ver.trim();
   }
 
+  if ("future_sight_window_days" in obj) {
+    const v = obj.future_sight_window_days;
+    if (!isPositiveIntDays(v)) {
+      failWorkspace(
+        `${path}: future_sight_window_days must be a positive integer (got ${JSON.stringify(v)})`,
+      );
+    }
+    out.future_sight_window_days = v;
+  }
+
+  if ("future_sight_hot_days" in obj) {
+    const v = obj.future_sight_hot_days;
+    if (!isPositiveIntDays(v)) {
+      failWorkspace(
+        `${path}: future_sight_hot_days must be a positive integer (got ${JSON.stringify(v)})`,
+      );
+    }
+    out.future_sight_hot_days = v;
+  }
+
   return out;
+}
+
+function resolveFutureSightWindowDays(workspace: WorkspaceFile | null): number {
+  if (workspace?.future_sight_window_days != null) return workspace.future_sight_window_days;
+  const fromEnv = process.env.ENGRAM_FUTURE_SIGHT_WINDOW_DAYS?.trim();
+  if (fromEnv) {
+    return parsePositiveIntDays(fromEnv, "ENGRAM_FUTURE_SIGHT_WINDOW_DAYS");
+  }
+  return DEFAULT_FUTURE_SIGHT_WINDOW_DAYS;
+}
+
+function resolveFutureSightHotDays(workspace: WorkspaceFile | null): number {
+  if (workspace?.future_sight_hot_days != null) return workspace.future_sight_hot_days;
+  const fromEnv = process.env.ENGRAM_FUTURE_SIGHT_HOT_DAYS?.trim();
+  if (fromEnv) {
+    return parsePositiveIntDays(fromEnv, "ENGRAM_FUTURE_SIGHT_HOT_DAYS");
+  }
+  return DEFAULT_FUTURE_SIGHT_HOT_DAYS;
 }
 
 function resolveMemoryLanguage(
@@ -198,6 +260,10 @@ export const config = {
   timezone: resolveTimezone(workspace),
   /** Effective write language for chain／node／ask (always one of MEMORY_LANGUAGES). */
   memoryLanguage: resolveMemoryLanguage(workspace),
+  /** Future-sight admission window (days from dream day T). */
+  futureSightWindowDays: resolveFutureSightWindowDays(workspace),
+  /** Future-sight hot zone window (days from dream day T). */
+  futureSightHotDays: resolveFutureSightHotDays(workspace),
   /**
    * Disk structure generation from workspace `store_version` at process start, or null if unset.
    * Prefer {@link peekStoreVersion} for live status (file may be stamped after boot).

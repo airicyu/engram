@@ -1,6 +1,6 @@
 # 0.12.0 — Dream Retry with Reason
 
-← [changelog](../../../changelog.md) · 上游：[0.11.0](../0.11.0/INDEX.md) · current: [version](../../../version.md) · 構想來源：[backlog/dream-retry-with-reason.md](../backlog/dream-retry-with-reason.md)
+← [changelog](../../../changelog.md) · 上游：[0.11.0](../0.11.0/INDEX.md) · current: [version](../../../version.md)
 
 > **狀態：** **shipped（0.12.0）**  
 > Pending review 三選一：**Approve／Discard／Retry with reason**；移除無理由「入夢（取代）」。

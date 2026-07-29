@@ -129,7 +129,7 @@ Flat `memory-chain/days/*.md` 在 `data-demo` 規模尚可，但長期會膨脹�
 
 **認同延後（已進 backlog）：** 那是換寫入事務模型，與多層 chain 同版會失控。0.11 **維持** 現有 draft → pending_review → approve／discard。高階 summary 只是多寫進同一 dream draft。
 
-見：[backlog/store-git-transactions.md](../../backlog/store-git-transactions.md)
+見：[0.16.0](../0.16.0/INDEX.md)（store git／draft 管線已出貨）
 
 ---
 

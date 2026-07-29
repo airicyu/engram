@@ -41,7 +41,7 @@ curl -s "$ENGRAM_URL/future-sight"
 
 ### `GET /status`
 
-Includes `dream_status`, `dream_pending`, `l1_clear_pending`, `future_sight_active_count`, `dream_job`, `ask_job`.
+Includes `dream_status`, `dream_pending`, `l1_clear_pending`, `future_sight_active_count`, `future_sight_hot_count`, `future_sight_later_count`, `future_sight_window_days`, `future_sight_hot_days`, `dream_job`, `ask_job`.
 
 ### `GET /dreams/pending`
 
@@ -57,7 +57,7 @@ May return `409` with `future_chain_id` + `rejected_chain_ids`, or `stale_future
 
 ### `GET /memories/future-sight`
 
-Always 200. Sweeps expired anchors (L0+L1 event + hard delete), then returns active `anchors`. No `/future-sight/expired`.
+Always 200. Expire-only maintain（過期 → L0+short-term + 從 `hot.md`／`later.md` 移除 + 可 git commit），回傳帶 `zone` 的 `anchors`（先 hot 再 later）。不重桶。無 `/future-sight/expired`。
 
 ### Dream status
 

@@ -1,22 +1,29 @@
-/** Future-sight API handler that sweeps expired anchors before listing active ones. */
+/** Future-sight API: expire-only maintain then list hot／later anchors. */
 
 import {
-  listActiveAnchors,
-  sweepExpiredFutureSight,
+  listAnchors,
+  maintainFutureSight,
 } from "../store/memories/future-sight";
+import { config } from "../config";
 
-/** Return active future-sight anchors and anchors swept on this request. */
+/** Return future-sight anchors and ids swept on this request. */
 export async function handleFutureSight(): Promise<object> {
-  const swept_expired = await sweepExpiredFutureSight();
-  const active = await listActiveAnchors();
+  const result = await maintainFutureSight({
+    mode: "expire_only",
+    target: "live",
+    commit: true,
+  });
+  const anchors = await listAnchors();
   return {
-    anchors: active.map((a) => ({
+    anchors: anchors.map((a) => ({
       id: a.id,
+      zone: a.zone,
       anchor_start: a.anchor_start,
       anchor_end: a.anchor_end,
       content: a.content,
-      node_refs: a.node_refs ?? [],
     })),
-    swept_expired,
+    swept_expired: result.expired,
+    future_sight_window_days: config.futureSightWindowDays,
+    future_sight_hot_days: config.futureSightHotDays,
   };
 }

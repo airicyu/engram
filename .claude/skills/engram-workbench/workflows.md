@@ -33,7 +33,7 @@ Approve returns `409 stale_future_anchor` when a `future` patch has `anchor_end`
 
 ## Future-sight expiry
 
-`GET /memories/future-sight` (and after approve) sweeps: mark L0+L1 `system/future_sight_expired` event, then hard-delete active file. No expired list API.
+`GET /memories/future-sight` expire-only；`POST /dreams/run` 開頭 full maintain（過期／出窗／重桶）並可 `engram: future-sight maintain` commit。Discard **不**回滾該維護 commit。無過期列表 API。
 
 ## Extract failure
 

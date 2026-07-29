@@ -25,10 +25,13 @@ This skill edits files **under `ENGRAM_STORE_DIR` only** (after backup). It is t
 |------|-----|
 | [migrate-0.15-to-0.16.md](./migrate-0.15-to-0.16.md) | 0.15.x store → 0.16.x store |
 | [scripts/migrate-0.15-to-0.16.ts](./scripts/migrate-0.15-to-0.16.ts) | 本 hop 機械腳本（`bun … "$ENGRAM_STORE_DIR"`） |
+| [migrate-0.16-to-0.17.md](./migrate-0.16-to-0.17.md) | 0.16.x store → 0.17.x store（未來視雙區） |
+| [scripts/migrate-0.16-to-0.17.ts](./scripts/migrate-0.16-to-0.17.ts) | 本 hop 機械腳本 |
 
 Future hops: add `migrate-X.Y-to-A.B.md` in this directory and list it in the table above. **Do not** put hop-specific steps only in chat or only in roadmap without a file here.
 
-Roadmap contract／WHY for 0.16: `docs/roadmap/0.16.0/docs/migrate-0.15-to-0.16.md`（結構差真相；執行以本 skill 目錄檔為準）。
+Roadmap contract／WHY for 0.16: `docs/roadmap/0.16.0/docs/migrate-0.15-to-0.16.md`  
+Roadmap contract／WHY for 0.17: `docs/roadmap/0.17.0/docs/migrate-0.16-to-0.17.md`（結構差真相；執行以本 skill 目錄檔為準）。
 
 ## When invoked
 
@@ -37,8 +40,8 @@ Roadmap contract／WHY for 0.16: `docs/roadmap/0.16.0/docs/migrate-0.15-to-0.16.
    - 確認該目錄像 Engram store（例如有 `memories/` 或 `engram.workspace.yaml`）。否則停止並說明。
 
 2. **Resolve version hop**
-   - 若使用者已說「0.15→0.16」等 → 選對應 `migrate-*-to-*.md`。
-   - 若未說：先讀 `{ENGRAM_STORE_DIR}/engram.workspace.yaml` 的 **`store_version`**（完整 semver；比對 hop 用 **major.minor**）。例：`0.15.0`／缺鍵且磁碟仍像 0.15 → 選 `migrate-0.15-to-0.16.md`；已是 `0.16.x` → 告訴使用者可能已遷移，抽樣確認後不要重複破壞性改寫。
+   - 若使用者已說「0.15→0.16」或「0.16→0.17」等 → 選對應 `migrate-*-to-*.md`。
+   - 若未說：先讀 `{ENGRAM_STORE_DIR}/engram.workspace.yaml` 的 **`store_version`**（完整 semver；比對 hop 用 **major.minor**）。例：`0.15.0`／缺鍵且磁碟仍像 0.15 → 選 `migrate-0.15-to-0.16.md`；`0.16.0` 或仍有 `future-sight/active/` → 選 `migrate-0.16-to-0.17.md`；已是 `0.17.x` → 告訴使用者可能已遷移，抽樣確認後不要重複破壞性改寫。
    - 若 `store_version` **缺漏**：再檢查啟發式（day summary／`what.md` 是否仍有 `## Current`／`## History`；是否已有 store `.git`；產品 `version.md`）。仍不確定 → **問使用者** from／to，並列出本目錄已支援的 hop。
    - 若要求的 hop **沒有**對應檔 → 停止；不要臆造步驟。告訴使用者需先新增 `migrate-{FROM}-to-{TO}.md`。
 

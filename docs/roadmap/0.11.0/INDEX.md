@@ -129,7 +129,7 @@
 
 ## 非目標（勿做）
 
-- 用 git 管理 `ENGRAM_HOME`、刪除 draft 模型 → [backlog/store-git-transactions.md](../backlog/store-git-transactions.md)
+- 用 git 管理 `ENGRAM_HOME`、刪除 draft 模型 → 已出貨 [0.16.0](../0.16.0/INDEX.md)
 - 高階 ledger、把下層內容 dump 進高階當「ledger」
 - 「closed／initialized 後禁止 revise」
 - 把 week／month／year 塞进既有 day `extract.md` 一次產完
@@ -322,13 +322,13 @@ Backfill／遷移 CLI 名稱於實作時寫入 `server/README.md`，並回鏈本
 
 ---
 
-## 相關 backlog（本版不做）
+## 相關（本版不做；其後已出貨／仍 backlog）
 
 | 項目 | 說明 |
 |------|------|
-| [store-git-transactions.md](../backlog/store-git-transactions.md) | `ENGRAM_HOME` local git 取代／簡化 draft |
-| [near-future-mindzone.md](../backlog/near-future-mindzone.md) | mindzone |
-| [recall-future-sight.md](../backlog/recall-future-sight.md) | Recall 注入未來視 |
+| [0.16.0](../0.16.0/INDEX.md) | Store local git／draft 管線（已出貨） |
+| [0.17.0](../0.17.0/INDEX.md) | 未來視雙區／hot 熱區（已出貨；含舊 mindzone 語意） |
+| [recall-future-sight.md](../backlog/recall-future-sight.md) | Recall 注入未來視（仍 backlog） |
 
 ---
 

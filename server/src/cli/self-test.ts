@@ -504,29 +504,38 @@ async function main() {
     const apFs = await json("POST", "/dreams/approve", {});
     assert(apFs.status === 200, `future approve 200: ${JSON.stringify(apFs.data)}`);
     assert(
-      (apFs.data.committed as string[]).some((p: string) => p.startsWith("memories/future-sight/active/")),
-      `committed future-sight path: ${JSON.stringify(apFs.data.committed)}`,
+      (apFs.data.committed as string[]).some(
+        (p: string) =>
+          p === "memories/future-sight/hot.md" || p === "memories/future-sight/later.md",
+      ),
+      `committed future-sight zone path: ${JSON.stringify(apFs.data.committed)}`,
     );
 
     const list1 = await json("GET", "/memories/future-sight");
     assert(list1.status === 200, "future-sight 200");
     assert(Array.isArray(list1.data.anchors) && list1.data.anchors.length >= 1, "has active anchors");
+    assert(
+      (list1.data.anchors as { zone?: string }[]).every((a) => a.zone === "hot" || a.zone === "later"),
+      "anchors have zone",
+    );
     const stFs = await json("GET", "/status");
     assert(stFs.data.future_sight_active_count >= 1, "status count");
+    assert(typeof stFs.data.future_sight_hot_count === "number", "hot count");
+    assert(typeof stFs.data.future_sight_later_count === "number", "later count");
 
-    // Plant an already-expired anchor; GET should sweep → L0+short-term event + hard delete
-    await mkdir(join(TEST_HOME, "memories/future-sight/active"), { recursive: true });
-    await Bun.write(
-      join(TEST_HOME, "memories/future-sight/active/fs-expired-test.md"),
-      `---
-id: fs-expired-test
+    // Plant an already-expired anchor in hot.md; GET should sweep → L0+short-term event + remove
+    const hotPath = join(TEST_HOME, "memories/future-sight/hot.md");
+    const hotExisting = await readFile(hotPath, "utf8");
+    const expiredBlock = `
+## fs-expired-test
+\`\`\`yaml
 anchor_start: "2020-01-01"
 anchor_end: "2020-01-02"
----
+\`\`\`
 
 Old foresight that should expire.
-`,
-    );
+`;
+    await Bun.write(hotPath, hotExisting.trimEnd() + "\n" + expiredBlock);
     const list2 = await json("GET", "/memories/future-sight");
     assert(list2.data.swept_expired?.includes("fs-expired-test"), "swept expired id");
     assert(
@@ -654,7 +663,7 @@ Old foresight that should expire.
 
     await json("DELETE", "/clock");
 
-    console.log("\n✅ All 0.16 self-checks passed");
+    console.log("\n✅ All 0.17 self-checks passed");
   } finally {
     await stopServer(server);
   }

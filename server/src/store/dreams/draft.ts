@@ -10,7 +10,15 @@ import type { Patch } from "../../dream/schema";
 import { extractCurrentSection } from "../memories/nodes";
 import { logDream, logDreamDebug } from "../../log";
 import { emitDreamEvent } from "../../dream/emit-event";
-import { renderFutureSightMarkdown, type FutureSightAnchor } from "../memories/future-sight";
+import {
+  assignZone,
+  listDraftFutureIds,
+  mayEnterFutureSight,
+  parseZoneFile,
+  renderZoneFile,
+  type FutureSightAnchor,
+} from "../memories/future-sight";
+import { config } from "../../config";
 import { dayLedgerPath, dayLedgerRel, daySummaryPath, daySummaryRel } from "../memories/chain";
 import {
   higherSummaryPath,
@@ -350,16 +358,52 @@ async function applyFutureToDraft(
     anchor_start: patch.anchor_start,
     anchor_end: patch.anchor_end,
     content: patch.content,
-    node_refs: patch.node_refs,
-    event_refs: patch.event_refs,
-    dream_run_id: dreamRunId,
-    committed_at: nowIso(),
   };
-  const rel = `memories/future-sight/active/${patch.id}.md`;
-  const dest = draftPath(dreamRunId, ...rel.split("/"));
-  await ensureParent(dest);
-  await writeFile(dest, renderFutureSightMarkdown(anchor), "utf8");
-  trackEntry(entries, seen, rel, await exists(livePath("memories", "future-sight", "active", `${patch.id}.md`)));
+  if (!mayEnterFutureSight(anchor)) {
+    return;
+  }
+  const today = calendarDate();
+  const zone = assignZone(
+    anchor,
+    today,
+    config.futureSightHotDays,
+    config.futureSightWindowDays,
+  );
+  if (zone !== "hot" && zone !== "later") return;
+
+  const fsDir = draftPath(dreamRunId, "memories", "future-sight");
+  await mkdir(fsDir, { recursive: true });
+
+  const loadZone = async (z: "hot" | "later"): Promise<FutureSightAnchor[]> => {
+    const p = draftPath(dreamRunId, "memories", "future-sight", `${z}.md`);
+    if (!(await exists(p))) return [];
+    try {
+      return parseZoneFile(await readFile(p, "utf8"), z);
+    } catch {
+      return [];
+    }
+  };
+
+  let hot = (await loadZone("hot")).filter((a) => a.id !== anchor.id);
+  let later = (await loadZone("later")).filter((a) => a.id !== anchor.id);
+  if (zone === "hot") hot.push(anchor);
+  else later.push(anchor);
+
+  const hotRel = "memories/future-sight/hot.md";
+  const laterRel = "memories/future-sight/later.md";
+  await writeFile(draftPath(dreamRunId, ...hotRel.split("/")), renderZoneFile("hot", hot), "utf8");
+  await writeFile(
+    draftPath(dreamRunId, ...laterRel.split("/")),
+    renderZoneFile("later", later),
+    "utf8",
+  );
+  trackEntry(entries, seen, hotRel, await exists(livePath("memories", "future-sight", "hot.md")));
+  trackEntry(
+    entries,
+    seen,
+    laterRel,
+    await exists(livePath("memories", "future-sight", "later.md")),
+  );
 }
 
 async function applyAttributionToDraft(
@@ -728,10 +772,13 @@ export async function draftSummary(dreamRunId: string): Promise<{
     .map((e) => e.path.match(/^memories\/chain\/years\/(\d{4})\.summary\.md$/)?.[1])
     .filter((x): x is string => !!x)
     .sort();
-  const future_ids = manifest.entries
-    .map((e) => e.path.match(/^memories\/future-sight\/active\/(.+)\.md$/)?.[1])
-    .filter((x): x is string => !!x)
-    .sort();
+  const future_ids = await listDraftFutureIds(draftDir(dreamRunId));
+  // Only report future ids when zone files are in the manifest (touched this run).
+  const touchedFuture = manifest.entries.some(
+    (e) =>
+      e.path === "memories/future-sight/hot.md" ||
+      e.path === "memories/future-sight/later.md",
+  );
   return {
     entry_count: manifest.entries.length,
     chain_days: [...new Set(chain_days)],
@@ -739,7 +786,7 @@ export async function draftSummary(dreamRunId: string): Promise<{
     chain_weeks: [...new Set(chain_weeks)],
     chain_months: [...new Set(chain_months)],
     chain_years: [...new Set(chain_years)],
-    future_ids: [...new Set(future_ids)],
+    future_ids: touchedFuture ? future_ids : [],
   };
 }
 

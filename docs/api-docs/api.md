@@ -87,6 +87,10 @@ Snapshot of store health, dream state, and async job status.
   "lock": false,
   "l1_empty": false,
   "future_sight_active_count": 0,
+  "future_sight_hot_count": 0,
+  "future_sight_later_count": 0,
+  "future_sight_window_days": 90,
+  "future_sight_hot_days": 30,
   "dream_status": "pending_review",
   "dream_pending": {
     "dream_run_id": "dream-20260721-220000-a1b2c3",
@@ -111,7 +115,11 @@ Snapshot of store health, dream state, and async job status.
 | `lock` | boolean | `true` while extract／materialize／approve commit holds the lock |
 | `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
 | `l1_empty` | boolean | `true` when short-term memory pool has no entries |
-| `future_sight_active_count` | number | Count of `memories/future-sight/active/*.md` (may include overdue until next sweep) |
+| `future_sight_active_count` | number | Total items in `hot.md`＋`later.md` (name kept for compatibility) |
+| `future_sight_hot_count` | number | Items in `memories/future-sight/hot.md` |
+| `future_sight_later_count` | number | Items in `memories/future-sight/later.md` |
+| `future_sight_window_days` | number | Effective admission window (workspace → env → 90) |
+| `future_sight_hot_days` | number | Effective hot zone days (workspace → env → 30) |
 | `dream_status` | enum | See [Dream status](#dream-status) |
 | `dream_pending` | object? | Active pending summary, or `null` |
 | `l1_clear_pending` | object? | Commit succeeded but scope clear failed — retry approve |
@@ -368,9 +376,9 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 1. If `l1_clear_pending` → **only retry clear S**
 2. Else require active pending
 3. Reject future day ids in draft chain paths → **409** `future_chain_id` + `rejected_chain_ids` (pending／draft／short-term／L2 unchanged)
-4. Reject draft future-sight anchors with `anchor_end` &lt; today → **409** `stale_future_anchor` + `rejected_future_ids`
+4. Full maintain on draft `hot.md`／`later.md` (rebucket／sort；out-of-window dropped from draft). Still-expired items → **409** `stale_future_anchor` + `rejected_future_ids`
 5. Empty draft (no manifest entries and no deletes) → no L2／future-sight write; still clear S
-6. Else deploy draft → live (deletes then copy); path-only git rollback on deploy failure; then clear S; `git commit` message contains `dream_run_id` (also stages short-term clear); best-effort future-sight sweep
+6. Else deploy draft → live (deletes then copy); path-only git rollback on deploy failure; then clear S; `git commit` message contains `dream_run_id` (also stages short-term clear). **No** post-approve future-sight maintain (pre-dream／GET cover calendar)
 7. Clear S failure → run `committed` + `l1_clear_pending`; L2 may already be git-committed; next approve retries clear only (+ scope-clear commit)
 
 **Response `200`**
@@ -378,7 +386,7 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 ```json
 {
   "dream_run_id": "dream-…",
-  "committed": ["memory/nodes/acme/understand/what.md", "memories/future-sight/active/fs-….md"],
+  "committed": ["memories/nodes/acme/understand/what.md", "memories/future-sight/hot.md"],
   "cleared_scope": ["e0000000001", "e0000000002"],
   "l1_clear_pending": false,
   "empty_patches": false
@@ -391,7 +399,7 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 
 ## `POST /dreams/discard`
 
-Drop pending intent + draft. short-term／L2／active future-sight unchanged. Body optional `dream_run_id`.
+Drop pending intent + draft. short-term／L2／live future-sight unchanged（**does not** roll back a pre-dream future-sight maintain commit）. Body optional `dream_run_id`.
 
 **Response `200`:** `{ "dream_run_id": "…", "discarded": true }`
 
@@ -399,9 +407,9 @@ Drop pending intent + draft. short-term／L2／active future-sight unchanged. Bo
 
 ## `GET /memories/future-sight`
 
-List **active** near-horizon future-sight anchors. Always **200**. Empty → `anchors: []`.
+List near-horizon future-sight anchors from **`hot.md`＋`later.md`**. Always **200**. Empty → `anchors: []`.
 
-On each call: **lazy sweep** — for each active file with `anchor_end` &lt; today (configured timezone), append L0+short-term event (`source: system/future_sight_expired`) then **hard-delete** the active file. No expired query endpoint.
+On each call: **expire-only maintain** — remove items with `anchor_end` &lt; today；append L0+short-term (`source: system/future_sight_expired`, `ingest_meta.reason: past_anchor_end`)；git commit with prefix `engram: future-sight maintain` when files change. **Does not** rebucket hot↔later（that happens on `POST /dreams/run` before the agent）.
 
 **Response `200`**
 
@@ -410,17 +418,18 @@ On each call: **lazy sweep** — for each active file with `anchor_end` &lt; tod
   "anchors": [
     {
       "id": "fs-2026-07-31-deadline",
+      "zone": "hot",
       "anchor_start": "2026-07-31",
       "anchor_end": "2026-07-31",
-      "content": "Deadline…",
-      "node_refs": ["acme"]
+      "content": "Deadline…"
     }
   ],
-  "swept_expired": ["fs-2026-07-20-old"]
+  "swept_expired": ["fs-2026-07-20-old"],
+  "future_sight_window_days": 90,
+  "future_sight_hot_days": 30
 }
 ```
-
-`swept_expired` = ids removed on **this** request only (not a browseable expired store).
+`anchors`：先全部 hot（近→遠），再全部 later。`swept_expired` = ids removed on **this** request only（GET 不做 out-of-window）.
 
 **Not in `/memories/search`:** future-sight is not injected into search packets.
 
@@ -621,7 +630,7 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 | `semantic` (`facet: what`) | Update `memories/nodes/{id}/understand/what.md` |
 | `chain` (`level: day`) | Dual-track: append ledger `memories/chain/days/{YYYY-MM}/{id}.md` **and** init／revise summary `…/{id}.summary.md`. Occurrence day only; future day ids blocked at approve. Legacy without `summary` → ledger only. |
 | `chain` (`level: week`｜`month`｜`year`) | Summary-only rollup from post-extract planner／writer (not day extract). Paths: `weeks/…`、`months/…`、`years/…`. `summary` + `summary_operation` required; no ledger. |
-| `future` | Write／overwrite `memories/future-sight/active/{id}.md` — near-horizon anchor; stale `anchor_end` blocked |
+| `future` | Legacy typed patch helper — upserts into `hot.md`／`later.md` when still in window；主路徑為 file pipeline 整檔改兩區 |
 | `episodic` (confidence &lt; 0.6) | Attribution candidate |
 | `episodic` (≥ 0.6) | No-op (chronology not in prototype) |
 

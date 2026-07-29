@@ -7,10 +7,28 @@ import { calendarDate, nowIso } from "../store/memories/activities";
 import {
   copyLiveIntoDraft,
   writeDraftFile,
+  draftAbs,
 } from "../store/dreams/file-pipeline";
 import { dayLedgerRel, daySummaryRel } from "../store/memories/chain";
 import { stringify } from "../yaml";
-import { renderFutureSightMarkdown } from "../store/memories/future-sight";
+import {
+  assignZone,
+  parseZoneFile,
+  renderZoneFile,
+  type FutureSightAnchor,
+} from "../store/memories/future-sight";
+import { config } from "../config";
+import { readFile, access } from "node:fs/promises";
+import { homePath } from "../store/home";
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 async function ensureWrite(path: string, content: string): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
@@ -137,24 +155,59 @@ export class MockOkRunner implements AgentRunner {
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, "0");
       const day = String(d.getDate()).padStart(2, "0");
-      const anchor = `${y}-${m}-${day}`;
-      const id = `fs-${anchor}-deadline`;
-      const md = renderFutureSightMarkdown({
+      const anchorDay = `${y}-${m}-${day}`;
+      const id = `fs-${anchorDay}-deadline`;
+      const anchor: FutureSightAnchor = {
         id,
-        anchor_start: anchor,
-        anchor_end: anchor,
+        anchor_start: anchorDay,
+        anchor_end: anchorDay,
         content: "Mock near-horizon deadline from short-term",
-        node_refs:
-          node !== "acme" || ctx.existing_nodes.includes("acme") ? [node] : undefined,
-        event_refs: eventIds,
-        dream_run_id: ctx.dream_run_id,
-      });
-      await writeDraftFile(
-        ctx.dream_run_id,
-        `memories/future-sight/active/${id}.md`,
-        md,
+      };
+      const zone = assignZone(
+        anchor,
+        today,
+        config.futureSightHotDays,
+        config.futureSightWindowDays,
       );
-      futureLine = `Proposed future-sight \`${id}\` (${anchor}): Mock near-horizon deadline from short-term`;
+      if (zone === "hot" || zone === "later") {
+        for (const z of ["hot", "later"] as const) {
+          await copyLiveIntoDraft(ctx.dream_run_id, `memories/future-sight/${z}.md`);
+        }
+        const load = async (z: "hot" | "later"): Promise<FutureSightAnchor[]> => {
+          const p = draftAbs(ctx.dream_run_id, "memories", "future-sight", `${z}.md`);
+          if (!(await exists(p))) {
+            const live = homePath("memories", "future-sight", `${z}.md`);
+            if (await exists(live)) {
+              try {
+                return parseZoneFile(await readFile(live, "utf8"), z);
+              } catch {
+                return [];
+              }
+            }
+            return [];
+          }
+          try {
+            return parseZoneFile(await readFile(p, "utf8"), z);
+          } catch {
+            return [];
+          }
+        };
+        let hot = (await load("hot")).filter((a) => a.id !== id);
+        let later = (await load("later")).filter((a) => a.id !== id);
+        if (zone === "hot") hot.push(anchor);
+        else later.push(anchor);
+        await writeDraftFile(
+          ctx.dream_run_id,
+          "memories/future-sight/hot.md",
+          renderZoneFile("hot", hot),
+        );
+        await writeDraftFile(
+          ctx.dream_run_id,
+          "memories/future-sight/later.md",
+          renderZoneFile("later", later),
+        );
+        futureLine = `Proposed future-sight \`${id}\` (${anchorDay}, zone=${zone}): Mock near-horizon deadline from short-term`;
+      }
     }
 
     const retryBlock = ctx.review_feedback

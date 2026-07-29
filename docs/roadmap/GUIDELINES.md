@@ -148,10 +148,10 @@ Reasoning 對 AI 特別有價值：保留動機與反例，讓實作／改契約
 
 ## Backlog
 
-- `backlog/`＝尚未排進版本的構想，**不是**承諾範圍
+- `backlog/`＝**尚未出貨**的構想，不是承諾範圍
 - 條目仍應讓人看懂題意；極短 stub 須在排進 version 時寫完整
-- 排進某版後：**雙向連結**（backlog → version INDEX；INDEX → backlog 來源）
-- 做完後 backlog 標「已併入」，避免重複排程
+- 排進某版後：INDEX ↔ backlog **雙向連結**
+- **出貨後**：從 `backlog/` **刪除**該條（含獨立 `.md`）；真相留在 `docs/roadmap/X.Y.Z/`。勿長期堆「已併入」殭屍列
 
 ---
 

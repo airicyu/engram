@@ -8,7 +8,7 @@ import { readDreamJob } from "../store/dreams/dream-job";
 import { tailDreamEvents } from "../store/dreams/dream-events";
 import { getRunningAskJob } from "../store/tmp/ask-job";
 import { tailAskEvents } from "../store/tmp/ask-events";
-import { countActiveAnchors } from "../store/memories/future-sight";
+import { countZoneAnchors } from "../store/memories/future-sight";
 import { config, peekStoreVersion } from "../config";
 import { getClockSnapshot } from "../store/clock";
 import { isStoreGitReady } from "../store/git";
@@ -21,6 +21,7 @@ export async function handleStatus(): Promise<object> {
   const dream_status = await computeDreamStatus();
   const dream_pending = await pendingRunSummary();
   const clearPending = await getShortTermClearPendingRun();
+  const fsCounts = await countZoneAnchors();
 
   let dreamJobPayload: Record<string, unknown> | null = null;
   if (dreamJob) {
@@ -46,10 +47,14 @@ export async function handleStatus(): Promise<object> {
     temp_dir: config.tempDir,
     timezone: config.timezone,
     memory_language: config.memoryLanguage,
+    future_sight_window_days: config.futureSightWindowDays,
+    future_sight_hot_days: config.futureSightHotDays,
     clock: getClockSnapshot(),
     lock,
     l1_empty: await isShortTermMemoryEmpty(),
-    future_sight_active_count: await countActiveAnchors(),
+    future_sight_active_count: fsCounts.total,
+    future_sight_hot_count: fsCounts.hot,
+    future_sight_later_count: fsCounts.later,
     dream_status,
     dream_pending: dream_pending
       ? {
