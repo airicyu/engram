@@ -38,7 +38,7 @@ Activities → Consolidate → Seek → Memory
 |------|------|
 | [Bun](https://bun.sh) | 跑 API／UI／setup |
 | **Git** | 0.16+：每個記憶庫（`ENGRAM_STORE_DIR`）是 local git repo；無 git 則 server 拒絕啟動 |
-| **本機已登入可用的 agent CLI** | Dream、rollup、Seek Ask 都會呼叫它。二選一： **[Cursor CLI](https://cursor.com/docs/cli/overview)**（`agent`，預設）或 **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**（`claude`） |
+| **本機已登入可用的 agent CLI** | Dream、rollup、Seek Ask 都會呼叫它。二選一： **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**（`claude`，預設）或 **[Cursor CLI](https://cursor.com/docs/cli/overview)**（`agent`） |
 
 可選環境變數：`ENGRAM_TEMP_DIR`（預設 `/tmp`）— ask jobs 與 dream agent 暫存根目錄（不在記憶庫內）。
 

@@ -30,7 +30,7 @@
 
 時區由 **有效 timezone** 決定：記憶庫內 `engram.workspace.yaml` → 環境變數 `ENGRAM_TZ` → 預設 **`Asia/Hong_Kong`**。  
 記憶寫入語言：workspace config `memory_language` → 環境變數 `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。  
-記憶庫結構世代：workspace **`store_version`**（semver，例 `0.16.0`）；缺鍵時 `GET /status.store_version` 為 `null`（不拒啟）；migrate／新建才 stamp——見 `docs/roadmap/0.16.0/docs/store-version.md`。
+記憶庫結構世代：workspace **`store_version`**（semver）；缺鍵時 `GET /status.store_version` 為 `null`（不拒啟）；migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`.claude/skills/engram-migration/SKILL.md`。
 
 
 ## 倉庫結構
