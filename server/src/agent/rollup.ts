@@ -372,7 +372,7 @@ export class CursorRollupAgent implements RollupAgent {
 }
 
 export function pickRollupAgent(): RollupAgent {
-  const mode = process.env.ENGRAM_AGENT ?? "cursor";
+  const mode = process.env.ENGRAM_AGENT ?? "claude";
   if (mode === "mock-ok" || mode === "mock-fail" || mode === "mock-ask-ok") {
     return new MockRollupAgent();
   }

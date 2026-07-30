@@ -7,6 +7,10 @@ export interface AskAnswer {
     kind: string;
     node?: string;
     day_id?: string;
+    /** Future-sight item id when kind is future_sight. */
+    id?: string;
+    /** Future-sight zone when kind is future_sight. */
+    zone?: string;
     reason?: string;
   }>;
   confidence?: string;
@@ -25,6 +29,8 @@ export interface AskInput {
   now: string;
   /** Memory-timeline calendar day YYYY-MM-DD. */
   today: string;
+  /** When true, agent may read later.md; default false = hot only. */
+  include_later: boolean;
 }
 
 /** Runner capable of answering a natural-language question from the store. */

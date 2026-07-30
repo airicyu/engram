@@ -77,5 +77,5 @@ Engram deadline；與旅行可能撞期。
 ## 非目標（本檔）
 
 - Moving window mindzone → 已併入 [0.17.0](../../0.17.0/INDEX.md)（`hot` 區）
-- Recall 注入 → [backlog](../../backlog/recall-future-sight.md)
+- Recall 注入 → [0.18.0](../../0.18.0/INDEX.md)
 - 日曆 sync、提醒、待辦

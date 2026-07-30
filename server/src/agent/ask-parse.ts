@@ -66,6 +66,8 @@ export function parseAskOutput(stdout: string): AskAnswer {
         kind: String(row.kind ?? ""),
         node: typeof row.node === "string" ? row.node : undefined,
         day_id: typeof row.day_id === "string" ? row.day_id : undefined,
+        id: typeof row.id === "string" ? row.id : undefined,
+        zone: typeof row.zone === "string" ? row.zone : undefined,
         reason: typeof row.reason === "string" ? row.reason : undefined,
       };
     }),

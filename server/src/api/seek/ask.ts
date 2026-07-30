@@ -4,19 +4,36 @@ import { startAskJob, cancelAskJob, getAskJobPayload, AskBusyError } from "../..
 import { logInfo } from "../../log";
 
 /** POST /memory/ask — start an asynchronous ask job. */
-export async function handleMemoryAskPost(body: { q?: string }): Promise<Response> {
+export async function handleMemoryAskPost(body: {
+  q?: string;
+  include_later?: unknown;
+}): Promise<Response> {
   const q = body.q?.trim();
   if (!q) {
     return Response.json({ error: "missing_q", message: "Field q is required" }, { status: 400 });
   }
 
+  if ("include_later" in body && body.include_later !== undefined) {
+    if (typeof body.include_later !== "boolean") {
+      return Response.json(
+        {
+          error: "invalid_include_later",
+          message: "Field include_later must be a boolean (true or false)",
+        },
+        { status: 400 },
+      );
+    }
+  }
+  const include_later = body.include_later === true;
+
   try {
-    const job_id = await startAskJob(q);
-    logInfo("memory ask started", { job_id });
+    const job_id = await startAskJob(q, { include_later });
+    logInfo("memory ask started", { job_id, include_later });
     return Response.json(
       {
         job_id,
         status: "started",
+        include_later,
         message: "Poll GET /memories/ask/{job_id} for progress and answer.",
       },
       { status: 202 },

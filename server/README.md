@@ -8,7 +8,7 @@ Bun HTTP API for Engram MVP memory: capture → dream (draft file pipeline) → 
 |------------|--------|
 | **Bun** | Runtime |
 | **Git** | Required on PATH — each `ENGRAM_STORE_DIR` is a local git repo (0.16+); server refuses to start without it |
-| **Agent CLI** | Cursor `agent` (default) or Claude Code when `ENGRAM_AGENT=claude` |
+| **Agent CLI** | Claude Code (default) or Cursor `agent` when `ENGRAM_AGENT=cursor` |
 
 ## Real trial (empty store)
 
@@ -43,9 +43,9 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | `ENGRAM_TZ` | `Asia/Hong_Kong` | IANA timezone (overridden by `{ENGRAM_STORE_DIR}/engram.workspace.yaml` `timezone`) |
 | `ENGRAM_MEMORY_LANGUAGE` | `en` | `zh-Hant` \| `zh-Hans` \| `en` when workspace omits `memory_language` |
 | `PORT` | `8787` | HTTP port（**固定綁 `127.0.0.1`**，僅本機；`http://localhost:8787` 可用） |
-| `CLAUDE_BIN` | `claude` | Claude Code binary (when `ENGRAM_AGENT=claude`) |
+| `CLAUDE_BIN` | `claude` | Claude Code binary (when `ENGRAM_AGENT=claude`, the default) |
 | `CURSOR_AGENT_BIN` | `agent` | Cursor CLI binary (when `ENGRAM_AGENT=cursor`) |
-| `ENGRAM_AGENT` | `cursor` | `cursor` \| `claude` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
+| `ENGRAM_AGENT` | `claude` | `claude` \| `cursor` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
 | `ENGRAM_DREAM_DEBUG` | (off) | `1` = verbose dream extract/apply logs (agent stdout preview, per-patch) |
 | `ENGRAM_ALLOW_VIRTUAL_CLOCK` | (off) | `1` = allow `PUT /clock` (time replay) |
 

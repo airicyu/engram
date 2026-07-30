@@ -1,10 +1,11 @@
 # Backlog
 
 尚未排進版本、但已記下的構想。不是承諾範圍。  
-已出貨項目只留在對應 `docs/roadmap/X.Y.Z/`，**不**再佔本表。
+已出貨項目只留在對應 `docs/roadmap/X.Y.Z/`，**不**再佔本表。  
+已排進某版但尚未出貨：仍可留連結，並標明目標版（出貨後刪條）。
 
 | 項目 | 備註 |
 |------|------|
-| [Recall 注入近程未來視](./recall-future-sight.md) | 建議只注 `hot`；見 [0.17.0](../0.17.0/INDEX.md) 非目標 |
+| （目前無開放 backlog 條目） | — |
 
-← [0.17.0](../0.17.0/INDEX.md)（已出貨） · [GUIDELINES](../GUIDELINES.md)
+← [0.18.0](../0.18.0/INDEX.md)（shipped） · [0.17.0](../0.17.0/INDEX.md)（已出貨） · [GUIDELINES](../GUIDELINES.md)

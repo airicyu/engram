@@ -328,7 +328,7 @@ Backfill／遷移 CLI 名稱於實作時寫入 `server/README.md`，並回鏈本
 |------|------|
 | [0.16.0](../0.16.0/INDEX.md) | Store local git／draft 管線（已出貨） |
 | [0.17.0](../0.17.0/INDEX.md) | 未來視雙區／hot 熱區（已出貨；含舊 mindzone 語意） |
-| [recall-future-sight.md](../backlog/recall-future-sight.md) | Recall 注入未來視（仍 backlog） |
+| [0.18.0](../0.18.0/INDEX.md) | Seek 納入未來視（已出貨） |
 
 ---
 

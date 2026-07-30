@@ -123,8 +123,8 @@
   "memory.source_ledger": "ledger",
   "memory.mode_search": "搜尋",
   "memory.mode_ask": "提問",
-  "memory.search_lead": "用關鍵字搜尋短期記憶、day chain、nodes。",
-  "memory.ask_lead": "用自然語言提問，AI 會讀取記憶庫後回答。",
+  "memory.search_lead": "用關鍵字搜尋短期記憶、day chain、nodes、未來視。",
+  "memory.ask_lead": "用自然語言提問，AI 會讀取記憶庫後回答（預設含熱區未來視；較遠 later 需另行勾選）。",
   "memory.label_q": "查詢",
   "memory.placeholder": "關鍵字",
   "memory.search_submit": "搜尋",
@@ -135,6 +135,8 @@
   "memory.l1_title": "短期記憶",
   "memory.chain_title": "Day chain",
   "memory.nodes_title": "Nodes",
+  "memory.future_title": "未來視",
+  "memory.ask_include_later": "含較遠未來視（later）",
   "memory.answer_title": "答案",
   "memory.sources_title": "引用來源",
   "memory.not_queried": "尚未查詢",
@@ -169,5 +171,6 @@
   "empty.no_chain": "（無 day chain）",
   "empty.no_l1_hit": "（短期記憶無命中）",
   "empty.no_nodes": "（無匹配 nodes）",
+  "empty.no_future": "（未來視無命中）",
   "empty.no_what": "（無 what）"
 }

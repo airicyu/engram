@@ -43,7 +43,7 @@ Activities → Consolidate → Seek → Memory
 可選環境變數：`ENGRAM_TEMP_DIR`（預設 `/tmp`）— ask jobs 與 dream agent 暫存根目錄（不在記憶庫內）。
 
 
-setup 時可選用哪個 agent；也可用環境變數 `ENGRAM_AGENT=cursor`｜`claude`（見 [server/README.md](./server/README.md)）。僅跑 UI／讀既有記憶時可不叫 agent；**入夢與 Ask 沒有可用的 CLI 會失敗**。
+setup 時可選用哪個 agent；也可用環境變數 `ENGRAM_AGENT=claude`｜`cursor`（預設 **claude**；見 [server/README.md](./server/README.md)）。僅跑 UI／讀既有記憶時可不叫 agent；**入夢與 Ask 沒有可用的 CLI 會失敗**。
 
 ### 1. 首次設定
 

@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.18.0 — Seek 納入未來視 ＋ window 預設 365 日 (2026-07-31)
+
+Seek 讀側閉環：Search 可掃未來視（hot＋later）；Ask 預設可讀 hot，較遠 later 靠 `include_later`。未來視准入窗程式預設由 90 日改為 **365** 日（workspace／env 顯式值仍優先）。
+
+### Added
+
+- Search scope token **`future`**：掃 `hot.md`＋`later.md`；省略 `scope` 時預設 **`l1,nodes,chain,future`**
+- Search 回應鍵 **`future_sight[]`**（含 `id`／`zone`／`anchor_*`／`content`／`match_reason`）
+- Ask body 可選布林 **`include_later`**（預設 false；非布林 → `400 invalid_include_later`）；job／202 回應 echo 該欄
+- Seek UI：Search 勾選 future（預設 on）；Ask「含較遠未來視（later）」綁 `include_later`（預設 off）
+
+### Changed
+
+- `DEFAULT_FUTURE_SIGHT_WINDOW_DAYS`：**90 → 365**（`hot_days` 仍 30）
+- Ask prompt：廢「禁止讀 future-sight」總禁；預設可讀 hot、禁止 later；`include_later:true` 可讀兩檔
+- Ask `sources[].kind` 允許 **`future_sight`**（建議帶 `id`＋`zone`）
+- **`ENGRAM_AGENT` 預設：`cursor` → `claude`**（Cursor 仍可用 `ENGRAM_AGENT=cursor`）
+
+### Non-goals
+
+- Ask 兩段式自動升級讀 later；Search 的 later 專用 flag／`future_hot`／`future_later` scope
+- 改分桶公式、item 格式、入夢前 maintain、強制改寫既有 workspace 的 90
+
+### Migrate
+
+- **無**磁碟結構 migrate；不要求 bump `store_version`
+- 缺 `future_sight_window_days` 鍵的 store 啟動後有效窗變 365；要維持 90 須在 workspace（或 env）顯式設定
+
+---
+
 ## 0.17.0 — 未來視雙區（hot／later）＋入夢前機械維護 (2026-07-29)
 
 未來視由一錨一檔改為 **`hot.md`／`later.md` 兩整檔**；入夢前純 script 過期／出窗／重桶並 git commit；入夢 AI 維護內容後同一人審 deploy。舊 backlog「mindzone」語意＝hot 區，不另開記憶層。

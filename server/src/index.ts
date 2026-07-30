@@ -286,9 +286,9 @@ try {
 
     "/memories/ask": {
       POST: withRequestLog(async (req) => {
-        let body: { q?: string } = {};
+        let body: { q?: string; include_later?: unknown } = {};
         try {
-          body = (await req.json()) as { q?: string };
+          body = (await req.json()) as { q?: string; include_later?: unknown };
         } catch {
           return Response.json({ error: "invalid JSON body" }, { status: 400 });
         }
@@ -423,5 +423,5 @@ logInfo(`ENGRAM_STORE_DIR=${config.storeDir}`);
 logInfo(`ENGRAM_TEMP_DIR=${config.tempDir}`);
 logInfo(`ENGRAM_TZ=${config.timezone}`);
 logInfo(`memory_language=${config.memoryLanguage}`);
-logInfo(`ENGRAM_AGENT=${process.env.ENGRAM_AGENT ?? "cursor"}`);
+logInfo(`ENGRAM_AGENT=${process.env.ENGRAM_AGENT ?? "claude"}`);
 logInfo(`ENGRAM_ALLOW_VIRTUAL_CLOCK=${config.allowVirtualClock ? "1" : "0"}`);

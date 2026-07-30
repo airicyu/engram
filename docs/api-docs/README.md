@@ -48,7 +48,7 @@ See [`web/README.md`](../../web/README.md).
 | `ENGRAM_STORE_DIR` | `../data`（repo `data/`） | Env：記憶庫絕對路徑（領域名是 **memory store／記憶庫**，不是本鍵名） |
 | `PORT` | `8787` | HTTP listen port（綁 `127.0.0.1`） |
 | `CLAUDE_BIN` | `claude` | Claude Code binary for dream extract |
-| `ENGRAM_AGENT` | `cursor` | `cursor` \| `claude` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
+| `ENGRAM_AGENT` | `claude` | `claude` \| `cursor` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
 | `ENGRAM_ALLOW_VIRTUAL_CLOCK` | (off) | `1` = allow `PUT /clock` (time replay) |
 
 ## Base URL

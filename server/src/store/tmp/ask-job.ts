@@ -18,6 +18,8 @@ export interface AskSource {
   kind: string;
   node?: string;
   day_id?: string;
+  id?: string;
+  zone?: string;
   reason?: string;
 }
 
@@ -26,6 +28,8 @@ export interface AskJobState {
   job_id: string;
   status: AskJobStatus;
   q: string;
+  /** Whether this job may read future-sight later.md. */
+  include_later: boolean;
   started_at: string;
   completed_at?: string | null;
   phase?: AskJobPhase;

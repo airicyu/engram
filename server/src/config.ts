@@ -23,7 +23,7 @@ const WORKSPACE_KEYS = new Set([
   "future_sight_hot_days",
 ]);
 
-export const DEFAULT_FUTURE_SIGHT_WINDOW_DAYS = 90;
+export const DEFAULT_FUTURE_SIGHT_WINDOW_DAYS = 365;
 export const DEFAULT_FUTURE_SIGHT_HOT_DAYS = 30;
 
 /** Semver X.Y.Z (no prerelease／build). */

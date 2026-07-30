@@ -8,8 +8,9 @@
 4. `GET /dreams/pending` — read report; check timeline / new nodes
 5. If wrong direction → `POST /dreams/retry` with `{ reason }` (same frozen scope), or `POST /dreams/discard`, or `POST /dreams/cancel` if still running. Do **not** call `/dreams/run` while pending.
 6. If OK → `POST /dreams/approve`
-7. `GET /memories/search?q=…&scope=nodes,chain` — verify L2／chain hits
+7. `GET /memories/search?q=…` — verify hits（預設含 future-sight）
 8. `GET /memories/future-sight` — list active near-horizon anchors (optional)
+9. `POST /memories/ask` with optional `include_later` — natural-language Q&A
 
 ## Pending 期間仍可 capture
 
@@ -45,4 +46,4 @@ Commit succeeded but clearing S failed. Call approve again — only retries clea
 
 ## Memory ask
 
-`POST /memories/ask` → poll `GET /memories/ask/{job_id}` until `completed` | `failed` | `cancelled`. One running ask at a time (`409 ask_busy`). Cancel via `POST /memories/ask/{job_id}/cancel`.
+`POST /memories/ask` `{ q, include_later? }` → poll `GET /memories/ask/{job_id}` until `completed` | `failed` | `cancelled`. One running ask at a time (`409 ask_busy`). Cancel via `POST /memories/ask/{job_id}/cancel`. Default reads hot future-sight only; set `include_later: true` to allow `later.md`.

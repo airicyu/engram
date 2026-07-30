@@ -1,4 +1,4 @@
-/** Keyword search across short-term memory, L2 nodes, and memory-chain (day／week／month／year). */
+/** Keyword search across short-term memory, L2 nodes, memory-chain, and future-sight. */
 
 import { readSummary, readAllNodeNotes } from "../store/memories/short-term-memory";
 import { listChainDayIds, readDayForRecall } from "../store/memories/chain";
@@ -10,11 +10,18 @@ import {
   type HigherChainLevel,
 } from "../store/memories/chain-higher";
 import { listNodeIds, readWhatCurrent } from "../store/memories/nodes";
+import {
+  listAnchors,
+  type FutureSightListedAnchor,
+  type FutureSightZone,
+} from "../store/memories/future-sight";
 
-export const SEARCH_SCOPES = ["l1", "nodes", "chain"] as const;
+export const SEARCH_SCOPES = ["l1", "nodes", "chain", "future"] as const;
 export type MemorySearchScope = (typeof SEARCH_SCOPES)[number];
 
 export type NodeMatchReason = "node_id" | "what_content" | "l1_note";
+
+export type FutureSightMatchReason = "id" | "content" | "anchor";
 
 export interface MemorySearchNodeHit {
   node: string;
@@ -37,16 +44,33 @@ export interface MemorySearchChainHit {
   source: "summary" | "ledger_fallback";
 }
 
+export interface MemorySearchFutureSightHit {
+  id: string;
+  zone: FutureSightZone;
+  anchor_start: string;
+  anchor_end: string;
+  content: string;
+  match_reason: FutureSightMatchReason;
+}
+
 export interface MemorySearchResult {
   q: string;
   scope: MemorySearchScope[];
   nodes?: MemorySearchNodeHit[];
   l1?: MemorySearchShortTermHit | null;
   chain?: MemorySearchChainHit[];
+  future_sight?: MemorySearchFutureSightHit[];
 }
+
+const FUTURE_CONTENT_MAX = 2000;
 
 function contains(text: string, qLower: string): boolean {
   return text.toLowerCase().includes(qLower);
+}
+
+function truncateContent(text: string): string {
+  if (text.length <= FUTURE_CONTENT_MAX) return text;
+  return `${text.slice(0, FUTURE_CONTENT_MAX)}…`;
 }
 
 /** Parse comma-separated scope query param; default all scopes when omitted. */
@@ -93,6 +117,9 @@ export async function searchMemory(
   }
   if (scopes.includes("chain")) {
     result.chain = await matchChain(qLower);
+  }
+  if (scopes.includes("future")) {
+    result.future_sight = await matchFutureSight(qLower);
   }
 
   return result;
@@ -172,5 +199,37 @@ async function matchChain(qLower: string): Promise<MemorySearchChainHit[]> {
   await matchHigher("week", await listWeekIds());
   await matchHigher("month", await listMonthIds());
   await matchHigher("year", await listYearIds());
+  return out;
+}
+
+function matchOneFutureSight(
+  a: FutureSightListedAnchor,
+  qLower: string,
+): MemorySearchFutureSightHit | null {
+  let reason: FutureSightMatchReason | null = null;
+  if (contains(a.id, qLower)) reason = "id";
+  else if (contains(a.content, qLower)) reason = "content";
+  else if (contains(a.anchor_start, qLower) || contains(a.anchor_end, qLower)) {
+    reason = "anchor";
+  }
+  if (!reason) return null;
+  return {
+    id: a.id,
+    zone: a.zone,
+    anchor_start: a.anchor_start,
+    anchor_end: a.anchor_end,
+    content: truncateContent(a.content),
+    match_reason: reason,
+  };
+}
+
+/** Keyword hits across hot.md + later.md (hot first, then later; each zone already near→far). */
+async function matchFutureSight(qLower: string): Promise<MemorySearchFutureSightHit[]> {
+  const anchors = await listAnchors();
+  const out: MemorySearchFutureSightHit[] = [];
+  for (const a of anchors) {
+    const hit = matchOneFutureSight(a, qLower);
+    if (hit) out.push(hit);
+  }
   return out;
 }

@@ -257,4 +257,4 @@ L1 區塊改 **`GET /memory/l1`**（不再打 search）。
 - 多輪 session（`session_id`）
 - 答案一鍵 capture
 - Memory tab 顯示 future-sight
-- [Recall 注入 future-sight](../../backlog/recall-future-sight.md)（路徑名待 backlog 更新）
+- [Seek × 未來視（0.18）](../../0.18.0/INDEX.md)

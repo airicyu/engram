@@ -131,11 +131,11 @@ export function makeDreamRunId(at = nowIso()): string {
 }
 
 function pickRunner(): AgentRunner {
-  const mode = process.env.ENGRAM_AGENT ?? "cursor";
+  const mode = process.env.ENGRAM_AGENT ?? "claude";
   if (mode === "mock-fail") return new MockFailRunner();
   if (mode === "mock-ok") return new MockOkRunner();
-  if (mode === "claude") return new ClaudeCodeRunner();
-  return new CursorCliRunner();
+  if (mode === "cursor") return new CursorCliRunner();
+  return new ClaudeCodeRunner();
 }
 
 /** Build the frozen short-term, L2, and chain context supplied to a dream runner. */

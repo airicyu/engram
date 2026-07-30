@@ -53,7 +53,11 @@ May return `409` with `future_chain_id` + `rejected_chain_ids`, or `stale_future
 
 ### `GET /memories/search`
 
-`q` required. `scope` optional (`l1,nodes,chain`; default all). Returns only requested scopes with keyword hits.
+`q` required. `scope` optional (`l1,nodes,chain,future`; default all four). `future` sweeps hot＋later (no later-only flag). Returns only requested scopes with keyword hits; when `future` in scope, includes `future_sight[]` with `zone`.
+
+### `POST /memories/ask`
+
+Body: `q` required; optional boolean `include_later` (default false). Non-boolean → `400 invalid_include_later`. Default: agent may read `hot.md`, not `later.md`. `include_later:true` allows later. Job／202 echo `include_later`.
 
 ### `GET /memories/future-sight`
 
@@ -75,4 +79,4 @@ Always 200. Expire-only maintain（過期 → L0+short-term + 從 `hot.md`／`la
 |------|-----|-----|
 | capture | `raw` | `content`, `text` |
 | memory search | `q`, `scope` | `query`, `search` (as param name) |
-| memory ask | `q` | `question`, `query` |
+| memory ask | `q`, `include_later` (boolean) | `question`, `query`; string `"true"` for include_later |

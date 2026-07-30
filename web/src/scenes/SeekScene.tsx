@@ -9,8 +9,16 @@ type SeekMode = "search" | "ask";
 
 type SearchData = {
   l1?: { summary?: string; node_notes?: Record<string, string> } | null;
-  chain?: Array<{ day_id: string; content: string }>;
+  chain?: Array<{ day_id?: string; id?: string; content: string }>;
   nodes?: Array<{ node: string; match_reason?: string; what_current?: string }>;
+  future_sight?: Array<{
+    id: string;
+    zone: string;
+    anchor_start?: string;
+    anchor_end?: string;
+    content?: string;
+    match_reason?: string;
+  }>;
   message?: string;
   error?: string;
 };
@@ -33,7 +41,8 @@ export function SeekScene() {
   const [mode, setMode] = useState<SeekMode>("ask");
   const [q, setQ] = useState("");
   const [askQ, setAskQ] = useState("");
-  const [scopes, setScopes] = useState({ l1: true, nodes: true, chain: true });
+  const [scopes, setScopes] = useState({ l1: true, nodes: true, chain: true, future: true });
+  const [includeLater, setIncludeLater] = useState(false);
   const [searchMsg, setSearchMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [askMsg, setAskMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [searchData, setSearchData] = useState<SearchData | null>(null);
@@ -58,7 +67,7 @@ export function SeekScene() {
     }
     setSearchMsg({ text: t("memory.querying"), kind: "" });
     const params = new URLSearchParams({ q: trimmed });
-    if (selected.length < 3) params.set("scope", selected.join(","));
+    if (selected.length < 4) params.set("scope", selected.join(","));
     const { ok, data } = await api<SearchData>(`/memories/search?${params}`);
     if (!ok) {
       setSearchMsg({
@@ -68,7 +77,10 @@ export function SeekScene() {
       return;
     }
     const hits =
-      (data.nodes?.length ?? 0) + (data.l1 ? 1 : 0) + (data.chain?.length ?? 0);
+      (data.nodes?.length ?? 0) +
+      (data.l1 ? 1 : 0) +
+      (data.chain?.length ?? 0) +
+      (data.future_sight?.length ?? 0);
     setSearchMsg({
       text: hits ? t("memory.search_hits", { count: hits }) : t("memory.search_empty"),
       kind: "ok",
@@ -129,7 +141,13 @@ export function SeekScene() {
       job_id?: string;
       error?: string;
       message?: string;
-    }>("/memories/ask", { method: "POST", body: JSON.stringify({ q: trimmed }) });
+    }>(
+      "/memories/ask",
+      {
+        method: "POST",
+        body: JSON.stringify({ q: trimmed, include_later: includeLater }),
+      },
+    );
     if (http === 409 && data?.error === "ask_busy") {
       setAskMsg({ text: t("memory.ask_busy"), kind: "error" });
       return;
@@ -218,7 +236,7 @@ export function SeekScene() {
             </button>
             <div className="search-scopes" role="group">
               <span className="search-scopes-label">{t("memory.search_scope")}</span>
-              {(["l1", "chain", "nodes"] as const).map((key) => (
+              {(["l1", "chain", "nodes", "future"] as const).map((key) => (
                 <label key={key} className="search-scope-option">
                   <input
                     type="checkbox"
@@ -230,7 +248,9 @@ export function SeekScene() {
                       ? t("memory.l1_title")
                       : key === "chain"
                         ? t("memory.chain_title")
-                        : t("memory.nodes_title")}
+                        : key === "nodes"
+                          ? t("memory.nodes_title")
+                          : t("memory.future_title")}
                   </span>
                 </label>
               ))}
@@ -256,7 +276,7 @@ export function SeekScene() {
               {(searchData.chain ?? []).length ? (
                 <MdBlock
                   text={(searchData.chain ?? [])
-                    .map((c) => `# ${c.day_id}\n\n${c.content.trim()}`)
+                    .map((c) => `# ${c.day_id || c.id}\n\n${c.content.trim()}`)
                     .join("\n\n---\n\n")}
                 />
               ) : (
@@ -284,6 +304,33 @@ export function SeekScene() {
               )}
             </article>
           ) : null}
+          {searchData && "future_sight" in searchData ? (
+            <article className="packet-block">
+              <h2>{t("memory.future_title")}</h2>
+              {(searchData.future_sight ?? []).length === 0 ? (
+                <MdBlock text={t("empty.no_future")} empty />
+              ) : (
+                (searchData.future_sight ?? []).map((f) => (
+                  <div key={`${f.zone}-${f.id}`} className="node-card">
+                    <h3>
+                      {f.id}{" "}
+                      <span>
+                        · {f.zone}
+                        {f.match_reason ? ` · ${f.match_reason}` : ""}
+                        {f.anchor_start
+                          ? ` · ${f.anchor_start}${f.anchor_end && f.anchor_end !== f.anchor_start ? `→${f.anchor_end}` : ""}`
+                          : ""}
+                      </span>
+                    </h3>
+                    <MdBlock
+                      text={(f.content || "").trim() || t("empty.no_what")}
+                      empty={!(f.content || "").trim()}
+                    />
+                  </div>
+                ))
+              )}
+            </article>
+          ) : null}
         </div>
       ) : (
         <div>
@@ -300,6 +347,15 @@ export function SeekScene() {
               value={askQ}
               onChange={(e) => setAskQ(e.target.value)}
             />
+            <label className="search-scope-option ask-include-later">
+              <input
+                type="checkbox"
+                checked={includeLater}
+                onChange={(e) => setIncludeLater(e.target.checked)}
+                disabled={askActive}
+              />
+              <span>{t("memory.ask_include_later")}</span>
+            </label>
             <div className="form-row">
               <button type="submit" className="btn primary" disabled={askActive}>
                 {t("memory.ask_submit")}

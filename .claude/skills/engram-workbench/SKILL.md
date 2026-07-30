@@ -54,8 +54,8 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Discard** | `POST /dreams/discard` — drop pending；short-term／L2 不變 |
 | **Retry** | `POST /dreams/retry` `{ reason }` — discard → same frozen scope + feedback → new pending |
 | **Dream cancel** | `POST /dreams/cancel` — stop running dream；revert draft |
-| **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain`) |
-| **Ask** | `POST /memories/ask` — async AI Q&A；poll `GET /memories/ask/{job_id}` |
+| **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain,future`; default all four; `future`＝hot＋later) |
+| **Ask** | `POST /memories/ask` `{ q, include_later? }` — async AI Q&A（預設可讀 hot；`include_later:true` 才讀 later）；poll `GET /memories/ask/{job_id}` |
 | **Future-sight** | `GET /memories/future-sight` — `hot`／`later` 錨點（GET 只清過期並可 git commit；重桶在入夢前） |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `never_dreamed` |
 | **store_git** | `GET /status.store_git` — 記憶庫是否為可用 local git（0.16+；否則 server 拒啟） |
@@ -75,8 +75,8 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /dreams/discard` | body optional | `{ discarded: true }` |
 | `POST /dreams/cancel` | body optional | cancel running dream |
 | `GET /memories/short-term-memory` | none | `summary`, `node_notes`, `present` |
-| `GET /memories/search` | `q` (required); `scope` optional | keyword hits per scope |
-| `POST /memories/ask` | `q` | `202` + `job_id` |
+| `GET /memories/search` | `q` (required); `scope` optional (`l1,nodes,chain,future`) | keyword hits per scope |
+| `POST /memories/ask` | `q`; optional `include_later` (boolean) | `202` + `job_id` + `include_later` |
 | `GET /memories/future-sight` | none | `anchors`（含 `zone`）、`swept_expired` |
 | `GET /clock` | none | `mode`, `now`, `today`, `allow_set` |
 | `PUT /clock` | `now` **or** `day` (+ optional `time`) | needs `ENGRAM_ALLOW_VIRTUAL_CLOCK=1` |
@@ -93,8 +93,9 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 ./.claude/skills/engram-workbench/scripts/engram-api.sh discard
 ./.claude/skills/engram-workbench/scripts/engram-api.sh dream-cancel
 ./.claude/skills/engram-workbench/scripts/engram-api.sh memory-l1
-./.claude/skills/engram-workbench/scripts/engram-api.sh memory-search acme nodes,chain
+./.claude/skills/engram-workbench/scripts/engram-api.sh memory-search acme
 ./.claude/skills/engram-workbench/scripts/engram-api.sh memory-ask 'What about Acme?'
+./.claude/skills/engram-workbench/scripts/engram-api.sh memory-ask 'When is launch?' true
 ./.claude/skills/engram-workbench/scripts/engram-api.sh future-sight
 ```
 
@@ -107,9 +108,9 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "看看夢報告" | `GET /dreams/pending` |
 | "批准"／寫入長期 | `POST /dreams/approve` |
 | "取消入夢" | `POST /dreams/cancel` (running only) |
-| "搜尋記憶" | `GET /memories/search?q=…&scope=…` |
-| "問記憶庫" | `POST /memories/ask`；poll job |
-| "近期前瞻／未來視" | `GET /memories/future-sight`（過期清掉；discard 不回滾入夢前維護 commit） |
+| "搜尋記憶" | `GET /memories/search?q=…&scope=…`（預設含 `future`） |
+| "問記憶庫" | `POST /memories/ask`（可選 `include_later`）；poll job |
+| "近期前瞻／未來視" | `GET /memories/future-sight`（過期清掉；discard 不回滾入夢前維護 commit）；Seek Search／Ask 亦可讀 |
 | "丟掉這次夢" | `POST /dreams/discard` |
 | "重試／改方向" | `POST /dreams/retry` + `{ reason }` — **不要**手改檔案；**不要**無理由再 `dream/run` |
 | pending 期間還要記 | 直接 capture（允許） |

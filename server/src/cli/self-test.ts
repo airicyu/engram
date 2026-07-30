@@ -335,8 +335,16 @@ async function main() {
 
     const searchChain = await json("GET", "/memories/search?q=summary");
     assert(searchChain.status === 200, "search 200");
-    assert(Array.isArray(searchChain.data.scope) && searchChain.data.scope.length === 3, "default scope");
+    assert(Array.isArray(searchChain.data.scope) && searchChain.data.scope.length === 4, "default scope");
+    assert(
+      (searchChain.data.scope as string[]).includes("future"),
+      "default scope includes future",
+    );
     assert(Array.isArray(searchChain.data.chain) && searchChain.data.chain.length > 0, "chain hit");
+    assert("future_sight" in searchChain.data, "default search has future_sight key");
+    const nodesOnlyScope = await json("GET", "/memories/search?q=summary&scope=nodes");
+    assert(nodesOnlyScope.status === 200, "scope=nodes 200");
+    assert(!("future_sight" in nodesOnlyScope.data), "nodes-only omits future_sight");
     const chainHit = searchChain.data.chain[0];
     assert(chainHit.source === "summary", "search prefers summary");
     assert(
@@ -411,8 +419,19 @@ async function main() {
 
     await stopServer(server);
     server = await startServer("mock-ask-ok");
+
+    const askBadFlag = await json("POST", "/memories/ask", {
+      q: "What about Acme?",
+      include_later: "true",
+    });
+    assert(
+      askBadFlag.status === 400 && askBadFlag.data.error === "invalid_include_later",
+      "ask reject non-boolean include_later",
+    );
+
     const askStart = await json("POST", "/memories/ask", { q: "What about Acme?" });
     assert(askStart.status === 202 && askStart.data.job_id, "ask 202");
+    assert(askStart.data.include_later === false, "ask default include_later false");
     const jobId = askStart.data.job_id as string;
     let askDone = false;
     for (let i = 0; i < 40; i++) {
@@ -420,12 +439,39 @@ async function main() {
       assert(poll.status === 200 && poll.data.present === true, "ask poll");
       if (poll.data.status === "completed") {
         assert(String(poll.data.answer).includes("Mock answer"), "ask answer");
+        assert(String(poll.data.answer).includes("include_later=false"), "ask default forbids later");
+        assert(poll.data.include_later === false, "poll echoes include_later false");
         askDone = true;
         break;
       }
       await new Promise((r) => setTimeout(r, 150));
     }
     assert(askDone, "ask completed");
+
+    const askLater = await json("POST", "/memories/ask", {
+      q: "What is later?",
+      include_later: true,
+    });
+    assert(askLater.status === 202 && askLater.data.include_later === true, "ask include_later true");
+    const laterJobId = askLater.data.job_id as string;
+    let askLaterDone = false;
+    for (let i = 0; i < 40; i++) {
+      const poll = await json("GET", `/memories/ask/${encodeURIComponent(laterJobId)}`);
+      assert(poll.status === 200 && poll.data.present === true, "ask later poll");
+      if (poll.data.status === "completed") {
+        assert(String(poll.data.answer).includes("include_later=true"), "ask later allowed");
+        assert(poll.data.include_later === true, "poll echoes include_later true");
+        const srcs = poll.data.sources as { kind?: string; zone?: string }[];
+        assert(
+          Array.isArray(srcs) && srcs.some((s) => s.kind === "future_sight" && s.zone === "later"),
+          "ask later source zone",
+        );
+        askLaterDone = true;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    assert(askLaterDone, "ask include_later completed");
 
     console.log("Phase 4c: browse chain + nodes");
     const chainIdx = await json("GET", "/memories/chain");
@@ -548,6 +594,51 @@ Old foresight that should expire.
     const poolSweep = await readFile(join(TEST_HOME, "memories/short-term-memory/pool.jsonl"), "utf8");
     assert(poolSweep.includes("Future-sight expired"), "short-term has expiry note");
 
+    console.log("Phase 5b: search future-sight (hot + later)");
+    const stWindow = await json("GET", "/status");
+    assert(stWindow.data.future_sight_window_days === 365, "default window_days 365");
+    assert(stWindow.data.future_sight_hot_days === 30, "hot_days still 30");
+
+    const laterPath = join(TEST_HOME, "memories/future-sight/later.md");
+    const laterExisting = await readFile(laterPath, "utf8");
+    const laterBlock = `
+## game-xx-launch
+\`\`\`yaml
+anchor_start: "2026-12-01"
+anchor_end: "2026-12-15"
+\`\`\`
+
+Unique later keyword xylophone-launch window for search.
+`;
+    await Bun.write(laterPath, laterExisting.trimEnd() + "\n" + laterBlock);
+
+    const searchFuture = await json("GET", "/memories/search?q=xylophone-launch&scope=future");
+    assert(searchFuture.status === 200, "search future 200");
+    assert(searchFuture.data.scope?.join(",") === "future", "scope=future echoed");
+    assert(!("nodes" in searchFuture.data), "future-only omits nodes");
+    assert(Array.isArray(searchFuture.data.future_sight), "future_sight array");
+    const fsHits = searchFuture.data.future_sight as {
+      id: string;
+      zone: string;
+      match_reason?: string;
+    }[];
+    assert(
+      fsHits.some((h) => h.id === "game-xx-launch" && h.zone === "later"),
+      "search hits later zone",
+    );
+
+    const searchDefaultFs = await json("GET", "/memories/search?q=deadline");
+    assert(searchDefaultFs.status === 200, "default search deadline");
+    assert(Array.isArray(searchDefaultFs.data.future_sight), "default has future_sight");
+    assert(
+      (searchDefaultFs.data.future_sight as { zone: string }[]).length >= 1,
+      "deadline hits future-sight",
+    );
+
+    const searchNoFuture = await json("GET", "/memories/search?q=xylophone-launch&scope=nodes");
+    assert(searchNoFuture.status === 200, "nodes scope 200");
+    assert(!("future_sight" in searchNoFuture.data), "scope=nodes excludes future_sight");
+
     console.log("\nPhase 6: virtual clock (time replay)");
     const clock0 = await json("GET", "/clock");
     assert(clock0.status === 200, "GET /clock 200");
@@ -663,7 +754,7 @@ Old foresight that should expire.
 
     await json("DELETE", "/clock");
 
-    console.log("\n✅ All 0.17 self-checks passed");
+    console.log("\n✅ All 0.18 self-checks passed");
   } finally {
     await stopServer(server);
   }

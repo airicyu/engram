@@ -89,7 +89,7 @@ Snapshot of store health, dream state, and async job status.
   "future_sight_active_count": 0,
   "future_sight_hot_count": 0,
   "future_sight_later_count": 0,
-  "future_sight_window_days": 90,
+  "future_sight_window_days": 365,
   "future_sight_hot_days": 30,
   "dream_status": "pending_review",
   "dream_pending": {
@@ -118,7 +118,7 @@ Snapshot of store health, dream state, and async job status.
 | `future_sight_active_count` | number | Total items in `hot.md`＋`later.md` (name kept for compatibility) |
 | `future_sight_hot_count` | number | Items in `memories/future-sight/hot.md` |
 | `future_sight_later_count` | number | Items in `memories/future-sight/later.md` |
-| `future_sight_window_days` | number | Effective admission window (workspace → env → 90) |
+| `future_sight_window_days` | number | Effective admission window (workspace → env → **365**) |
 | `future_sight_hot_days` | number | Effective hot zone days (workspace → env → 30) |
 | `dream_status` | enum | See [Dream status](#dream-status) |
 | `dream_pending` | object? | Active pending summary, or `null` |
@@ -425,13 +425,13 @@ On each call: **expire-only maintain** — remove items with `anchor_end` &lt; t
     }
   ],
   "swept_expired": ["fs-2026-07-20-old"],
-  "future_sight_window_days": 90,
+  "future_sight_window_days": 365,
   "future_sight_hot_days": 30
 }
 ```
 `anchors`：先全部 hot（近→遠），再全部 later。`swept_expired` = ids removed on **this** request only（GET 不做 out-of-window）.
 
-**Not in `/memories/search`:** future-sight is not injected into search packets.
+Search／Ask 讀側見下節 `GET /memories/search` 與 `POST /memories/ask`（0.18+）。
 
 ---
 
@@ -445,27 +445,37 @@ short-term preview for Activities. **Does not** include chain or nodes.
 
 ## `GET /memories/search`
 
-Keyword search across short-term memory, memory-chain days, and L2 nodes. **`q` is required** (`400 missing_q` if omitted or blank). Only **matching** sections are returned.
+Keyword search across short-term memory, memory-chain, L2 nodes, and **future-sight** (`hot.md`＋`later.md`). **`q` is required** (`400 missing_q` if omitted or blank). Only **matching** sections are returned.
 
 **Query:**
 
 | Param | Required | Meaning |
 |-------|----------|---------|
 | `q` | yes | Keyword (case-insensitive substring) |
-| `scope` | no | Comma-separated: `l1`, `nodes`, `chain`. Default: all three. `400 invalid_scope` if empty or unknown value |
+| `scope` | no | Comma-separated: `l1`, `nodes`, `chain`, **`future`**. Default: all four. `400 invalid_scope` if empty or unknown value. **No** `future_hot`／`future_later` split |
 
 **Response `200`:**
 
 ```json
 {
   "q": "acme",
-  "scope": ["nodes", "chain"],
+  "scope": ["nodes", "chain", "future"],
   "nodes": [
     { "node": "acme", "what_current": "…", "match_reason": "node_id" }
   ],
   "chain": [
     { "day_id": "2026-07-23", "id": "2026-07-23", "level": "day", "content": "…", "source": "summary" },
     { "id": "2026-W28-0706", "level": "week", "content": "…", "source": "summary" }
+  ],
+  "future_sight": [
+    {
+      "id": "game-xx-launch",
+      "zone": "later",
+      "anchor_start": "2026-12-01",
+      "anchor_end": "2026-12-15",
+      "content": "…",
+      "match_reason": "content"
+    }
   ]
 }
 ```
@@ -476,8 +486,9 @@ Keyword search across short-term memory, memory-chain days, and L2 nodes. **`q` 
 | `nodes` | Present only when `nodes` in scope; L2 hits (`node_id` \| `what_content` \| `l1_note`) |
 | `l1` | Present only when `l1` in scope; `null` when no short-term hit |
 | `chain` | Present only when `chain` in scope; day／week／month／year hits. Each has `id` + `level`; day also keeps `day_id` |
+| `future_sight` | Present only when `future` in scope; hot＋later keyword hits. Each has `id`, `zone` (`hot`\|`later`), `anchor_start`／`anchor_end`, `content`, `match_reason` (`id`\|`content`\|`anchor`). Order: all hot first (near→far), then later |
 
-No matches → `200` with requested scope keys empty (`nodes: []`, `l1: null`, or `chain: []`). Does **not** include `dream_status` or future-sight.
+No matches → `200` with requested scope keys empty (`nodes: []`, `l1: null`, `chain: []`, or `future_sight: []`). Does **not** include `dream_status`. Search does **not** run full maintain (reads files as-is).
 
 **Errors:** `400 missing_q`, `400 invalid_scope`
 
@@ -590,16 +601,24 @@ Missing node → **200** `{ node, what_current: null, present: false }`.
 
 Start async AI ask. Agent reads `ENGRAM_STORE_DIR` directly (read-only).
 
-**Request:** `{ "q": "natural language question" }`  
-**Response `202`:** `{ job_id, status: "started" }`  
-**Errors:** `400 missing_q`, `409 ask_busy`
+**Request:**
 
-Poll **`GET /memories/ask/{job_id}`** until `status` is `completed` | `failed` | `cancelled`.  
+| Field | Required | Type | Default | Meaning |
+|-------|----------|------|---------|---------|
+| `q` | yes | string | — | Natural-language question |
+| `include_later` | no | **boolean** | `false` | `true` → agent may／should read `later.md`; `false` → may read `hot.md`, **must not** read `later.md` |
+
+**Response `202`:** `{ job_id, status: "started", include_later }`  
+**Errors:** `400 missing_q`, `400 invalid_include_later` (non-boolean), `409 ask_busy`
+
+Poll **`GET /memories/ask/{job_id}`** until `status` is `completed` | `failed` | `cancelled`（payload echoes `include_later`）.  
 Cancel running job: **`POST /memories/ask/{job_id}/cancel`**.
+
+Agent may cite `sources[].kind` = `L1`｜`L2`｜`chain`｜**`future_sight`**（建議帶 `id`＋`zone`）。
 
 `job_id` shape: `ask-YYYYMMDD-HHmmss-{rand6}` (ENGRAM_TZ local time; URL-safe, no encoding).
 
-`ENGRAM_AGENT`: `cursor` (default) | `claude` | `mock-ask-ok` (ask tests). Dream also supports `mock-ok` | `mock-fail`.
+`ENGRAM_AGENT`: `claude` (default) | `cursor` | `mock-ask-ok` (ask tests). Dream also supports `mock-ok` | `mock-fail`.
 
 ---
 
@@ -652,10 +671,10 @@ GET  /dream/pending  (read report)
 POST /dreams/approve   OR   POST /dreams/discard   OR   POST /dreams/retry
      OR   POST /dreams/cancel (while running)
      ↓
-GET  /memory/search?q=…
+GET  /memories/search?q=…&scope=l1,nodes,chain,future
 GET  /memory/chain  →  GET /memories/chain/{day_id}
 GET  /memory/nodes  →  GET /memories/nodes/{node_id}
-POST /memories/ask { "q": "…" }  →  GET /memories/ask/{job_id}
+POST /memories/ask { "q": "…", "include_later": false }  →  GET /memories/ask/{job_id}
 ```
 
 ---

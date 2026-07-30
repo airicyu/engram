@@ -3,7 +3,7 @@
 ← [changelog](../../../changelog.md) · 上游：[0.16.0](../0.16.0/INDEX.md) · current: [version](../../../version.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md)
 
 > **狀態：** **shipped**  
-> 來源：舊 backlog「mindzone／思考熱區」語意已併入本版（`hot`＝近窗工作集；**不**另開 mindzone 層）；[backlog/recall-future-sight.md](../backlog/recall-future-sight.md) **本版不做**（仍 backlog）  
+> 來源：舊 backlog「mindzone／思考熱區」語意已併入本版（`hot`＝近窗工作集；**不**另開 mindzone 層）；Seek 注入未來視見 [0.18.0](../0.18.0/INDEX.md)  
 > 本版改寫 0.4／0.14 起的 `future-sight/active/{id}.md` 一錨一檔模型；對齊 0.16 **draft 檔案管線**（未來視以整檔 `file_update` 維護，不是 typed `future` patch）。
 
 ## 產品句
@@ -74,7 +74,7 @@
 ## 非目標
 
 - 獨立 mindzone 產品／另一個 store 目錄
-- Recall／search／ask **注入**未來視（見 [backlog/recall-future-sight.md](../backlog/recall-future-sight.md)）
+- Recall／search／ask **注入**未來視（見 [0.18.0](../0.18.0/INDEX.md)）
 - 未來視當成日曆、待辦、提醒、過期 cron、遠端 sync
 - `GET /memories/future-sight/expired` 或可 query 的過期庫
 - 把 memory-chain 往未來日期延長

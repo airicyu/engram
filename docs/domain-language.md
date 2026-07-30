@@ -44,8 +44,8 @@
 
 | EN | 中文 | 說明 | API | 備註 |
 |----|------|------|-----|------|
-| **Search** | 搜尋 | keyword 命中 short-term／chain／nodes | `GET /memories/search?q=&scope=` | `q` 必填；`scope` 可選（wire 值仍含 `l1`＝short-term） |
-| **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memories/ask`、`GET /memories/ask/{job_id}` | 同時只允許一個 running job |
+| **Search** | 搜尋 | keyword 命中 short-term／chain／nodes／**future-sight** | `GET /memories/search?q=&scope=` | `q` 必填；`scope` 可選（`l1,nodes,chain,future`；預設四者）；`future`＝掃 hot＋later |
+| **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memories/ask`、`GET /memories/ask/{job_id}` | 同時只允許一個 running job；可選 `include_later`（預設 false＝可讀 hot、不可讀 later） |
 
 ### Memory browse（0.8.0）
 
@@ -181,7 +181,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 |----|------|------|
 | **l1_empty** | short-term 是否為空（wire 名凍結） | pool 無條目時為 true |
 | **dream_job** | 入夢非同步工作 | `running`／`completed`／`failed` |
-| **search packet** | 搜尋包 | `GET /memories/search` 回傳：僅 keyword 命中的 `l1`／`chain[]`／`nodes` |
+| **search packet** | 搜尋包 | `GET /memories/search` 回傳：僅 keyword 命中的 `l1`／`chain[]`／`nodes`／`future_sight[]`（當 scope 含對應 token） |
 | **ENGRAM_STORE_DIR** | （env 鍵名） | 設定「記憶庫絕對路徑」的環境變數；**不是**記憶庫的領域別名 |
 
 ---
@@ -196,7 +196,8 @@ activities → dreams/run → pending_review → approve | discard | retry
 | **sweep** / **lazy sweep** | 懶清掃 | GET 時過期清（不重桶）；入夢前 full maintain |
 | **swept_expired** | 本次清掉清單 | 剛移除的過期 anchor id |
 
-過期／出窗：寫 L0 + short-term system event（`source: system/future_sight_expired`，`reason` 區分），再從兩檔移除。無過期瀏覽 API。Seek／search **不**注入未來視。
+過期／出窗：寫 L0 + short-term system event（`source: system/future_sight_expired`，`reason` 區分），再從兩檔移除。無過期瀏覽 API。  
+Seek（0.18+）：Search scope `future` 掃兩區；Ask 預設可讀 `hot.md`，`include_later:true` 才讀 `later.md`。准入窗預設 **365** 日（workspace／env 可覆寫）。
 
 ---
 

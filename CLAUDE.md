@@ -52,7 +52,7 @@
 - **Runtime：** Bun（TypeScript，ESM）
 - **Server：** `Bun.serve({ routes })`
 - **Web：** Vite + React + TypeScript；Bun 服務 `dist/` + proxy（prod）
-- **Dream extract：** `AgentRunner`（預設 Cursor CLI `agent`；可切 `claude` / mock）
+- **Dream extract：** `AgentRunner`（預設 Claude Code；可切 `cursor` / mock）
 
 常用指令：
 
@@ -87,13 +87,14 @@ bun run dev:ui                    # web
 API 欄位提醒：
 
 - activities body 用 **`raw`**（不是 `content` / `text`）；**不要**傳 `ts` — 要模擬過去時間先 `PUT /clock`
-- memory search query 用 **`q`**（必填）；可選 **`scope`** = `l1,nodes,chain`（逗號分隔，預設全搜）
-- memory ask body 用 **`q`**
+- memory search query 用 **`q`**（必填）；可選 **`scope`** = `l1,nodes,chain,future`（逗號分隔，預設四者全開）
+- memory ask body 用 **`q`**；可選 **`include_later`**（boolean，預設 false＝可讀 hot、不可讀 later）
 - dream **retry** body 用 **`reason`**（必填）；對同一凍結 scope 重跑，注入上一輪摘要
 - dream **lock**（入夢／deploy）時 activities → `409 dream_locked`；**`pending_review` 可寫 activities**
 - **`pending_review` 時不可**再 `POST /dreams/run`（改 approve／discard／retry）
 - **虛擬時鐘：** `PUT /clock` 需 `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`；`DELETE /clock` 恆可；見 `/status.clock`
 - **無資料不用 404**：讀取型「目前沒有內容」回 **200**，在 body 用 `null`／`[]`／`present: false` 等表達；404 留給路徑／方法真正不存在
+- **未來視窗：** 有效 `future_sight_window_days`＝workspace → env → 預設 **365**；`hot_days` 預設仍 **30**
 
 操作技能：`.claude/skills/engram-workbench/SKILL.md`  
 埠被占用：`.claude/skills/kill-port/SKILL.md`
@@ -117,11 +118,11 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.17.0` — 未來視雙區＋入夢前機械維護 — 見 `docs/roadmap/0.17.0/`
-- **上一版：** `0.16.0` — Store git 事務＋入夢 draft 檔案作業 — 見 `docs/roadmap/0.16.0/`
-- **更早：** `0.15.0` — Server src layout + agent shared runners；`0.14.0` — Store layout refactor
-- **Backlog：** Recall 注入未來視 — 見 `docs/roadmap/backlog/`。
-- **遷移：** 0.16→0.17 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）
+- **已出貨：** `0.18.0` — Seek 納入未來視＋`window_days` 預設 365 — 見 `docs/roadmap/0.18.0/`
+- **上一版：** `0.17.0` — 未來視雙區＋入夢前機械維護 — 見 `docs/roadmap/0.17.0/`
+- **更早：** `0.16.0` — Store git 事務＋入夢 draft 檔案作業；`0.15.0` — Server src layout
+- **Backlog：** 見 `docs/roadmap/backlog/`
+- **遷移：** 0.16→0.17 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；0.18 **無** store migrate（僅程式預設窗長變更）
 
 ## 深入閱讀
 
