@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.1 — Rollup agent 跟隨 ENGRAM_AGENT (2026-08-01)
+
+### Fixed
+
+- **`pickRollupAgent`**：預設／`ENGRAM_AGENT=claude` 時改走 `ClaudeRollupAgent`；僅 `cursor` 才用 Cursor CLI（先前非 mock 一律強制 Cursor，與 dream／ask 不一致）
+
+### Migrate
+
+- **無**；不要求 bump `store_version`
+
+---
+
 ## 0.18.0 — Seek 納入未來視 ＋ window 預設 365 日 (2026-07-31)
 
 Seek 讀側閉環：Search 可掃未來視（hot＋later）；Ask 預設可讀 hot，較遠 later 靠 `include_later`。未來視准入窗程式預設由 90 日改為 **365** 日（workspace／env 顯式值仍優先）。

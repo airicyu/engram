@@ -288,6 +288,36 @@ export function stripRollupWriterPreamble(text: string): string {
   return out.join("\n").trim();
 }
 
+type RollupPromptRunner = (
+  prompt: string,
+  workDir: string,
+  dreamRunId: string,
+) => Promise<string>;
+
+async function runClaudePrompt(
+  prompt: string,
+  workDir: string,
+  dreamRunId: string,
+): Promise<string> {
+  const cmd = [
+    config.claudeBin,
+    "-p",
+    prompt,
+    "--output-format",
+    "text",
+    "--allowedTools",
+    "Read",
+  ];
+  const result = await runAgentCommand({
+    cmd,
+    cwd: workDir,
+    processKey: `dream:${dreamRunId}`,
+    onPid: (pid) => setDreamJobAgentPid(pid),
+    exitErrorLabel: "rollup agent",
+  });
+  return result.stdout;
+}
+
 async function runCursorPrompt(
   prompt: string,
   workDir: string,
@@ -313,8 +343,10 @@ async function runCursorPrompt(
   return result.stdout;
 }
 
-/** Cursor CLI rollup agent (prompts under server/prompts/). */
-export class CursorRollupAgent implements RollupAgent {
+/** Shared plan／write flow; only the CLI invoke differs. */
+class CliRollupAgent implements RollupAgent {
+  constructor(private readonly runPrompt: RollupPromptRunner) {}
+
   async plan(ctx: RollupPlanContext): Promise<RollupPlan> {
     const promptPath = join(import.meta.dir, "../../prompts/rollup-plan.md");
     const template = await loadPrompt(promptPath);
@@ -334,7 +366,7 @@ export class CursorRollupAgent implements RollupAgent {
           TIMEZONE: ctx.timezone,
           MEMORY_LANGUAGE: ctx.memory_language,
         });
-        const stdout = await runCursorPrompt(prompt, workDir, ctx.dream_run_id);
+        const stdout = await this.runPrompt(prompt, workDir, ctx.dream_run_id);
         return parsePlanJson(parseWriteText(stdout));
       },
     );
@@ -364,10 +396,24 @@ export class CursorRollupAgent implements RollupAgent {
           TIMEZONE: ctx.timezone,
           MEMORY_LANGUAGE: ctx.memory_language,
         });
-        const stdout = await runCursorPrompt(prompt, workDir, ctx.dream_run_id);
+        const stdout = await this.runPrompt(prompt, workDir, ctx.dream_run_id);
         return parseWriteText(stdout);
       },
     );
+  }
+}
+
+/** Claude Code rollup agent (prompts under server/prompts/). */
+export class ClaudeRollupAgent extends CliRollupAgent {
+  constructor() {
+    super(runClaudePrompt);
+  }
+}
+
+/** Cursor CLI rollup agent (prompts under server/prompts/). */
+export class CursorRollupAgent extends CliRollupAgent {
+  constructor() {
+    super(runCursorPrompt);
   }
 }
 
@@ -376,7 +422,8 @@ export function pickRollupAgent(): RollupAgent {
   if (mode === "mock-ok" || mode === "mock-fail" || mode === "mock-ask-ok") {
     return new MockRollupAgent();
   }
-  return new CursorRollupAgent();
+  if (mode === "cursor") return new CursorRollupAgent();
+  return new ClaudeRollupAgent();
 }
 
 /** Heuristic used only in docs/tests — mirrors mock planner flags. */
