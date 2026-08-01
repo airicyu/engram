@@ -12,9 +12,9 @@
 | 1 | 位置 | **`{ENGRAM_STORE_DIR}/engram.workspace.yaml`** 鍵 **`store_version`**（與 `timezone`／`memory_language` 同檔；進 store git） |
 | 2 | 語意 | **磁碟結構世代**（不是「上次用哪版 binary 開過」）。migrate 成功後才升到**新結構**目標版 |
 | 3 | 格式 | 完整 semver 字串，例：`"0.16.0"`。Hop／世代比對取 **major.minor**（`0.16`）即可 |
-| 4 | 缺鍵 | **合法**；`GET /status.store_version` = `null`（視為 pre-0.16／未標記） |
+| 4 | 缺鍵 | **0.16–0.18：**合法，status `null` 可啟動。**0.19+ 推翻：**缺鍵 → **拒啟**（見 [0.19 store-boot-gate](../../0.19.0/docs/store-boot-gate.md)） |
 | 5 | 非法值 | 鍵存在但非 `X.Y.Z` → 與既有 workspace 一樣 **拒絕啟動** |
-| 6 | 與產品版不一致 | **不拒啟**；status 同時回 `product_version` 供對照 |
+| 6 | 與產品版不一致 | **不**要求等於 `product_version`（維持）。**0.19+：**改為相對 **最低結構代** 閘門——低於所需 major.minor → 拒啟；見 store-boot-gate |
 | 7 | 禁止 | Server **啟動時不得**把既有／缺漏的 `store_version` 偷偷改成當前產品版（避免舊庫誤標） |
 | 8 | 產品版 ≠ 結構代 | **結構沒變的 release**（例 0.18）可不 migrate、不強制 bump 舊庫；但**新建** store 仍可 stamp 當下 `product_version`。因此同一磁碟形狀上可能出現多個 `store_version` 字串（例 `0.17.0`…`0.24.0`） |
 | 9 | 同代區間 | Migrate **按結構世代**，不按每個產品 minor。同一結構代內的所有 `store_version`（例假設 0.17–0.24 未改盤）→ **同一支 hop** 進入下一結構代；hop 檔須寫明准入區間 |

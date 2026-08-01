@@ -4,6 +4,7 @@
 import { rm, mkdir, readFile, readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
+import { checkStoreStructure, structureAtLeast, parseMajorMinor } from "../store/store-structure";
 
 const ROOT = resolve(import.meta.dir, "../../..");
 const TEST_HOME = join(ROOT, "data-test");
@@ -488,8 +489,30 @@ async function main() {
       (nodesIdx.data.nodes as Array<{ node: string }>).some((n) => n.node === "acme"),
       "nodes includes acme",
     );
-    const nodeDet = await json("GET", "/memories/nodes/acme");
-    assert(nodeDet.status === 200 && nodeDet.data.present === true, "node acme detail");
+    const newcoIdx = (nodesIdx.data.nodes as Array<{
+      node: string;
+      score?: number | null;
+      display_score?: number | null;
+    }>).find((n) => n.node === "newco");
+    assert(
+      newcoIdx != null && typeof newcoIdx.score === "number" && newcoIdx.score === 100,
+      "newco has S0 score from create settle",
+    );
+    assert(
+      typeof newcoIdx!.display_score === "number" &&
+        newcoIdx!.display_score! >= 1 &&
+        newcoIdx!.display_score! <= 100,
+      "newco display_score 1–100",
+    );
+    const nodeDet = await json("GET", "/memories/nodes/newco");
+    assert(nodeDet.status === 200 && nodeDet.data.present === true, "node newco detail");
+    assert(typeof nodeDet.data.score === "number", "node detail score");
+    assert(typeof nodeDet.data.display_score === "number", "node detail display_score");
+    assert(typeof nodeDet.data.score_timestamp === "string", "node detail score_timestamp");
+
+    const acmeDetEarly = await json("GET", "/memories/nodes/acme");
+    assert(acmeDetEarly.status === 200 && acmeDetEarly.data.present === true, "node acme detail");
+    // acme existed pre-dream but was not involved in first newco-only dream → score may be null
 
     const badDay = await json("GET", "/memories/chain/not-a-date");
     assert(badDay.status === 400 && badDay.data.error === "invalid_day_id", "invalid day_id");
@@ -754,7 +777,228 @@ Unique later keyword xylophone-launch window for search.
 
     await json("DELETE", "/clock");
 
-    console.log("\n✅ All 0.18 self-checks passed");
+    console.log("\nPhase 8: node score (0.19)");
+
+    // T2／pending JSON: involvements present; 2a patch then approve uses new category
+    const scoreBefore2a = await json("GET", "/memories/nodes/acme");
+    const liveBefore =
+      typeof scoreBefore2a.data.score === "number" ? (scoreBefore2a.data.score as number) : null;
+    const iScore = await json("POST", "/activities", {
+      raw: "Acme rate-limit follow-up for score settle",
+      source: "api",
+    });
+    assert(iScore.status === 201, "score activity");
+    const dScore = await json("POST", "/dreams/run");
+    assert(dScore.status === 202, "score dream 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dScore.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
+    const pendScore = await json("GET", "/dreams/pending");
+    assert(Array.isArray(pendScore.data.node_score_involvements), "pending has involvements array");
+    const inv = pendScore.data.node_score_involvements as Array<{ id: string; category: string }>;
+    assert(inv.some((x) => x.id === "acme"), "involvements include acme");
+    assert(
+      typeof pendScore.data.report === "string" &&
+        pendScore.data.report.includes("## Node score involvements"),
+      "report has involvements section",
+    );
+
+    // T9: unknown id → 404
+    const patch404 = await json("PATCH", "/dreams/pending/node-score-involvements", {
+      id: "no-such-node-xyz",
+      category: "mention",
+    });
+    assert(
+      patch404.status === 404 && patch404.data.error === "involvement_not_found",
+      "2a unknown id 404",
+    );
+
+    // illegal category → 400
+    const patch400 = await json("PATCH", "/dreams/pending/node-score-involvements", {
+      id: "acme",
+      category: "GRADE_1",
+    });
+    assert(
+      patch400.status === 400 && patch400.data.error === "invalid_category",
+      "2a invalid category 400",
+    );
+
+    // live score unchanged during pending (T8 mid)
+    const midLive = await json("GET", "/memories/nodes/acme");
+    assert(midLive.data.score === liveBefore, "live score unchanged while pending");
+
+    // T8: patch to mention then approve → +10 (missing score first ensured to S0)
+    const patchOk = await json("PATCH", "/dreams/pending/node-score-involvements", {
+      id: "acme",
+      category: "mention",
+    });
+    assert(patchOk.status === 200 && patchOk.data.category === "mention", "2a patch mention");
+    const pendAfterPatch = await json("GET", "/dreams/pending");
+    const invAfter = pendAfterPatch.data.node_score_involvements as Array<{
+      id: string;
+      category: string;
+    }>;
+    assert(invAfter.find((x) => x.id === "acme")?.category === "mention", "pending shows mention");
+
+    const apScore = await json("POST", "/dreams/approve", {});
+    assert(apScore.status === 200 && apScore.data.empty_patches === false, "score approve");
+    const afterMention = await json("GET", "/memories/nodes/acme");
+    const expectedAfterMention = (liveBefore ?? 100) + 10;
+    assert(
+      afterMention.data.score === expectedAfterMention,
+      `approve after 2a mention: expected ${expectedAfterMention} got ${afterMention.data.score}`,
+    );
+
+    // T10: discard does not change live score
+    const beforeDiscard = afterMention.data.score as number;
+    const iDisc = await json("POST", "/activities", { raw: "discard score check", source: "api" });
+    assert(iDisc.status === 201, "discard activity");
+    const dDisc = await json("POST", "/dreams/run");
+    assert(dDisc.status === 202, "discard dream");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dDisc.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
+    const discRes = await json("POST", "/dreams/discard", {});
+    assert(discRes.status === 200, "discard ok");
+    const afterDisc = await json("GET", "/memories/nodes/acme");
+    assert(afterDisc.data.score === beforeDiscard, "discard leaves live score");
+
+    // T4: newco create ends at S0
+    const iNew = await json("POST", "/activities", {
+      raw: "Met NewCo founders about partnership",
+      source: "api",
+    });
+    assert(iNew.status === 201, "newco activity");
+    const dNew = await json("POST", "/dreams/run");
+    assert(dNew.status === 202, "newco dream");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dNew.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
+    const apNew = await json("POST", "/dreams/approve", {});
+    assert(apNew.status === 200, "newco approve");
+    const newco = await json("GET", "/memories/nodes/newco");
+    assert(newco.status === 200 && newco.data.present === true, "newco present");
+    assert(newco.data.score === 100, `newco S0 got ${newco.data.score}`);
+
+    // T5: push acme over S_max → downscale; brandnew created same round stays S0
+    await Bun.write(
+      join(TEST_HOME, "memories/nodes/acme/score.yaml"),
+      "score: 1950\nscore_timestamp: \"2026-08-01T00:00:00.000+08:00\"\n",
+    );
+    await Bun.write(
+      join(TEST_HOME, "memories/node-score-registry.yaml"),
+      "max_score: 1950\n",
+    );
+    const iDs = await json("POST", "/activities", {
+      raw: "Acme focus storm with BrandNew corp intro that will tip max",
+      source: "api",
+    });
+    assert(iDs.status === 201, "downscale activity");
+    const dDs = await json("POST", "/dreams/run");
+    assert(dDs.status === 202, "downscale dream");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dDs.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
+    await json("PATCH", "/dreams/pending/node-score-involvements", {
+      id: "acme",
+      category: "focus",
+    });
+    const apDs = await json("POST", "/dreams/approve", {});
+    assert(apDs.status === 200, "downscale approve");
+    const acmeDs = await json("GET", "/memories/nodes/acme");
+    const brandDs = await json("GET", "/memories/nodes/brandnew");
+    assert(brandDs.status === 200 && brandDs.data.present === true, "brandnew present");
+    assert(
+      (acmeDs.data.score as number) < 1950 + 80,
+      `acme downscaled got ${acmeDs.data.score}`,
+    );
+    assert(
+      brandDs.data.score === 100,
+      `brandnew still S0 after downscale exclude got ${brandDs.data.score}`,
+    );
+
+    // T6: empty_patches approve does not change scores
+    await stopServer(server);
+    server = await startServer("mock-empty-patches");
+    const beforeEmpty = (await json("GET", "/memories/nodes/acme")).data.score as number;
+    const iEmpty = await json("POST", "/activities", { raw: "empty patches note", source: "api" });
+    assert(iEmpty.status === 201, "empty activity");
+    const dEmpty = await json("POST", "/dreams/run");
+    assert(dEmpty.status === 202, "empty dream");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dEmpty.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
+    const apEmpty = await json("POST", "/dreams/approve", {});
+    assert(apEmpty.status === 200 && apEmpty.data.empty_patches === true, "empty_patches true");
+    const afterEmpty = await json("GET", "/memories/nodes/acme");
+    assert(afterEmpty.data.score === beforeEmpty, "empty_patches leaves scores");
+
+    // T7: illegal category does not enter pending
+    await stopServer(server);
+    server = await startServer("mock-bad-involvement");
+    const iBad = await json("POST", "/activities", { raw: "bad category dream", source: "api" });
+    assert(iBad.status === 201, "bad activity");
+    const dBad = await json("POST", "/dreams/run");
+    assert(dBad.status === 202, "bad dream");
+    await waitForJob((job) => job?.status === "failed" || job?.status === "completed");
+    const stBad = await json("GET", "/status");
+    assert(stBad.data.dream_job?.status === "failed", "bad involvement job failed");
+    assert(stBad.data.dream_status !== "pending_review", "bad involvement not pending");
+    const pendBad = await json("GET", "/dreams/pending");
+    assert(pendBad.data.present === false, "no pending after bad involvement");
+
+    // T1: migrate fills missing score.yaml
+    await mkdir(join(TEST_HOME, "memories/nodes/orphan/understand"), { recursive: true });
+    await Bun.write(join(TEST_HOME, "memories/nodes/orphan/understand/what.md"), "orphan\n");
+    await Bun.write(join(TEST_HOME, "memories/nodes/orphan/node.meta.yaml"), "id: orphan\nkind: org\n");
+    // stamp workspace as 0.18 for migrate admit
+    const wsPath = join(TEST_HOME, "engram.workspace.yaml");
+    let wsText = await readFile(wsPath, "utf8");
+    wsText = wsText.replace(/store_version:\s*[\d.]+/, "store_version: 0.18.2");
+    await Bun.write(wsPath, wsText);
+    const mig = Bun.spawnSync([
+      "bun",
+      join(ROOT, ".claude/skills/engram-migration/scripts/migrate-0.17-to-0.19.ts"),
+      TEST_HOME,
+    ]);
+    assert(mig.exitCode === 0, `migrate exit 0: ${mig.stderr.toString()}`);
+    const orphanScore = await readFile(
+      join(TEST_HOME, "memories/nodes/orphan/score.yaml"),
+      "utf8",
+    );
+    assert(orphanScore.includes("score: 100") || orphanScore.includes("score: 100.0"), "orphan S0");
+    const wsAfter = await readFile(wsPath, "utf8");
+    assert(wsAfter.includes("store_version: 0.19.0"), "store_version 0.19.0");
+
+    // T11–T13: boot structure gate (pure check; process exit covered by assertStoreStructureOrExit)
+    const tooOld = checkStoreStructure("0.18.2");
+    assert(tooOld.ok === false && tooOld.reason === "too_old", "T11 0.18 too old");
+    assert(tooOld.message.includes("migrate-0.17-to-0.19"), "T11 migrate hint");
+    const missing = checkStoreStructure(null);
+    assert(missing.ok === false && missing.reason === "missing", "T12 missing store_version");
+    assert(checkStoreStructure("0.19.0").ok === true, "T13 0.19 ok");
+    assert(checkStoreStructure("0.20.1").ok === true, "T13 newer stamp ok");
+    const mm18 = parseMajorMinor("0.18.2");
+    const mm19 = parseMajorMinor("0.19.0");
+    assert(mm18 && mm19 && !structureAtLeast(mm18, mm19), "structureAtLeast 0.18 < 0.19");
+    assert(mm19 && structureAtLeast(mm19, { major: 0, minor: 19 }), "structureAtLeast 0.19 >=");
+
+    console.log("\n✅ All 0.19 self-checks passed");
   } finally {
     await stopServer(server);
   }

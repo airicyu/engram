@@ -160,6 +160,10 @@ activities → dreams/run → pending_review → approve | discard | retry
 | **what.md** | 是什麼（facet） | 該 node 當前定義與邊界；MVP 主 facet |
 | **facet** | 理解面向 | what／who／why 等；多數尚未實作 |
 | **match_reason** | 命中原因 | search 時為何選中該 node |
+| **score**（帳面） | 活躍分 | 有結算的 dream 才增減；存 `score.yaml`；**非**未來視 hot |
+| **display_score** | 相對活躍分 | `ceil(score/max_score*100)`（1–100）；無 max → null／— |
+| **category** | 涉入档 | `mention`｜`update`｜`focus`；AI 只判档，script 算分 |
+| **node_score_involvements** | 涉入列表 | pending 時 artifact／API；2a 可改 category |
 
 ---
 

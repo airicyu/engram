@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.19.0 — Node 活躍分（score）＋人審 category (2026-08-01)
+
+每個 L2 node 有可觀察的活躍帳面分（模型 A：有結算的 dream 才加減，無日曆衰減）；入夢 AI 只判 `mention`｜`update`｜`focus`，script 算分與觸頂 downscale；人在 Consolidate 可用結構化 API 改 category。Memory 展示 1–100 相對分。啟動時若 store 結構代低於 **0.19**（或缺 `store_version`）則拒啟並提示 migrate。
+
+### Added
+
+- 存檔：`memories/nodes/{id}/score.yaml`；全域 `memories/node-score-registry.yaml`（`max_score`）
+- Dream artifact：`dreams/draft/{run_id}/node-score-involvements.yaml`；report 段 `## Node score involvements`（server finalize）
+- `GET /dreams/pending` → `node_score_involvements[]`
+- `PATCH /dreams/pending/node-score-involvements`（2a：改 artifact 已有 id 的 category）
+- Browse：`GET /memories/nodes`／`{id}` 帶 `score`／`display_score`（detail 另含 `score_timestamp`）
+- Migration：`.claude/skills/engram-migration/migrate-0.17-to-0.19.md`＋腳本（0.17.x–0.18.x → 0.19.0）
+- **Boot gate**：`ensureEngramHome` 後檢查結構代 ≥ 0.19；escape `ENGRAM_ALLOW_STALE_STORE=1`
+
+### Changed
+
+- `approveDream`：非 `empty_patches` 時 `commitDraft` 後結算 live score（boost → 觸頂 downscale＋`exclude_node_ids`＝本場新建 → 新建寫 S0）並併入同次 git
+- 非法 category：extract 收尾失敗、不進 `pending_review`；2a → `400 invalid_category`
+- **推翻** 0.16「缺鍵／落後結構代仍可啟動」：改為拒啟＋migrate 提示（仍不要求 `store_version === product_version`）
+
+### Non-goals
+
+- 2b 自由句改 draft；Seek／network 依分；node hot／cold 區；公開 downscale API；日曆衰減
+- 開機因 product 字串全等失敗；過舊時自動改寫 `store_version`
+
+### Migrate
+
+- **有**：既有 node 補 `score.yaml`＝S0；建 registry；`store_version` → `0.19.0`
+- 未 migrate 的 0.17／0.18 庫：**無法**用 0.19 server 啟動（除非 `ENGRAM_ALLOW_STALE_STORE=1`）
+
+---
+
 ## 0.18.2 — Rollup file deliverable（不靠 stdout）(2026-08-01)
 
 ### Changed

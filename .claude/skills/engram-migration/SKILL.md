@@ -38,6 +38,8 @@ This skill edits files **under `ENGRAM_STORE_DIR` only** (after backup). It is t
 | [scripts/migrate-0.15-to-0.16.ts](./scripts/migrate-0.15-to-0.16.ts) | 本 hop 機械腳本（`bun … "$ENGRAM_STORE_DIR"`） |
 | [migrate-0.16-to-0.17.md](./migrate-0.16-to-0.17.md) | 0.16.x store → 0.17.x store（未來視雙區） |
 | [scripts/migrate-0.16-to-0.17.ts](./scripts/migrate-0.16-to-0.17.ts) | 本 hop 機械腳本 |
+| [migrate-0.17-to-0.19.md](./migrate-0.17-to-0.19.md) | 0.17.x–0.18.x → 0.19.0（node score 補檔） |
+| [scripts/migrate-0.17-to-0.19.ts](./scripts/migrate-0.17-to-0.19.ts) | 本 hop 機械腳本 |
 
 Future hops: add `migrate-X.Y-to-A.B.md` in this directory and list it in the table above. **Do not** put hop-specific steps only in chat or only in roadmap without a file here.
 
@@ -55,6 +57,7 @@ Roadmap contract／WHY for 0.17: `docs/roadmap/0.17.0/docs/migrate-0.16-to-0.17.
    - 若未說：先讀 `store_version`（比對 **major.minor**），對照本目錄 hop 表與各 hop 的**准入區間**選**下一跳**：
      - 例：`0.15.x`／缺鍵且像 0.15 → `migrate-0.15-to-0.16`
      - 例：`0.16.x` 或仍有 `future-sight/active/` → `migrate-0.16-to-0.17`
+     - 例：`0.17.x`／`0.18.x`（無 node `score.yaml`）→ `migrate-0.17-to-0.19`
      - 例：已屬某 hop 寫明的「已達目標代」→ 告訴使用者可能已遷移，抽樣確認後不要重複破壞性改寫
    - 若 `store_version` 字串較新但**結構仍屬舊代**（產品 stamp、未改盤）：仍走該舊代的「離開 hop」，不要因字串是 `0.18` 就說「沒有 0.18→… 檔」而停住——應歸入 hop 檔宣布的同代區間。
    - 若 `store_version` **缺漏**：再檢查啟發式（day summary／`what.md` 是否仍有 `## Current`／`## History`；是否已有 store `.git`；未來視 `active/` vs `hot.md`／`later.md`）。仍不確定 → **問使用者**，並列出已支援的 hop。

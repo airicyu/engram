@@ -59,7 +59,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Future-sight** | `GET /memories/future-sight` — `hot`／`later` 錨點（GET 只清過期並可 git commit；重桶在入夢前） |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `never_dreamed` |
 | **store_git** | `GET /status.store_git` — 記憶庫是否為可用 local git（0.16+；否則 server 拒啟） |
-| **store_version** | `GET /status.store_version` — 記憶庫結構世代（`engram.workspace.yaml`；缺鍵 → `null`）；對照 `product_version` |
+| **store_version** | `GET /status.store_version` — 記憶庫結構世代。**0.19+ boot** 要求 major.minor ≥ 0.19，否則拒啟並須跑 engram-migration；對照 `product_version`（不必字串相等） |
 
 ## ⚠️ Before any API call
 
@@ -70,12 +70,14 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /activities` | `raw` (not `content`／`text`) | `event_id` |
 | `POST /dreams/run` | none | `202` + `job_id` — poll `/status`；pending 時 `409 pending_review` |
 | `POST /dreams/retry` | `{ reason }` required | `202` + `job_id` — same scope + review feedback |
-| `GET /dreams/pending` | none | always `200`; `present: false` if none |
-| `POST /dreams/approve` | body optional | committed paths + cleared_scope |
+| `GET /dreams/pending` | none | always `200`; `present: false` if none；含 `node_score_involvements` |
+| `PATCH /dreams/pending/node-score-involvements` | `{ id, category }` | 2a 改涉入 category（pending 時）；非法 category → 400；未知 id → 404 |
+| `POST /dreams/approve` | body optional | committed paths + cleared_scope；非 empty_patches 時結算 node score |
 | `POST /dreams/discard` | body optional | `{ discarded: true }` |
 | `POST /dreams/cancel` | body optional | cancel running dream |
 | `GET /memories/short-term-memory` | none | `summary`, `node_notes`, `present` |
 | `GET /memories/search` | `q` (required); `scope` optional (`l1,nodes,chain,future`) | keyword hits per scope |
+| `GET /memories/nodes`／`{id}` | — | browse L2；含 `score`／`display_score`（無分 → null） |
 | `POST /memories/ask` | `q`; optional `include_later` (boolean) | `202` + `job_id` + `include_later` |
 | `GET /memories/future-sight` | none | `anchors`（含 `zone`）、`swept_expired` |
 | `GET /clock` | none | `mode`, `now`, `today`, `allow_set` |

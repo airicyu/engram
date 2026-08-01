@@ -10,7 +10,12 @@ type DayIndex = { day_id: string; preview?: string };
 type WeekIndex = { week_id: string; start?: string; end?: string; preview?: string };
 type MonthIndex = { month_id: string; preview?: string };
 type YearIndex = { year_id: string; preview?: string };
-type NodeIndex = { node: string; preview?: string };
+type NodeIndex = {
+  node: string;
+  preview?: string;
+  score?: number | null;
+  display_score?: number | null;
+};
 
 type ChainItem = { id: string; preview?: string; range?: string };
 
@@ -27,6 +32,7 @@ export function MemoryScene() {
   const [chainEmpty, setChainEmpty] = useState(false);
   const [nodeBody, setNodeBody] = useState("");
   const [nodeEmpty, setNodeEmpty] = useState(false);
+  const [nodeScoreMeta, setNodeScoreMeta] = useState("");
   const [filter, setFilter] = useState("");
   const [indexEmpty, setIndexEmpty] = useState("");
 
@@ -166,9 +172,14 @@ export function MemoryScene() {
       setSelectedNodeId(nodeId);
       setNodeBody(t("memory.browse_loading"));
       setNodeEmpty(false);
-      const { ok, data } = await api<{ present?: boolean; what_current?: string }>(
-        `/memories/nodes/${encodeURIComponent(nodeId)}`,
-      );
+      setNodeScoreMeta("");
+      const { ok, data } = await api<{
+        present?: boolean;
+        what_current?: string;
+        display_score?: number | null;
+        score?: number | null;
+        score_timestamp?: string | null;
+      }>(`/memories/nodes/${encodeURIComponent(nodeId)}`);
       if (!ok) {
         setNodeBody(t("memory.browse_fail"));
         setNodeEmpty(true);
@@ -179,6 +190,11 @@ export function MemoryScene() {
         setNodeEmpty(true);
         return;
       }
+      const display =
+        data.display_score == null
+          ? t("memory.score_none")
+          : t("memory.score_display", { score: data.display_score });
+      setNodeScoreMeta(display);
       setNodeBody(data.what_current?.trim() || t("empty.no_what"));
       setNodeEmpty(!data.what_current?.trim());
     },
@@ -342,7 +358,14 @@ export function MemoryScene() {
                     aria-current={n.node === selectedNodeId ? "true" : undefined}
                     onClick={() => void loadNodeDetail(n.node)}
                   >
-                    <span className="browse-item-id">{n.node}</span>
+                    <span className="browse-item-id">
+                      {n.node}
+                      <span className="browse-item-score">
+                        {n.display_score == null
+                          ? t("memory.score_none")
+                          : t("memory.score_badge", { score: n.display_score })}
+                      </span>
+                    </span>
                     {n.preview ? (
                       <div className="browse-item-preview">{n.preview}</div>
                     ) : null}
@@ -353,6 +376,7 @@ export function MemoryScene() {
           </div>
           <article className="browse-detail packet-block">
             <h2>{selectedNodeId ?? "—"}</h2>
+            {nodeScoreMeta ? <p className="browse-meta">{nodeScoreMeta}</p> : null}
             <MdBlock text={nodeBody} empty={nodeEmpty} />
           </article>
         </div>

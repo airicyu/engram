@@ -52,6 +52,11 @@ export type Pending = {
     chain_days?: string[];
     chain_summary_days?: string[];
   } | null;
+  node_score_involvements?: Array<{
+    id: string;
+    category: string;
+    reason?: string;
+  }>;
 };
 
 export function lightState(status: Status | null): string {

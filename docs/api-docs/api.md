@@ -6,7 +6,8 @@ All timestamps and calendar dates use the **effective** IANA timezone: `{ENGRAM_
 
 **Memory write language** (`memory_language`): workspace yaml → `ENGRAM_MEMORY_LANGUAGE` → **`en`**. Allowed values only: `zh-Hant`｜`zh-Hans`｜`en`. Controls language of **new** dream／rollup／ask prose (not L0 `raw`, not workbench UI i18n).  
 
-**Store structure version** (`store_version`): optional semver in the same workspace yaml（例 `0.16.0`）. Missing → `GET /status.store_version` is `null`（server still starts）. Present but not `X.Y.Z` → **server refuses to start**. Server never auto-rewrites an existing／missing value to the product version on boot.
+**Store structure version** (`store_version`): semver in the same workspace yaml（例 `0.19.0`）. **Boot gate (0.19+):** after `ensureEngramHome`, disk `store_version` major.minor must be **≥ 0.19**; missing key or older structure → **server refuses to start** with a migrate hint（`.claude/skills/engram-migration/`, hop `migrate-0.17-to-0.19`). Does **not** require `store_version === product_version`（same structure generation may stamp newer product strings）. Escape hatch: `ENGRAM_ALLOW_STALE_STORE=1`（warns, still starts）. Present but not `X.Y.Z` → **server refuses to start**（workspace parse）. Server never auto-rewrites an existing／missing value to the product version on boot（except creating a brand-new workspace file）.
+
 
 Invalid workspace yaml／unknown keys／illegal values → **server refuses to start**.
 
@@ -30,8 +31,9 @@ Service discovery.
   "endpoints": [
     "POST /activities",
     "POST /dreams/run",
-    "GET /dreams/pending",
-    "GET /dreams/events",
+            "GET /dreams/pending",
+            "PATCH /dreams/pending/node-score-involvements",
+            "GET /dreams/events",
     "POST /dreams/approve",
     "POST /dreams/discard",
     "POST /dreams/retry",
@@ -106,7 +108,7 @@ Snapshot of store health, dream state, and async job status.
 |-------|------|---------|
 | `store_dir` | string | Resolved `ENGRAM_STORE_DIR` path |
 | `store_git` | boolean | `true` when `ENGRAM_STORE_DIR` is a usable local git work tree (0.16+; server refuses to start otherwise) |
-| `store_version` | string \| null | Disk **structure** generation from `engram.workspace.yaml` `store_version`（semver）；missing key → `null`（not a start failure） |
+| `store_version` | string \| null | Disk **structure** generation from `engram.workspace.yaml` `store_version`（semver）. **0.19+ boot** requires major.minor **≥ 0.19** or the process exits before listen（unless `ENGRAM_ALLOW_STALE_STORE=1`）. Missing key → start failure（status is only reachable when gate passed, so typically a stamped string） |
 | `product_version` | string | Engram product version from repo `version.md`（for comparison； mismatch does **not** refuse start） |
 | `temp_dir` | string | Resolved `ENGRAM_TEMP_DIR` (default `/tmp`) — ask jobs + dream agent disposable workdirs |
 | `timezone` | string | Effective IANA zone (workspace yaml → `ENGRAM_TZ` → `Asia/Hong_Kong`) |
@@ -347,7 +349,8 @@ Always **200**. No pending → empty shape (not 404).
   "dream_run_id": null,
   "scope": [],
   "report": null,
-  "draft_summary": null
+  "draft_summary": null,
+  "node_score_involvements": []
 }
 ```
 
@@ -367,6 +370,26 @@ Always **200**. No pending → empty shape (not 404).
 
 `chain_days` = ledger files (`days/{id}.md`); `chain_summary_days` = summary files (`days/{id}.summary.md`).
 
+**`node_score_involvements`** (0.19+): collapsed list from draft `node-score-involvements.yaml` — `{ id, category, reason? }` with `category` ∈ `mention`｜`update`｜`focus`. Missing／empty artifact → `[]`.
+
+---
+
+## `PATCH /dreams/pending/node-score-involvements`
+
+**2a** — while `pending_review`, change the category of an id already listed in the involvements artifact. Does **not** change live scores (settlement is on approve). Does **not** add／remove rows.
+
+**Request:** `{ "id": "acme", "category": "update" }`
+
+| Result | Status | `error` |
+|--------|--------|---------|
+| ok | 200 | — body `{ ok, id, category, reason }` |
+| illegal category | 400 | `invalid_category` |
+| id not in artifact | 404 | `involvement_not_found` |
+| no pending | 409 | `no_pending` |
+| missing fields | 400 | `missing_id`／`missing_category` |
+
+Rewrites the report section `## Node score involvements` from the updated artifact.
+
 ---
 
 ## `POST /dreams/approve`
@@ -377,8 +400,8 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 2. Else require active pending
 3. Reject future day ids in draft chain paths → **409** `future_chain_id` + `rejected_chain_ids` (pending／draft／short-term／L2 unchanged)
 4. Full maintain on draft `hot.md`／`later.md` (rebucket／sort；out-of-window dropped from draft). Still-expired items → **409** `stale_future_anchor` + `rejected_future_ids`
-5. Empty draft (no manifest entries and no deletes) → no L2／future-sight write; still clear S
-6. Else deploy draft → live (deletes then copy); path-only git rollback on deploy failure; then clear S; `git commit` message contains `dream_run_id` (also stages short-term clear). **No** post-approve future-sight maintain (pre-dream／GET cover calendar)
+5. Empty draft (no manifest entries and no deletes) → no L2／future-sight write；**no node-score settlement**；still clear S
+6. Else deploy draft → live (deletes then copy)；then **settle node scores** on live（boost listed pre-existing nodes；downscale if any score > S_max with `exclude_node_ids` = this-run creates；init creates at S0）；path-only git rollback on deploy failure；then clear S；`git commit` message contains `dream_run_id`（also stages short-term clear **and** score／registry paths）. **No** post-approve future-sight maintain (pre-dream／GET cover calendar)
 7. Clear S failure → run `committed` + `l1_clear_pending`; L2 may already be git-committed; next approve retries clear only (+ scope-clear commit)
 
 **Response `200`**
@@ -572,18 +595,21 @@ Single day **detail**. Path `day_id` must match `YYYY-MM-DD` or **`400 invalid_d
 
 ## `GET /memories/nodes`
 
-L2 node **index** (id ascending). Lightweight: `node` + `preview`.
+L2 node **index** (id ascending). Lightweight: `node` + `preview` + activity score fields.
 
 **Response `200`:**
 
 ```json
 {
   "nodes": [
-    { "node": "engram", "preview": "Release cadence…" }
+    { "node": "engram", "preview": "Release cadence…", "score": 180, "display_score": 100 }
   ],
   "present": true
 }
 ```
+
+- `score`：帳面分；無 `score.yaml` → `null`
+- `display_score`：`ceil(score / max_score * 100)`；無有效 `max_score` → `null`（UI 顯示 —）
 
 Empty → `{ "nodes": [], "present": false }`.
 
@@ -593,7 +619,9 @@ Empty → `{ "nodes": [], "present": false }`.
 
 Single node **detail** — narrative body of `what.md` (0.16+: whole file; pre-0.16 stores may still use `## Current`).  
 Illegal path chars → **`400 invalid_node_id`**.  
-Missing node → **200** `{ node, what_current: null, present: false }`.
+Missing node → **200** `{ node, what_current: null, present: false, score: null, display_score: null, score_timestamp: null }`.
+
+Present also returns `score`／`display_score`／`score_timestamp`（有檔時）.
 
 ---
 

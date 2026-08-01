@@ -3,7 +3,7 @@
 import type { AgentRunner, DreamContext, ReviewFeedback } from "../agent/types";
 import { ClaudeCodeRunner } from "../agent/claude-code";
 import { CursorCliRunner } from "../agent/cursor-cli";
-import { MockFailRunner, MockOkRunner } from "../agent/mock";
+import { MockFailRunner, MockOkRunner, MockBadInvolvementRunner, MockEmptyPatchesRunner } from "../agent/mock";
 import { acquireLock, releaseLock, isLocked, LockError } from "../store/dreams/lock";
 import {
   readPoolEntriesForScope,
@@ -56,6 +56,11 @@ import {
 import { formatRollupReportSection, runRollupCascade } from "./rollup";
 import { pickRollupAgent } from "../agent/rollup";
 import { addInitializedIds, type HigherChainLevel } from "../store/memories/chain-higher";
+import {
+  assertInvolvementsValidForPending,
+  readInvolvementsForPending,
+  settleNodeScoresOnApprove,
+} from "./node-score-involvements";
 
 export { DreamCancelledError } from "./cancel-state";
 
@@ -134,6 +139,8 @@ function pickRunner(): AgentRunner {
   const mode = process.env.ENGRAM_AGENT ?? "claude";
   if (mode === "mock-fail") return new MockFailRunner();
   if (mode === "mock-ok") return new MockOkRunner();
+  if (mode === "mock-bad-involvement") return new MockBadInvolvementRunner();
+  if (mode === "mock-empty-patches") return new MockEmptyPatchesRunner();
   if (mode === "cursor") return new CursorCliRunner();
   return new ClaudeCodeRunner();
 }
@@ -475,6 +482,22 @@ async function executeDreamPipeline(opts: {
   }
 
   const poolEntries = await readPoolEntriesForScope(scope);
+
+  // 0.19: illegal involvement categories must not enter pending_review.
+  try {
+    await assertInvolvementsValidForPending(dreamRunId);
+  } catch (e) {
+    await removeDraft(dreamRunId).catch(() => {});
+    const msg = e instanceof Error ? e.message : String(e);
+    emitDreamEvent(dreamRunId, {
+      phase: "materialize",
+      level: "error",
+      event: "involvements_invalid",
+      message: msg,
+    });
+    throw new DreamIncompleteError(dreamRunId, msg, "materialize");
+  }
+
   await finalizeDreamReport({
     dream_run_id: dreamRunId,
     scope,
@@ -597,6 +620,7 @@ export async function getPendingPayload(): Promise<{
     chain_years: string[];
     future_ids: string[];
   } | null;
+  node_score_involvements: Array<{ id: string; category: string; reason?: string }>;
 }> {
   const pending = await getPendingRun();
   if (!pending) {
@@ -606,11 +630,13 @@ export async function getPendingPayload(): Promise<{
       scope: [],
       report: null,
       draft_summary: null,
+      node_score_involvements: [],
     };
   }
 
   const report = await readReport(pending.id);
   const draft_summary = await draftSummary(pending.id);
+  const involvements = await readInvolvementsForPending(pending.id);
 
   return {
     present: true,
@@ -618,6 +644,11 @@ export async function getPendingPayload(): Promise<{
     scope: pending.scope,
     report,
     draft_summary,
+    node_score_involvements: involvements.map((r) => ({
+      id: r.id,
+      category: r.category,
+      ...(r.reason ? { reason: r.reason } : {}),
+    })),
   };
 }
 
@@ -704,10 +735,23 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   const deletes = await readDraftDeletes(pending.id);
   const empty_patches = !(manifest?.entries.length) && !deletes.length;
 
+  let scorePaths: string[] = [];
   if (!empty_patches) {
     const result = await commitDraft(pending.id);
     committed = result.committed;
     await recordInitializedFromManifest(manifest);
+
+    // 0.19: settle live node scores after successful commitDraft (before git commit).
+    try {
+      scorePaths = await settleNodeScoresOnApprove({
+        dream_run_id: pending.id,
+        as_of: nowIso(),
+        manifest,
+      });
+    } catch (e) {
+      logError("node-score settle after commit failed", e, { dream_run_id: pending.id });
+      // Live memories already deployed; continue like other post-commit failures.
+    }
   }
 
   pending.status = "committed";
@@ -724,7 +768,7 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
     // keep l1_clear_pending
   }
 
-  const gitPaths = [...committed];
+  const gitPaths = [...committed, ...scorePaths];
   if (!pending.l1_clear_pending) {
     gitPaths.push("memories/short-term-memory");
   }

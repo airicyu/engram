@@ -1,6 +1,6 @@
 /**
- * Finalize dream report: keep AI narrative; server fills Scope／Events／Appendix
- * from frozen scope + draft manifest／deletes.
+ * Finalize dream report: keep AI narrative; server fills Scope／Events／
+ * Node score involvements／Appendix from frozen scope + draft manifest／deletes.
  */
 
 import { access, readFile, writeFile } from "node:fs/promises";
@@ -10,6 +10,10 @@ import { readDraftDeletes } from "../store/dreams/file-pipeline";
 import { reportPath } from "../store/dreams/dream-runs";
 import { config } from "../config";
 import { calendarDate } from "../store/memories/activities";
+import {
+  formatInvolvementsSection,
+  readInvolvementsForPending,
+} from "./node-score-involvements";
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -33,9 +37,14 @@ const REQUIRED_HEADINGS = [
   "### Paths",
 ] as const;
 
-/** Extract narrative block between ## Narrative and ## Appendix. */
+/**
+ * Extract narrative block between ## Narrative and the next server-owned section.
+ * Truncates at ## Node score involvements or ## Appendix (whichever first).
+ */
 function extractNarrative(md: string): string {
-  const m = md.match(/## Narrative\s*\n([\s\S]*?)(?=\n## Appendix — pending deploy\b|$)/);
+  const m = md.match(
+    /## Narrative\s*\n([\s\S]*?)(?=\n## Node score involvements\b|\n## Appendix — pending deploy\b|$)/,
+  );
   if (m) return m[1].trim();
   // Fallback: build minimal narrative skeleton
   return [
@@ -177,6 +186,10 @@ export async function finalizeDreamReport(opts: {
   lines.push("");
 
   lines.push("## Narrative", narrative.trim(), "");
+
+  // Server-owned: Node score involvements (between Narrative and Appendix; before rollup).
+  const involvements = await readInvolvementsForPending(opts.dream_run_id);
+  lines.push(formatInvolvementsSection(involvements), "");
 
   if (opts.rollup_section?.trim()) {
     lines.push(opts.rollup_section.trim(), "");

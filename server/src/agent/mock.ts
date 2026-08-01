@@ -1,7 +1,7 @@
 /** Deterministic mock runners used by local dream pipeline tests (0.16 file pipeline). */
 
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import type { AgentRunner, DreamContext } from "./types";
 import { calendarDate, nowIso } from "../store/memories/activities";
 import {
@@ -9,6 +9,7 @@ import {
   writeDraftFile,
   draftAbs,
 } from "../store/dreams/file-pipeline";
+import { draftDir } from "../store/dreams/dream-runs";
 import { dayLedgerRel, daySummaryRel } from "../store/memories/chain";
 import { stringify } from "../yaml";
 import {
@@ -42,6 +43,70 @@ export class MockFailRunner implements AgentRunner {
   }
 }
 
+/** Writes draft + involvements with an illegal category (must not reach pending_review). */
+export class MockBadInvolvementRunner implements AgentRunner {
+  async dream(ctx: DreamContext): Promise<void> {
+    const ok = new MockOkRunner();
+    await ok.dream(ctx);
+    await ensureWrite(
+      join(draftDir(ctx.dream_run_id), "node-score-involvements.yaml"),
+      stringify({
+        nodes: [{ id: ctx.existing_nodes[0] ?? "acme", category: "GRADE_9", reason: "bad" }],
+      }),
+    );
+  }
+}
+
+/** Report-only draft with no memory file changes → empty_patches on approve. */
+export class MockEmptyPatchesRunner implements AgentRunner {
+  async dream(ctx: DreamContext): Promise<void> {
+    const scopeIds = ctx.scope.length ? ctx.scope : ctx.events.map((e) => e.id);
+    await ensureWrite(
+      join(draftDir(ctx.dream_run_id), "node-score-involvements.yaml"),
+      stringify({
+        nodes: ctx.existing_nodes[0]
+          ? [{ id: ctx.existing_nodes[0], category: "focus", reason: "should not settle" }]
+          : [],
+      }),
+    );
+    const report = [
+      `# Dream report — ${ctx.dream_run_id}`,
+      "",
+      "## Scope",
+      "",
+      ...scopeIds.map((id) => `- \`${id}\``),
+      "",
+      "## Events covered",
+      "",
+      ...ctx.events.map((e) => `- **${e.id}** [${e.ts}] ${e.raw.trim()}`),
+      "",
+      "## Narrative",
+      "### Timeline",
+      "",
+      "Mock empty-patches dream (no file changes).",
+      "",
+      "### Long-term updates",
+      "",
+      "_None_",
+      "",
+      "### Near future",
+      "",
+      "_None_",
+      "",
+      "### Uncertainties",
+      "",
+      "_None_",
+      "",
+      "## Appendix — pending deploy",
+      "### Paths",
+      "",
+      "_Server will rewrite this appendix._",
+      "",
+    ].join("\n");
+    await ensureWrite(ctx.report_path, report);
+  }
+}
+
 /** Writes a minimal valid draft + narrative report without a live agent. */
 export class MockOkRunner implements AgentRunner {
   async dream(ctx: DreamContext): Promise<void> {
@@ -56,19 +121,29 @@ export class MockOkRunner implements AgentRunner {
     const wantsNewco =
       ctx.l1.summary.toLowerCase().includes("newco") ||
       ctx.events.some((e) => /newco/i.test(e.raw));
+    const wantsBrandnew =
+      ctx.l1.summary.toLowerCase().includes("brandnew") ||
+      ctx.events.some((e) => /brandnew/i.test(e.raw));
 
     let node =
       wantsNewco && !ctx.existing_nodes.includes("newco")
         ? "newco"
-        : (ctx.existing_nodes[0] ?? "acme");
+        : wantsBrandnew && !ctx.existing_nodes.includes("brandnew")
+          ? "brandnew"
+          : (ctx.existing_nodes[0] ?? "acme");
 
-    if (wantsNewco && !ctx.existing_nodes.includes("newco")) {
-      const metaRel = `memories/nodes/newco/node.meta.yaml`;
+    const creatingId =
+      (wantsNewco && !ctx.existing_nodes.includes("newco") && "newco") ||
+      (wantsBrandnew && !ctx.existing_nodes.includes("brandnew") && "brandnew") ||
+      null;
+
+    if (creatingId) {
+      const metaRel = `memories/nodes/${creatingId}/node.meta.yaml`;
       await writeDraftFile(
         ctx.dream_run_id,
         metaRel,
         stringify({
-          id: "newco",
+          id: creatingId,
           kind: "org",
           aliases: [],
           created_at: ts,
@@ -76,47 +151,47 @@ export class MockOkRunner implements AgentRunner {
       );
       await writeDraftFile(
         ctx.dream_run_id,
-        "memories/nodes/newco/understand/what.md",
+        `memories/nodes/${creatingId}/understand/what.md`,
         "Organization mentioned in ingest\n",
       );
       await writeDraftFile(
         ctx.dream_run_id,
-        "memories/nodes/newco/INDEX.md",
-        "# newco\n\nSee understand/what.md\n",
+        `memories/nodes/${creatingId}/INDEX.md`,
+        `# ${creatingId}\n\nSee understand/what.md\n`,
       );
-      node = "newco";
+      node = creatingId;
     }
 
-    if (ctx.existing_nodes.includes(node) || node === "newco") {
-      const whatRel = `memories/nodes/${node}/understand/what.md`;
+    // Prefer also refreshing a pre-existing primary node (acme if present) when creating.
+    const primaryExisting =
+      ctx.existing_nodes.find((id) => id === "acme") ?? ctx.existing_nodes[0] ?? null;
+
+    async function touchExistingWhat(nodeId: string): Promise<void> {
+      const whatRel = `memories/nodes/${nodeId}/understand/what.md`;
       await copyLiveIntoDraft(ctx.dream_run_id, whatRel);
-      let prior = "";
-      try {
-        prior =
-          ctx.l2_current.find((n) => n.node === node)?.what_current.trim() ?? "";
-      } catch {
-        prior = "";
-      }
-      if (!prior) {
-        // draft may have seed what
-        prior = "";
-      }
+      const prior =
+        ctx.l2_current.find((n) => n.node === nodeId)?.what_current.trim() ?? "";
       const note = `Mock extract note from short-term: ${ctx.l1.summary.slice(0, 120)}${
         ctx.review_feedback
           ? ` [retry from ${ctx.review_feedback.retried_from}: ${ctx.review_feedback.reason.slice(0, 80)}]`
           : ""
       }`;
       const body = prior ? `${prior}\n\n${note}` : note;
-      // If we seeded newco what already, append mock note
-      if (node === "newco" && wantsNewco && !ctx.existing_nodes.includes("newco")) {
-        await writeDraftFile(
-          ctx.dream_run_id,
-          whatRel,
-          `Organization mentioned in ingest\n\n${note}\n`,
-        );
-      } else {
-        await writeDraftFile(ctx.dream_run_id, whatRel, `${body}\n`);
+      await writeDraftFile(ctx.dream_run_id, whatRel, `${body}\n`);
+    }
+
+    if (creatingId) {
+      await writeDraftFile(
+        ctx.dream_run_id,
+        `memories/nodes/${creatingId}/understand/what.md`,
+        `Organization mentioned in ingest\n\nMock extract note from short-term: ${ctx.l1.summary.slice(0, 120)}\n`,
+      );
+      // brandnew path also refreshes primary existing (downscale exclude scenario).
+      if (creatingId === "brandnew" && primaryExisting) {
+        await touchExistingWhat(primaryExisting);
       }
+    } else if (ctx.existing_nodes.includes(node)) {
+      await touchExistingWhat(node);
     }
 
     const ledgerRel = dayLedgerRel(chainDay);
@@ -219,6 +294,28 @@ export class MockOkRunner implements AgentRunner {
           "",
         ].join("\n")
       : "";
+
+    // 0.19: involvements artifact — only pre-existing nodes (creates omitted).
+    const involvementNodes: Array<{ id: string; category: string; reason?: string }> = [];
+    const involvedExisting =
+      creatingId === "brandnew" && primaryExisting
+        ? primaryExisting
+        : !creatingId && ctx.existing_nodes.includes(node)
+          ? node
+          : null;
+    if (involvedExisting) {
+      involvementNodes.push({
+        id: involvedExisting,
+        category: "focus",
+        reason: "Mock primary node update",
+      });
+    }
+    {
+      await ensureWrite(
+        join(draftDir(ctx.dream_run_id), "node-score-involvements.yaml"),
+        stringify({ nodes: involvementNodes }),
+      );
+    }
 
     const report = [
       `# Dream report — ${ctx.dream_run_id}`,

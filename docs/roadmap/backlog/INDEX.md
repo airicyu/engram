@@ -6,6 +6,7 @@
 
 | 項目 | 備註 |
 |------|------|
-| （目前無開放 backlog 條目） | — |
+| [Dream draft 自由句編輯 2b](./dream-draft-edit.md) | 0.19 不做；pending 時 agent 小修 draft |
+| Seek／network 依 node 活躍分 | 等 0.19 分數可觀察後再排；排序／種子擴張／節點大小 |
 
-← [0.18.0](../0.18.0/INDEX.md)（shipped） · [0.17.0](../0.17.0/INDEX.md)（已出貨） · [GUIDELINES](../GUIDELINES.md)
+← [0.19.0](../0.19.0/INDEX.md)（shipped） · [0.18.0](../0.18.0/INDEX.md)（shipped） · [GUIDELINES](../GUIDELINES.md)

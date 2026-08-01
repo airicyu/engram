@@ -549,6 +549,66 @@ body {
   margin-top: 1.25rem;
 }
 
+.involvements-panel {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.involvements-panel h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.35rem;
+}
+
+.involvements-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.involvements-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.involvements-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.involvements-id {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  min-width: 5rem;
+}
+
+.involvements-select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  background: var(--surface);
+  font-size: 0.875rem;
+}
+
+.involvements-reason {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  flex: 1 1 12rem;
+}
+
+.browse-item-score {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
 .retry-label {
   display: block;
   margin-bottom: 0.4rem;

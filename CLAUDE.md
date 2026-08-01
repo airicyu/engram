@@ -30,7 +30,7 @@
 
 時區由 **有效 timezone** 決定：記憶庫內 `engram.workspace.yaml` → 環境變數 `ENGRAM_TZ` → 預設 **`Asia/Hong_Kong`**。  
 記憶寫入語言：workspace config `memory_language` → 環境變數 `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。  
-記憶庫結構世代：workspace **`store_version`**（semver）；缺鍵時 `GET /status.store_version` 為 `null`（不拒啟）；migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`.claude/skills/engram-migration/SKILL.md`。
+記憶庫結構世代：workspace **`store_version`**（semver）。**0.19+**：啟動時 major.minor 須 **≥ 0.19**，缺鍵或過舊 → **拒啟**並提示跑 `.claude/skills/engram-migration/`（勿手改當 migrate）；`ENGRAM_ALLOW_STALE_STORE=1` 可警告後仍啟。migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`docs/roadmap/0.19.0/docs/store-boot-gate.md`、`.claude/skills/engram-migration/SKILL.md`。
 
 
 ## 倉庫結構
@@ -118,12 +118,11 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.18.2` — Rollup plan／write 改 file deliverable（不 parse stdout）
-- **上一版：** `0.18.1` — Rollup agent 跟隨 `ENGRAM_AGENT`；`0.18.0` — Seek 納入未來視＋`window_days` 預設 365 — 見 `docs/roadmap/0.18.0/`
+- **已出貨：** `0.19.0` — Node 活躍分（score）＋ report／2a category — 見 `docs/roadmap/0.19.0/`（**shipped**）
+- **上一版：** `0.18.2` — Rollup plan／write 改 file deliverable；`0.18.1` — Rollup agent 跟隨 `ENGRAM_AGENT`；`0.18.0` — Seek 納入未來視＋`window_days` 預設 365
 - **更早：** `0.17.0` — 未來視雙區＋入夢前機械維護；`0.16.0` — Store git 事務＋draft 檔案作業
-- **Backlog：** 見 `docs/roadmap/backlog/`
-- **遷移：** 0.16→0.17 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；0.18.x **無** store migrate
-
+- **Backlog：** 見 `docs/roadmap/backlog/`（含 2b 自由句改 draft；Seek／network 依分）
+- **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

@@ -16,6 +16,11 @@ import {
   weekDateRange,
 } from "../store/memories/chain-time";
 import { listNodeIds, nodeExists, readWhatCurrent } from "../store/memories/nodes";
+import {
+  displayScore,
+  readNodeScore,
+  readRegistry,
+} from "../store/memories/node-score";
 
 const PREVIEW_MAX = 80;
 
@@ -151,14 +156,33 @@ export async function getChainYear(yearId: string) {
 }
 
 export async function listNodesIndex(): Promise<{
-  nodes: Array<{ node: string; preview: string }>;
+  nodes: Array<{
+    node: string;
+    preview: string;
+    score: number | null;
+    display_score: number | null;
+  }>;
   present: boolean;
 }> {
   const ids = await listNodeIds();
-  const nodes: Array<{ node: string; preview: string }> = [];
+  const reg = await readRegistry();
+  const maxScore = reg?.max_score ?? null;
+  const nodes: Array<{
+    node: string;
+    preview: string;
+    score: number | null;
+    display_score: number | null;
+  }> = [];
   for (const node of ids) {
     const what = await readWhatCurrent(node);
-    nodes.push({ node, preview: previewText(what) });
+    const scoreFile = await readNodeScore(node);
+    const score = scoreFile?.score ?? null;
+    nodes.push({
+      node,
+      preview: previewText(what),
+      score,
+      display_score: score == null ? null : displayScore(score, maxScore),
+    });
   }
   return { nodes, present: nodes.length > 0 };
 }
@@ -167,11 +191,31 @@ export async function getNodeDetail(nodeId: string): Promise<{
   node: string;
   what_current: string | null;
   present: boolean;
+  score: number | null;
+  display_score: number | null;
+  score_timestamp: string | null;
 }> {
   const exists = await nodeExists(nodeId);
   if (!exists) {
-    return { node: nodeId, what_current: null, present: false };
+    return {
+      node: nodeId,
+      what_current: null,
+      present: false,
+      score: null,
+      display_score: null,
+      score_timestamp: null,
+    };
   }
   const what_current = await readWhatCurrent(nodeId);
-  return { node: nodeId, what_current, present: true };
+  const scoreFile = await readNodeScore(nodeId);
+  const reg = await readRegistry();
+  const score = scoreFile?.score ?? null;
+  return {
+    node: nodeId,
+    what_current,
+    present: true,
+    score,
+    display_score: score == null ? null : displayScore(score, reg?.max_score ?? null),
+    score_timestamp: scoreFile?.score_timestamp ?? null,
+  };
 }

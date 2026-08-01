@@ -439,7 +439,13 @@ export class CursorRollupAgent extends CliRollupAgent {
 
 export function pickRollupAgent(): RollupAgent {
   const mode = process.env.ENGRAM_AGENT ?? "claude";
-  if (mode === "mock-ok" || mode === "mock-fail" || mode === "mock-ask-ok") {
+  if (
+    mode === "mock-ok" ||
+    mode === "mock-fail" ||
+    mode === "mock-ask-ok" ||
+    mode === "mock-empty-patches" ||
+    mode === "mock-bad-involvement"
+  ) {
     return new MockRollupAgent();
   }
   if (mode === "cursor") return new CursorRollupAgent();

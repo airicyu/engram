@@ -16,6 +16,7 @@ export function ConsolidateScene() {
   const [msg, setMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [resultBody, setResultBody] = useState<string | null>(null);
   const [retryReason, setRetryReason] = useState("");
+  const [patchingId, setPatchingId] = useState<string | null>(null);
 
   const dash = t("consolidate.dash");
   const pendingReview = status?.dream_status === "pending_review";
@@ -136,6 +137,30 @@ export function ConsolidateScene() {
     }
     setMsg({ text: t("dream.discard_ok"), kind: "ok" });
     setRetryReason("");
+    await refreshStatus();
+  }
+
+  async function onPatchCategory(id: string, category: string) {
+    setPatchingId(id);
+    setMsg({ text: "", kind: "" });
+    const { ok, status: http, data } = await api<{
+      ok?: boolean;
+      category?: string;
+      message?: string;
+      error?: string;
+    }>("/dreams/pending/node-score-involvements", {
+      method: "PATCH",
+      body: JSON.stringify({ id, category }),
+    });
+    setPatchingId(null);
+    if (!ok) {
+      setMsg({
+        text: data?.message || data?.error || t("dream.fail", { status: http }),
+        kind: "error",
+      });
+      return;
+    }
+    setMsg({ text: t("consolidate.involvement_patched", { id, category }), kind: "ok" });
     await refreshStatus();
   }
 
@@ -263,6 +288,36 @@ export function ConsolidateScene() {
             text={pending.report?.trim() || t("pending.no_report")}
             empty={!pending.report?.trim()}
           />
+          {pendingReview && (pending.node_score_involvements?.length ?? 0) > 0 ? (
+            <div className="involvements-panel">
+              <h3>{t("consolidate.involvements_title")}</h3>
+              <p className="involvements-hint">{t("consolidate.involvements_hint")}</p>
+              <ul className="involvements-list">
+                {(pending.node_score_involvements ?? []).map((row) => (
+                  <li key={row.id} className="involvements-row">
+                    <span className="involvements-id">{row.id}</span>
+                    <label className="sr-only" htmlFor={`inv-cat-${row.id}`}>
+                      {t("consolidate.involvement_category_label", { id: row.id })}
+                    </label>
+                    <select
+                      id={`inv-cat-${row.id}`}
+                      className="involvements-select"
+                      value={row.category}
+                      disabled={!!status?.lock || dreaming || patchingId === row.id}
+                      onChange={(e) => void onPatchCategory(row.id, e.target.value)}
+                    >
+                      <option value="mention">{t("consolidate.category.mention")}</option>
+                      <option value="update">{t("consolidate.category.update")}</option>
+                      <option value="focus">{t("consolidate.category.focus")}</option>
+                    </select>
+                    {row.reason ? (
+                      <span className="involvements-reason">{row.reason}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <div className="consolidate-actions">
             <button
               type="button"

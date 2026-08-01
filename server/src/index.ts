@@ -4,6 +4,7 @@
 
 import { config } from "./config";
 import { ensureEngramHome } from "./store/home";
+import { assertStoreStructureOrExit } from "./store/store-structure";
 import { handleActivities } from "./api/activities";
 import { handleStatus } from "./api/status";
 import { handleClockGet, handleClockPut, handleClockDelete } from "./api/clock";
@@ -15,6 +16,7 @@ import {
   handleDreamApprove,
   handleDreamDiscard,
   handleDreamCancel,
+  handlePatchNodeScoreInvolvements,
 } from "./api/dream";
 import { handleDreamEvents } from "./api/dream-events";
 import { handleShortTermMemory } from "./api/activities/short-term-memory";
@@ -46,6 +48,7 @@ try {
   logError(`store ensure failed: ${msg}`);
   process.exit(1);
 }
+assertStoreStructureOrExit();
 await loadClockFromDisk();
 
 let server: ReturnType<typeof Bun.serve>;
@@ -64,6 +67,7 @@ try {
             "POST /dreams/retry",
             "POST /dreams/cancel",
             "GET /dreams/pending",
+            "PATCH /dreams/pending/node-score-involvements",
             "GET /dreams/events",
             "POST /dreams/approve",
             "POST /dreams/discard",
@@ -165,6 +169,19 @@ try {
 
     "/dreams/pending": {
       GET: withRequestLog(() => handleDreamPending()),
+    },
+
+    "/dreams/pending/node-score-involvements": {
+      PATCH: withRequestLog(async (req) => {
+        let body: { id?: string; category?: string } = {};
+        try {
+          const text = await req.text();
+          if (text.trim()) body = JSON.parse(text) as { id?: string; category?: string };
+        } catch {
+          return Response.json({ error: "invalid JSON body" }, { status: 400 });
+        }
+        return handlePatchNodeScoreInvolvements(body);
+      }),
     },
 
     "/dreams/events": {

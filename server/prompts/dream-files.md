@@ -23,10 +23,21 @@ Timezone: `{{TIMEZONE}}` · Memory language: `{{MEMORY_LANGUAGE}}` · today=`{{T
 5. **deletes**: optional lines in `{{DRAFT_DIR}}/deletes.txt` (paths relative to store root, under `memories/` only).
 6. Week／month／year summaries: if this round needs rollup updates, write them as file_update under the same draft (same human review).
 7. Write language = `{{MEMORY_LANGUAGE}}`. Calendar days follow today=`{{TODAY}}` (never invent future day chain ids).
+8. **Node score involvements** (required artifact, even if empty): write `{{DRAFT_DIR}}/node-score-involvements.yaml` with:
+   ```yaml
+   nodes:
+     - id: <existing_node_id>
+       category: mention   # or update | focus
+       reason: "short note"  # optional
+   ```
+   - Only list nodes that **already existed before this dream** and were involved this round. **Omit** nodes created in this draft.
+   - Categories (only these three): `mention` (passed over)｜`update` (substantive what.md change)｜`focus` (main subject of this round).
+   - Do **not** write any numeric score／`max_score`／`need_downscale`. Server computes scores on approve.
+   - Empty list is fine: `nodes: []`.
 
 ## Report (`{{REPORT_PATH}}`)
 
-Write markdown with **exactly** these section headings (fill narrative; Scope／Events／Appendix may be stubbed — server rewrites them):
+Write markdown with **exactly** these section headings (fill narrative; Scope／Events／Appendix may be stubbed — server rewrites them). You may omit `## Node score involvements` — the server generates it from the artifact:
 
 ```markdown
 # Dream report — {{DREAM_RUN_ID}}
