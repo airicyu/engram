@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.18.2 — Rollup file deliverable（不靠 stdout）(2026-08-01)
+
+### Changed
+
+- **Rollup plan／write**：改為 Ask／dream 同款 **寫檔再讀** — plan 寫 temp `plan.json`；writer 寫 draft 下對應 `*.summary.md`；server 讀檔驗證後 upsert manifest。`-p` 只負責驅動作，**不**再 parse stdout 當 deliverable
+- Claude rollup CLI：`--allowedTools Read,Write`；Cursor 另 `--add-dir` draft root
+
+### Migrate
+
+- **無**；不要求 bump `store_version`
+
+---
+
 ## 0.18.1 — Rollup agent 跟隨 ENGRAM_AGENT (2026-08-01)
 
 ### Fixed

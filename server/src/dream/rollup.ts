@@ -19,12 +19,17 @@ import {
   readDaySummaryPreferDraft,
   readHigherSummaryCurrentPreferDraft,
 } from "../store/dreams/draft";
-import { writeDraftMemoryFile } from "../store/dreams/file-pipeline";
+import {
+  draftAbs,
+  writeDraftMemoryFile,
+} from "../store/dreams/file-pipeline";
 import { calendarDate, nowIso } from "../store/memories/activities";
 import { config } from "../config";
 import { emitDreamEvent } from "./emit-event";
 import { throwIfDreamCancelled } from "./cancel-state";
 import { assertFusedRollupSummary } from "./rollup-quality";
+import { mkdir, rm } from "node:fs/promises";
+import { dirname } from "node:path";
 
 export interface RollupPlanTarget {
   id: string;
@@ -69,6 +74,10 @@ export interface RollupWriteContext {
   /** Lower-layer Current texts (prefer draft). */
   lower: Array<{ id: string; current: string; missing?: boolean }>;
   prior_current: string;
+  /** Absolute path under this run's draft — agent must Write the summary body here. */
+  output_path: string;
+  /** Store-relative path (e.g. `memories/chain/months/…/*.summary.md`). */
+  output_rel: string;
 }
 
 export interface RollupAgent {
@@ -251,6 +260,9 @@ async function runLevel(opts: {
   const ts = nowIso();
   for (const t of plan.targets) {
     throwIfDreamCancelled(dreamRunId);
+    const rel = higherSummaryRel(level, t.id);
+    const output_path = draftAbs(dreamRunId, ...rel.split("/"));
+    await mkdir(dirname(output_path), { recursive: true });
     const lower = await assembleLowerContext(dreamRunId, level, t.id);
     const prior_current = await readHigherSummaryCurrentPreferDraft(dreamRunId, level, t.id);
     const summary = await agent.write({
@@ -264,9 +276,16 @@ async function runLevel(opts: {
       today,
       lower,
       prior_current,
+      output_path,
+      output_rel: rel,
     });
-    assertFusedRollupSummary(level, summary);
-    const rel = higherSummaryRel(level, t.id);
+    try {
+      assertFusedRollupSummary(level, summary);
+    } catch (e) {
+      await rm(output_path, { force: true }).catch(() => {});
+      throw e;
+    }
+    // Normalize trailing newline + ensure manifest entry (CLI agent already wrote the file).
     await writeDraftMemoryFile(dreamRunId, rel, summary.trim());
     written.push(rel);
   }

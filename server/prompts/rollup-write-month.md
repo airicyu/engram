@@ -7,6 +7,13 @@ Read JSON context at: `{{CONTEXT_PATH}}`
 - id=`{{ID}}` · operation=`{{OPERATION}}`
 - today=`{{TODAY}}` · now=`{{NOW}}` · tz=`{{TIMEZONE}}` · lang=`{{MEMORY_LANGUAGE}}` · run=`{{DREAM_RUN_ID}}`
 
+## Deliverable (STRICT)
+
+- Write the summary markdown to this file and nowhere else: `{{OUTPUT_PATH}}`
+  (store-relative: `{{OUTPUT_REL}}`)
+- Do **not** print the summary to stdout. The deliverable is that file.
+- The file must contain **only** the summary body — **first line must be a `##` title** (no process narration, no fences wrapping the whole file).
+
 Write the summary body in **{{MEMORY_LANGUAGE}}** (`zh-Hant` = Traditional Chinese, `zh-Hans` = Simplified Chinese, `en` = English). On revise, rewrite the full body in that language (do not leave mixed-language prior text).
 
 ## Purpose
@@ -56,7 +63,7 @@ Paragraph…
 - No paste／truncate-stack of lower Currents.
 - No `## Current` / `## History` headers.
 - No meta about being a model／writer.
-- No process narration before／after the markdown（“Reading the write context…”, “Writing…”, “已寫入 …”）. **First line must be a `##` title.**
+- No process narration in the output file（“Reading the write context…”, “Writing…”, “已寫入 …”）. **First line must be a `##` title.**
 - No deictic time with no anchor（「這天」「今日」「那天」without saying which day／part of the month）.
 
 Ground only in `lower[]` (+ `prior_current` on revise). Complete replacement body on revise.

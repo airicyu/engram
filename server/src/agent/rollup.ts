@@ -1,5 +1,6 @@
-/** Mock + CLI-backed agents for higher-chain rollup planner／writer. */
+/** Mock + file-deliverable CLI agents for higher-chain rollup planner／writer. */
 
+import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { config } from "../config";
 import type {
@@ -13,14 +14,11 @@ import {
   isCurrentWeek,
   isCurrentYear,
 } from "../store/memories/chain-time";
+import { draftDir } from "../store/dreams/dream-runs";
 import { setDreamJobAgentPid } from "../store/dreams/dream-job";
 import { loadPrompt, renderPrompt } from "./prompt-template";
 import { withTempJsonContext } from "./temp-context";
 import { runAgentCommand } from "./subprocess";
-import {
-  unwrapCursorResultEnvelope,
-  unwrapFencedOrRaw,
-} from "./cursor-envelope";
 
 /** Deterministic mock: skip still-open current periods; otherwise Y + fused prose. */
 export class MockRollupAgent implements RollupAgent {
@@ -249,22 +247,16 @@ function parsePlanJson(raw: string): RollupPlan {
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start < 0 || end <= start) {
-    throw new Error("rollup plan: no JSON object in agent output");
+    throw new Error("rollup plan: no JSON object in result file");
   }
   const obj = JSON.parse(cleaned.slice(start, end + 1)) as RollupPlan;
   if (!obj || typeof obj !== "object") throw new Error("rollup plan: invalid JSON");
   return obj;
 }
 
-function parseWriteText(raw: string): string {
-  const unwrapped = unwrapCursorResultEnvelope(raw);
-  const body = unwrapFencedOrRaw(unwrapped);
-  return stripRollupWriterPreamble(body);
-}
-
 /**
- * Cursor agents often narrate ("Reading the write context…") before the markdown.
- * Keep from the first `##` section title through the end; drop trailing process chatter.
+ * If an agent left process narration above the first `##`, keep from that title.
+ * Prefer empty preamble (file deliverable); this is defense in depth.
  */
 export function stripRollupWriterPreamble(text: string): string {
   const m = text.match(/^##\s+\S/m);
@@ -288,17 +280,27 @@ export function stripRollupWriterPreamble(text: string): string {
   return out.join("\n").trim();
 }
 
-type RollupPromptRunner = (
-  prompt: string,
-  workDir: string,
-  dreamRunId: string,
-) => Promise<string>;
+async function readRequiredFile(path: string, label: string): Promise<string> {
+  try {
+    await access(path);
+  } catch {
+    throw new Error(`${label} result file missing: ${path}`);
+  }
+  return (await readFile(path, "utf8")).trim();
+}
 
-async function runClaudePrompt(
+type RollupInvokeOpts = {
+  /** Extra dirs Cursor may Write／Read (e.g. draft root). */
+  extraAddDirs?: string[];
+};
+
+/** Spawn CLI to perform file work; deliverable is on disk — stdout is ignored. */
+async function runClaudeRollup(
   prompt: string,
   workDir: string,
   dreamRunId: string,
-): Promise<string> {
+  _opts?: RollupInvokeOpts,
+): Promise<void> {
   const cmd = [
     config.claudeBin,
     "-p",
@@ -306,23 +308,23 @@ async function runClaudePrompt(
     "--output-format",
     "text",
     "--allowedTools",
-    "Read",
+    "Read,Write",
   ];
-  const result = await runAgentCommand({
+  await runAgentCommand({
     cmd,
     cwd: workDir,
     processKey: `dream:${dreamRunId}`,
     onPid: (pid) => setDreamJobAgentPid(pid),
     exitErrorLabel: "rollup agent",
   });
-  return result.stdout;
 }
 
-async function runCursorPrompt(
+async function runCursorRollup(
   prompt: string,
   workDir: string,
   dreamRunId: string,
-): Promise<string> {
+  opts?: RollupInvokeOpts,
+): Promise<void> {
   const cmd = [
     config.cursorAgentBin,
     "-p",
@@ -333,19 +335,28 @@ async function runCursorPrompt(
     "--add-dir",
     workDir,
   ];
-  const result = await runAgentCommand({
+  for (const dir of opts?.extraAddDirs ?? []) {
+    cmd.push("--add-dir", dir);
+  }
+  await runAgentCommand({
     cmd,
     cwd: workDir,
     processKey: `dream:${dreamRunId}`,
     onPid: (pid) => setDreamJobAgentPid(pid),
     exitErrorLabel: "rollup agent",
   });
-  return result.stdout;
 }
 
-/** Shared plan／write flow; only the CLI invoke differs. */
+type RollupInvoker = (
+  prompt: string,
+  workDir: string,
+  dreamRunId: string,
+  opts?: RollupInvokeOpts,
+) => Promise<void>;
+
+/** Shared plan／write flow; deliverables are files (stdout ignored). */
 class CliRollupAgent implements RollupAgent {
-  constructor(private readonly runPrompt: RollupPromptRunner) {}
+  constructor(private readonly invoke: RollupInvoker) {}
 
   async plan(ctx: RollupPlanContext): Promise<RollupPlan> {
     const promptPath = join(import.meta.dir, "../../prompts/rollup-plan.md");
@@ -357,8 +368,10 @@ class CliRollupAgent implements RollupAgent {
         value: ctx,
       },
       async (workDir, ctxPath) => {
+        const resultPath = join(workDir, "plan.json");
         const prompt = renderPrompt(template, {
           CONTEXT_PATH: ctxPath,
+          RESULT_PATH: resultPath,
           DREAM_RUN_ID: ctx.dream_run_id,
           LEVEL: ctx.level,
           TODAY: ctx.today,
@@ -366,8 +379,9 @@ class CliRollupAgent implements RollupAgent {
           TIMEZONE: ctx.timezone,
           MEMORY_LANGUAGE: ctx.memory_language,
         });
-        const stdout = await this.runPrompt(prompt, workDir, ctx.dream_run_id);
-        return parsePlanJson(parseWriteText(stdout));
+        await this.invoke(prompt, workDir, ctx.dream_run_id);
+        const raw = await readRequiredFile(resultPath, "rollup plan");
+        return parsePlanJson(raw);
       },
     );
   }
@@ -378,6 +392,7 @@ class CliRollupAgent implements RollupAgent {
       `../../prompts/rollup-write-${ctx.level}.md`,
     );
     const template = await loadPrompt(promptPath);
+    const draftRoot = draftDir(ctx.dream_run_id);
     return withTempJsonContext(
       {
         prefix: "engram-rollup-write",
@@ -387,6 +402,8 @@ class CliRollupAgent implements RollupAgent {
       async (workDir, ctxPath) => {
         const prompt = renderPrompt(template, {
           CONTEXT_PATH: ctxPath,
+          OUTPUT_PATH: ctx.output_path,
+          OUTPUT_REL: ctx.output_rel,
           DREAM_RUN_ID: ctx.dream_run_id,
           LEVEL: ctx.level,
           ID: ctx.id,
@@ -396,8 +413,11 @@ class CliRollupAgent implements RollupAgent {
           TIMEZONE: ctx.timezone,
           MEMORY_LANGUAGE: ctx.memory_language,
         });
-        const stdout = await this.runPrompt(prompt, workDir, ctx.dream_run_id);
-        return parseWriteText(stdout);
+        await this.invoke(prompt, workDir, ctx.dream_run_id, {
+          extraAddDirs: [draftRoot],
+        });
+        const raw = await readRequiredFile(ctx.output_path, "rollup write");
+        return stripRollupWriterPreamble(raw);
       },
     );
   }
@@ -406,14 +426,14 @@ class CliRollupAgent implements RollupAgent {
 /** Claude Code rollup agent (prompts under server/prompts/). */
 export class ClaudeRollupAgent extends CliRollupAgent {
   constructor() {
-    super(runClaudePrompt);
+    super(runClaudeRollup);
   }
 }
 
 /** Cursor CLI rollup agent (prompts under server/prompts/). */
 export class CursorRollupAgent extends CliRollupAgent {
   constructor() {
-    super(runCursorPrompt);
+    super(runCursorRollup);
   }
 }
 

@@ -4,9 +4,14 @@ Decide whether to roll up memory-chain **{{LEVEL}}** summaries for this dream.
 
 Read JSON context at: `{{CONTEXT_PATH}}`
 
+## Deliverable (STRICT)
+
+- Write the plan as a **JSON object** to this file and nowhere else: `{{RESULT_PATH}}`
+- Do **not** print the JSON to stdout. The deliverable is the file at `{{RESULT_PATH}}`.
+- The file must contain **only** the JSON object (no markdown fences, no prose before／after).
+
 ## Rules
 
-- Output **JSON only** (no summary prose).
 - You may only target ids listed in `candidates` / `candidate_meta`.
 - Do **not** invent distant ids.
 - `operation` must match each target's `suggested_operation` from context.

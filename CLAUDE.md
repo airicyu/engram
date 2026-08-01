@@ -118,8 +118,8 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.18.1` — Rollup agent 跟隨 `ENGRAM_AGENT`（修 claude 預設卻強制 Cursor）
-- **上一版：** `0.18.0` — Seek 納入未來視＋`window_days` 預設 365 — 見 `docs/roadmap/0.18.0/`
+- **已出貨：** `0.18.2` — Rollup plan／write 改 file deliverable（不 parse stdout）
+- **上一版：** `0.18.1` — Rollup agent 跟隨 `ENGRAM_AGENT`；`0.18.0` — Seek 納入未來視＋`window_days` 預設 365 — 見 `docs/roadmap/0.18.0/`
 - **更早：** `0.17.0` — 未來視雙區＋入夢前機械維護；`0.16.0` — Store git 事務＋draft 檔案作業
 - **Backlog：** 見 `docs/roadmap/backlog/`
 - **遷移：** 0.16→0.17 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；0.18.x **無** store migrate
