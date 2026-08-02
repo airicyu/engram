@@ -106,6 +106,12 @@ const server = Bun.serve({
     if (url.pathname === "/api/dreams/pending" && req.method === "GET") {
       return proxyApi(req, "/dreams/pending");
     }
+    if (
+      url.pathname === "/api/dreams/pending/node-score-involvements" &&
+      req.method === "PATCH"
+    ) {
+      return proxyApi(req, "/dreams/pending/node-score-involvements");
+    }
     if (url.pathname === "/api/dreams/approve" && req.method === "POST") {
       return proxyApi(req, "/dreams/approve");
     }
