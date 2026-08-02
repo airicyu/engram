@@ -1,7 +1,6 @@
 /** Append-only L0 event log access and timezone-aware timestamp helpers. */
 
 import { open, readFile, writeFile } from "node:fs/promises";
-import { $ } from "bun";
 import { config } from "../../config";
 import {
   calendarDateFromDate,
@@ -41,19 +40,33 @@ export async function readAllEvents(): Promise<Event[]> {
 }
 
 /**
- * Next event id = line count + 1 (append-only log).
- * Uses `wc -l` so we do not load/parse the whole JSONL into JS.
- * (`tail` is for last-N lines / last id; counting needs `wc`.)
+ * Next event id from the L0 log (last id + 1, or line-count fallback).
+ * Callers that allocate ids for concurrent safety must hold the capture lock
+ * (`captureActivity` / `withCaptureLock`).
  */
-export async function nextEventId(): Promise<string> {
+export async function nextEventIdFromLog(): Promise<string> {
   const path = eventsPath();
   if (!(await Bun.file(path).exists())) {
     return formatEventId(1);
   }
-  const out = (await $`wc -l < ${path}`.text()).trim();
-  const count = Number.parseInt(out, 10);
-  const n = Number.isFinite(count) && count >= 0 ? count + 1 : 1;
-  return formatEventId(n);
+  const text = await readFile(path, "utf8");
+  const lines = text.trim() ? text.trim().split("\n").filter(Boolean) : [];
+  if (lines.length === 0) return formatEventId(1);
+  try {
+    const last = JSON.parse(lines[lines.length - 1]!) as { id?: string };
+    const m = typeof last.id === "string" ? /^e(\d+)$/.exec(last.id) : null;
+    if (m) {
+      return formatEventId(Number.parseInt(m[1]!, 10) + 1);
+    }
+  } catch {
+    /* fall through to line-count */
+  }
+  return formatEventId(lines.length + 1);
+}
+
+/** @deprecated Prefer `captureActivity` — not concurrency-safe alone. */
+export async function nextEventId(): Promise<string> {
+  return nextEventIdFromLog();
 }
 
 /** Append one event to the L0 JSONL log. */

@@ -6,8 +6,8 @@ import { parse, stringify } from "../../yaml";
 import { config } from "../../config";
 import { homePath } from "../home";
 import { stageAndCommitPaths } from "../git";
-import { appendEvent, nextEventId, calendarDate, nowIso } from "./activities";
-import { appendPoolEntry } from "./short-term-memory";
+import { captureActivity } from "./capture";
+import { calendarDate, nowIso } from "./activities";
 
 /** A near-horizon anchor stored outside the memory chain. */
 export interface FutureSightAnchor {
@@ -357,30 +357,20 @@ async function emitRemovalEvent(
   a: FutureSightAnchor,
   reason: "past_anchor_end" | "out_of_window",
 ): Promise<void> {
-  const event_id = await nextEventId();
-  const ts = nowIso();
   const label = reason === "past_anchor_end" ? "expired" : "out of window";
   const raw =
     `Future-sight ${label}: ${a.id} (${a.anchor_start}→${a.anchor_end}). ` +
     `${a.content.trim().slice(0, 400)}`;
 
-  await appendEvent({
-    id: event_id,
-    ts,
-    source: "system/future_sight_expired",
+  await captureActivity({
     raw,
+    source: "system/future_sight_expired",
     ingest_meta: {
       future_sight_id: a.id,
       reason,
       anchor_start: a.anchor_start,
       anchor_end: a.anchor_end,
     },
-  });
-
-  await appendPoolEntry({
-    id: event_id,
-    ts,
-    raw,
   });
 }
 

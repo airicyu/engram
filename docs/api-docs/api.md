@@ -266,7 +266,9 @@ Append one event to L0 and the short-term memory pool (indexed by event id).
 
 **Response `201`:** `{ "event_id": "e0000000001" }`
 
-**Errors:** `400` missing `raw`; `409` `dream_locked`.
+**Errors:** `400` missing `raw`; `400` `invalid_node_refs`（`node_refs` 出現但不是 `string[]`）；`409` `dream_locked`.
+
+`node_refs` 若提供必須是字串陣列（禁止傳字串，以免被逐字元當成 node id）。單次成功回應時 L0 與 short-term pool 一致反映該事件（0.20 capture 原子路徑）。
 
 ---
 

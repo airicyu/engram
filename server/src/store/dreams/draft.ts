@@ -1,31 +1,14 @@
-/** Build, inspect, and atomically commit isolated dream draft projections. */
+/** Inspect and atomically commit isolated dream draft projections. */
 
-import { access, copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { parse, stringify } from "../../yaml";
 import { homePath } from "../home";
 import { draftDir } from "./dream-runs";
-import { calendarDate, nowIso } from "../memories/activities";
-import type { Patch } from "../../dream/schema";
 import { extractCurrentSection } from "../memories/nodes";
-import { logDream, logDreamDebug } from "../../log";
-import { emitDreamEvent } from "../../dream/emit-event";
-import {
-  assignZone,
-  listDraftFutureIds,
-  mayEnterFutureSight,
-  parseZoneFile,
-  renderZoneFile,
-  type FutureSightAnchor,
-} from "../memories/future-sight";
-import { config } from "../../config";
-import { dayLedgerPath, dayLedgerRel, daySummaryPath, daySummaryRel } from "../memories/chain";
-import {
-  higherSummaryPath,
-  higherSummaryRel,
-  type HigherChainLevel,
-} from "../memories/chain-higher";
+import { listDraftFutureIds } from "../memories/future-sight";
 import { restoreTouchedPaths } from "../git";
+import { daySummaryRel } from "../memories/chain";
+import { higherSummaryRel, type HigherChainLevel } from "../memories/chain-higher";
 
 /** Operation represented by a draft manifest entry. */
 export type ManifestOp = "create" | "update";
@@ -33,7 +16,7 @@ export type ManifestOp = "create" | "update";
 /** One live-store path changed by a draft. */
 export interface ManifestEntry {
   op: ManifestOp;
-  path: string; // relative to ENGRAM_STORE_DIR
+  path: string;
 }
 
 /** Files materialized for a dream run before approval. */
@@ -64,97 +47,14 @@ function manifestPath(dreamRunId: string): string {
   return draftPath(dreamRunId, "manifest.yaml");
 }
 
-/** Collect future day-chain.id values (configured-timezone calendar day > today). */
-export function futureChainIds(patches: Patch[], today = calendarDate()): string[] {
-  const out: string[] = [];
-  for (const p of patches) {
-    if (p.type === "chain" && p.level === "day" && p.id > today) {
-      out.push(p.id);
-    }
-  }
-  return [...new Set(out)].sort();
-}
-
-async function liveNodeExists(nodeId: string): Promise<boolean> {
-  return exists(livePath("memories", "nodes", nodeId));
-}
-
-async function draftNodeExists(dreamRunId: string, nodeId: string): Promise<boolean> {
-  return exists(draftPath(dreamRunId, "memories", "nodes", nodeId));
-}
-
-async function readWhatFromRoots(
-  dreamRunId: string,
-  nodeId: string,
-): Promise<{ content: string; source: "draft" | "live" | "empty" }> {
-  const d = draftPath(dreamRunId, "memories", "nodes", nodeId, "understand", "what.md");
-  if (await exists(d)) {
-    return { content: await readFile(d, "utf8"), source: "draft" };
-  }
-  const live = livePath("memories", "nodes", nodeId, "understand", "what.md");
-  if (await exists(live)) {
-    return { content: await readFile(live, "utf8"), source: "live" };
-  }
-  return { content: "", source: "empty" };
-}
-
-async function readDayFromRoots(
-  dreamRunId: string,
-  dayId: string,
-): Promise<{ content: string; source: "draft" | "live" | "empty" }> {
-  const relParts = dayLedgerRel(dayId).split("/");
-  const d = draftPath(dreamRunId, ...relParts);
-  if (await exists(d)) {
-    return { content: await readFile(d, "utf8"), source: "draft" };
-  }
-  const live = dayLedgerPath(dayId);
-  if (await exists(live)) {
-    return { content: await readFile(live, "utf8"), source: "live" };
-  }
-  return { content: "", source: "empty" };
-}
-
-async function readDaySummaryFromRoots(
-  dreamRunId: string,
-  dayId: string,
-): Promise<{ content: string; source: "draft" | "live" | "empty" }> {
-  const relParts = daySummaryRel(dayId).split("/");
-  const d = draftPath(dreamRunId, ...relParts);
-  if (await exists(d)) {
-    return { content: await readFile(d, "utf8"), source: "draft" };
-  }
-  const live = daySummaryPath(dayId);
-  if (await exists(live)) {
-    return { content: await readFile(live, "utf8"), source: "live" };
-  }
-  return { content: "", source: "empty" };
-}
-
 /** Prefer draft, then live, for day summary body (week rollup). */
-export async function readDaySummaryPreferDraft(
-  dreamRunId: string,
-  dayId: string,
-): Promise<string> {
-  const { content, source } = await readDaySummaryFromRoots(dreamRunId, dayId);
-  if (source === "empty") return "";
-  return extractCurrentSection(content);
-}
-
-async function readHigherSummaryFromRoots(
-  dreamRunId: string,
-  level: HigherChainLevel,
-  id: string,
-): Promise<{ content: string; source: "draft" | "live" | "empty" }> {
-  const relParts = higherSummaryRel(level, id).split("/");
-  const d = draftPath(dreamRunId, ...relParts);
-  if (await exists(d)) {
-    return { content: await readFile(d, "utf8"), source: "draft" };
+export async function readDaySummaryPreferDraft(dreamRunId: string, dayId: string): Promise<string> {
+  const rel = daySummaryRel(dayId);
+  for (const root of [draftDir(dreamRunId), homePath()]) {
+    const path = join(root, ...rel.split("/"));
+    if (await exists(path)) return extractCurrentSection(await readFile(path, "utf8"));
   }
-  const live = higherSummaryPath(level, id);
-  if (await exists(live)) {
-    return { content: await readFile(live, "utf8"), source: "live" };
-  }
-  return { content: "", source: "empty" };
+  return "";
 }
 
 /** Prefer draft, then live, for higher summary Current (rollup cascade). */
@@ -163,535 +63,31 @@ export async function readHigherSummaryCurrentPreferDraft(
   level: HigherChainLevel,
   id: string,
 ): Promise<string> {
-  const { content, source } = await readHigherSummaryFromRoots(dreamRunId, level, id);
-  if (source === "empty") return "";
-  return extractCurrentSection(content);
-}
-
-async function ensureParent(filePath: string): Promise<void> {
-  await mkdir(dirname(filePath), { recursive: true });
-}
-
-function trackEntry(
-  entries: ManifestEntry[],
-  seen: Map<string, ManifestOp>,
-  relPath: string,
-  liveExisted: boolean,
-): void {
-  const op: ManifestOp = liveExisted ? "update" : "create";
-  if (!seen.has(relPath)) {
-    seen.set(relPath, op);
-    entries.push({ op, path: relPath });
+  const rel = higherSummaryRel(level, id);
+  for (const root of [draftDir(dreamRunId), homePath()]) {
+    const path = join(root, ...rel.split("/"));
+    if (await exists(path)) return extractCurrentSection(await readFile(path, "utf8"));
   }
-}
-
-async function seedNodeInDraft(
-  dreamRunId: string,
-  nodeId: string,
-  meta: { kind: string; aliases?: string[]; what?: string },
-  entries: ManifestEntry[],
-  seen: Map<string, ManifestOp>,
-): Promise<void> {
-  const liveExisted = await liveNodeExists(nodeId);
-  const base = draftPath(dreamRunId, "memories", "nodes", nodeId);
-  await mkdir(join(base, "understand"), { recursive: true });
-  await mkdir(join(base, "chronology"), { recursive: true });
-
-  const metaRel = `memories/nodes/${nodeId}/node.meta.yaml`;
-  const metaFile = draftPath(dreamRunId, ...metaRel.split("/"));
-  if (!(await exists(metaFile))) {
-    await writeFile(
-      metaFile,
-      stringify({
-        id: nodeId,
-        kind: meta.kind,
-        aliases: meta.aliases ?? [],
-        created_at: new Date().toISOString(),
-      }),
-      "utf8",
-    );
-    trackEntry(entries, seen, metaRel, liveExisted && (await exists(livePath("memories", "nodes", nodeId, "node.meta.yaml"))));
-  }
-
-  const whatRel = `memories/nodes/${nodeId}/understand/what.md`;
-  const whatFile = draftPath(dreamRunId, ...whatRel.split("/"));
-  if (!(await exists(whatFile))) {
-    const body = meta.what?.trim() ?? "";
-    await writeFile(whatFile, body ? `${body}\n` : "", "utf8");
-    trackEntry(
-      entries,
-      seen,
-      whatRel,
-      liveExisted && (await exists(livePath("memories", "nodes", nodeId, "understand", "what.md"))),
-    );
-  }
-
-  const indexRel = `memories/nodes/${nodeId}/INDEX.md`;
-  const indexFile = draftPath(dreamRunId, ...indexRel.split("/"));
-  if (!(await exists(indexFile))) {
-    await writeFile(indexFile, `# ${nodeId}\n\nSee understand/what.md\n`, "utf8");
-    trackEntry(entries, seen, indexRel, liveExisted && (await exists(livePath("memories", "nodes", nodeId, "INDEX.md"))));
-  }
-}
-
-async function applySemanticToDraft(
-  dreamRunId: string,
-  patch: Extract<Patch, { type: "semantic" }>,
-  entries: ManifestEntry[],
-  seen: Map<string, ManifestOp>,
-): Promise<void> {
-  const nodeId = patch.node;
-  const inDraft = await draftNodeExists(dreamRunId, nodeId);
-  const inLive = await liveNodeExists(nodeId);
-  if (!inDraft && !inLive) {
-    throw new Error(`node does not exist (live or this-run draft): ${nodeId}`);
-  }
-
-  const { content: file } = await readWhatFromRoots(dreamRunId, nodeId);
-  const current = extractCurrentSection(file);
-
-  let newBody: string;
-  if (patch.operation === "revise" || patch.operation === "resolve_open") {
-    // 0.16: whole file = latest narrative; no in-file History.
-    newBody = patch.content.trim();
-  } else {
-    newBody = current.trim()
-      ? `${current.trim()}\n\n${patch.content.trim()}`
-      : patch.content.trim();
-  }
-
-  const out = newBody.endsWith("\n") ? newBody : `${newBody}\n`;
-  const rel = `memories/nodes/${nodeId}/understand/what.md`;
-  const dest = draftPath(dreamRunId, ...rel.split("/"));
-  await ensureParent(dest);
-  await writeFile(dest, out, "utf8");
-  trackEntry(entries, seen, rel, await exists(livePath("memories", "nodes", nodeId, "understand", "what.md")));
-}
-
-/** Ledger: append-only patch block (idempotent on marker). Day level only. */
-async function applyChainLedgerToDraft(
-  dreamRunId: string,
-  patch: Extract<Patch, { type: "chain" }>,
-  entries: ManifestEntry[],
-  seen: Map<string, ManifestOp>,
-): Promise<void> {
-  if (patch.level !== "day") return;
-  const dayId = patch.id;
-  const content = patch.content ?? "";
-  if (!content.trim()) return;
-  const { content: existing } = await readDayFromRoots(dreamRunId, dayId);
-  const marker = `<!-- patch:${patch.patch_id} -->`;
-  if (existing.includes(marker)) return;
-
-  const refs = (patch.event_refs ?? []).join(", ");
-  const block = [
-    marker,
-    `### patch:${patch.patch_id} · events:[${refs}]`,
-    "",
-    content.trim(),
-    "",
-  ].join("\n");
-
-  const next = existing.trim()
-    ? `${existing.trimEnd()}\n${block}`
-    : block;
-
-  const rel = dayLedgerRel(dayId);
-  const dest = draftPath(dreamRunId, ...rel.split("/"));
-  await ensureParent(dest);
-  await writeFile(dest, next.endsWith("\n") ? next : next + "\n", "utf8");
-  trackEntry(entries, seen, rel, await exists(dayLedgerPath(dayId)));
-}
-
-/**
- * Summary: mechanical init/revise of `*.summary.md`.
- * All levels: whole file = latest narrative snapshot (0.16; no Current／History).
- * Day: no-op when patch lacks summary — legacy ledger-only.
- */
-async function applyChainSummaryToDraft(
-  dreamRunId: string,
-  patch: Extract<Patch, { type: "chain" }>,
-  entries: ManifestEntry[],
-  seen: Map<string, ManifestOp>,
-): Promise<void> {
-  if (patch.summary === undefined || patch.summary_operation === undefined) return;
-
-  const id = patch.id;
-  const level = patch.level;
-  const newBody = patch.summary.trim();
-  const out = newBody.endsWith("\n") ? newBody : `${newBody}\n`;
-
-  if (level === "week" || level === "month" || level === "year") {
-    const rel = higherSummaryRel(level, id);
-    const dest = draftPath(dreamRunId, ...rel.split("/"));
-    await ensureParent(dest);
-    await writeFile(dest, out, "utf8");
-    trackEntry(entries, seen, rel, await exists(higherSummaryPath(level, id)));
-    return;
-  }
-
-  const rel = daySummaryRel(id);
-  const dest = draftPath(dreamRunId, ...rel.split("/"));
-  await ensureParent(dest);
-  await writeFile(dest, out, "utf8");
-  trackEntry(entries, seen, rel, await exists(daySummaryPath(id)));
-}
-
-async function applyChainToDraft(
-  dreamRunId: string,
-  patch: Extract<Patch, { type: "chain" }>,
-  entries: ManifestEntry[],
-  seen: Map<string, ManifestOp>,
-): Promise<void> {
-  await applyChainLedgerToDraft(dreamRunId, patch, entries, seen);
-  await applyChainSummaryToDraft(dreamRunId, patch, entries, seen);
-}
-
-async function applyFutureToDraft(
-  dreamRunId: string,
-  patch: Extract<Patch, { type: "future" }>,
-  entries: ManifestEntry[],
-  seen: Map<string, ManifestOp>,
-): Promise<void> {
-  const anchor: FutureSightAnchor = {
-    id: patch.id,
-    anchor_start: patch.anchor_start,
-    anchor_end: patch.anchor_end,
-    content: patch.content,
-  };
-  if (!mayEnterFutureSight(anchor)) {
-    return;
-  }
-  const today = calendarDate();
-  const zone = assignZone(
-    anchor,
-    today,
-    config.futureSightHotDays,
-    config.futureSightWindowDays,
-  );
-  if (zone !== "hot" && zone !== "later") return;
-
-  const fsDir = draftPath(dreamRunId, "memories", "future-sight");
-  await mkdir(fsDir, { recursive: true });
-
-  const loadZone = async (z: "hot" | "later"): Promise<FutureSightAnchor[]> => {
-    const p = draftPath(dreamRunId, "memories", "future-sight", `${z}.md`);
-    if (!(await exists(p))) return [];
-    try {
-      return parseZoneFile(await readFile(p, "utf8"), z);
-    } catch {
-      return [];
-    }
-  };
-
-  let hot = (await loadZone("hot")).filter((a) => a.id !== anchor.id);
-  let later = (await loadZone("later")).filter((a) => a.id !== anchor.id);
-  if (zone === "hot") hot.push(anchor);
-  else later.push(anchor);
-
-  const hotRel = "memories/future-sight/hot.md";
-  const laterRel = "memories/future-sight/later.md";
-  await writeFile(draftPath(dreamRunId, ...hotRel.split("/")), renderZoneFile("hot", hot), "utf8");
-  await writeFile(
-    draftPath(dreamRunId, ...laterRel.split("/")),
-    renderZoneFile("later", later),
-    "utf8",
-  );
-  trackEntry(entries, seen, hotRel, await exists(livePath("memories", "future-sight", "hot.md")));
-  trackEntry(
-    entries,
-    seen,
-    laterRel,
-    await exists(livePath("memories", "future-sight", "later.md")),
-  );
-}
-
-async function applyAttributionToDraft(
-  dreamRunId: string,
-  patch: Extract<Patch, { type: "episodic" }>,
-  entries: ManifestEntry[],
-  seen: Map<string, ManifestOp>,
-): Promise<void> {
-  const rel = "dreams/candidates/attribution.yaml";
-  const draftFile = draftPath(dreamRunId, ...rel.split("/"));
-  const liveFile = livePath("dreams", "candidates", "attribution.yaml");
-
-  let list: unknown[] = [];
-  if (await exists(draftFile)) {
-    const data = parse(await readFile(draftFile, "utf8")) as { candidates?: unknown[] } | null;
-    list = data?.candidates ?? [];
-  } else if (await exists(liveFile)) {
-    const data = parse(await readFile(liveFile, "utf8")) as { candidates?: unknown[] } | null;
-    list = [...(data?.candidates ?? [])];
-  }
-
-  const entry = {
-    node: patch.node,
-    role: patch.role,
-    confidence: patch.confidence,
-    date: patch.date,
-    content: patch.content,
-    event_refs: patch.event_refs ?? [],
-    status: "pending",
-    patch_id: patch.patch_id,
-    updated_at: new Date().toISOString(),
-  };
-
-  const arr = list as Array<{ patch_id?: string }>;
-  const idx = arr.findIndex((x) => x.patch_id === patch.patch_id);
-  if (idx >= 0) arr[idx] = entry;
-  else arr.push(entry);
-
-  await ensureParent(draftFile);
-  await writeFile(draftFile, stringify({ candidates: arr }), "utf8");
-  trackEntry(entries, seen, rel, await exists(liveFile));
-}
-
-/** Order: propose_node first (stable among themselves), then remaining in original order. */
-function orderPatchesForMaterialize(patches: Patch[]): Patch[] {
-  const creates = patches.filter((p) => p.type === "propose_node");
-  const rest = patches.filter((p) => p.type !== "propose_node");
-  return [...creates, ...rest];
-}
-
-/** Indicates a patch that could not be materialized into a draft. */
-export class MaterializeError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "MaterializeError";
-  }
-}
-
-/**
- * Materialize patches into dreams/draft/{run_id}/. Wipes any prior draft for this run.
- * Does not write live L2. Fails entirely on error (caller should remove draft).
- */
-export async function materializeDraft(
-  dreamRunId: string,
-  patches: Patch[],
-  opts?: { onPatch?: (patch: Patch) => void; shouldAbort?: () => boolean },
-): Promise<DraftManifest> {
-  const dir = draftDir(dreamRunId);
-  if (await exists(dir)) {
-    await rm(dir, { recursive: true, force: true });
-  }
-  await mkdir(dir, { recursive: true });
-
-  const entries: ManifestEntry[] = [];
-  const seen = new Map<string, ManifestOp>();
-  const ordered = orderPatchesForMaterialize(patches);
-
-  for (const patch of ordered) {
-    if (opts?.shouldAbort?.()) {
-      throw new MaterializeError("materialize aborted");
-    }
-    try {
-      switch (patch.type) {
-        case "propose_node": {
-          await seedNodeInDraft(
-            dreamRunId,
-            patch.proposed_id,
-            {
-              kind: patch.kind,
-              aliases: patch.aliases,
-              what: patch.seed_facets?.what,
-            },
-            entries,
-            seen,
-          );
-          break;
-        }
-        case "semantic": {
-          await applySemanticToDraft(dreamRunId, patch, entries, seen);
-          break;
-        }
-        case "chain": {
-          await applyChainToDraft(dreamRunId, patch, entries, seen);
-          break;
-        }
-        case "future": {
-          await applyFutureToDraft(dreamRunId, patch, entries, seen);
-          break;
-        }
-        case "episodic": {
-          const inDraft = await draftNodeExists(dreamRunId, patch.node);
-          const inLive = await liveNodeExists(patch.node);
-          if (!inDraft && !inLive) {
-            throw new Error(`node does not exist (live or this-run draft): ${patch.node}`);
-          }
-          if (patch.confidence < 0.6) {
-            await applyAttributionToDraft(dreamRunId, patch, entries, seen);
-          }
-          // ≥ 0.6: chronology not implemented — no-op
-          break;
-        }
-        default: {
-          const _e: never = patch;
-          throw new Error(`unhandled patch: ${JSON.stringify(_e)}`);
-        }
-      }
-      emitDreamEvent(dreamRunId, {
-        phase: "materialize",
-        event: "materialize_patch",
-        message: `${patch.type} ${patch.patch_id}`,
-        detail: { patch_id: patch.patch_id, type: patch.type },
-      });
-    } catch (e) {
-      throw new MaterializeError(
-        `patch ${patch.patch_id} (${patch.type}): ${e instanceof Error ? e.message : String(e)}`,
-      );
-    }
-  }
-
-  const manifest: DraftManifest = {
-    dream_run_id: dreamRunId,
-    materialized_at: nowIso(),
-    entries,
-  };
-  await writeFile(manifestPath(dreamRunId), stringify(manifest), "utf8");
-  logDreamDebug("materialize done", {
-    dream_run_id: dreamRunId,
-    entries: entries.length,
-    patches: patches.length,
-  });
-  return manifest;
-}
-
-/**
- * Append more patches into an existing draft (no wipe). Used for week→month→year
- * rollup after day materialize so upper writers can prefer this-run draft.
- */
-export async function appendMaterializeDraft(
-  dreamRunId: string,
-  patches: Patch[],
-  opts?: { onPatch?: (patch: Patch) => void; shouldAbort?: () => boolean },
-): Promise<DraftManifest> {
-  if (patches.length === 0) {
-    const existing = await readManifest(dreamRunId);
-    if (!existing) throw new MaterializeError(`no draft to append for ${dreamRunId}`);
-    return existing;
-  }
-
-  const existing = await readManifest(dreamRunId);
-  if (!existing) {
-    throw new MaterializeError(`no draft to append for ${dreamRunId}`);
-  }
-
-  const entries = [...existing.entries];
-  const seen = new Map<string, ManifestOp>(entries.map((e) => [e.path, e.op]));
-  const ordered = orderPatchesForMaterialize(patches);
-
-  for (const patch of ordered) {
-    if (opts?.shouldAbort?.()) {
-      throw new MaterializeError("materialize aborted");
-    }
-    try {
-      switch (patch.type) {
-        case "propose_node": {
-          await seedNodeInDraft(
-            dreamRunId,
-            patch.proposed_id,
-            {
-              kind: patch.kind,
-              aliases: patch.aliases,
-              what: patch.seed_facets?.what,
-            },
-            entries,
-            seen,
-          );
-          break;
-        }
-        case "semantic": {
-          await applySemanticToDraft(dreamRunId, patch, entries, seen);
-          break;
-        }
-        case "chain": {
-          await applyChainToDraft(dreamRunId, patch, entries, seen);
-          break;
-        }
-        case "future": {
-          await applyFutureToDraft(dreamRunId, patch, entries, seen);
-          break;
-        }
-        case "episodic": {
-          const inDraft = await draftNodeExists(dreamRunId, patch.node);
-          const inLive = await liveNodeExists(patch.node);
-          if (!inDraft && !inLive) {
-            throw new Error(`node does not exist (live or this-run draft): ${patch.node}`);
-          }
-          if (patch.confidence < 0.6) {
-            await applyAttributionToDraft(dreamRunId, patch, entries, seen);
-          }
-          break;
-        }
-        default: {
-          const _e: never = patch;
-          throw new Error(`unhandled patch: ${JSON.stringify(_e)}`);
-        }
-      }
-      opts?.onPatch?.(patch);
-      emitDreamEvent(dreamRunId, {
-        phase: "materialize",
-        event: "materialize_patch",
-        message: `${patch.type} ${patch.patch_id}`,
-        detail: { patch_id: patch.patch_id, type: patch.type },
-      });
-    } catch (e) {
-      throw new MaterializeError(
-        `patch ${patch.patch_id} (${patch.type}): ${e instanceof Error ? e.message : String(e)}`,
-      );
-    }
-  }
-
-  const manifest: DraftManifest = {
-    dream_run_id: dreamRunId,
-    materialized_at: nowIso(),
-    entries,
-  };
-  await writeFile(manifestPath(dreamRunId), stringify(manifest), "utf8");
-  return manifest;
+  return "";
 }
 
 /** Read the materialization manifest for a dream run. */
 export async function readManifest(dreamRunId: string): Promise<DraftManifest | null> {
   const p = manifestPath(dreamRunId);
   if (!(await exists(p))) return null;
+  const { parse } = await import("../../yaml");
   return parse(await readFile(p, "utf8")) as DraftManifest;
 }
 
-/**
- * Deploy draft → live: deletes first, then copy manifest entries.
- * On failure, restore only touched paths via git checkout／rm (no whole-store reset, no bak files).
- */
+/** Deploy draft → live, rolling back only paths touched by this call on failure. */
 export async function commitDraft(dreamRunId: string): Promise<{ committed: string[] }> {
   const manifest = await readManifest(dreamRunId);
-  if (!manifest) {
-    throw new Error(`no manifest for draft ${dreamRunId}`);
-  }
-
+  if (!manifest) throw new Error(`no manifest for draft ${dreamRunId}`);
   const committed: string[] = [];
-  /** Paths we mutated on live during this call (for git path rollback). */
   const touched: string[] = [];
-
-  async function readDeletes(): Promise<string[]> {
-    const p = draftPath(dreamRunId, "deletes.txt");
-    if (!(await exists(p))) return [];
-    const text = await readFile(p, "utf8");
-    const out: string[] = [];
-    for (const line of text.split(/\r?\n/)) {
-      const t = line.trim();
-      if (!t || t.startsWith("#")) continue;
-      const norm = t.replace(/\\/g, "/").replace(/^\/+/, "");
-      if (!norm.startsWith("memories/") || norm.split("/").includes("..")) {
-        throw new Error(`invalid delete path: ${t}`);
-      }
-      out.push(norm);
-    }
-    return [...new Set(out)];
-  }
-
+  const deletes = await readDraftDeletes(dreamRunId);
   try {
-    for (const rel of await readDeletes()) {
+    for (const rel of deletes) {
       const dest = livePath(...rel.split("/"));
       if (await exists(dest)) {
         await rm(dest, { force: true });
@@ -699,37 +95,43 @@ export async function commitDraft(dreamRunId: string): Promise<{ committed: stri
       }
       committed.push(rel);
     }
-
     for (const entry of manifest.entries) {
       const src = draftPath(dreamRunId, ...entry.path.split("/"));
       const dest = livePath(...entry.path.split("/"));
-      if (!(await exists(src))) {
-        throw new Error(`draft missing file: ${entry.path}`);
-      }
-
-      await ensureParent(dest);
+      if (!(await exists(src))) throw new Error(`draft missing file: ${entry.path}`);
+      await mkdir(dirname(dest), { recursive: true });
       await copyFile(src, dest);
       committed.push(entry.path);
       touched.push(entry.path);
     }
   } catch (e) {
-    try {
-      await restoreTouchedPaths(touched);
-    } catch {
-      // best-effort; rethrow original
-    }
+    await restoreTouchedPaths(touched).catch(() => {});
     throw e;
   }
-
   return { committed: [...new Set(committed)] };
+}
+
+/** Read validated delete paths from a draft. */
+export async function readDraftDeletes(dreamRunId: string): Promise<string[]> {
+  const p = draftPath(dreamRunId, "deletes.txt");
+  if (!(await exists(p))) return [];
+  const out: string[] = [];
+  for (const line of (await readFile(p, "utf8")).split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t || t.startsWith("#")) continue;
+    const norm = t.replace(/\\/g, "/").replace(/^\/+/, "");
+    if (!norm.startsWith("memories/") || norm.split("/").includes("..")) {
+      throw new Error(`invalid delete path: ${t}`);
+    }
+    out.push(norm);
+  }
+  return [...new Set(out)];
 }
 
 /** Summarize the paths and memory domains represented in a draft. */
 export async function draftSummary(dreamRunId: string): Promise<{
   entry_count: number;
-  /** Ledger day ids (`days/{id}.md`). */
   chain_days: string[];
-  /** Summary day ids (`days/{id}.summary.md`). */
   chain_summary_days: string[];
   chain_weeks: string[];
   chain_months: string[];
@@ -738,55 +140,17 @@ export async function draftSummary(dreamRunId: string): Promise<{
 } | null> {
   const manifest = await readManifest(dreamRunId);
   if (!manifest) return null;
-  const chain_days = manifest.entries
-    .map(
-      (e) =>
-        e.path.match(/^memories\/chain\/days\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2})\.md$/)?.[1],
-    )
-    .filter((x): x is string => !!x)
-    .sort();
-  const chain_summary_days = manifest.entries
-    .map(
-      (e) =>
-        e.path.match(
-          /^memories\/chain\/days\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2})\.summary\.md$/,
-        )?.[1],
-    )
-    .filter((x): x is string => !!x)
-    .sort();
-  const chain_weeks = manifest.entries
-    .map(
-      (e) =>
-        e.path.match(/^memories\/chain\/weeks\/\d{4}-\d{2}\/(\d{4}-W\d{2})\.summary\.md$/)?.[1],
-    )
-    .filter((x): x is string => !!x)
-    .sort();
-  const chain_months = manifest.entries
-    .map(
-      (e) =>
-        e.path.match(/^memories\/chain\/months\/\d{4}\/(\d{4}-\d{2})\.summary\.md$/)?.[1],
-    )
-    .filter((x): x is string => !!x)
-    .sort();
-  const chain_years = manifest.entries
-    .map((e) => e.path.match(/^memories\/chain\/years\/(\d{4})\.summary\.md$/)?.[1])
-    .filter((x): x is string => !!x)
-    .sort();
-  const future_ids = await listDraftFutureIds(draftDir(dreamRunId));
-  // Only report future ids when zone files are in the manifest (touched this run).
-  const touchedFuture = manifest.entries.some(
-    (e) =>
-      e.path === "memories/future-sight/hot.md" ||
-      e.path === "memories/future-sight/later.md",
-  );
+  const paths = manifest.entries.map((e) => e.path);
+  const ids = (regex: RegExp) => paths.map((path) => path.match(regex)?.[1]).filter((id): id is string => !!id).sort();
+  const touchedFuture = paths.some((path) => path === "memories/future-sight/hot.md" || path === "memories/future-sight/later.md");
   return {
     entry_count: manifest.entries.length,
-    chain_days: [...new Set(chain_days)],
-    chain_summary_days: [...new Set(chain_summary_days)],
-    chain_weeks: [...new Set(chain_weeks)],
-    chain_months: [...new Set(chain_months)],
-    chain_years: [...new Set(chain_years)],
-    future_ids: touchedFuture ? future_ids : [],
+    chain_days: [...new Set(ids(/^memories\/chain\/days\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2})\.md$/))],
+    chain_summary_days: [...new Set(ids(/^memories\/chain\/days\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2})\.summary\.md$/))],
+    chain_weeks: [...new Set(ids(/^memories\/chain\/weeks\/\d{4}-\d{2}\/(\d{4}-W\d{2})\.summary\.md$/))],
+    chain_months: [...new Set(ids(/^memories\/chain\/months\/\d{4}\/(\d{4}-\d{2})\.summary\.md$/))],
+    chain_years: [...new Set(ids(/^memories\/chain\/years\/(\d{4})\.summary\.md$/))],
+    future_ids: touchedFuture ? await listDraftFutureIds(draftDir(dreamRunId)) : [],
   };
 }
 
@@ -795,11 +159,10 @@ export async function listDraftFiles(dreamRunId: string): Promise<string[]> {
   const root = draftDir(dreamRunId);
   if (!(await exists(root))) return [];
   const out: string[] = [];
-  async function walk(dir: string, prefix: string) {
-    const entries = await readdir(dir, { withFileTypes: true });
-    for (const e of entries) {
-      const rel = prefix ? `${prefix}/${e.name}` : e.name;
-      if (e.isDirectory()) await walk(join(dir, e.name), rel);
+  async function walk(dir: string, prefix: string): Promise<void> {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) await walk(join(dir, entry.name), rel);
       else out.push(rel);
     }
   }

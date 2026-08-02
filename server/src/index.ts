@@ -12,14 +12,16 @@ import { loadClockFromDisk } from "./store/clock";
 import {
   handleDreamRun,
   handleDreamRetry,
+} from "./api/dream/run";
+import {
   handleDreamPending,
   handleDreamApprove,
   handleDreamDiscard,
   handleDreamCancel,
-  handlePatchNodeScoreInvolvements,
-} from "./api/dream";
-import { handleDreamEvents } from "./api/dream-events";
-import { handleShortTermMemory } from "./api/activities/short-term-memory";
+} from "./api/dream/review";
+import { handlePatchNodeScoreInvolvements } from "./api/dream/involvements";
+import { handleDreamEvents } from "./api/dream/events";
+import { handleShortTermMemory } from "./api/memory/short-term-memory";
 import { handleMemorySearchRequest } from "./api/seek/search";
 import {
   handleMemoryAskPost,
@@ -37,7 +39,7 @@ import {
   handleYearDetail,
 } from "./api/memory/chain";
 import { handleNodesIndex, handleNodeDetail } from "./api/memory/nodes";
-import { handleFutureSight } from "./api/future-sight";
+import { handleFutureSight } from "./api/memory/future-sight";
 import { logError, logInfo, logMemory, withRequestLog } from "./log";
 import { killAllTrackedAgentProcesses } from "./store/agent-process";
 

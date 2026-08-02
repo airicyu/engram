@@ -23,6 +23,7 @@ export type Status = {
     }>;
   } | null;
   ask_job?: {
+    job_id?: string;
     status?: string;
     phase?: string;
     started_at?: string;

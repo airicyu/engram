@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.20.0 — 正確性加固＋結構重構 (2026-08-02)
+
+產品語意大致不變：activities → dream → approve → memory 與人審閘門保留。加固 agent 寫入邊界、dream lock owner、capture 原子性；清理死碼與過肥編排；修好 web Ask／Memory 非同步生命週期；抽出共用 `AgentInvoker`（Claude／Cursor），Ask／Dream／Rollup 只保留業務 gather／交付；`agent/`、`src/dream/`、`src/api/` 皆按用途／產品域分夾。**無** store migrate；boot 仍要求結構代 ≥ 0.19。
+
+### Added
+
+- Agent **write-policy**：Dream／Ask／Rollup 可寫根僅 draft／report／契約 temp；mock 惡意寫 live 閘門測試
+- Dream lock **owner token**（`dream.lock` 含 `token`；`releaseLock(token)` 不符不刪）
+- 單一 `captureActivity` 寫入路徑（process mutex＋id 單調）；`POST /activities` 非法 `node_refs`（非 `string[]`）→ `400 invalid_node_refs`
+- `server/src/agent/factory.ts`：集中解析 `ENGRAM_AGENT`；**`createAgentInvoker()`**
+- Generic **`AgentJob`／`AgentInvoker`**（`agent/flow/`）；Claude／Cursor 僅在 `agent/providers/`
+- Web：`useAskJob`（unmount 停輪詢／resume／cancel）；`engramApi` endpoint client
+
+### Changed
+
+- Claude／Cursor runners：不再以整庫可寫為預設；Claude **不給 Bash**；Cursor dream 不對整庫 `--yolo`＋`--add-dir store`；**Cursor OS `--sandbox` 預設 `disabled`**（隔離靠 write-policy；`ENGRAM_CURSOR_SANDBOX=enabled` 可選）
+- 刪除 dead `materializeDraft`／`appendMaterializeDraft`
+- Memory scene：禁止 setState updater 內 fetch；chain／node 載入有 AbortController
+- **`agent/` 目錄**：`flow/`｜`providers/`｜`shared/`｜`dream/`｜`ask/`｜`rollup/`；根目錄僅 `factory.ts`；Ask／Dream／Rollup 共用 Invoker（stdout 不當交付）
+- **`src/dream/` 目錄**（lifecycle）：`execute/`｜`review/`｜`report/`｜`score/`｜`rollup/`｜`shared/`｜`legacy/`；根目錄僅薄 `run.ts` barrel（對外 import 穩定）；與 `agent/dream`（CLI）分離
+- **`src/api/` 目錄**（產品域）：`dream/{run,review,involvements,events,job}`｜`seek/`｜`memory/{chain,nodes,future-sight,short-term-memory}`；根目錄僅 `activities`／`status`／`clock`；拆掉原 `dream.ts` god file
+
+### Non-goals
+
+- Store 佈局／`store_version` bump／新 migrate；2b；Seek-by-score；node merge；approve journal；視覺大改；第三家 agent 供應商；合併 `agent/dream` 與 `src/dream`
+
+### Migrate
+
+- **無**；既有 ≥0.19 庫可直接用 0.20 server；新建 stamp 可為產品字串 `0.20.0`（同結構代多字串仍可啟動）
+
+---
+
 ## 0.19.0 — Node 活躍分（score）＋人審 category (2026-08-01)
 
 每個 L2 node 有可觀察的活躍帳面分（模型 A：有結算的 dream 才加減，無日曆衰減）；入夢 AI 只判 `mention`｜`update`｜`focus`，script 算分與觸頂 downscale；人在 Consolidate 可用結構化 API 改 category。Memory 展示 1–100 相對分。啟動時若 store 結構代低於 **0.19**（或缺 `store_version`）則拒啟並提示 migrate。

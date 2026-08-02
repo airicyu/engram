@@ -1,21 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { api } from "../lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { engramApi, type ChainLevel, type NodeIndex } from "../lib/api";
 import { useI18n } from "../i18n/I18nProvider";
 import { MdBlock } from "../components/ui";
 
 type MemoryMode = "chain" | "nodes";
-type ChainLevel = "day" | "week" | "month" | "year";
-
-type DayIndex = { day_id: string; preview?: string };
-type WeekIndex = { week_id: string; start?: string; end?: string; preview?: string };
-type MonthIndex = { month_id: string; preview?: string };
-type YearIndex = { year_id: string; preview?: string };
-type NodeIndex = {
-  node: string;
-  preview?: string;
-  score?: number | null;
-  display_score?: number | null;
-};
 
 type ChainItem = { id: string; preview?: string; range?: string };
 
@@ -35,200 +23,167 @@ export function MemoryScene() {
   const [nodeScoreMeta, setNodeScoreMeta] = useState("");
   const [filter, setFilter] = useState("");
   const [indexEmpty, setIndexEmpty] = useState("");
+  const selectedChainIdRef = useRef<string | null>(null);
 
-  const loadChainDetail = useCallback(
-    async (level: ChainLevel, id: string) => {
-      setSelectedChainId(id);
-      setChainMeta("");
-      setChainBody(t("memory.browse_loading"));
-      setChainEmpty(false);
-      const path =
-        level === "day"
-          ? `/memories/chain/${encodeURIComponent(id)}`
-          : level === "week"
-            ? `/memories/chain/weeks/${encodeURIComponent(id)}`
-            : level === "month"
-              ? `/memories/chain/months/${encodeURIComponent(id)}`
-              : `/memories/chain/years/${encodeURIComponent(id)}`;
-      const { ok, data } = await api<{
-        present?: boolean;
-        source?: string;
-        content?: string;
-        start?: string;
-        end?: string;
-      }>(path);
-      if (!ok) {
-        setChainBody(t("memory.browse_fail"));
-        setChainEmpty(true);
-        return;
-      }
-      if (!data.present) {
-        setChainBody(t("memory.chain_empty"));
-        setChainEmpty(true);
-        return;
-      }
-      if (level === "day") {
-        const source =
-          data.source === "summary"
-            ? t("memory.source_summary")
-            : data.source === "ledger_fallback"
-              ? t("memory.source_ledger")
-              : data.source || "";
-        setChainMeta(source);
-      } else if (level === "week" && data.start && data.end) {
-        setChainMeta(`${data.start} – ${data.end} · ${t("memory.source_summary")}`);
-      } else {
-        setChainMeta(t("memory.source_summary"));
-      }
-      setChainBody(data.content?.trim() || t("empty.blank"));
-      setChainEmpty(!data.content?.trim());
-    },
-    [t],
-  );
+  useEffect(() => {
+    selectedChainIdRef.current = selectedChainId;
+  }, [selectedChainId]);
 
-  const loadChainIndex = useCallback(async () => {
+  useEffect(() => {
+    if (mode !== "chain") return;
+    const controller = new AbortController();
+    let cancelled = false;
     setIndexEmpty("");
     setChainBody(t("memory.browse_loading"));
     setChainEmpty(false);
-    const level = chainLevel;
-    let items: ChainItem[] = [];
-    let present = false;
 
-    if (level === "day") {
-      const { ok, data } = await api<{ present?: boolean; days?: DayIndex[] }>("/memories/chain");
-      if (!ok) {
+    void (async () => {
+      try {
+        const { ok, data } = await engramApi.memories.chain.index(chainLevel, {
+          signal: controller.signal,
+        });
+        if (cancelled) return;
+        if (!ok) {
+          setChainItems([]);
+          setIndexEmpty(t("memory.browse_fail"));
+          setChainBody(t("memory.browse_fail"));
+          setChainEmpty(true);
+          return;
+        }
+        const items =
+          chainLevel === "day"
+            ? (data.days ?? []).map((item) => ({ id: item.day_id, preview: item.preview }))
+            : chainLevel === "week"
+              ? (data.weeks ?? []).map((item) => ({
+                  id: item.week_id,
+                  preview: item.preview,
+                  range: item.start && item.end ? `${item.start} – ${item.end}` : undefined,
+                }))
+              : chainLevel === "month"
+                ? (data.months ?? []).map((item) => ({ id: item.month_id, preview: item.preview }))
+                : (data.years ?? []).map((item) => ({ id: item.year_id, preview: item.preview }));
+        if (!data.present || !items.length) {
+          setChainItems([]);
+          setIndexEmpty(t("memory.chain_empty"));
+          setSelectedChainId(null);
+          setChainMeta("");
+          setChainBody(t("memory.chain_empty"));
+          setChainEmpty(true);
+          return;
+        }
+        setChainItems(items);
+        const previous = selectedChainIdRef.current;
+        setSelectedChainId(previous && items.some((item) => item.id === previous) ? previous : items[0]!.id);
+      } catch (error) {
+        if (cancelled || (error as DOMException).name === "AbortError") return;
         setChainItems([]);
         setIndexEmpty(t("memory.browse_fail"));
         setChainBody(t("memory.browse_fail"));
         setChainEmpty(true);
-        return;
       }
-      present = !!data.present;
-      items = (data.days ?? []).map((d) => ({ id: d.day_id, preview: d.preview }));
-    } else if (level === "week") {
-      const { ok, data } = await api<{ present?: boolean; weeks?: WeekIndex[] }>(
-        "/memories/chain/weeks",
-      );
-      if (!ok) {
-        setChainItems([]);
-        setIndexEmpty(t("memory.browse_fail"));
-        setChainBody(t("memory.browse_fail"));
-        setChainEmpty(true);
-        return;
-      }
-      present = !!data.present;
-      items = (data.weeks ?? []).map((d) => ({
-        id: d.week_id,
-        preview: d.preview,
-        range: d.start && d.end ? `${d.start} – ${d.end}` : undefined,
-      }));
-    } else if (level === "month") {
-      const { ok, data } = await api<{ present?: boolean; months?: MonthIndex[] }>(
-        "/memories/chain/months",
-      );
-      if (!ok) {
-        setChainItems([]);
-        setIndexEmpty(t("memory.browse_fail"));
-        setChainBody(t("memory.browse_fail"));
-        setChainEmpty(true);
-        return;
-      }
-      present = !!data.present;
-      items = (data.months ?? []).map((d) => ({ id: d.month_id, preview: d.preview }));
-    } else {
-      const { ok, data } = await api<{ present?: boolean; years?: YearIndex[] }>(
-        "/memories/chain/years",
-      );
-      if (!ok) {
-        setChainItems([]);
-        setIndexEmpty(t("memory.browse_fail"));
-        setChainBody(t("memory.browse_fail"));
-        setChainEmpty(true);
-        return;
-      }
-      present = !!data.present;
-      items = (data.years ?? []).map((d) => ({ id: d.year_id, preview: d.preview }));
-    }
+    })();
 
-    if (!present || !items.length) {
-      setChainItems([]);
-      setIndexEmpty(t("memory.chain_empty"));
-      setSelectedChainId(null);
-      setChainMeta("");
-      setChainBody(t("memory.chain_empty"));
-      setChainEmpty(true);
-      return;
-    }
-    setChainItems(items);
-    setSelectedChainId((prev) => {
-      const next = prev && items.some((d) => d.id === prev) ? prev : items[0]!.id;
-      void loadChainDetail(level, next);
-      return next;
-    });
-  }, [t, chainLevel, loadChainDetail]);
-
-  const loadNodeDetail = useCallback(
-    async (nodeId: string) => {
-      setSelectedNodeId(nodeId);
-      setNodeBody(t("memory.browse_loading"));
-      setNodeEmpty(false);
-      setNodeScoreMeta("");
-      const { ok, data } = await api<{
-        present?: boolean;
-        what_current?: string;
-        display_score?: number | null;
-        score?: number | null;
-        score_timestamp?: string | null;
-      }>(`/memories/nodes/${encodeURIComponent(nodeId)}`);
-      if (!ok) {
-        setNodeBody(t("memory.browse_fail"));
-        setNodeEmpty(true);
-        return;
-      }
-      if (!data.present) {
-        setNodeBody(t("memory.nodes_empty"));
-        setNodeEmpty(true);
-        return;
-      }
-      const display =
-        data.display_score == null
-          ? t("memory.score_none")
-          : t("memory.score_display", { score: data.display_score });
-      setNodeScoreMeta(display);
-      setNodeBody(data.what_current?.trim() || t("empty.no_what"));
-      setNodeEmpty(!data.what_current?.trim());
-    },
-    [t],
-  );
-
-  const loadNodesIndex = useCallback(async () => {
-    setIndexEmpty("");
-    setNodeBody(t("memory.browse_loading"));
-    setNodeEmpty(false);
-    const { ok, data } = await api<{ present?: boolean; nodes?: NodeIndex[] }>("/memories/nodes");
-    if (!ok) {
-      setNodes([]);
-      setIndexEmpty(t("memory.browse_fail"));
-      setNodeBody(t("memory.browse_fail"));
-      setNodeEmpty(true);
-      return;
-    }
-    if (!data.present || !data.nodes?.length) {
-      setNodes([]);
-      setIndexEmpty(t("memory.nodes_empty"));
-      setSelectedNodeId(null);
-      setNodeBody(t("memory.nodes_empty"));
-      setNodeEmpty(true);
-      return;
-    }
-    setNodes(data.nodes);
-  }, [t]);
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [chainLevel, mode, t]);
 
   useEffect(() => {
-    if (mode === "chain") void loadChainIndex();
-    else void loadNodesIndex();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, chainLevel]);
+    if (mode !== "chain" || !selectedChainId) return;
+    const controller = new AbortController();
+    let cancelled = false;
+    setChainMeta("");
+    setChainBody(t("memory.browse_loading"));
+    setChainEmpty(false);
+
+    void (async () => {
+      try {
+        const { ok, data } = await engramApi.memories.chain.detail(chainLevel, selectedChainId, {
+          signal: controller.signal,
+        });
+        if (cancelled) return;
+        if (!ok) {
+          setChainBody(t("memory.browse_fail"));
+          setChainEmpty(true);
+          return;
+        }
+        if (!data.present) {
+          setChainBody(t("memory.chain_empty"));
+          setChainEmpty(true);
+          return;
+        }
+        if (chainLevel === "day") {
+          setChainMeta(
+            data.source === "summary"
+              ? t("memory.source_summary")
+              : data.source === "ledger_fallback"
+                ? t("memory.source_ledger")
+                : data.source || "",
+          );
+        } else if (chainLevel === "week" && data.start && data.end) {
+          setChainMeta(`${data.start} – ${data.end} · ${t("memory.source_summary")}`);
+        } else {
+          setChainMeta(t("memory.source_summary"));
+        }
+        setChainBody(data.content?.trim() || t("empty.blank"));
+        setChainEmpty(!data.content?.trim());
+      } catch (error) {
+        if (cancelled || (error as DOMException).name === "AbortError") return;
+        setChainBody(t("memory.browse_fail"));
+        setChainEmpty(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [chainLevel, mode, selectedChainId, t]);
+
+  useEffect(() => {
+    if (mode !== "nodes") return;
+    const controller = new AbortController();
+    let cancelled = false;
+    setIndexEmpty("");
+    setNodes(null);
+    setSelectedNodeId(null);
+    setNodeBody(t("memory.browse_loading"));
+    setNodeEmpty(false);
+
+    void (async () => {
+      try {
+        const { ok, data } = await engramApi.memories.nodes.index({ signal: controller.signal });
+        if (cancelled) return;
+        if (!ok) {
+          setNodes([]);
+          setIndexEmpty(t("memory.browse_fail"));
+          setNodeBody(t("memory.browse_fail"));
+          setNodeEmpty(true);
+          return;
+        }
+        if (!data.present || !data.nodes?.length) {
+          setNodes([]);
+          setIndexEmpty(t("memory.nodes_empty"));
+          setNodeBody(t("memory.nodes_empty"));
+          setNodeEmpty(true);
+          return;
+        }
+        setNodes(data.nodes);
+      } catch (error) {
+        if (cancelled || (error as DOMException).name === "AbortError") return;
+        setNodes([]);
+        setIndexEmpty(t("memory.browse_fail"));
+        setNodeBody(t("memory.browse_fail"));
+        setNodeEmpty(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [mode, t]);
 
   const filteredNodes = useMemo(() => {
     if (!nodes) return [];
@@ -246,9 +201,52 @@ export function MemoryScene() {
       selectedNodeId && filteredNodes.some((n) => n.node === selectedNodeId)
         ? selectedNodeId
         : filteredNodes[0]?.node ?? nodes[0].node;
-    if (next) void loadNodeDetail(next);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, nodes, filter]);
+    if (next !== selectedNodeId) setSelectedNodeId(next);
+  }, [filteredNodes, mode, nodes, selectedNodeId]);
+
+  useEffect(() => {
+    if (mode !== "nodes" || !selectedNodeId) return;
+    const controller = new AbortController();
+    let cancelled = false;
+    setNodeBody(t("memory.browse_loading"));
+    setNodeEmpty(false);
+    setNodeScoreMeta("");
+
+    void (async () => {
+      try {
+        const { ok, data } = await engramApi.memories.nodes.detail(selectedNodeId, {
+          signal: controller.signal,
+        });
+        if (cancelled) return;
+        if (!ok) {
+          setNodeBody(t("memory.browse_fail"));
+          setNodeEmpty(true);
+          return;
+        }
+        if (!data.present) {
+          setNodeBody(t("memory.nodes_empty"));
+          setNodeEmpty(true);
+          return;
+        }
+        setNodeScoreMeta(
+          data.display_score == null
+            ? t("memory.score_none")
+            : t("memory.score_display", { score: data.display_score }),
+        );
+        setNodeBody(data.what_current?.trim() || t("empty.no_what"));
+        setNodeEmpty(!data.what_current?.trim());
+      } catch (error) {
+        if (cancelled || (error as DOMException).name === "AbortError") return;
+        setNodeBody(t("memory.browse_fail"));
+        setNodeEmpty(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [mode, selectedNodeId, t]);
 
   const levelLabel = (level: ChainLevel) => {
     if (level === "day") return t("memory.chain_level_day");
@@ -291,7 +289,10 @@ export function MemoryScene() {
                 className={`mode-btn${chainLevel === level ? " is-active" : ""}`}
                 role="tab"
                 aria-selected={chainLevel === level}
-                onClick={() => setChainLevel(level)}
+                onClick={() => {
+                  setSelectedChainId(null);
+                  setChainLevel(level);
+                }}
               >
                 {levelLabel(level)}
               </button>
@@ -309,7 +310,7 @@ export function MemoryScene() {
                     className={`browse-item${item.id === selectedChainId ? " is-selected" : ""}`}
                     role="option"
                     aria-current={item.id === selectedChainId ? "true" : undefined}
-                    onClick={() => void loadChainDetail(chainLevel, item.id)}
+                    onClick={() => setSelectedChainId(item.id)}
                   >
                     <span className="browse-item-id">{item.id}</span>
                     {item.range ? (
@@ -356,7 +357,7 @@ export function MemoryScene() {
                     className={`browse-item${n.node === selectedNodeId ? " is-selected" : ""}`}
                     role="option"
                     aria-current={n.node === selectedNodeId ? "true" : undefined}
-                    onClick={() => void loadNodeDetail(n.node)}
+                    onClick={() => setSelectedNodeId(n.node)}
                   >
                     <span className="browse-item-id">
                       {n.node}

@@ -257,6 +257,15 @@ export const config = {
   tempDir: resolveTempDir(),
   claudeBin: process.env.CLAUDE_BIN ?? "claude",
   cursorAgentBin: process.env.CURSOR_AGENT_BIN ?? "agent",
+  /**
+   * Cursor CLI `--sandbox` value. Default `disabled`: Engram write isolation is
+   * write-policy＋`--add-dir` only; OS sandbox needs kernel ≥6.2 and fails on WSL 5.x.
+   * Set `ENGRAM_CURSOR_SANDBOX=enabled` when the host supports it.
+   */
+  cursorSandbox: (() => {
+    const v = (process.env.ENGRAM_CURSOR_SANDBOX ?? "disabled").trim().toLowerCase();
+    return v === "enabled" ? "enabled" : "disabled";
+  })(),
   timezone: resolveTimezone(workspace),
   /** Effective write language for chain／node／ask (always one of MEMORY_LANGUAGES). */
   memoryLanguage: resolveMemoryLanguage(workspace),

@@ -1,43 +1,17 @@
-import { useRef, useState, type FormEvent } from "react";
-import { api } from "../lib/api";
+import { useEffect, useState, type FormEvent } from "react";
+import { engramApi, type AskJob, type MemorySearch } from "../lib/api";
 import { formatElapsed } from "../lib/types";
 import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
 import { MdBlock, Msg } from "../components/ui";
+import { useAskJob } from "../hooks/useAskJob";
 
 type SeekMode = "search" | "ask";
 
-type SearchData = {
-  l1?: { summary?: string; node_notes?: Record<string, string> } | null;
-  chain?: Array<{ day_id?: string; id?: string; content: string }>;
-  nodes?: Array<{ node: string; match_reason?: string; what_current?: string }>;
-  future_sight?: Array<{
-    id: string;
-    zone: string;
-    anchor_start?: string;
-    anchor_end?: string;
-    content?: string;
-    match_reason?: string;
-  }>;
-  message?: string;
-  error?: string;
-};
-
-type AskJob = {
-  present?: boolean;
-  status?: string;
-  phase?: string;
-  started_at?: string;
-  answer?: string;
-  sources?: unknown[];
-  error?: string;
-  log_tail?: Array<{ ts?: string; event?: string; message?: string; level?: string }>;
-};
-
 export function SeekScene() {
   const { t } = useI18n();
-  const { askJobId, setAskJobId, askPolling, setAskPolling, status } = useStatus();
-  const askAlive = useRef(false);
+  const { status } = useStatus();
+  const { start, cancel, progress: askProgress, answer: askAnswer, failure, isActive } = useAskJob();
   const [mode, setMode] = useState<SeekMode>("ask");
   const [q, setQ] = useState("");
   const [askQ, setAskQ] = useState("");
@@ -45,9 +19,19 @@ export function SeekScene() {
   const [includeLater, setIncludeLater] = useState(false);
   const [searchMsg, setSearchMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [askMsg, setAskMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
-  const [searchData, setSearchData] = useState<SearchData | null>(null);
-  const [askAnswer, setAskAnswer] = useState<AskJob | null>(null);
-  const [askProgress, setAskProgress] = useState<AskJob | null>(null);
+  const [searchData, setSearchData] = useState<MemorySearch | null>(null);
+
+  useEffect(() => {
+    if (askAnswer?.status === "completed") {
+      setAskMsg({ text: t("memory.ask_done"), kind: "ok" });
+    }
+  }, [askAnswer, t]);
+
+  useEffect(() => {
+    if (failure) {
+      setAskMsg({ text: failure.error || failure.message || t("memory.ask_fail"), kind: "error" });
+    }
+  }, [failure, t]);
 
   function toggleScope(key: keyof typeof scopes) {
     setScopes((s) => ({ ...s, [key]: !s[key] }));
@@ -66,9 +50,10 @@ export function SeekScene() {
       return;
     }
     setSearchMsg({ text: t("memory.querying"), kind: "" });
-    const params = new URLSearchParams({ q: trimmed });
-    if (selected.length < 4) params.set("scope", selected.join(","));
-    const { ok, data } = await api<SearchData>(`/memories/search?${params}`);
+    const { ok, data } = await engramApi.memories.search({
+      q: trimmed,
+      ...(selected.length < 4 ? { scope: selected } : {}),
+    });
     if (!ok) {
       setSearchMsg({
         text: data?.message || data?.error || t("memory.search_fail"),
@@ -95,39 +80,6 @@ export function SeekScene() {
     return ev.message || ev.event || "";
   }
 
-  async function pollAsk(jobId: string) {
-    askAlive.current = true;
-    setAskPolling(true);
-    while (askAlive.current) {
-      const { ok, data } = await api<AskJob>(`/memories/ask/${encodeURIComponent(jobId)}`);
-      if (!askAlive.current) break;
-      if (!ok || data?.present === false) {
-        setAskMsg({ text: t("memory.ask_fail"), kind: "error" });
-        break;
-      }
-      setAskProgress(data);
-      if (data.status === "completed") {
-        setAskMsg({ text: t("memory.ask_done"), kind: "ok" });
-        setAskAnswer(data);
-        setAskJobId(null);
-        askAlive.current = false;
-        setAskPolling(false);
-        setAskProgress(null);
-        return;
-      }
-      if (data.status === "failed" || data.status === "cancelled") {
-        setAskMsg({ text: data.error || t("memory.ask_fail"), kind: "error" });
-        setAskJobId(null);
-        askAlive.current = false;
-        setAskPolling(false);
-        setAskProgress(null);
-        return;
-      }
-      await new Promise((r) => setTimeout(r, 2500));
-    }
-    setAskPolling(false);
-  }
-
   async function onAsk(e: FormEvent) {
     e.preventDefault();
     const trimmed = askQ.trim();
@@ -136,18 +88,7 @@ export function SeekScene() {
       return;
     }
     setAskMsg({ text: t("memory.ask_running"), kind: "" });
-    setAskAnswer(null);
-    const { ok, status: http, data } = await api<{
-      job_id?: string;
-      error?: string;
-      message?: string;
-    }>(
-      "/memories/ask",
-      {
-        method: "POST",
-        body: JSON.stringify({ q: trimmed, include_later: includeLater }),
-      },
-    );
+    const { ok, status: http, data } = await start(trimmed, includeLater);
     if (http === 409 && data?.error === "ask_busy") {
       setAskMsg({ text: t("memory.ask_busy"), kind: "error" });
       return;
@@ -159,28 +100,21 @@ export function SeekScene() {
       });
       return;
     }
-    const jobId = data.job_id!;
-    setAskJobId(jobId);
-    void pollAsk(jobId);
   }
 
   async function onAskCancel() {
-    if (!askJobId) return;
-    askAlive.current = false;
-    await api(`/memories/ask/${encodeURIComponent(askJobId)}/cancel`, {
-      method: "POST",
-      body: "{}",
-    });
-    setAskPolling(false);
-    setAskJobId(null);
-    setAskProgress(null);
+    const result = await cancel();
+    if (!result?.ok) {
+      setAskMsg({ text: result?.data.error || result?.data.message || t("memory.ask_fail"), kind: "error" });
+      return;
+    }
     setAskMsg({ text: t("memory.ask_cancelled"), kind: "ok" });
   }
 
   const liveAsk = askProgress || (status?.ask_job as AskJob | undefined);
-  const askActive = askPolling || liveAsk?.status === "running";
+  const askActive = isActive || liveAsk?.status === "running";
 
-  function formatSearchL1(l1: SearchData["l1"]) {
+  function formatSearchL1(l1: MemorySearch["l1"]) {
     if (!l1) return { text: "", empty: true };
     const parts: string[] = [];
     if (l1.summary?.trim()) parts.push(l1.summary.trim());

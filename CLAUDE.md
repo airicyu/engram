@@ -18,7 +18,7 @@
 |----|------|
 | **L0**（activities） | 唯附加事件 log（`memories/activities/events.jsonl`） |
 | **short-term memory** | 短期記憶 pool（`memories/short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
-| **dream staging** | draft 工作樹（`dreams/draft/{run_id}/`）＋協定 report（`dreams/reports/`）；Approve 才 deploy 至 **L2** 並 `git commit` |
+| **dream staging** | draft 工作樹（`dreams/draft/{run_id}/`）＋協定 report（`dreams/reports/`）；Approve 才 deploy 至 **L2** 並 `git commit`。入夢／Ask／Rollup agent **approve 前不可寫** live `memories/**`（僅 draft／report／契約 temp） |
 | **L2** | **長期已沉澱記憶**＝**nodes**（主題理解）＋**chain**（時間軸）；見下行兩欄 |
 | └ **nodes** | `memories/nodes/{id}/understand/what.md`（整檔＝最新理解） |
 | └ **chain** | `memories/chain/days|weeks|months|years/`（day summary＝整檔敘事；ledger＝append-only） |
@@ -118,11 +118,11 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.19.0` — Node 活躍分（score）＋ report／2a category — 見 `docs/roadmap/0.19.0/`（**shipped**）
-- **上一版：** `0.18.2` — Rollup plan／write 改 file deliverable；`0.18.1` — Rollup agent 跟隨 `ENGRAM_AGENT`；`0.18.0` — Seek 納入未來視＋`window_days` 預設 365
-- **更早：** `0.17.0` — 未來視雙區＋入夢前機械維護；`0.16.0` — Store git 事務＋draft 檔案作業
+- **已出貨：** `0.20.0` — 正確性加固＋結構重構（sandbox／lock／capture；generic agent；`agent/`／`dream/`／`api/` 分夾）— 見 `docs/roadmap/0.20.0/`（**shipped**；**無** store migrate）
+- **上一版：** `0.19.0` — Node 活躍分（score）＋ report／2a category — 見 `docs/roadmap/0.19.0/`
+- **更早：** `0.18.2` — Rollup plan／write 改 file deliverable；`0.18.1` — Rollup agent 跟隨 `ENGRAM_AGENT`；`0.18.0` — Seek 納入未來視＋`window_days` 預設 365
 - **Backlog：** 見 `docs/roadmap/backlog/`（含 2b 自由句改 draft；Seek／network 依分）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）
+- **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；**0.19→0.20 無 migrate**
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

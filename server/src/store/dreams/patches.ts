@@ -3,7 +3,7 @@
 import { open, readFile } from "node:fs/promises";
 import { $ } from "bun";
 import { homePath } from "../home";
-import type { Patch } from "../../dream/schema";
+import type { Patch } from "../../dream/legacy/schema";
 
 function patchesPath(): string {
   return homePath("dreams", "patches.jsonl");

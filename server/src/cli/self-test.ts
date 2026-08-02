@@ -998,7 +998,56 @@ Unique later keyword xylophone-launch window for search.
     assert(mm18 && mm19 && !structureAtLeast(mm18, mm19), "structureAtLeast 0.18 < 0.19");
     assert(mm19 && structureAtLeast(mm19, { major: 0, minor: 19 }), "structureAtLeast 0.19 >=");
 
-    console.log("\n✅ All 0.19 self-checks passed");
+    console.log("\nPhase 9: capture concurrency + node_refs (0.20)");
+    const badRefs = await json("POST", "/activities", {
+      raw: "bad node_refs shape",
+      node_refs: "acme",
+    });
+    assert(badRefs.status === 400, "node_refs string → 400");
+    assert(badRefs.data.error === "invalid_node_refs", "invalid_node_refs error");
+
+    const goodRefs = await json("POST", "/activities", {
+      raw: "good node_refs shape",
+      node_refs: ["acme"],
+    });
+    assert(goodRefs.status === 201, "node_refs string[] → 201");
+    assert(typeof goodRefs.data.event_id === "string", "good refs event id");
+
+    const serialIds: string[] = [];
+    for (let i = 0; i < 20; i++) {
+      const r = await json("POST", "/activities", { raw: `serial-capture-${i}` });
+      assert(r.status === 201, `serial capture ${i}`);
+      serialIds.push(String(r.data.event_id));
+    }
+    assert(new Set(serialIds).size === 20, "serial ids unique");
+    for (let i = 1; i < serialIds.length; i++) {
+      assert(serialIds[i]! > serialIds[i - 1]!, `serial strictly increasing at ${i}`);
+    }
+
+    const parallel = await Promise.all(
+      Array.from({ length: 10 }, (_, i) =>
+        json("POST", "/activities", { raw: `parallel-capture-${i}` }),
+      ),
+    );
+    for (const r of parallel) {
+      assert(r.status === 201, `parallel capture 201 got ${r.status}`);
+    }
+    const parallelIds = parallel.map((r) => String(r.data.event_id));
+    assert(new Set(parallelIds).size === 10, "parallel ids unique");
+    const eventsTail = await readFile(
+      join(TEST_HOME, "memories/activities/events.jsonl"),
+      "utf8",
+    );
+    const poolTail = await readFile(
+      join(TEST_HOME, "memories/short-term-memory/pool.jsonl"),
+      "utf8",
+    );
+    for (const id of parallelIds) {
+      assert(eventsTail.includes(id), `L0 has ${id}`);
+      assert(poolTail.includes(id), `pool has ${id}`);
+    }
+
+    console.log("\n✅ All 0.19＋0.20 self-checks passed");
   } finally {
     await stopServer(server);
   }

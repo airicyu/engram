@@ -17,6 +17,8 @@ export interface DreamJobState {
   completed_at?: string;
   phase?: DreamJobPhase;
   agent_pid?: number | null;
+  /** 0.20: dream.lock token held by this job; cancel／finally must release with it. */
+  lock_token?: string | null;
   result?: {
     scope: string[];
     patch_count: number;

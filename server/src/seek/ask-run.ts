@@ -1,10 +1,7 @@
 /** Memory ask orchestration: background job + cancel. */
 
-import { MockAskOkRunner } from "../agent/ask-mock";
-import { MemoryAskCursorRunner } from "../agent/ask-cursor";
-import { MemoryAskClaudeRunner } from "../agent/ask-claude";
-import { killAskAgent } from "../agent/ask-process";
-import type { MemoryAskRunner } from "../agent/ask-types";
+import { createAskRunner } from "../agent/factory";
+import { killAskAgent } from "../agent/ask/process";
 import { computeDreamStatus } from "../dream/run";
 import { config } from "../config";
 import { emitAskEvent } from "./emit-ask-event";
@@ -38,13 +35,6 @@ export class AskCancelledError extends Error {
 }
 
 const cancelledJobs = new Set<string>();
-
-function pickAskRunner(): MemoryAskRunner {
-  const mode = process.env.ENGRAM_AGENT ?? "claude";
-  if (mode === "mock-ask-ok") return new MockAskOkRunner();
-  if (mode === "cursor") return new MemoryAskCursorRunner();
-  return new MemoryAskClaudeRunner();
-}
 
 export type StartAskJobOpts = {
   include_later?: boolean;
@@ -116,7 +106,7 @@ async function runAskJob(
       message: "Spawning ask agent",
     });
 
-    const runner = pickAskRunner();
+    const runner = createAskRunner();
     const result = await runner.ask({
       job_id: jobId,
       q,

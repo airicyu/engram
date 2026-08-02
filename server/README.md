@@ -45,6 +45,7 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 | `PORT` | `8787` | HTTP port（**固定綁 `127.0.0.1`**，僅本機；`http://localhost:8787` 可用） |
 | `CLAUDE_BIN` | `claude` | Claude Code binary (when `ENGRAM_AGENT=claude`, the default) |
 | `CURSOR_AGENT_BIN` | `agent` | Cursor CLI binary (when `ENGRAM_AGENT=cursor`) |
+| `ENGRAM_CURSOR_SANDBOX` | `disabled` | Cursor `--sandbox`：`disabled`（預設）｜`enabled`（需 kernel ≥6.2；WSL 5.x 請維持 disabled） |
 | `ENGRAM_AGENT` | `claude` | `claude` \| `cursor` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
 | `ENGRAM_DREAM_DEBUG` | (off) | `1` = verbose dream extract/apply logs (agent stdout preview, per-patch) |
 | `ENGRAM_ALLOW_VIRTUAL_CLOCK` | (off) | `1` = allow `PUT /clock` (time replay) |

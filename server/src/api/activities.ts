@@ -1,7 +1,6 @@
 /** Activities API handler: append an L0 event and short-term memory pool entry. */
 
-import { appendEvent, nextEventId, nowIso } from "../store/memories/activities";
-import { appendPoolEntry } from "../store/memories/short-term-memory";
+import { captureActivity } from "../store/memories/capture";
 import { isLocked } from "../store/dreams/lock";
 
 /** Request payload accepted by POST /activities. */
@@ -25,26 +24,28 @@ export async function handleActivities(body: ActivitiesBody): Promise<{ event_id
     return Response.json({ error: "raw is required" }, { status: 400 });
   }
 
-  const event_id = await nextEventId();
-  const ts = nowIso();
-  const source = body.source ?? "api";
-  const node_refs = body.node_refs;
+  // 0.20: node_refs must be string[] when present (string would be for…of'd as chars).
+  if (body.node_refs !== undefined) {
+    if (
+      !Array.isArray(body.node_refs) ||
+      body.node_refs.some((x) => typeof x !== "string")
+    ) {
+      return Response.json(
+        {
+          error: "invalid_node_refs",
+          message: "`node_refs` must be an array of strings when provided",
+        },
+        { status: 400 },
+      );
+    }
+  }
 
-  await appendEvent({
-    id: event_id,
-    ts,
-    source,
+  const result = await captureActivity({
     raw: body.raw,
-    node_refs,
+    source: body.source,
+    node_refs: body.node_refs,
     idempotency_key: body.idempotency_key,
   });
 
-  await appendPoolEntry({
-    id: event_id,
-    ts,
-    raw: body.raw.trim(),
-    node_refs,
-  });
-
-  return { event_id };
+  return { event_id: result.event_id };
 }

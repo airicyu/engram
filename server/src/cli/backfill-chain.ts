@@ -18,8 +18,8 @@ import {
 import { ensureEngramHome } from "../store/home";
 import { config } from "../config";
 import { makeDreamRunId } from "../dream/run";
-import { runRollupCascade } from "../dream/rollup";
-import { MockRollupAgent, pickRollupAgent } from "../agent/rollup";
+import { runRollupCascade } from "../dream/rollup/cascade";
+import { createRollupAgent } from "../agent/factory";
 import { commitDraft } from "../store/dreams/draft";
 import { prepareDreamDraft, finalizeDraftFromDisk } from "../store/dreams/file-pipeline";
 import { addInitializedIds, type HigherChainLevel } from "../store/memories/chain-higher";
@@ -69,10 +69,7 @@ async function main() {
 
   await prepareDreamDraft(dreamRunId);
 
-  const agent =
-    process.env.ENGRAM_AGENT === "mock-ok" || process.env.ENGRAM_AGENT?.startsWith("mock")
-      ? new MockRollupAgent()
-      : pickRollupAgent();
+  const agent = createRollupAgent();
 
   const { written, reports } = await runRollupCascade({
     dreamRunId,
