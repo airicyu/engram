@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.21.0 — 排程維護（dream cleanup ＋ integration skill）(2026-08-04)
+
+Dream staging **startup sweep**＋**in-process `Bun.cron`** 清理孤兒 draft、crash recovery、可設定 TTL；`committed` report 可 `-1` 永久保留。可選定時 auto dream（預設 off）。出貨 activities integration skill。**無** store migrate。
+
+### Added
+
+- `sweepDreamArtifacts()` — Recovery（孤兒 draft、幽靈 `dream-job`、stale lock）＋分層 TTL
+- In-process cleanup cron（預設 `0 3 * * *`，有效 timezone）；**僅** process 內，不註冊 OS crontab
+- Workspace／env 設定：`dream_staging_retention_days`（預設 **3**）、`dream_committed_report_retention_days`（預設 **30**，**`-1`＝永久**）、`dream_cleanup_*`、`auto_dream_*`
+- `bun run dreams:cleanup`／`--dry-run`；`GET /status` → `dream_cleanup`、`dream_scheduler`
+- 可選 **scheduled auto dream**（`auto_dream_enabled` 預設 false）
+- `.claude/skills/engram-activities-integration/` — 外部系統 `POST /activities` 整合指南
+- **統一設定**：除 `ENGRAM_STORE_DIR` 外，所有 config 鍵可在 `server/.env` 與 `engram.workspace.yaml` 雙邊設定（workspace 優先）
+
+### Changed
+
+- Extract fail 路徑補 `removeDraft`（與 materialize 一致）
+- `ENGRAM_AGENT`／`PORT`／`ENGRAM_TEMP_DIR` 等原 env-only 鍵改為 workspace yaml 亦可設；`factory`／`log`／boot gate 改讀 `config`
+- **高階 rollup 關帳／補建：** 開著的週／月／年硬性不寫；已結束且下層有內容卻缺 summary 的期間每次 dream 機械補候選並強制 init（週一補上週、隔數週補漏塊；month／year 同規則）
+
+---
+
 ## 0.20.0 — 正確性加固＋結構重構 (2026-08-02)
 
 產品語意大致不變：activities → dream → approve → memory 與人審閘門保留。加固 agent 寫入邊界、dream lock owner、capture 原子性；清理死碼與過肥編排；修好 web Ask／Memory 非同步生命週期；抽出共用 `AgentInvoker`（Claude／Cursor），Ask／Dream／Rollup 只保留業務 gather／交付；`agent/`、`src/dream/`、`src/api/` 皆按用途／產品域分夾。**無** store migrate；boot 仍要求結構代 ≥ 0.19。

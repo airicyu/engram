@@ -119,6 +119,10 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `l1_clear_pending` | 再 `approve`（只清 S） |
 | extract 失敗 | short-term 保留；可重試 `/dreams/run`（無 pending 時） |
 
+## External integrations
+
+Building a **webhook, cron job, or other service** that only writes L0? Use [engram-activities-integration](../engram-activities-integration/SKILL.md) — not this skill.
+
 ## Sub-files
 
 - [workflows.md](workflows.md)

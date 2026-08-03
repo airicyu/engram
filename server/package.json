@@ -7,11 +7,13 @@
     "start": "bun run src/index.ts",
     "dev": "bash scripts/dev.sh",
     "reset": "bun run src/cli/reset.ts",
+    "dreams:cleanup": "bun run src/cli/dreams-cleanup.ts",
     "replay": "bun run src/cli/replay.ts",
     "chain:backfill": "bun run src/cli/backfill-chain.ts",
     "test:phases": "bun run src/cli/self-test.ts",
     "test:write-policy": "bun test src/agent/shared/write-policy.test.ts",
-    "test:lock": "bun test src/store/dreams/lock.test.ts"
+    "test:lock": "bun test src/store/dreams/lock.test.ts",
+    "test:cleanup": "bun test src/store/dreams/cleanup.test.ts"
   },
   "devDependencies": {
     "@types/bun": "1.3.14",

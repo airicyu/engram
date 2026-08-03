@@ -100,12 +100,25 @@ Snapshot of store health, dream state, and async job status.
     "patch_count": 3
   },
   "l1_clear_pending": null,
-  "dream_job": null
+  "dream_job": null,
+  "dream_cleanup": null,
+  "dream_scheduler": {
+    "cleanup_cron": "0 3 * * *",
+    "cleanup_cron_enabled": true,
+    "cleanup_on_start": true,
+    "staging_retention_days": 3,
+    "committed_report_retention_days": 30,
+    "cleanup_min_age_days": 1,
+    "auto_dream_enabled": false,
+    "auto_dream_cron": "30 3 * * *"
+  }
 }
 ```
 
 | Field | Type | Meaning |
 |-------|------|---------|
+| `dream_cleanup` | object? | Present after startup sweep, cron, or `bun run dreams:cleanup`; last summary |
+| `dream_scheduler` | object | Effective in-process scheduler settings (workspace → env → defaults) |
 | `store_dir` | string | Resolved `ENGRAM_STORE_DIR` path |
 | `store_git` | boolean | `true` when `ENGRAM_STORE_DIR` is a usable local git work tree (0.16+; server refuses to start otherwise) |
 | `store_version` | string \| null | Disk **structure** generation from `engram.workspace.yaml` `store_version`（semver）. **0.19+ boot** requires major.minor **≥ 0.19** or the process exits before listen（unless `ENGRAM_ALLOW_STALE_STORE=1`）. Missing key → start failure（status is only reachable when gate passed, so typically a stamped string） |

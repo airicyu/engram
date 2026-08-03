@@ -1,5 +1,6 @@
 /** Central ENGRAM_AGENT resolution + AgentInvoker factory (0.20 Phase 7). */
 
+import { config, type AgentMode } from "../config";
 import { MemoryAskRunnerImpl } from "./ask/runner";
 import { MockAskMaliciousLiveWriteRunner, MockAskOkRunner } from "./ask/mock";
 import type { MemoryAskRunner } from "./ask/types";
@@ -18,34 +19,11 @@ import { CursorInvoker } from "./providers/cursor";
 import { CliRollupAgent, MockRollupAgent } from "./rollup/agent";
 import type { RollupAgent } from "../dream/rollup/cascade";
 
-export type AgentMode =
-  | "claude"
-  | "cursor"
-  | "mock-ok"
-  | "mock-fail"
-  | "mock-bad-involvement"
-  | "mock-empty-patches"
-  | "mock-malicious-live"
-  | "mock-ask-ok"
-  | "mock-ask-malicious-live";
+export type { AgentMode } from "../config";
 
-const AGENT_MODES = new Set<AgentMode>([
-  "claude",
-  "cursor",
-  "mock-ok",
-  "mock-fail",
-  "mock-bad-involvement",
-  "mock-empty-patches",
-  "mock-malicious-live",
-  "mock-ask-ok",
-  "mock-ask-malicious-live",
-]);
-
-/** Empty or unset ENGRAM_AGENT uses the default Claude Code runners. */
-export function resolveAgentMode(value = process.env.ENGRAM_AGENT): AgentMode {
-  const mode = value?.trim() || "claude";
-  if (AGENT_MODES.has(mode as AgentMode)) return mode as AgentMode;
-  throw new Error(`invalid ENGRAM_AGENT mode: ${mode}`);
+/** Effective agent mode from workspace → env → default. */
+export function resolveAgentMode(): AgentMode {
+  return config.agentMode;
 }
 
 /** Shared Claude／Cursor invoker for Ask／Dream／Rollup file-deliverable jobs. */

@@ -1,5 +1,7 @@
 /** Minimal structured console logging for the Engram API server. */
 
+import { config } from "./config";
+
 function ts(): string {
   return new Date().toISOString();
 }
@@ -23,15 +25,15 @@ export function logMemory(msg: string, extra?: Record<string, unknown>): void {
   logInfo(`memory | ${msg}`, extra);
 }
 
-/** Verbose memory troubleshooting — set ENGRAM_MEMORY_DEBUG=1 */
+/** Verbose memory troubleshooting — workspace `memory_debug` or `ENGRAM_MEMORY_DEBUG=1`. */
 export function logMemoryDebug(msg: string, extra?: Record<string, unknown>): void {
-  if (process.env.ENGRAM_MEMORY_DEBUG !== "1") return;
+  if (!config.memoryDebug) return;
   logInfo(`memory debug | ${msg}`, extra);
 }
 
-/** Verbose dream troubleshooting — set ENGRAM_DREAM_DEBUG=1 */
+/** Verbose dream troubleshooting — workspace `dream_debug` or `ENGRAM_DREAM_DEBUG=1`. */
 export function logDreamDebug(msg: string, extra?: Record<string, unknown>): void {
-  if (process.env.ENGRAM_DREAM_DEBUG !== "1") return;
+  if (!config.dreamDebug) return;
   logInfo(`dream debug | ${msg}`, extra);
 }
 

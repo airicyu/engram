@@ -3,7 +3,7 @@
  * this binary's minimum structure major.minor.
  */
 
-import { peekStoreVersion } from "../config";
+import { peekStoreVersion, config } from "../config";
 
 /**
  * Minimum store structure generation this product binary requires.
@@ -79,15 +79,14 @@ export function checkStoreStructure(storeVersion: string | null = peekStoreVersi
 
 /**
  * After ensureEngramHome: refuse process start if structure too old／missing.
- * Escape: ENGRAM_ALLOW_STALE_STORE=1 → warn and continue.
+ * Escape: workspace `allow_stale_store: true` or `ENGRAM_ALLOW_STALE_STORE=1` → warn and continue.
  */
 export function assertStoreStructureOrExit(): void {
   const result = checkStoreStructure(peekStoreVersion());
   if (result.ok) return;
 
-  const allowStale = process.env.ENGRAM_ALLOW_STALE_STORE === "1";
-  if (allowStale) {
-    console.error(`engram warning (ENGRAM_ALLOW_STALE_STORE=1): ${result.message}`);
+  if (config.allowStaleStore) {
+    console.error(`engram warning (allow_stale_store): ${result.message}`);
     return;
   }
 

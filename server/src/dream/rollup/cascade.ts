@@ -8,7 +8,6 @@ import {
   type HigherChainLevel,
 } from "../../store/memories/chain-higher";
 import {
-  candidatesFromDayIds,
   daysInWeek,
   isCurrentMonth,
   isCurrentWeek,
@@ -28,6 +27,11 @@ import { config } from "../../config";
 import { emitDreamEvent } from "../report/emit-event";
 import { throwIfDreamCancelled } from "../review/cancel-state";
 import { assertFusedRollupSummary } from "./quality";
+import {
+  candidatesForRollup,
+  enforceRollupPlan,
+  touchedPeriodIds,
+} from "./candidates";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -225,24 +229,28 @@ async function runLevel(opts: {
   dreamRunId: string;
   level: HigherChainLevel;
   candidates: string[];
+  touchedDayIds: string[];
   agent: RollupAgent;
   today: string;
   forceExecute?: boolean;
 }): Promise<{ written: string[]; report: RollupLevelReport }> {
-  const { dreamRunId, level, candidates, agent, today, forceExecute } = opts;
-  const planCtx = await buildPlanContext(dreamRunId, level, candidates, today);
-  let plan = await agent.plan(planCtx);
-  if (forceExecute && candidates.length > 0) {
-    plan = {
-      level,
-      execute: true,
-      targets: planCtx.candidate_meta.map((m) => ({
-        id: m.id,
-        operation: m.suggested_operation,
-        reason: plan.targets.find((t) => t.id === m.id)?.reason ?? "backfill force",
-      })),
+  const { dreamRunId, level, candidates, touchedDayIds, agent, today, forceExecute } = opts;
+  if (candidates.length === 0) {
+    return {
+      written: [],
+      report: { level, execute: false, reason: "no closed candidates", targets: [] },
     };
   }
+
+  const planCtx = await buildPlanContext(dreamRunId, level, candidates, today);
+  const rawPlan = await agent.plan(planCtx);
+  const plan = enforceRollupPlan({
+    level,
+    plan: rawPlan,
+    meta: planCtx.candidate_meta,
+    touchedPeriods: touchedPeriodIds(level, touchedDayIds),
+    forceExecute,
+  });
   validatePlan(plan, level, candidates, planCtx.candidate_meta);
 
   const report: RollupLevelReport = {
@@ -304,19 +312,18 @@ export async function runRollupCascade(opts: {
   const { dreamRunId, agent } = opts;
   const today = calendarDate();
   const dayIds = dayIdsFromList(opts.dayIds);
-  const candidates = candidatesFromDayIds(dayIds);
   const allWritten: string[] = [];
   const reports: RollupLevelReport[] = [];
 
   const levels: HigherChainLevel[] = ["week", "month", "year"];
   for (const level of levels) {
     throwIfDreamCancelled(dreamRunId);
-    const cand =
-      level === "week"
-        ? candidates.weeks
-        : level === "month"
-          ? candidates.months
-          : candidates.years;
+    const cand = await candidatesForRollup({
+      level,
+      touchedDayIds: dayIds,
+      today,
+      dreamRunId,
+    });
 
     emitDreamEvent(dreamRunId, {
       phase: "materialize",
@@ -330,6 +337,7 @@ export async function runRollupCascade(opts: {
       dreamRunId,
       level,
       candidates: cand,
+      touchedDayIds: dayIds,
       agent,
       today,
       forceExecute,
@@ -381,3 +389,5 @@ export function formatRollupReportSection(reports: RollupLevelReport[]): string 
   }
   return lines.join("\n");
 }
+
+export { candidatesForRollup, enforceRollupPlan, touchedPeriodIds } from "./candidates";

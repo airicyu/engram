@@ -36,19 +36,21 @@ curl -s -X POST http://localhost:8787/dreams/run
 
 Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；皆可選）。首次也可用 repo 根目錄 `bun run setup`。
 
+**0.21+：** 除 `ENGRAM_STORE_DIR` 外，下表變數皆可改寫在 `{ENGRAM_STORE_DIR}/engram.workspace.yaml`（workspace 鍵優先）。完整對照見 [docs/configurations.md](../docs/configurations.md)。
+
 | Var | Default | Meaning |
 |-----|---------|---------|
-| `ENGRAM_STORE_DIR` | `../data` | memory store root |
-| `ENGRAM_TEMP_DIR` | `/tmp` | host temp for ask jobs + dream agent workdirs (outside store) |
-| `ENGRAM_TZ` | `Asia/Hong_Kong` | IANA timezone (overridden by `{ENGRAM_STORE_DIR}/engram.workspace.yaml` `timezone`) |
-| `ENGRAM_MEMORY_LANGUAGE` | `en` | `zh-Hant` \| `zh-Hans` \| `en` when workspace omits `memory_language` |
-| `PORT` | `8787` | HTTP port（**固定綁 `127.0.0.1`**，僅本機；`http://localhost:8787` 可用） |
-| `CLAUDE_BIN` | `claude` | Claude Code binary (when `ENGRAM_AGENT=claude`, the default) |
-| `CURSOR_AGENT_BIN` | `agent` | Cursor CLI binary (when `ENGRAM_AGENT=cursor`) |
-| `ENGRAM_CURSOR_SANDBOX` | `disabled` | Cursor `--sandbox`：`disabled`（預設）｜`enabled`（需 kernel ≥6.2；WSL 5.x 請維持 disabled） |
-| `ENGRAM_AGENT` | `claude` | `claude` \| `cursor` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
-| `ENGRAM_DREAM_DEBUG` | (off) | `1` = verbose dream extract/apply logs (agent stdout preview, per-patch) |
-| `ENGRAM_ALLOW_VIRTUAL_CLOCK` | (off) | `1` = allow `PUT /clock` (time replay) |
+| `ENGRAM_STORE_DIR` | `../data` | memory store root（**僅 env**） |
+| `ENGRAM_TEMP_DIR` / `temp_dir` | `/tmp` | host temp for ask jobs + dream agent workdirs (outside store) |
+| `ENGRAM_TZ` / `timezone` | `Asia/Hong_Kong` | IANA timezone |
+| `ENGRAM_MEMORY_LANGUAGE` / `memory_language` | `en` | `zh-Hant` \| `zh-Hans` \| `en` |
+| `PORT` / `port` | `8787` | HTTP port（**固定綁 `127.0.0.1`**，僅本機；`http://localhost:8787` 可用） |
+| `CLAUDE_BIN` / `claude_bin` | `claude` | Claude Code binary (when agent=claude) |
+| `CURSOR_AGENT_BIN` / `cursor_agent_bin` | `agent` | Cursor CLI binary (when agent=cursor) |
+| `ENGRAM_CURSOR_SANDBOX` / `cursor_sandbox` | `disabled` | Cursor `--sandbox`：`disabled`（預設）｜`enabled` |
+| `ENGRAM_AGENT` / `agent` | `claude` | `claude` \| `cursor` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
+| `ENGRAM_DREAM_DEBUG` / `dream_debug` | (off) | verbose dream extract/apply logs |
+| `ENGRAM_ALLOW_VIRTUAL_CLOCK` / `allow_virtual_clock` | (off) | allow `PUT /clock` (time replay) |
 
 ## API
 

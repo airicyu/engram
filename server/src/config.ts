@@ -21,10 +21,50 @@ const WORKSPACE_KEYS = new Set([
   "store_version",
   "future_sight_window_days",
   "future_sight_hot_days",
+  "dream_staging_retention_days",
+  "dream_committed_report_retention_days",
+  "dream_cleanup_min_age_days",
+  "dream_cleanup_cron",
+  "dream_cleanup_cron_enabled",
+  "dream_cleanup_on_start",
+  "auto_dream_enabled",
+  "auto_dream_cron",
+  "port",
+  "temp_dir",
+  "agent",
+  "claude_bin",
+  "cursor_agent_bin",
+  "cursor_sandbox",
+  "allow_virtual_clock",
+  "allow_stale_store",
+  "dream_debug",
+  "memory_debug",
 ]);
 
 export const DEFAULT_FUTURE_SIGHT_WINDOW_DAYS = 365;
 export const DEFAULT_FUTURE_SIGHT_HOT_DAYS = 30;
+export const DEFAULT_DREAM_STAGING_RETENTION_DAYS = 3;
+export const DEFAULT_DREAM_COMMITTED_REPORT_RETENTION_DAYS = 30;
+export const DEFAULT_DREAM_CLEANUP_MIN_AGE_DAYS = 1;
+export const DEFAULT_DREAM_CLEANUP_CRON = "0 3 * * *";
+export const DEFAULT_AUTO_DREAM_CRON = "30 3 * * *";
+
+/** Valid `ENGRAM_AGENT` / workspace `agent` values. */
+export const AGENT_MODES = [
+  "claude",
+  "cursor",
+  "mock-ok",
+  "mock-fail",
+  "mock-bad-involvement",
+  "mock-empty-patches",
+  "mock-malicious-live",
+  "mock-ask-ok",
+  "mock-ask-malicious-live",
+] as const;
+
+export type AgentMode = (typeof AGENT_MODES)[number];
+
+const AGENT_MODE_SET = new Set<string>(AGENT_MODES);
 
 /** Semver X.Y.Z (no prerelease／build). */
 const STORE_VERSION_RE = /^\d+\.\d+\.\d+$/;
@@ -73,6 +113,24 @@ type WorkspaceFile = {
   store_version?: string;
   future_sight_window_days?: number;
   future_sight_hot_days?: number;
+  dream_staging_retention_days?: number;
+  dream_committed_report_retention_days?: number;
+  dream_cleanup_min_age_days?: number;
+  dream_cleanup_cron?: string;
+  dream_cleanup_cron_enabled?: boolean;
+  dream_cleanup_on_start?: boolean;
+  auto_dream_enabled?: boolean;
+  auto_dream_cron?: string;
+  port?: number;
+  temp_dir?: string;
+  agent?: AgentMode;
+  claude_bin?: string;
+  cursor_agent_bin?: string;
+  cursor_sandbox?: "enabled" | "disabled";
+  allow_virtual_clock?: boolean;
+  allow_stale_store?: boolean;
+  dream_debug?: boolean;
+  memory_debug?: boolean;
 };
 
 /** Positive integer day-count (future-sight windows). */
@@ -86,6 +144,81 @@ function parsePositiveIntDays(raw: string, label: string): number {
     failWorkspace(`${label} must be a positive integer (got ${JSON.stringify(raw)})`);
   }
   return n;
+}
+
+function isNonNegativeIntDays(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function parseNonNegativeIntDays(raw: string, label: string): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0) {
+    failWorkspace(`${label} must be a non-negative integer (got ${JSON.stringify(raw)})`);
+  }
+  return n;
+}
+
+function isCommittedReportRetentionDays(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && (value === -1 || value >= 1);
+}
+
+function parseCommittedReportRetentionDays(raw: string, label: string): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || (n !== -1 && n < 1)) {
+    failWorkspace(`${label} must be -1 or an integer >= 1 (got ${JSON.stringify(raw)})`);
+  }
+  return n;
+}
+
+function isWorkspaceBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
+}
+
+function resolveEnvBoolean(envVal: string | undefined, defaultValue: boolean): boolean {
+  if (envVal === undefined || envVal === "") return defaultValue;
+  const v = envVal.trim().toLowerCase();
+  if (v === "0" || v === "false" || v === "no") return false;
+  if (v === "1" || v === "true" || v === "yes") return true;
+  failWorkspace(`boolean env must be 0/1/true/false (got ${JSON.stringify(envVal)})`);
+}
+
+function isCronExpression(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim()) return false;
+  const parts = value.trim().split(/\s+/);
+  return parts.length === 5;
+}
+
+function parseCronExpression(raw: string, label: string): string {
+  const trimmed = raw.trim();
+  if (!isCronExpression(trimmed)) {
+    failWorkspace(`${label} must be a 5-field cron expression (got ${JSON.stringify(raw)})`);
+  }
+  return trimmed;
+}
+
+function isAgentMode(value: unknown): value is AgentMode {
+  return typeof value === "string" && AGENT_MODE_SET.has(value);
+}
+
+function parseAgentMode(raw: string, label: string): AgentMode {
+  const mode = raw.trim();
+  if (!isAgentMode(mode)) {
+    failWorkspace(
+      `${label} must be one of ${AGENT_MODES.join(" | ")} (got ${JSON.stringify(raw)})`,
+    );
+  }
+  return mode;
+}
+
+function isCursorSandbox(value: unknown): value is "enabled" | "disabled" {
+  return value === "enabled" || value === "disabled";
+}
+
+/** workspace key present → workspace; else env; else default */
+function pickConfig<T>(workspaceVal: T | undefined, envVal: T | undefined, defaultVal: T): T {
+  if (workspaceVal !== undefined) return workspaceVal;
+  if (envVal !== undefined) return envVal;
+  return defaultVal;
 }
 
 function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
@@ -114,7 +247,7 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
   for (const key of Object.keys(obj)) {
     if (!WORKSPACE_KEYS.has(key)) {
       failWorkspace(
-        `${path}: unknown key "${key}" (allowed: timezone, memory_language, store_version, future_sight_window_days, future_sight_hot_days)`,
+        `${path}: unknown key "${key}" (allowed: ${[...WORKSPACE_KEYS].sort().join(", ")})`,
       );
     }
   }
@@ -173,6 +306,158 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
     out.future_sight_hot_days = v;
   }
 
+  if ("dream_staging_retention_days" in obj) {
+    const v = obj.dream_staging_retention_days;
+    if (!isNonNegativeIntDays(v)) {
+      failWorkspace(
+        `${path}: dream_staging_retention_days must be a non-negative integer (got ${JSON.stringify(v)})`,
+      );
+    }
+    out.dream_staging_retention_days = v;
+  }
+
+  if ("dream_committed_report_retention_days" in obj) {
+    const v = obj.dream_committed_report_retention_days;
+    if (!isCommittedReportRetentionDays(v)) {
+      failWorkspace(
+        `${path}: dream_committed_report_retention_days must be -1 or an integer >= 1 (got ${JSON.stringify(v)})`,
+      );
+    }
+    out.dream_committed_report_retention_days = v;
+  }
+
+  if ("dream_cleanup_min_age_days" in obj) {
+    const v = obj.dream_cleanup_min_age_days;
+    if (!isNonNegativeIntDays(v)) {
+      failWorkspace(
+        `${path}: dream_cleanup_min_age_days must be a non-negative integer (got ${JSON.stringify(v)})`,
+      );
+    }
+    out.dream_cleanup_min_age_days = v;
+  }
+
+  if ("dream_cleanup_cron" in obj) {
+    const v = obj.dream_cleanup_cron;
+    if (!isCronExpression(v)) {
+      failWorkspace(`${path}: dream_cleanup_cron must be a 5-field cron string`);
+    }
+    out.dream_cleanup_cron = v.trim();
+  }
+
+  if ("dream_cleanup_cron_enabled" in obj) {
+    const v = obj.dream_cleanup_cron_enabled;
+    if (!isWorkspaceBoolean(v)) {
+      failWorkspace(`${path}: dream_cleanup_cron_enabled must be boolean`);
+    }
+    out.dream_cleanup_cron_enabled = v;
+  }
+
+  if ("dream_cleanup_on_start" in obj) {
+    const v = obj.dream_cleanup_on_start;
+    if (!isWorkspaceBoolean(v)) {
+      failWorkspace(`${path}: dream_cleanup_on_start must be boolean`);
+    }
+    out.dream_cleanup_on_start = v;
+  }
+
+  if ("auto_dream_enabled" in obj) {
+    const v = obj.auto_dream_enabled;
+    if (!isWorkspaceBoolean(v)) {
+      failWorkspace(`${path}: auto_dream_enabled must be boolean`);
+    }
+    out.auto_dream_enabled = v;
+  }
+
+  if ("auto_dream_cron" in obj) {
+    const v = obj.auto_dream_cron;
+    if (!isCronExpression(v)) {
+      failWorkspace(`${path}: auto_dream_cron must be a 5-field cron string`);
+    }
+    out.auto_dream_cron = v.trim();
+  }
+
+  if ("port" in obj) {
+    const v = obj.port;
+    if (!isPositiveIntDays(v)) {
+      failWorkspace(`${path}: port must be a positive integer (got ${JSON.stringify(v)})`);
+    }
+    out.port = v;
+  }
+
+  if ("temp_dir" in obj) {
+    const v = obj.temp_dir;
+    if (typeof v !== "string" || !v.trim()) {
+      failWorkspace(`${path}: temp_dir must be a non-empty string`);
+    }
+    out.temp_dir = v.trim();
+  }
+
+  if ("agent" in obj) {
+    const v = obj.agent;
+    if (!isAgentMode(v)) {
+      failWorkspace(
+        `${path}: agent must be one of ${AGENT_MODES.join(" | ")} (got ${JSON.stringify(v)})`,
+      );
+    }
+    out.agent = v;
+  }
+
+  if ("claude_bin" in obj) {
+    const v = obj.claude_bin;
+    if (typeof v !== "string" || !v.trim()) {
+      failWorkspace(`${path}: claude_bin must be a non-empty string`);
+    }
+    out.claude_bin = v.trim();
+  }
+
+  if ("cursor_agent_bin" in obj) {
+    const v = obj.cursor_agent_bin;
+    if (typeof v !== "string" || !v.trim()) {
+      failWorkspace(`${path}: cursor_agent_bin must be a non-empty string`);
+    }
+    out.cursor_agent_bin = v.trim();
+  }
+
+  if ("cursor_sandbox" in obj) {
+    const v = obj.cursor_sandbox;
+    if (!isCursorSandbox(v)) {
+      failWorkspace(`${path}: cursor_sandbox must be enabled or disabled`);
+    }
+    out.cursor_sandbox = v;
+  }
+
+  if ("allow_virtual_clock" in obj) {
+    const v = obj.allow_virtual_clock;
+    if (!isWorkspaceBoolean(v)) {
+      failWorkspace(`${path}: allow_virtual_clock must be boolean`);
+    }
+    out.allow_virtual_clock = v;
+  }
+
+  if ("allow_stale_store" in obj) {
+    const v = obj.allow_stale_store;
+    if (!isWorkspaceBoolean(v)) {
+      failWorkspace(`${path}: allow_stale_store must be boolean`);
+    }
+    out.allow_stale_store = v;
+  }
+
+  if ("dream_debug" in obj) {
+    const v = obj.dream_debug;
+    if (!isWorkspaceBoolean(v)) {
+      failWorkspace(`${path}: dream_debug must be boolean`);
+    }
+    out.dream_debug = v;
+  }
+
+  if ("memory_debug" in obj) {
+    const v = obj.memory_debug;
+    if (!isWorkspaceBoolean(v)) {
+      failWorkspace(`${path}: memory_debug must be boolean`);
+    }
+    out.memory_debug = v;
+  }
+
   return out;
 }
 
@@ -210,6 +495,126 @@ function resolveMemoryLanguage(
   return DEFAULT_MEMORY_LANGUAGE;
 }
 
+function resolveDreamStagingRetentionDays(workspace: WorkspaceFile | null): number {
+  if (workspace?.dream_staging_retention_days != null) {
+    return workspace.dream_staging_retention_days;
+  }
+  const fromEnv =
+    process.env.ENGRAM_DREAM_STAGING_RETENTION_DAYS?.trim() ??
+    process.env.ENGRAM_DREAM_ARTIFACT_RETENTION_DAYS?.trim();
+  if (fromEnv !== undefined && fromEnv !== "") {
+    return parseNonNegativeIntDays(fromEnv, "ENGRAM_DREAM_STAGING_RETENTION_DAYS");
+  }
+  return DEFAULT_DREAM_STAGING_RETENTION_DAYS;
+}
+
+function resolveDreamCommittedReportRetentionDays(workspace: WorkspaceFile | null): number {
+  if (workspace?.dream_committed_report_retention_days != null) {
+    return workspace.dream_committed_report_retention_days;
+  }
+  const fromEnv = process.env.ENGRAM_DREAM_COMMITTED_REPORT_RETENTION_DAYS?.trim();
+  if (fromEnv !== undefined && fromEnv !== "") {
+    return parseCommittedReportRetentionDays(fromEnv, "ENGRAM_DREAM_COMMITTED_REPORT_RETENTION_DAYS");
+  }
+  return DEFAULT_DREAM_COMMITTED_REPORT_RETENTION_DAYS;
+}
+
+function resolveDreamCleanupMinAgeDays(workspace: WorkspaceFile | null): number {
+  if (workspace?.dream_cleanup_min_age_days != null) return workspace.dream_cleanup_min_age_days;
+  const fromEnv = process.env.ENGRAM_DREAM_CLEANUP_MIN_AGE_DAYS?.trim();
+  if (fromEnv !== undefined && fromEnv !== "") {
+    return parseNonNegativeIntDays(fromEnv, "ENGRAM_DREAM_CLEANUP_MIN_AGE_DAYS");
+  }
+  return DEFAULT_DREAM_CLEANUP_MIN_AGE_DAYS;
+}
+
+function resolveDreamCleanupCron(workspace: WorkspaceFile | null): string {
+  if (workspace?.dream_cleanup_cron) return workspace.dream_cleanup_cron;
+  const fromEnv = process.env.ENGRAM_DREAM_CLEANUP_CRON?.trim();
+  if (fromEnv) return parseCronExpression(fromEnv, "ENGRAM_DREAM_CLEANUP_CRON");
+  return DEFAULT_DREAM_CLEANUP_CRON;
+}
+
+function resolveDreamCleanupCronEnabled(workspace: WorkspaceFile | null): boolean {
+  if (workspace?.dream_cleanup_cron_enabled != null) return workspace.dream_cleanup_cron_enabled;
+  return resolveEnvBoolean(process.env.ENGRAM_DREAM_CLEANUP_CRON_ENABLED, true);
+}
+
+function resolveDreamCleanupOnStart(workspace: WorkspaceFile | null): boolean {
+  if (workspace?.dream_cleanup_on_start != null) return workspace.dream_cleanup_on_start;
+  return resolveEnvBoolean(process.env.ENGRAM_DREAM_CLEANUP_ON_START, true);
+}
+
+function resolveAutoDreamEnabled(workspace: WorkspaceFile | null): boolean {
+  if (workspace?.auto_dream_enabled != null) return workspace.auto_dream_enabled;
+  return resolveEnvBoolean(process.env.ENGRAM_AUTO_DREAM_ENABLED, false);
+}
+
+function resolveAutoDreamCron(workspace: WorkspaceFile | null): string {
+  if (workspace?.auto_dream_cron) return workspace.auto_dream_cron;
+  const fromEnv = process.env.ENGRAM_AUTO_DREAM_CRON?.trim();
+  if (fromEnv) return parseCronExpression(fromEnv, "ENGRAM_AUTO_DREAM_CRON");
+  return DEFAULT_AUTO_DREAM_CRON;
+}
+
+function resolvePort(workspace: WorkspaceFile | null): number {
+  const fromEnvRaw = process.env.PORT?.trim();
+  const fromEnv =
+    fromEnvRaw && Number.isInteger(Number(fromEnvRaw)) && Number(fromEnvRaw) > 0
+      ? Number(fromEnvRaw)
+      : undefined;
+  return pickConfig(workspace?.port, fromEnv, 8787);
+}
+
+function resolveTempDir(workspace: WorkspaceFile | null): string {
+  const fromEnv = process.env.ENGRAM_TEMP_DIR?.trim() || undefined;
+  const raw = pickConfig(workspace?.temp_dir, fromEnv, "/tmp");
+  return resolve(raw || "/tmp");
+}
+
+function resolveAgentMode(workspace: WorkspaceFile | null): AgentMode {
+  if (workspace?.agent) return workspace.agent;
+  const fromEnv = process.env.ENGRAM_AGENT?.trim();
+  if (fromEnv) return parseAgentMode(fromEnv, "ENGRAM_AGENT");
+  return "claude";
+}
+
+function resolveClaudeBin(workspace: WorkspaceFile | null): string {
+  const fromEnv = process.env.CLAUDE_BIN?.trim() || undefined;
+  return pickConfig(workspace?.claude_bin, fromEnv, "claude");
+}
+
+function resolveCursorAgentBin(workspace: WorkspaceFile | null): string {
+  const fromEnv = process.env.CURSOR_AGENT_BIN?.trim() || undefined;
+  return pickConfig(workspace?.cursor_agent_bin, fromEnv, "agent");
+}
+
+function resolveCursorSandbox(workspace: WorkspaceFile | null): "enabled" | "disabled" {
+  if (workspace?.cursor_sandbox) return workspace.cursor_sandbox;
+  const v = (process.env.ENGRAM_CURSOR_SANDBOX ?? "disabled").trim().toLowerCase();
+  return v === "enabled" ? "enabled" : "disabled";
+}
+
+function resolveAllowVirtualClock(workspace: WorkspaceFile | null): boolean {
+  if (workspace?.allow_virtual_clock != null) return workspace.allow_virtual_clock;
+  return resolveEnvBoolean(process.env.ENGRAM_ALLOW_VIRTUAL_CLOCK, false);
+}
+
+function resolveAllowStaleStore(workspace: WorkspaceFile | null): boolean {
+  if (workspace?.allow_stale_store != null) return workspace.allow_stale_store;
+  return resolveEnvBoolean(process.env.ENGRAM_ALLOW_STALE_STORE, false);
+}
+
+function resolveDreamDebug(workspace: WorkspaceFile | null): boolean {
+  if (workspace?.dream_debug != null) return workspace.dream_debug;
+  return resolveEnvBoolean(process.env.ENGRAM_DREAM_DEBUG, false);
+}
+
+function resolveMemoryDebug(workspace: WorkspaceFile | null): boolean {
+  if (workspace?.memory_debug != null) return workspace.memory_debug;
+  return resolveEnvBoolean(process.env.ENGRAM_MEMORY_DEBUG, false);
+}
+
 function resolveTimezone(workspace: WorkspaceFile | null): string {
   if (workspace?.timezone) return workspace.timezone;
   const fromEnv = process.env.ENGRAM_TZ?.trim();
@@ -244,28 +649,21 @@ export function peekStoreVersion(dir = storeDir): string | null {
   }
 }
 
-function resolveTempDir(): string {
-  const raw = (process.env.ENGRAM_TEMP_DIR ?? "/tmp").trim() || "/tmp";
-  return resolve(raw);
-}
-
 /** Resolved server port, storage home, agent binaries, timezone, memory language. */
 export const config = {
-  port: Number(process.env.PORT ?? 8787),
+  port: resolvePort(workspace),
   storeDir,
   /** Host temp root for ask jobs + dream agent workdirs (not inside the memory store). */
-  tempDir: resolveTempDir(),
-  claudeBin: process.env.CLAUDE_BIN ?? "claude",
-  cursorAgentBin: process.env.CURSOR_AGENT_BIN ?? "agent",
+  tempDir: resolveTempDir(workspace),
+  agentMode: resolveAgentMode(workspace),
+  claudeBin: resolveClaudeBin(workspace),
+  cursorAgentBin: resolveCursorAgentBin(workspace),
   /**
    * Cursor CLI `--sandbox` value. Default `disabled`: Engram write isolation is
    * write-policy＋`--add-dir` only; OS sandbox needs kernel ≥6.2 and fails on WSL 5.x.
-   * Set `ENGRAM_CURSOR_SANDBOX=enabled` when the host supports it.
+   * Set `ENGRAM_CURSOR_SANDBOX=enabled` or workspace `cursor_sandbox: enabled` when supported.
    */
-  cursorSandbox: (() => {
-    const v = (process.env.ENGRAM_CURSOR_SANDBOX ?? "disabled").trim().toLowerCase();
-    return v === "enabled" ? "enabled" : "disabled";
-  })(),
+  cursorSandbox: resolveCursorSandbox(workspace),
   timezone: resolveTimezone(workspace),
   /** Effective write language for chain／node／ask (always one of MEMORY_LANGUAGES). */
   memoryLanguage: resolveMemoryLanguage(workspace),
@@ -281,5 +679,27 @@ export const config = {
   /** Engram product version (`version.md`). */
   productVersion,
   /** When true, PUT /clock may set a virtual memory timeline. */
-  allowVirtualClock: process.env.ENGRAM_ALLOW_VIRTUAL_CLOCK === "1",
+  allowVirtualClock: resolveAllowVirtualClock(workspace),
+  /** When true, boot may continue with stale store structure (warn only). */
+  allowStaleStore: resolveAllowStaleStore(workspace),
+  /** Verbose dream extract/apply logs. */
+  dreamDebug: resolveDreamDebug(workspace),
+  /** Verbose memory search/ask logs. */
+  memoryDebug: resolveMemoryDebug(workspace),
+  /** TTL days for discarded/superseded/orphan staging artifacts; 0 = recovery only. */
+  dreamStagingRetentionDays: resolveDreamStagingRetentionDays(workspace),
+  /** TTL days for committed report/events; -1 = keep forever. */
+  dreamCommittedReportRetentionDays: resolveDreamCommittedReportRetentionDays(workspace),
+  /** Minimum age before any TTL delete (safety buffer). */
+  dreamCleanupMinAgeDays: resolveDreamCleanupMinAgeDays(workspace),
+  /** In-process cron expression for staging cleanup. */
+  dreamCleanupCron: resolveDreamCleanupCron(workspace),
+  /** Register in-process cleanup cron (default true). */
+  dreamCleanupCronEnabled: resolveDreamCleanupCronEnabled(workspace),
+  /** Run staging cleanup on server start (default true). */
+  dreamCleanupOnStart: resolveDreamCleanupOnStart(workspace),
+  /** Scheduled auto dream extract (default false). */
+  autoDreamEnabled: resolveAutoDreamEnabled(workspace),
+  /** In-process cron for auto dream when enabled. */
+  autoDreamCron: resolveAutoDreamCron(workspace),
 };

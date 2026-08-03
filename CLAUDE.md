@@ -118,9 +118,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.20.0` — 正確性加固＋結構重構（sandbox／lock／capture；generic agent；`agent/`／`dream/`／`api/` 分夾）— 見 `docs/roadmap/0.20.0/`（**shipped**；**無** store migrate）
-- **上一版：** `0.19.0` — Node 活躍分（score）＋ report／2a category — 見 `docs/roadmap/0.19.0/`
-- **更早：** `0.18.2` — Rollup plan／write 改 file deliverable；`0.18.1` — Rollup agent 跟隨 `ENGRAM_AGENT`；`0.18.0` — Seek 納入未來視＋`window_days` 預設 365
+- **已出貨：** `0.21.0` — dream staging cleanup（startup＋in-process cron）、雙 retention config、可選 auto dream、activities integration skill — 見 `docs/roadmap/0.21.0/`（**shipped**；**無** store migrate）
+- **上一版：** `0.20.0` — 正確性加固＋結構重構 — 見 `docs/roadmap/0.20.0/`
+- **更早：** `0.19.0` — Node 活躍分；`0.18.x` — Seek future-sight 等
 - **Backlog：** 見 `docs/roadmap/backlog/`（含 2b 自由句改 draft；Seek／network 依分）
 - **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；**0.19→0.20 無 migrate**
 ## 深入閱讀

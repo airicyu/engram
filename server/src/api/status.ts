@@ -12,6 +12,7 @@ import { countZoneAnchors } from "../store/memories/future-sight";
 import { config, peekStoreVersion } from "../config";
 import { getClockSnapshot } from "../store/clock";
 import { isStoreGitReady } from "../store/git";
+import { getLastDreamCleanupResult } from "../store/dreams/cleanup";
 
 /** Return the status document exposed by GET /status. */
 export async function handleStatus(): Promise<object> {
@@ -70,6 +71,16 @@ export async function handleStatus(): Promise<object> {
         }
       : null,
     dream_job: dreamJobPayload,
+    dream_scheduler: {
+      cleanup_cron: config.dreamCleanupCron,
+      cleanup_cron_enabled: config.dreamCleanupCronEnabled,
+      cleanup_on_start: config.dreamCleanupOnStart,
+      staging_retention_days: config.dreamStagingRetentionDays,
+      committed_report_retention_days: config.dreamCommittedReportRetentionDays,
+      cleanup_min_age_days: config.dreamCleanupMinAgeDays,
+      auto_dream_enabled: config.autoDreamEnabled,
+      auto_dream_cron: config.autoDreamCron,
+    },
   };
 
   if (lock) {
@@ -88,6 +99,11 @@ export async function handleStatus(): Promise<object> {
     };
   } else {
     result.ask_job = null;
+  }
+
+  const dreamCleanup = getLastDreamCleanupResult();
+  if (dreamCleanup) {
+    result.dream_cleanup = dreamCleanup;
   }
 
   return result;

@@ -39,14 +39,30 @@ POST /dream/run
 
 ## 候選 id 的機械推導（planner 輸入）
 
-從 **本輪 day chain patches 實際動到的 `day_id` 集合**（若無 day chain 變更，高階候選可為空，planner 可直接整體 N）：
+對每一層 `week`｜`month`｜`year`：
 
-1. 每個 `day_id` → 所屬 ISO `week_id`
-2. 每個 `day_id` → 所屬 `month_id`（`YYYY-MM`）
-3. 每個 `day_id` → 所屬 `year_id`
+```
+candidates =
+  (本輪 touched day → 所屬期間)
+  ∪ (磁碟掃描：已結束、下層有內容、缺 higher summary)
+```
 
-把集合去重後交給對應層 planner。  
-**允許** planner 從候選裡刪减（判 N 或回傳 ids 子集）；**不允許** planner 發明不在候選、且與本輪無關的遠古 id（除非另做明示 backfill API——見下）。
+然後 **剔除** 所有仍開著的當週／當月／當年（`is_current_period`）。開著期間 **永不** 進入 targets（server 硬規則，不只靠 prompt）。
+
+下層「有內容」：week＝至少一日有 day summary；month＝有 week summary 或該月 day summary；year＝有 month summary 或該年 day summary。無下層的空窗不造空殼。
+
+**執行（server `enforceRollupPlan`）：**
+
+| 狀態 | 行為 |
+|------|------|
+| 開著 | 已剔除 |
+| 已結束 + 缺檔 | **必** init（planner 不可否決） |
+| 已結束 + 已有檔 + 本輪 touched 落在該期間 | revise |
+| 已結束 + 已有檔 + 本輪無關 | 不碰 |
+
+Planner 可提供 reason；**不可**發明候選外 id，也**不可**讓開著期間通過。明示工程全掃仍用 `bun run chain:backfill`。
+
+（舊約曾只從本輪 day 推候選、且「開著不寫」僅 prompt Prefer——會 miss 上週／隔週補建，且 agent 可誤 init 當週。）
 
 ---
 
@@ -54,24 +70,14 @@ POST /dream/run
 
 ### 職責
 
-- 決定：本輪是否執行該層 rollup（整體或逐 id）。
-- 產出：**Y/N**、**ids[]**、每 id 或整體的短 **reason**（給 report／人審）。
+- 對已篩過的 **closed** 候選給 reason（可選略過無關已有檔）。
+- 產出 JSON：`execute`、`targets[]`（server 會再 `enforceRollupPlan`）。
 
 ### 禁止
 
 - 產出 summary 全文、markdown Current、或「改寫後內容」。
 - 讀壁鐘；必須用與 extract 相同的 `today`／`now`（虛擬時鐘）。
-
-### 典型 Y／N 直覺（給 prompt，非硬碼死規則）
-
-| 情境 | 傾向 |
-|------|------|
-| 候選月＝日曆上「仍在進行的當月」，且只是當日琐事 | 可 N（等月較滿或跨月後再滾） |
-| 候選月＜當月（已結束的過去月），含補記舊日 | 應 Y（revise 或 init） |
-| 本輪 day 無實質變更／候選空 | N |
-| 首次出現的過去週／月／年尚無檔 | Y + init |
-
-實作可把「當月／當週是否未結束」做成 **context 旗標** 供模型參考，仍由模型輸出 Y/N（便於補記與邊界日彈性）。
+- 發明候選外 id；對開著期間 init／revise（server 會剔除／校驗失敗）。
 
 ### 輸出 JSON schema（建議形狀）
 

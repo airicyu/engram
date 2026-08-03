@@ -42,6 +42,8 @@ import { handleNodesIndex, handleNodeDetail } from "./api/memory/nodes";
 import { handleFutureSight } from "./api/memory/future-sight";
 import { logError, logInfo, logMemory, withRequestLog } from "./log";
 import { killAllTrackedAgentProcesses } from "./store/agent-process";
+import { sweepDreamArtifacts } from "./store/dreams/cleanup";
+import { registerEngramCronJobs } from "./scheduler";
 
 try {
   await ensureEngramHome();
@@ -52,6 +54,12 @@ try {
 }
 assertStoreStructureOrExit();
 await loadClockFromDisk();
+
+if (config.dreamCleanupOnStart) {
+  await sweepDreamArtifacts();
+}
+
+registerEngramCronJobs();
 
 let server: ReturnType<typeof Bun.serve>;
 try {
@@ -442,5 +450,5 @@ logInfo(`ENGRAM_STORE_DIR=${config.storeDir}`);
 logInfo(`ENGRAM_TEMP_DIR=${config.tempDir}`);
 logInfo(`ENGRAM_TZ=${config.timezone}`);
 logInfo(`memory_language=${config.memoryLanguage}`);
-logInfo(`ENGRAM_AGENT=${process.env.ENGRAM_AGENT ?? "claude"}`);
+logInfo(`ENGRAM_AGENT=${config.agentMode}`);
 logInfo(`ENGRAM_ALLOW_VIRTUAL_CLOCK=${config.allowVirtualClock ? "1" : "0"}`);

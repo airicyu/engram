@@ -125,6 +125,7 @@ async function recordDreamFailure(error: unknown, dreamRunId: string): Promise<v
     throw new DreamCancelledError(dreamRunId);
   }
   if (error instanceof DreamIncompleteError) {
+    await removeDraft(error.dream_run_id).catch(() => {});
     emitDreamEvent(error.dream_run_id, { phase: error.phase, level: "error", event: "run_failed", message: error.message });
     logError("dream incomplete", error, { dream_run_id: error.dream_run_id, phase: error.phase });
     await writeExtractState({ status: "failed", dream_run_id: error.dream_run_id, message: error.message });
