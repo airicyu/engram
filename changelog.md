@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.22.0 — 一鍵 dev（API + UI）(2026-08-05)
+
+根目錄 `bun run dev` 同時起 API 與 web；log 交錯時帶 `[server]`／`[web]` 前綴；任一掛掉或 Ctrl+C 則兩邊一起停。
+
+### Changed
+
+- `bun run dev` → `scripts/dev.sh`（並行 API + UI）
+- 僅 API：`bun run dev:server`（原 `dev` 行為）
+- 僅 UI：`bun run dev:ui`（不變）
+
+---
+
 ## 0.21.0 — 排程維護（dream cleanup ＋ integration skill）(2026-08-04)
 
 Dream staging **startup sweep**＋**in-process `Bun.cron`** 清理孤兒 draft、crash recovery、可設定 TTL；`committed` report 可 `-1` 永久保留。可選定時 auto dream（預設 off）。出貨 activities integration skill。**無** store migrate。

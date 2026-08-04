@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "bun run --cwd server dev",
+    "dev": "bash scripts/dev.sh",
+    "dev:server": "bun run --cwd server dev",
     "dev:ui": "bun run --cwd web dev",
     "setup": "bun run setup-wizard/server.ts"
   }

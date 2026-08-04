@@ -55,11 +55,11 @@ bun run setup
 
 ### 2. 啟動
 
-兩個終端（或兩個程序）：
-
 ```bash
-bun run dev      # API  http://localhost:8787
-bun run dev:ui   # UI   http://localhost:8788
+bun run dev          # API + UI 一起（log 前綴 [server]／[web]）
+# 或分開：
+bun run dev:server   # API  http://localhost:8787
+bun run dev:ui       # UI   http://localhost:8788
 ```
 
 瀏覽器打開 **http://localhost:8788** ，從頂欄場景走一遍即可。

@@ -12,4 +12,4 @@
 | Seek／network 依 node 活躍分 | 排序／種子擴張／節點大小 |
 | 前後端 shared Zod／contract package | 完整 monorepo schema |
 
-← [0.21.0](../0.21.0/INDEX.md)（shipped） · [0.20.0](../0.20.0/INDEX.md)（shipped） · [GUIDELINES](../GUIDELINES.md)
+← [0.22.0](../0.22.0/INDEX.md)（shipped） · [0.21.0](../0.21.0/INDEX.md)（shipped） · [GUIDELINES](../GUIDELINES.md)

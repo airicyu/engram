@@ -60,16 +60,15 @@
 # 首次設定（安裝依賴 + wizard）
 bun run setup
 
-# API
-cd server && bun run dev          # watch，:8787
+# 根目錄：一鍵或分開
+bun run dev                       # API + UI（log 前綴 [server]/[web]）
+bun run dev:server                # 僅 API :8787
+bun run dev:ui                    # 僅 UI :8788，proxy → ENGRAM_URL
+
+# 子專案
+cd server && bun run dev          # 同 dev:server
 cd server && bun run reset        # 清空記憶庫（破壞性，需確認）
-
-# UI
-cd web && bun run dev             # :8788，proxy → ENGRAM_URL
-
-# 根目錄捷徑
-bun run dev                       # server
-bun run dev:ui                    # web
+cd web && bun run dev             # 同 dev:ui
 ```
 
 ## 操作邊界（極重要）
@@ -118,9 +117,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.21.0` — dream staging cleanup（startup＋in-process cron）、雙 retention config、可選 auto dream、activities integration skill — 見 `docs/roadmap/0.21.0/`（**shipped**；**無** store migrate）
-- **上一版：** `0.20.0` — 正確性加固＋結構重構 — 見 `docs/roadmap/0.20.0/`
-- **更早：** `0.19.0` — Node 活躍分；`0.18.x` — Seek future-sight 等
+- **已出貨：** `0.22.0` — 根目錄 `bun run dev` 一鍵 API＋UI — 見 `docs/roadmap/0.22.0/`（**shipped**；**無** store migrate）
+- **上一版：** `0.21.0` — dream staging cleanup、雙 retention、可選 auto dream、activities integration skill — 見 `docs/roadmap/0.21.0/`
+- **更早：** `0.20.0` 正確性加固；`0.19.0` Node 活躍分；`0.18.x` Seek future-sight
 - **Backlog：** 見 `docs/roadmap/backlog/`（含 2b 自由句改 draft；Seek／network 依分）
 - **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；**0.19→0.20 無 migrate**
 ## 深入閱讀
