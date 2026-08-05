@@ -30,7 +30,7 @@
 - [x] `bun run dev` 同時 listen `:8787` 與 `:8788`；輸出含 `[server]`／`[web]`
 - [x] `bun run dev:server`／`bun run dev:ui` 仍可單獨啟動
 - [x] Ctrl+C 後兩埠皆釋放
-- [x] README／CLAUDE.md／changelog／version 已更新
+- [x] README／AGENTS.md／changelog／version 已更新
 
 ## 錨點
 

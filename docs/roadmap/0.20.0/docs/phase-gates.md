@@ -166,7 +166,7 @@ cd web && bun run build
 - [ ] `version.md` = `0.20.0`
 - [ ] `changelog.md` 有 0.20.0 節（寫清正確性／重構，勿誇大產品功能）
 - [ ] `docs/api-docs/api.md`：若有新錯誤碼／lock／activities 驗證行為已寫
-- [ ] `CLAUDE.md`：若操作邊界有「agent 不可寫 live」等句已同步
+- [ ] `AGENTS.md`：若操作邊界有「agent 不可寫 live」等句已同步
 - [ ] 本版 INDEX 狀態 → `shipped`；各 Phase「進度」可標完成
 
 **通過標準：** 總表全勾；上述命令全綠；無「已知失敗但先 shipped」。

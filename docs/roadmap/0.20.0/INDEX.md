@@ -15,7 +15,7 @@
 
 | # | 文件 | 內容 |
 |---|------|------|
-| 0 | [CLAUDE.md](../../../CLAUDE.md) | 操作邊界；出貨時若措辭有變須同步 |
+| 0 | [AGENTS.md](../../../AGENTS.md) | 操作邊界；出貨時若措辭有變須同步 |
 | 1 | **本檔 INDEX** | 範圍、已定案、非目標、Phase／Track、驗收總表 |
 | 2 | [docs/phase-gates.md](./docs/phase-gates.md) | **每 Phase 結束必跑的測試閘門** |
 | 3 | [docs/correctness-hardening.md](./docs/correctness-hardening.md) | Agent sandbox、owner lock、capture 原子性（HOW） |

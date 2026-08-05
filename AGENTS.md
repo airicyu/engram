@@ -1,6 +1,6 @@
 # Engram — Agent Context
 
-本檔（CLAUDE.md）是專案給 coding agent 的重要脈絡，會由 Cursor CLI／Claude Code 自動讀取。開始改碼或操作前先讀這裡。
+本檔（AGENTS.md）是專案給 coding agent 的重要脈絡，會由 Cursor CLI／Claude Code 自動讀取。開始改碼或操作前先讀這裡。
 
 ## 語言（強制）
 

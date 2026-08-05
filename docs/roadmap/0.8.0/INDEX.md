@@ -13,7 +13,7 @@
 
 | # | 文件 | 讀者 | 內容 |
 |---|------|------|------|
-| 0 | [CLAUDE.md](../../../CLAUDE.md) | 所有人 | 語言、API 邊界、慣例、禁止手改 store |
+| 0 | [AGENTS.md](../../../AGENTS.md) | 所有人 | 語言、API 邊界、慣例、禁止手改 store |
 | 1 | **本檔 INDEX** | 所有人 | 範圍、定案、驗收、檔案清單 |
 | 2 | [docs/browse-api.md](./docs/browse-api.md) | Server | API 契約 + handler 實作細節 |
 | 3 | [docs/web-ia.md](./docs/web-ia.md) | Web | IA + HTML/JS/CSS/i18n 實作細節 |
@@ -22,10 +22,10 @@
 
 ## 如何開工
 
-1. 讀 `CLAUDE.md` → 本檔 → `browse-api.md` → `web-ia.md`
+1. 讀 `AGENTS.md` → 本檔 → `browse-api.md` → `web-ia.md`
 2. 對照現況程式（見下方「錨點檔案」）
 3. 依 **實作軌道** 順序做；每軌道完成後勾 **驗收清單**
-4. 全做完：更新 `version.md`（`0.8.0`）、`changelog.md`、`docs/domain-language.md`、`CLAUDE.md`
+4. 全做完：更新 `version.md`（`0.8.0`）、`changelog.md`、`docs/domain-language.md`、`AGENTS.md`
 5. 跑 `cd server && bun run test:phases` 必須全過
 
 **操作記憶狀態只打 HTTP API**；勿手改 `data/`、`engram-data/`。
@@ -125,7 +125,7 @@
 | `server/README.md` |
 | `web/README.md` |
 | `docs/domain-language.md` |
-| `CLAUDE.md` |
+| `AGENTS.md` |
 | `version.md`、`changelog.md` |
 
 ---
@@ -215,7 +215,7 @@ server/src/api/memory/nodes.ts       # thin handlers（或 chain/nodes 合一 br
 
 - [x] `api-docs` 四端點
 - [x] `docs/domain-language.md` — Seek、Memory browse
-- [x] `CLAUDE.md` 場景表
+- [x] `AGENTS.md` 場景表
 - [x] `version.md` → `0.8.0`；`changelog.md` 條目
 
 ---

@@ -25,7 +25,7 @@
 - [x] 四場景切換殼寬不變
 - [x] Capture／Consolidate／Seek／Memory 遷至 React
 - [x] locale、status poll
-- [x] `CLAUDE.md`／`web/README` 指令更新
+- [x] `AGENTS.md`／`web/README` 指令更新
 - [x] `bun run build` 通過
 
 ## 錨點

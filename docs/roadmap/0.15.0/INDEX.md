@@ -14,7 +14,7 @@
 
 | # | 文件 | 內容 |
 |---|------|------|
-| 0 | [CLAUDE.md](../../../CLAUDE.md) | 操作邊界；出貨後層表用語須同步 |
+| 0 | [AGENTS.md](../../../AGENTS.md) | 操作邊界；出貨後層表用語須同步 |
 | 1 | **本檔 INDEX** | 範圍、已定案、非目標、Track、驗收 |
 | 2 | [docs/server-src-layout.md](./docs/server-src-layout.md) | 目標 `server/src` 樹、命名對照、凍結 wire、agent helper 契約 |
 | 3 | [docs/reasoning.md](./docs/reasoning.md) | 為何 hybrid、為何不動 HTTP、為何補 PID |
@@ -91,7 +91,7 @@
 
 ### Track 2 — R2：識別子與現行文件用語
 
-- **做：** `l1`／`L1`／`capture`／`MemoryL1*` 等現行碼與註解改 short-term memory／activities；更新 `docs/domain-language.md`、`CLAUDE.md`、`docs/api-docs/*`、server／web README、workbench skill；wire 名保留並在文件註明凍結。
+- **做：** `l1`／`L1`／`capture`／`MemoryL1*` 等現行碼與註解改 short-term memory／activities；更新 `docs/domain-language.md`、`AGENTS.md`、`docs/api-docs/*`、server／web README、workbench skill；wire 名保留並在文件註明凍結。
 - **不做：** 改 JSON 鍵或 `scope=l1` 字串；不改舊版 roadmap 正文。
 - **驗收：** 現行契約文件與 `server/src` 註解無「L1」作為現行正式層名（允許「歷史欄位名 `l1_empty`」這類說明）；grep 抽查通過；`test:phases` 全過。
 
@@ -138,4 +138,4 @@
 | `server/src/dream/cancel.ts` | cancel 入口 |
 | `server/prompts/rollup-plan-*.md` | 併檔來源 |
 | `server/src/cli/self-test.ts` | 契約回歸 |
-| `docs/domain-language.md`、`CLAUDE.md`、`docs/api-docs/api.md` | 用語／契約 |
+| `docs/domain-language.md`、`AGENTS.md`、`docs/api-docs/api.md` | 用語／契約 |

@@ -14,7 +14,7 @@
 
 | # | 文件 | 內容 |
 |---|------|------|
-| 0 | [CLAUDE.md](../../../CLAUDE.md) | 操作邊界；出貨時須同步 |
+| 0 | [AGENTS.md](../../../AGENTS.md) | 操作邊界；出貨時須同步 |
 | 1 | **本檔 INDEX** | 範圍、已定案、非目標、Track、驗收 |
 | 2 | [docs/store-git-and-layout.md](./docs/store-git-and-layout.md) | 目錄樹、`.gitignore`、git 進出規則、回滾 |
 | 2b | [docs/week-id-mmdd.md](./docs/week-id-mmdd.md) | **補丁**：week id＝`YYYY-Www-MMDD`（週一）＋browse `start`／`end` |

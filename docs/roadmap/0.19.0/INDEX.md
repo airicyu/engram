@@ -14,7 +14,7 @@
 
 | # | 文件 | 內容 |
 |---|------|------|
-| 0 | [CLAUDE.md](../../../CLAUDE.md) | 操作邊界；出貨時須同步 |
+| 0 | [AGENTS.md](../../../AGENTS.md) | 操作邊界；出貨時須同步 |
 | 1 | **本檔 INDEX** | 範圍、已定案、非目標、Track、驗收 |
 | 2 | [docs/node-score.md](./docs/node-score.md) | 存檔、常數、boost、downscale、`max_score`、display、空庫邊界 |
 | 3 | [docs/dream-score-flow.md](./docs/dream-score-flow.md) | Artifact、report、approve 編排、新建＝S0、`exclude_node_ids`、結構化改 category（2a） |

@@ -95,7 +95,7 @@ Pending 跨午夜時，「明天」會變成「今天」。同一批 pending 可
 
 ### 8. 文件矛盾 — **已修正**
 
-多輪 review = supersede；`timeline.md`／`CLAUDE.md`／`dream-approve.md` 已對齊 INDEX。
+多輪 review = supersede；`timeline.md`／`AGENTS.md`／`dream-approve.md` 已對齊 INDEX。
 
 ---
 
@@ -162,7 +162,7 @@ Pending 跨午夜時，「明天」會變成「今天」。同一批 pending 可
 
 ## 二次審查（2026-07-19，draft staging 定案後）
 
-> **範圍：** INDEX #14–#25、更新後的 `dream-approve`／`l1-mempool`／`timeline`／`CLAUDE.md`  
+> **範圍：** INDEX #14–#25、更新後的 `dream-approve`／`l1-mempool`／`timeline`／`AGENTS.md`  
 > **結論：** 初審洞口已關閉；**可開實作**。剩餘為實作期契約細節（建議開工前短補 2–3 條，不推翻模型）。
 
 ### 初審追蹤

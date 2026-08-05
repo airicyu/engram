@@ -1,6 +1,6 @@
 # Engram 設定（env ＋ workspace）
 
-← [README](../README.md) · [CLAUDE.md](../CLAUDE.md) · [API](./api-docs/README.md) · [domain-language](./domain-language.md)
+← [README](../README.md) · [AGENTS.md](../AGENTS.md) · [API](./api-docs/README.md) · [domain-language](./domain-language.md)
 
 Engram 設定分兩層：**進程／本機**（`server/.env` 或環境變數）與 **跟著記憶庫**（`{ENGRAM_STORE_DIR}/engram.workspace.yaml`）。  
 實作真相：`server/src/config.ts`；範例：`server/.env.example`。

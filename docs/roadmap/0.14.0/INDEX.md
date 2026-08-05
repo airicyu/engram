@@ -13,7 +13,7 @@
 
 | # | 文件 | 內容 |
 |---|------|------|
-| 0 | [CLAUDE.md](../../../CLAUDE.md) | 操作邊界；出貨時路徑表須同步 |
+| 0 | [AGENTS.md](../../../AGENTS.md) | 操作邊界；出貨時路徑表須同步 |
 | 1 | **本檔 INDEX** | 範圍、已定案、非目標、Track、驗收 |
 | 2 | [docs/store-layout.md](./docs/store-layout.md) | 目標樹、舊→新對照、ensure 清單 |
 | 3 | [docs/reasoning.md](./docs/reasoning.md) | 為何分組、否決項、反例 |
@@ -82,7 +82,7 @@
 
 ### Track 2 — Prompt／文件／demo 路徑字樣
 
-- **做：** `server/prompts/*`、`docs/api-docs/`、`CLAUDE.md`、`docs/domain-language.md`、`demo/data-demo`（若本版要可跑）路徑更新。
+- **做：** `server/prompts/*`、`docs/api-docs/`、`AGENTS.md`、`docs/domain-language.md`、`demo/data-demo`（若本版要可跑）路徑更新。
 - **驗收：** 文件與程式無舊頂層 `log/events.jsonl`、`meta/clock.json`、頂層 `candidates/` 作為現行契約。
 
 ### Track 3 — 遷移（一次性；工具已刪）
@@ -125,4 +125,4 @@
 | `server/src/store/memory-ask-job.ts` | `tmp/ask/jobs` |
 | `server/src/cli/self-test.ts` | 隔離 home 回歸 |
 | `server/prompts/*.md` | agent 可見路徑 |
-| `docs/api-docs/api.md`、`CLAUDE.md`、`docs/domain-language.md` | 契約與詞彙 |
+| `docs/api-docs/api.md`、`AGENTS.md`、`docs/domain-language.md` | 契約與詞彙 |

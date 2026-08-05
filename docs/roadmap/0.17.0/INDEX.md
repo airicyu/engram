@@ -14,7 +14,7 @@
 
 | # | 文件 | 內容 |
 |---|------|------|
-| 0 | [CLAUDE.md](../../../CLAUDE.md) | 操作邊界；出貨時須同步 |
+| 0 | [AGENTS.md](../../../AGENTS.md) | 操作邊界；出貨時須同步 |
 | 1 | **本檔 INDEX** | 範圍、已定案、非目標、Track、驗收 |
 | 2 | [docs/store-and-zones.md](./docs/store-and-zones.md) | 兩檔路徑、item 格式、排序、雙窗 config、分桶規則 |
 | 3 | [docs/dream-maintenance.md](./docs/dream-maintenance.md) | 入夢前機械維護 commit；AI 內容維護；與 GET／approve 關係 |

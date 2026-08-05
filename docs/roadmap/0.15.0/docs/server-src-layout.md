@@ -133,7 +133,7 @@ server/src/
 | 檔 | 要求 |
 |----|------|
 | `docs/domain-language.md` | 層表：以 **short-term memory** 為正式名；廢「L1」作為現行術語。原 **L1.5** → **dream staging**（intent＝patches／report；draft＝`dreams/draft/`）。L0／L2 可保留為簡稱，並並列 activities／nodes |
-| `CLAUDE.md` | 層表與操作邊界同語 |
+| `AGENTS.md` | 層表與操作邊界同語 |
 | `docs/api-docs/*` | 敘述改 short-term memory／dream staging；wire 名表註明凍結 |
 | `server/README.md`、`web/README.md` | 同上 |
 | `.claude/skills/engram-workbench/SKILL.md` | 操作說明用語對齊 |

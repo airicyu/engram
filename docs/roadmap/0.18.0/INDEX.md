@@ -14,7 +14,7 @@
 
 | # | 文件 | 內容 |
 |---|------|------|
-| 0 | [CLAUDE.md](../../../CLAUDE.md) | 操作邊界；出貨時須同步 |
+| 0 | [AGENTS.md](../../../AGENTS.md) | 操作邊界；出貨時須同步 |
 | 1 | **本檔 INDEX** | 範圍、已定案、非目標、Track、驗收 |
 | 2 | [docs/seek-future-sight.md](./docs/seek-future-sight.md) | Search／Ask 契約、flag、prompt／response 形狀、UI |
 | 3 | [docs/reasoning.md](./docs/reasoning.md) | 為何 Search 全掃、Ask 要 flag、否決兩段式與「只 hot 永久」 |
@@ -109,7 +109,7 @@
 
 ### Track 5 — 出貨
 
-- **做：** `version.md`／`changelog.md`；`docs/api-docs/`、`domain-language`、`CLAUDE.md`、workbench skill；刪除或清空 backlog 之 recall 條（出貨時）；INDEX → `shipped`。
+- **做：** `version.md`／`changelog.md`；`docs/api-docs/`、`domain-language`、`AGENTS.md`、workbench skill；刪除或清空 backlog 之 recall 條（出貨時）；INDEX → `shipped`。
 - **驗收：** 總表全勾。
 
 ---

@@ -11,3 +11,5 @@ web/dist/
 .env
 **/.env
 engram.code-workspace
+# Agent/IDE local overrides
+**/.claude/settings.local.json

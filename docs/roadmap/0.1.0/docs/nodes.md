@@ -100,7 +100,7 @@ L2 = 當前表面；L1.5 = Dream 決策 audit；L0 = 情節原稿。
 
 ## INDEX.md（節點意識投影）
 
-類似 CLAUDE.md：
+類似 AGENTS.md：
 
 - 極簡核心描述
 - details 指向 `understand/`、chronology、links

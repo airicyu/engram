@@ -13,7 +13,7 @@
 
 | # | 文件 | 內容 |
 |---|------|------|
-| 0 | [CLAUDE.md](../../../CLAUDE.md) | 語言、API 邊界、禁止手改 store |
+| 0 | [AGENTS.md](../../../AGENTS.md) | 語言、API 邊界、禁止手改 store |
 | 1 | **本檔 INDEX** | 範圍、已定案、非目標、Track、驗收、錨點 |
 | 2 | [docs/reasoning.md](./docs/reasoning.md) | 為何如此定（反例、否決項） |
 | 3 | Bun 官方 | [HTTP Server](https://bun.com/docs/runtime/http/server)（`port: 0`、`server.url`、`Bun.file`、`stop`）；[Shell](https://bun.com/docs/runtime/shell)（`$`） |
@@ -106,7 +106,7 @@
 
 ### Track 3 — 契約與文件出貨
 
-- **做：** `docs/api-docs/api.md`（`/status.memory_language`、workspace 檔說明）；`changelog.md`；`version.md` → `0.13.0`；`CLAUDE.md`；`server/.env.example` 補 `ENGRAM_MEMORY_LANGUAGE`。
+- **做：** `docs/api-docs/api.md`（`/status.memory_language`、workspace 檔說明）；`changelog.md`；`version.md` → `0.13.0`；`AGENTS.md`；`server/.env.example` 補 `ENGRAM_MEMORY_LANGUAGE`。
 - **驗收：** `bun run test:phases` 全過；文件與行為一致。
 
 ---

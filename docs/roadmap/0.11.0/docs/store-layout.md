@@ -141,6 +141,6 @@ ids:
 
 ## 禁止事項
 
-- 手改 `ENGRAM_HOME` 當操作手段（見 `CLAUDE.md`）——遷移腳本屬工程例外，跑完即棄或收進 `bun run` CLI。
+- 手改 `ENGRAM_HOME` 當操作手段（見 `AGENTS.md`）——遷移腳本屬工程例外，跑完即棄或收進 `bun run` CLI。
 - 把未來日寫進 day／把未發生區間當成已發生高階敘事的唯一來源（高階仍是「已發生」的 rollup；future-sight 另軌）。
 - API path 參數用檔案系統相對路徑（只用 id）。

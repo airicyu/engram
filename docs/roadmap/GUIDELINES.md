@@ -1,6 +1,6 @@
 # Roadmap 寫作指南
 
-← [CLAUDE.md](../../CLAUDE.md)
+← [AGENTS.md](../../AGENTS.md)
 
 本檔規範如何寫 `docs/roadmap/`，讓 **另一個沒有對話紀錄的 agent** 也能正確開工。  
 寫 roadmap 的 agent 與實作的 agent 常常不是同一個；**對話裡談過但沒寫進檔案的內容，對實作 agent 等於不存在。**
@@ -173,4 +173,4 @@ Reasoning 對 AI 特別有價值：保留動機與反例，讓實作／改契約
 
 - 勾驗收；狀態改 `shipped`
 - 更新 `version.md`、`changelog.md`
-- 若改了 API／操作邊界／詞彙：同步 `docs/api-docs/`、`CLAUDE.md`、`docs/domain-language.md`（列進最後一軌較不易漏）
+- 若改了 API／操作邊界／詞彙：同步 `docs/api-docs/`、`AGENTS.md`、`docs/domain-language.md`（列進最後一軌較不易漏）

@@ -16,7 +16,7 @@
 
 | # | 文件 | 讀者 | 內容 |
 |---|------|------|------|
-| 0 | [CLAUDE.md](../../../CLAUDE.md) | 所有人 | 語言、API 邊界、禁止手改 store 當操作 |
+| 0 | [AGENTS.md](../../../AGENTS.md) | 所有人 | 語言、API 邊界、禁止手改 store 當操作 |
 | 1 | **本檔 INDEX** | 所有人 | 範圍、已定案、軌道、驗收、禁止事項 |
 | 2 | [docs/reasoning.md](./docs/reasoning.md) | 所有人 | **為何**如此定（補記反例、planner／writer、串聯、Track 0、不做 git） |
 | 3 | [docs/store-layout.md](./docs/store-layout.md) | Server | id、磁碟路徑、day 遷移、initialized_*.yaml |
@@ -28,10 +28,10 @@
 
 ## 如何開工
 
-1. 讀 `CLAUDE.md` → 本檔 → `reasoning.md` → `store-layout.md` → `rollup-pipeline.md`
+1. 讀 `AGENTS.md` → 本檔 → `reasoning.md` → `store-layout.md` → `rollup-pipeline.md`
 2. 對照錨點程式（下方「錨點檔案」）
 3. **嚴格按 Track 0 → 1 → 2 → 3 → 4 → 5** 順序；每軌勾驗收後再進下一軌
-4. 全做完：更新 `version.md`（`0.11.0`）、`changelog.md`、`docs/domain-language.md`、`CLAUDE.md`、`docs/api-docs/*`
+4. 全做完：更新 `version.md`（`0.11.0`）、`changelog.md`、`docs/domain-language.md`、`AGENTS.md`、`docs/api-docs/*`
 5. `cd server && bun run test:phases` 必須全過
 
 **操作記憶狀態只打 HTTP API**（遷移 CLI 除外）；勿手改 yaml／md「幫忙改對」當日常操作。
@@ -122,7 +122,7 @@
 
 ### Track 5 — Docs & release
 
-- `api-docs`、`docs/domain-language.md`、`CLAUDE.md`、`version.md`、`changelog.md`
+- `api-docs`、`docs/domain-language.md`、`AGENTS.md`、`version.md`、`changelog.md`
 - 註明 MVP「closed 凍結」已被 initialized＋revise 取代
 
 ---
@@ -170,7 +170,7 @@
 | 路徑 |
 |------|
 | `docs/api-docs/api.md`、`docs/api-docs/README.md` |
-| `docs/domain-language.md`、`CLAUDE.md` |
+| `docs/domain-language.md`、`AGENTS.md` |
 | `server/README.md`、`web/README.md` |
 | `version.md`、`changelog.md` |
 
@@ -282,7 +282,7 @@
 
 1. `version.md` → `0.11.0`
 2. `changelog.md` 條目（含：initialized≠freeze、summary-only、day 分組、API）
-3. `docs/domain-language.md`／`CLAUDE.md`：chain 不再「僅 day」
+3. `docs/domain-language.md`／`AGENTS.md`：chain 不再「僅 day」
 4. 若有 UI／契約截圖需求：更新 `web/README.md`
 
 **驗收：**

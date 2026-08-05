@@ -278,6 +278,6 @@ Seek（0.18+）：Search scope `future` 掃兩區；Ask 預設可讀 `hot.md`，
 |------|------|
 | [README.md](../README.md) | 產品是什麼、如何啟動 |
 | [api-docs/api.md](./api-docs/api.md) | HTTP API 契約 |
-| [CLAUDE.md](../CLAUDE.md) | 給 coding agent 的專案脈絡 |
+| [AGENTS.md](../AGENTS.md) | 給 coding agent 的專案脈絡 |
 | [roadmap/0.1.0/INDEX.md](./roadmap/0.1.0/INDEX.md) | MVP 分層與設計決策 |
 | [changelog.md](../changelog.md) | 版本演進 |
