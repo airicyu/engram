@@ -8,7 +8,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { enforceRollupPlan } from "./candidates";
+import { enforceRollupPlan, hasRollupCatchupWork } from "./candidates";
 import { dayToWeekId } from "../../store/memories/chain-time";
 
 const serverRoot = join(import.meta.dir, "../../..");
@@ -211,5 +211,60 @@ describe("candidatesForRollup", () => {
     });
     expect(years).toContain("2025");
     expect(years).not.toContain("2026");
+  });
+});
+
+/** hasRollupCatchupWork reads calendarDate() → drive via a virtual clock file. */
+function loadCatchupWork(storeDir: string): boolean {
+  const script = `
+    import { loadClockFromDisk } from "./src/store/clock.ts";
+    import { hasRollupCatchupWork } from "./src/dream/rollup/candidates.ts";
+    await loadClockFromDisk();
+    console.log(await hasRollupCatchupWork());
+  `;
+  const proc = spawnSync("bun", ["-e", script], {
+    cwd: serverRoot,
+    env: {
+      ...process.env,
+      ENGRAM_STORE_DIR: storeDir,
+      ENGRAM_TZ: "Asia/Hong_Kong",
+    },
+    encoding: "utf8",
+  });
+  if (proc.status !== 0) {
+    throw new Error(proc.stderr || proc.stdout || `exit ${proc.status}`);
+  }
+  return JSON.parse(proc.stdout.trim()) as boolean;
+}
+
+/** Write a virtual-clock file so calendarDate() resolves to virtualNow. */
+async function writeClock(storeDir: string, now: string): Promise<void> {
+  const dir = join(storeDir, "tmp");
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "clock.json"), JSON.stringify({ now }), "utf8");
+}
+
+describe("hasRollupCatchupWork", () => {
+  test("closed missing week with day content → true", async () => {
+    const storeDir = await mkdtemp(join(tmpdir(), "engram-catchup-yes-"));
+    await writeWorkspace(storeDir);
+    await writeDaySummary(storeDir, "2026-05-15"); // W20-0511
+    await writeClock(storeDir, "2026-06-01T10:00:00+08:00"); // W20 now closed
+    expect(loadCatchupWork(storeDir)).toBe(true);
+  });
+
+  test("only open current week → false", async () => {
+    const storeDir = await mkdtemp(join(tmpdir(), "engram-catchup-no-"));
+    await writeWorkspace(storeDir);
+    await writeDaySummary(storeDir, "2026-06-01"); // current week at virtual now
+    await writeClock(storeDir, "2026-06-01T10:00:00+08:00");
+    expect(loadCatchupWork(storeDir)).toBe(false);
+  });
+
+  test("empty store → false", async () => {
+    const storeDir = await mkdtemp(join(tmpdir(), "engram-catchup-empty-"));
+    await writeWorkspace(storeDir);
+    await writeClock(storeDir, "2026-06-01T10:00:00+08:00");
+    expect(loadCatchupWork(storeDir)).toBe(false);
   });
 });

@@ -22,12 +22,7 @@ export function ConsolidateScene() {
   const pendingReview = status?.dream_status === "pending_review";
   const clearRetry = status?.dream_status === "l1_clear_pending";
   const dreamDisabled =
-    !status ||
-    status.lock ||
-    dreaming ||
-    pendingReview ||
-    clearRetry ||
-    status.l1_empty;
+    !status || status.lock || dreaming || pendingReview || clearRetry;
   const canReview = !!(pendingReview || clearRetry) && !status?.lock && !dreaming;
   const canRetry =
     pendingReview && !status?.lock && !dreaming && retryReason.trim().length > 0;
@@ -53,10 +48,6 @@ export function ConsolidateScene() {
     }
     if (pendingReview) {
       setMsg({ text: t("dream.pending_blocks_run"), kind: "error" });
-      return;
-    }
-    if (status?.l1_empty) {
-      setMsg({ text: t("dream.l1_empty"), kind: "error" });
       return;
     }
     setDreaming(true);

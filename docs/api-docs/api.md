@@ -289,10 +289,12 @@ Append one event to L0 and the short-term memory pool (indexed by event id).
 
 Async **extract → materialize draft → unique pending**. Does **not** write L2.
 
-- Empty short-term memory pool → **409** `nothing_to_dream`
+- Pool **empty**：
+  - 尚有「已結束、缺 higher、下層有內容」的 week／month／year → **202** rollup-only（跳過 day extract，只跑 cascade）
+  - 無上述 catch-up → **409** `nothing_to_dream`
 - Existing pending → **409** `pending_review`（禁止無理由取代；改用 `POST /dreams/retry` 或先 `discard`）
-- Scope **S** = all event ids in the pool at call time
-- Extract input = L0 events for S (may span days) + short-term view for S + existing L2
+- Scope **S** = all event ids in the pool at call time（pool 空時 S＝`[]`）
+- Extract input = L0 events for S (may span days) + short-term view for S + existing L2（rollup-only 跳過 extract）
 - `job_id` / `dream_run_id` shape: `dream-YYYYMMDD-HHmmss-{rand6}` (ENGRAM_TZ local time)
 
 **Response `202`**
@@ -309,9 +311,11 @@ Async **extract → materialize draft → unique pending**. Does **not** write L
 
 | Status | error | When |
 |--------|-------|------|
-| `409` | `nothing_to_dream` | short-term memory pool empty |
+| `409` | `nothing_to_dream` | short-term pool empty **且**無已結束缺檔的 higher chain 可關帳（0.24 起） |
 | `409` | `pending_review` | Active pending exists — use retry／discard／approve |
 | `409` | `dream_locked` | Another extract／commit in progress |
+
+Rollup-only（pool 空＋有 catch-up）產生的 pending：`scope: []`；report Narrative 標明為 rollup-only；draft manifest 僅含 higher summaries。Approve／discard／retry 路徑不變。
 
 On extract／materialize failure: `dream_job.status=failed` + `phase`; **no** pending; short-term unchanged.
 

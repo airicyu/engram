@@ -19,6 +19,8 @@ import {
   DreamRunMismatchError,
 } from "../../store/dreams/dream-runs";
 import { prepareDreamDraft, finalizeDraftFromDisk } from "../../store/dreams/file-pipeline";
+import { reportPath } from "../../store/dreams/dream-runs";
+import { writeFile } from "node:fs/promises";
 import { maintainFutureSight } from "../../store/memories/future-sight";
 import { readExtractState, writeExtractState } from "../../store/dreams/extract-state";
 import { updateDreamJobPhase } from "../../store/dreams/dream-job";
@@ -38,6 +40,7 @@ import {
 import { emitDreamEvent } from "../report/emit-event";
 import { finalizeDreamReport } from "../report/finalize";
 import { formatRollupReportSection, runRollupCascade } from "../rollup/cascade";
+import { hasRollupCatchupWork } from "../rollup/candidates";
 
 /** Result returned after a dream reaches pending review. */
 export interface DreamRunResult {
@@ -67,7 +70,9 @@ export async function runDream(opts?: {
     const existing = await getPendingRun();
     if (existing) throw new PendingReviewError(existing.id);
     const scope = await listPoolEventIds();
-    if (scope.length === 0 || (await isShortTermMemoryEmpty())) throw new NothingToDreamError();
+    if ((scope.length === 0 || (await isShortTermMemoryEmpty())) && !(await hasRollupCatchupWork())) {
+      throw new NothingToDreamError();
+    }
     return await executeDreamPipeline({ dreamRunId, scope, runner: opts?.runner });
   } catch (e) {
     await recordDreamFailure(e, dreamRunId);
@@ -159,18 +164,32 @@ export async function executeDreamPipeline(opts: {
   }
 
   await prepareDreamDraft(dreamRunId);
-  await doDreamFiles(dreamRunId, scope, runner, reviewFeedback);
-  throwIfDreamCancelled(dreamRunId);
+  if (scope.length === 0) {
+    // Rollup-only: no day extract. Cover the "short-term is empty" case; keep
+    // the report skeleton so the narrative is not just "no files".
+    await writeRollupOnlyReportSkeleton(dreamRunId);
+    emitDreamEvent(dreamRunId, {
+      phase: "extract",
+      event: "extract_skipped",
+      message: "Short-term empty — rollup-only run, skipping day extract",
+      detail: { rollup_only: true },
+    });
+  } else {
+    await doDreamFiles(dreamRunId, scope, runner, reviewFeedback);
+    throwIfDreamCancelled(dreamRunId);
+  }
   await updateDreamJobPhase("materialize");
   emitDreamEvent(dreamRunId, { phase: "materialize", event: "materialize_start", message: "Finalizing draft files" });
-  try {
-    await finalizeDraftFromDisk(dreamRunId);
-  } catch (e) {
-    await removeDraft(dreamRunId).catch(() => {});
-    if (isDreamCancelled(dreamRunId)) throw new DreamCancelledError(dreamRunId);
-    const msg = e instanceof Error ? e.message : String(e);
-    emitDreamEvent(dreamRunId, { phase: "materialize", level: "error", event: "materialize_failed", message: msg });
-    throw new DreamIncompleteError(dreamRunId, msg, "materialize");
+  if (scope.length > 0) {
+    try {
+      await finalizeDraftFromDisk(dreamRunId);
+    } catch (e) {
+      await removeDraft(dreamRunId).catch(() => {});
+      if (isDreamCancelled(dreamRunId)) throw new DreamCancelledError(dreamRunId);
+      const msg = e instanceof Error ? e.message : String(e);
+      emitDreamEvent(dreamRunId, { phase: "materialize", level: "error", event: "materialize_failed", message: msg });
+      throw new DreamIncompleteError(dreamRunId, msg, "materialize");
+    }
   }
   emitDreamEvent(dreamRunId, { phase: "materialize", event: "materialize_done", message: "Draft files finalized" });
 
@@ -214,6 +233,33 @@ export async function executeDreamPipeline(opts: {
     dream_run_id: dreamRunId, scope, patch_count: entryCount, superseded: null,
     retried_from: reviewFeedback?.retried_from ?? null, extract_status: "ok", phase: "pending_review",
   };
+}
+
+/** Write a minimal report skeleton marking the run as rollup-only (no new events). */
+async function writeRollupOnlyReportSkeleton(dreamRunId: string): Promise<void> {
+  const md = [
+    `# Dream report — ${dreamRunId}`,
+    "",
+    "## Narrative",
+    "",
+    "### Timeline",
+    "",
+    "_Rollup-only dream — short-term pool was empty; no new events extracted._",
+    "",
+    "### Long-term updates",
+    "",
+    "_None._",
+    "",
+    "### Near future",
+    "",
+    "_None._",
+    "",
+    "### Uncertainties",
+    "",
+    "_None._",
+    "",
+  ].join("\n");
+  await writeFile(reportPath(dreamRunId), md, "utf8");
 }
 
 async function doDreamFiles(

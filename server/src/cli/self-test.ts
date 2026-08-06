@@ -777,6 +777,87 @@ Unique later keyword xylophone-launch window for search.
 
     await json("DELETE", "/clock");
 
+    console.log("\nPhase 7c: rollup-only empty dream (0.24)");
+
+    // Fixture: a day summary inside a now-closed week, but no higher summary yet.
+    await json("PUT", "/clock", { now: "2026-05-15T10:00:00+08:00" });
+    const capMay = await json("POST", "/activities", {
+      raw: "May day event that later needs week rollup",
+      source: "test",
+    });
+    assert(capMay.status === 201, "may capture");
+    const dMay = await json("POST", "/dreams/run");
+    assert(dMay.status === 202, "may dream 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dMay.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
+    const apMay = await json("POST", "/dreams/approve", {});
+    assert(apMay.status === 200, "approve may dream");
+    assert(
+      (await json("GET", "/status")).data.l1_empty === true,
+      "short-term empty after may approve",
+    );
+
+    // Same week is current on May 15 (touched), so no higher summary was created.
+    // Move forward: pool empty + closed week missing monthly summary → rollup-only.
+    await json("PUT", "/clock", { now: "2026-06-01T10:00:00+08:00" });
+    const dRollOnly = await json("POST", "/dreams/run");
+    assert(
+      dRollOnly.status === 202,
+      `rollup-only empty dream 202 got ${dRollOnly.status} ${JSON.stringify(dRollOnly.data)}`,
+    );
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dRollOnly.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+    );
+    const pendRollOnly = await json("GET", "/dreams/pending");
+    assert(pendRollOnly.data.present === true, "rollup-only pending");
+    assert(
+      Array.isArray(pendRollOnly.data.scope) && pendRollOnly.data.scope.length === 0,
+      "rollup-only scope empty",
+    );
+    const reportRollOnly = String(pendRollOnly.data.report ?? "");
+    assert(
+      reportRollOnly.includes("2026-W20-0511") || reportRollOnly.includes("memories/chain/weeks"),
+      "rollup-only report lists week rollup targets",
+    );
+    assert(
+      reportRollOnly.includes("Rollup-only") || reportRollOnly.includes("no new events"),
+      "rollup-only narrative marks skipped extract",
+    );
+    // No day-extract agent was spawned: the run's events include the skip marker.
+    const evRollOnly = await json(
+      "GET",
+      `/dreams/events?run_id=${encodeURIComponent(pendRollOnly.data.dream_run_id as string)}`,
+    );
+    const rollEventNames = (evRollOnly.data.events as Array<{ event: string }>).map((e) => e.event);
+    assert(rollEventNames.includes("extract_skipped"), "rollup-only marks extract skipped");
+    assert(!rollEventNames.includes("extract_failed"), "no day-extract agent spawn in rollup-only");
+
+    const apRollOnly = await json("POST", "/dreams/approve", {});
+    assert(apRollOnly.status === 200, "approve rollup-only");
+    const weekFile = join(
+      TEST_HOME,
+      "memories/chain/weeks/2026-05/2026-W20-0511.summary.md",
+    );
+    const weekExists = await Bun.file(weekFile).exists();
+    assert(weekExists === true, "closed week summary written from empty dream");
+    const monthFile = join(TEST_HOME, "memories/chain/months/2026/2026-05.summary.md");
+    assert((await Bun.file(monthFile).exists()) === true, "closed month summary written");
+
+    // Empty pool with nothing to roll up → 409 nothing_to_dream (unchanged).
+    const emptyNoWork = await json("POST", "/dreams/run");
+    assert(
+      emptyNoWork.status === 409 && emptyNoWork.data.error === "nothing_to_dream",
+      "empty pool + no closed catch-up → 409",
+    );
+    await json("DELETE", "/clock");
+
     console.log("\nPhase 8: node score (0.19)");
 
     // T2／pending JSON: involvements present; 2a patch then approve uses new category

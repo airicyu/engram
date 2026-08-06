@@ -3,6 +3,7 @@
  */
 
 import { listChainDayIds, readDaySummary } from "../../store/memories/chain";
+import { calendarDate } from "../../store/memories/activities";
 import {
   higherSummaryExists,
   type HigherChainLevel,
@@ -142,6 +143,21 @@ export function touchedPeriodIds(level: HigherChainLevel, touchedDayIds: string[
   if (level === "week") return new Set(c.weeks);
   if (level === "month") return new Set(c.months);
   return new Set(c.years);
+}
+
+/**
+ * Mechanical, LLM-free preflight for an empty short-term pool:
+ * is there any closed higher-chain period missing that the cascade could catch up?
+ * Uses `touchedDayIds: []` so candidates come purely from the on-disk scan
+ * (closed + missing + lower content), never from touched-period revise.
+ */
+export async function hasRollupCatchupWork(): Promise<boolean> {
+  const today = calendarDate();
+  for (const level of ["week", "month", "year"] as HigherChainLevel[]) {
+    const ids = await candidatesForRollup({ level, touchedDayIds: [], today });
+    if (ids.length > 0) return true;
+  }
+  return false;
 }
 
 /**

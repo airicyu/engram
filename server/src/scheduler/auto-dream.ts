@@ -2,6 +2,7 @@
 
 import { runDream, makeDreamRunId } from "../dream/run";
 import { isShortTermMemoryEmpty, listPoolEventIds } from "../store/memories/short-term-memory";
+import { hasRollupCatchupWork } from "../dream/rollup/candidates";
 import {
   acquireLock,
   breakStaleLock,
@@ -15,7 +16,8 @@ import { logInfo } from "../log";
 
 /** Run dream extract on schedule when guards pass; no-op with log when skipped. */
 export async function tryScheduledAutoDream(): Promise<void> {
-  if (await isShortTermMemoryEmpty() || (await listPoolEventIds()).length === 0) {
+  const poolEmpty = (await isShortTermMemoryEmpty()) || (await listPoolEventIds()).length === 0;
+  if (poolEmpty && !(await hasRollupCatchupWork())) {
     logInfo("scheduled auto dream skipped", { reason: "nothing_to_dream" });
     return;
   }

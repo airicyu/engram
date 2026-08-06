@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.24.0 — 空 pool 入夢＝rollup-only（關帳補建）(2026-08-07)
+
+短期記憶為空時，同一 `POST /dreams/run` 仍可跑 **只做 higher-chain rollup**（跳過 day extract）：只要磁碟上有「已結束、缺 higher、下層有內容」的 week／month／year，就 202 進 pending；反之才 409 `nothing_to_dream`（錯誤碼不變）。**無** store migrate；不新增第二個產品動作或 HTTP 動詞。
+
+### Added
+
+- `hasRollupCatchupWork()` — 機械 preflight（week／month／year 三階，`touchedDayIds=[]` 靠磁碟掃描）；空 pool 在 acquire lock／start job 前先擋
+- `executeDreamPipeline` 空 scope 分支：跳過 `doDreamFiles`（不 spawn day extract agent）、report Narrative 標明 rollup-only、involvements 留空 artifact
+
+### Changed
+
+- `handleDreamRun`／`runDream`：空 pool＋有 catch-up → 202 rollup-only；空 pool＋無 → 409
+- `tryScheduledAutoDream`：與手動同一空 pool 規則（不再一律 skip）
+- `ConsolidateScene`：移除 `l1_empty` 禁用入夢與 onDreamRun 前置擋（改信 server 409 message）
+- i18n：`advice.l1_empty`／`dream.l1_empty` 改為「空但有待關帳仍可入夢」語意（中英同步）
+- `docs/api-docs/api.md`：`POST /dreams/run` 空 pool 契約更新；`AGENTS.md` 操作邊界補一句
+
+### Fixed
+
+- 空 pool 入夢後 cascade 以 `dayIds=[]` 仍能靠磁碟掃描找到 closed 缺檔候選（語意對齊 0.11／0.21）
+
+---
+
 ## 0.23.0 — Support Codex CLI (2026-08-06)
 
 第三個 live agent：`ENGRAM_AGENT=codex`（OpenAI Codex CLI `codex exec`）。寫入圍籬用 `workspace-write`＋窄 `--cd`（dream／rollup → `{store}/dreams`；Ask → jobDir＋`--skip-git-repo-check`）。`exec` 不傳 `--ask-for-approval`（CLI 0.114+ 僅頂層有效；exec 預設 never）。**無** store migrate。

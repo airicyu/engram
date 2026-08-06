@@ -8,6 +8,7 @@ import {
   MissingReasonError,
 } from "../../dream/run";
 import { isShortTermMemoryEmpty, listPoolEventIds } from "../../store/memories/short-term-memory";
+import { hasRollupCatchupWork } from "../../dream/rollup/candidates";
 import { isLocked, acquireLock, isLockStale, breakStaleLock, LockError } from "../../store/dreams/lock";
 import { getPendingRun } from "../../store/dreams/dream-runs";
 import { logInfo } from "../../log";
@@ -15,11 +16,13 @@ import { DREAM_SUBMITTED_MESSAGE, startDreamJob } from "./job";
 
 /** POST /dream/run — start asynchronous extract and draft materialization. */
 export async function handleDreamRun(): Promise<Response> {
-  if (await isShortTermMemoryEmpty() || (await listPoolEventIds()).length === 0) {
+  const poolEmpty = (await isShortTermMemoryEmpty()) || (await listPoolEventIds()).length === 0;
+  if (poolEmpty && !(await hasRollupCatchupWork())) {
     return Response.json(
       {
         error: "nothing_to_dream",
-        message: "short-term memory pool is empty — capture something before dreaming.",
+        message:
+          "No short-term content and no closed higher chain to roll up. Capture something, or run once a closed week/month/year is missing a summary.",
       },
       { status: 409 },
     );

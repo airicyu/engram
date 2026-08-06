@@ -91,6 +91,7 @@ API 欄位提醒：
 - dream **retry** body 用 **`reason`**（必填）；對同一凍結 scope 重跑，注入上一輪摘要
 - dream **lock**（入夢／deploy）時 activities → `409 dream_locked`；**`pending_review` 可寫 activities**
 - **`pending_review` 時不可**再 `POST /dreams/run`（改 approve／discard／retry）
+- **空 pool 仍可入夢（0.24）：** short-term 空但存在已結束、缺 higher 的 week／month／year → `POST /dreams/run` 走 **rollup-only**（跳過 day extract，只跑 cascade）→ 202；若無此類 catch-up 才 409 `nothing_to_dream`
 - **虛擬時鐘：** `PUT /clock` 需 `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`；`DELETE /clock` 恆可；見 `/status.clock`
 - **無資料不用 404**：讀取型「目前沒有內容」回 **200**，在 body 用 `null`／`[]`／`present: false` 等表達；404 留給路徑／方法真正不存在
 - **未來視窗：** 有效 `future_sight_window_days`＝workspace → env → 預設 **365**；`hot_days` 預設仍 **30**
