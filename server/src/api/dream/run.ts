@@ -6,6 +6,7 @@ import {
   makeDreamRunId,
   PendingReviewError,
   MissingReasonError,
+  NOTHING_TO_DREAM_MESSAGE,
 } from "../../dream/run";
 import { isShortTermMemoryEmpty, listPoolEventIds } from "../../store/memories/short-term-memory";
 import { hasRollupCatchupWork } from "../../dream/rollup/candidates";
@@ -21,8 +22,7 @@ export async function handleDreamRun(): Promise<Response> {
     return Response.json(
       {
         error: "nothing_to_dream",
-        message:
-          "No short-term content and no closed higher chain to roll up. Capture something, or run once a closed week/month/year is missing a summary.",
+        message: NOTHING_TO_DREAM_MESSAGE,
       },
       { status: 409 },
     );

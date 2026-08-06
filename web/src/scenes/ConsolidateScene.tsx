@@ -60,8 +60,11 @@ export function ConsolidateScene() {
 
     if (http === 409) {
       setDreaming(false);
-      setResultBody(data?.message || data?.error || "rejected");
-      setMsg({ text: data?.message || data?.error || t("dream.rejected"), kind: "error" });
+      const fallback =
+        data?.error === "nothing_to_dream" ? t("dream.l1_empty") : t("dream.rejected");
+      const text = data?.message || fallback || data?.error || "rejected";
+      setResultBody(text);
+      setMsg({ text, kind: "error" });
       await refreshStatus();
       return;
     }

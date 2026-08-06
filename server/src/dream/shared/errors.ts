@@ -15,10 +15,13 @@ export class DreamIncompleteError extends Error {
   }
 }
 
-/** Indicates a dream request with no short-term events to process. */
+/** Indicates a dream request with nothing to extract and no higher-chain catch-up. */
+export const NOTHING_TO_DREAM_MESSAGE =
+  "No short-term content and no closed higher chain to roll up. Capture something, or run once a closed week/month/year is missing a summary.";
+
 export class NothingToDreamError extends Error {
-  constructor() {
-    super("short-term memory pool is empty — nothing to dream");
+  constructor(message = NOTHING_TO_DREAM_MESSAGE) {
+    super(message);
     this.name = "NothingToDreamError";
   }
 }

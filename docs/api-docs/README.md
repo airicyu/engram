@@ -67,7 +67,7 @@ No authentication in the prototype. Timestamps use effective timezone (workspace
 | `GET` | `/` | Service discovery |
 | `GET` | `/status` | Lock, short-term empty (`l1_empty`), dream status, pending summary |
 | `POST` | `/activities` | Append L0 event + update short-term pool |
-| `POST` | `/dreams/run` | Extract → materialize draft → pending_review (async 202); **409** if pending already |
+| `POST` | `/dreams/run` | Extract→draft→pending（async 202）；空 pool 且有 closed higher catch-up → **rollup-only** 202；空且無事可做 → **409** `nothing_to_dream`；已有 pending → **409** `pending_review` |
 | `GET` | `/dreams/pending` | Active pending report + patches (`present: false` if none) |
 | `POST` | `/dreams/approve` | `commitDraft` → L2, clear scope S |
 | `POST` | `/dreams/discard` | Drop pending + draft; short-term／L2 unchanged |

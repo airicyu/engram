@@ -7,7 +7,7 @@
 ### Added
 
 - `hasRollupCatchupWork()` — 機械 preflight（week／month／year 三階，`touchedDayIds=[]` 靠磁碟掃描）；空 pool 在 acquire lock／start job 前先擋
-- `executeDreamPipeline` 空 scope 分支：跳過 `doDreamFiles`（不 spawn day extract agent）、report Narrative 標明 rollup-only、involvements 留空 artifact
+- `executeDreamPipeline` 空 scope 分支：跳過 `doDreamFiles`（不 spawn day extract agent）、report Narrative 標明 rollup-only；involvements 缺檔視為空（與既有校驗等價）
 
 ### Changed
 
