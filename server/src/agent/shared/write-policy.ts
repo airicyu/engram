@@ -3,6 +3,7 @@
  * Runners must build CLI flags from this module; mock writes go through assertWritablePath.
  */
 
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import type { DreamContext } from "../dream/types";
@@ -137,6 +138,52 @@ export function claudeDisallowedTools(): string {
  */
 export function cursorWritableAddDirs(policy: WritePolicy): string[] {
   return [...policy.writableRoots];
+}
+
+/** Absolute `{storeDir}/dreams` — Codex dream／rollup `--cd` when staging writes apply. */
+export function storeDreamsRoot(storeDir: string): string {
+  return join(normRoot(storeDir), "dreams");
+}
+
+/**
+ * Codex `--cd` root (0.23): narrow fence for apply_patch.
+ * Prefer `{store}/dreams` when any writable root lives under it (never the whole store).
+ * Otherwise the sole／first writable root (Ask jobDir or rollup temp-only).
+ */
+export function codexCdRoot(policy: WritePolicy): string {
+  if (policy.writableRoots.length === 0) {
+    throw new Error("codexCdRoot: writePolicy.writableRoots is empty");
+  }
+  const dreams = storeDreamsRoot(policy.storeDir);
+  if (policy.writableRoots.some((root) => isPathInsideRoot(root, dreams))) {
+    return dreams;
+  }
+  return normRoot(policy.writableRoots[0]!);
+}
+
+/**
+ * Codex `--add-dir` entries: writable roots not already inside／equal to `--cd`.
+ * Does not include storeDir (read-only).
+ */
+export function codexAddDirs(policy: WritePolicy): string[] {
+  const cd = codexCdRoot(policy);
+  return policy.writableRoots
+    .map(normRoot)
+    .filter((root) => root !== cd && !isPathInsideRoot(root, cd));
+}
+
+/**
+ * True when Codex should pass `--skip-git-repo-check`
+ * (no `.git` found walking up from `--cd`).
+ */
+export function codexNeedsSkipGitRepoCheck(cdRoot: string): boolean {
+  let cur = resolve(cdRoot);
+  for (;;) {
+    if (existsSync(join(cur, ".git"))) return false;
+    const parent = dirname(cur);
+    if (parent === cur) return true;
+    cur = parent;
+  }
 }
 
 /** Human-readable summary for prompts / logs. */

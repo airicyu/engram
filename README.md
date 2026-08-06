@@ -9,7 +9,7 @@ Activities → Consolidate → Seek → Memory
    寫入         沉澱／入夢      尋找         翻閱
 ```
 
-**目前版本：** [0.18.2](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
+**目前版本：** [0.23.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
 
 > **讀文件時：** 這份 README 是給人看的專案說明。給 AI coding agent 的操作邊界與開發脈絡在 [AGENTS.md](./AGENTS.md)（Cursor／Claude Code 會自動讀取），請勿把兩者當成同一份文件。
 
@@ -38,12 +38,12 @@ Activities → Consolidate → Seek → Memory
 |------|------|
 | [Bun](https://bun.sh) | 跑 API／UI／setup |
 | **Git** | 0.16+：每個記憶庫（`ENGRAM_STORE_DIR`）是 local git repo；無 git 則 server 拒絕啟動 |
-| **本機已登入可用的 agent CLI** | Dream、rollup、Seek Ask 都會呼叫它。二選一： **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**（`claude`，預設）或 **[Cursor CLI](https://cursor.com/docs/cli/overview)**（`agent`） |
+| **本機已登入可用的 agent CLI** | Dream、rollup、Seek Ask 都會呼叫它。三選一： **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)**（`claude`，預設）、**[Cursor CLI](https://cursor.com/docs/cli/overview)**（`agent`）、或 **[Codex CLI](https://developers.openai.com/codex/)**（`codex`） |
 
 可選環境變數：`ENGRAM_TEMP_DIR`（預設 `/tmp`）— ask jobs 與 dream agent 暫存根目錄（不在記憶庫內）。
 
 
-setup 時可選用哪個 agent；也可用環境變數 `ENGRAM_AGENT=claude`｜`cursor`（預設 **claude**；見 [server/README.md](./server/README.md)）。僅跑 UI／讀既有記憶時可不叫 agent；**入夢與 Ask 沒有可用的 CLI 會失敗**。
+setup 時可選用哪個 agent；也可用環境變數 `ENGRAM_AGENT=claude`｜`cursor`｜`codex`（預設 **claude**；見 [server/README.md](./server/README.md)）。僅跑 UI／讀既有記憶時可不叫 agent；**入夢與 Ask 沒有可用的 CLI 會失敗**。
 
 ### 1. 首次設定
 
@@ -56,8 +56,8 @@ bun run setup
 ### 2. 啟動
 
 ```bash
-bun run dev          # API + UI 一起（log 前綴 [server]／[web]）
-# 或分開：
+bun run dev          # API + UI 一起（Ctrl-C 一次停兩個；log 各自直接輸出）
+# 或分開（各別 log、Ctrl-C 只停自己）：
 bun run dev:server   # API  http://localhost:8787
 bun run dev:ui       # UI   http://localhost:8788
 ```

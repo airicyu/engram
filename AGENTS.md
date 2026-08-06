@@ -52,7 +52,7 @@
 - **Runtime：** Bun（TypeScript，ESM）
 - **Server：** `Bun.serve({ routes })`
 - **Web：** Vite + React + TypeScript；Bun 服務 `dist/` + proxy（prod）
-- **Dream extract：** `AgentRunner`（預設 Claude Code；可切 `cursor` / mock）
+- **Dream extract：** `AgentRunner`（預設 Claude Code；可切 `cursor`／`codex`／mock）
 
 常用指令：
 
@@ -117,9 +117,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.22.0` — 根目錄 `bun run dev` 一鍵 API＋UI — 見 `docs/roadmap/0.22.0/`（**shipped**；**無** store migrate）
-- **上一版：** `0.21.0` — dream staging cleanup、雙 retention、可選 auto dream、activities integration skill — 見 `docs/roadmap/0.21.0/`
-- **更早：** `0.20.0` 正確性加固；`0.19.0` Node 活躍分；`0.18.x` Seek future-sight
+- **已出貨：** `0.23.0` — Codex CLI（`ENGRAM_AGENT=codex`）— 見 `docs/roadmap/0.23.0/`（**shipped**；**無** store migrate）
+- **上一版：** `0.22.0` — 根目錄 `bun run dev` 一鍵 API＋UI — 見 `docs/roadmap/0.22.0/`
+- **更早：** `0.21.0` dream staging cleanup；`0.20.0` 正確性加固；`0.19.0` Node 活躍分
 - **Backlog：** 見 `docs/roadmap/backlog/`（含 2b 自由句改 draft；Seek／network 依分）
 - **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；**0.19→0.20 無 migrate**
 ## 深入閱讀

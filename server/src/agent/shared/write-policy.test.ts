@@ -12,12 +12,17 @@ import {
   assertWritablePath,
   claudeAllowedToolsForWrites,
   claudeDisallowedTools,
+  codexAddDirs,
+  codexCdRoot,
+  codexNeedsSkipGitRepoCheck,
   cursorWritableAddDirs,
   dreamWritePolicy,
   guardedWriteFile,
+  isPathInsideRoot,
   isWritablePath,
   liveMemoriesRoot,
   rollupWritePolicy,
+  storeDreamsRoot,
 } from "./write-policy";
 import type { DreamContext } from "../dream/types";
 import type { AskInput } from "../ask/types";
@@ -78,6 +83,42 @@ describe("write-policy", () => {
     const addDirs = cursorWritableAddDirs(policy);
     expect(addDirs).toContain(ctx.draft_dir);
     expect(addDirs.some((d) => d === storeDir)).toBe(false);
+  });
+
+  test("codex dream cd is store/dreams not store root", async () => {
+    const storeDir = await mkdtemp(join(tmpdir(), "engram-wp-codex-"));
+    const ctx = fakeDreamCtx(storeDir, "dream-codex-1");
+    const workDir = join(tmpdir(), "engram-dream-work-fake");
+    const policy = dreamWritePolicy(ctx, [workDir]);
+    const cd = codexCdRoot(policy);
+    expect(cd).toBe(storeDreamsRoot(storeDir));
+    expect(cd).not.toBe(storeDir);
+    expect(isPathInsideRoot(liveMemoriesRoot(storeDir), cd)).toBe(false);
+    const addDirs = codexAddDirs(policy);
+    expect(addDirs).toContain(workDir);
+    expect(addDirs.some((d) => d === storeDir)).toBe(false);
+  });
+
+  test("codex ask cd is job dir and needs skip-git outside repo", async () => {
+    const storeDir = await mkdtemp(join(tmpdir(), "engram-wp-codex-ask-"));
+    const jobId = "ask-codex-1";
+    const input: AskInput = {
+      job_id: jobId,
+      q: "what?",
+      store_dir: storeDir,
+      timezone: "Asia/Hong_Kong",
+      memory_language: "en",
+      dream_status: "idle",
+      now: "2026-08-02T12:00:00+08:00",
+      today: "2026-08-02",
+      include_later: false,
+    };
+    const policy = askWritePolicy(input);
+    const cd = codexCdRoot(policy);
+    expect(cd).toBe(policy.writableRoots[0]);
+    expect(cd).not.toBe(storeDreamsRoot(storeDir));
+    expect(codexNeedsSkipGitRepoCheck(cd)).toBe(true);
+    expect(codexAddDirs(policy)).toEqual([]);
   });
 
   test("G1.1 mock malicious runner leaves live untouched", async () => {

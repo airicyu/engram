@@ -78,6 +78,13 @@ describe("unified config", () => {
     );
   });
 
+  test("ENGRAM_AGENT=codex resolves", async () => {
+    await withWorkspace("timezone: Asia/Hong_Kong\nstore_version: 0.20.0\n", (storeDir) => {
+      const c = loadConfig(storeDir, { ENGRAM_AGENT: "codex" });
+      expect(c.agentMode).toBe("codex");
+    });
+  });
+
   test("allow_stale_store from workspace yaml", async () => {
     await withWorkspace(
       "timezone: Asia/Hong_Kong\nstore_version: 0.20.0\nallow_stale_store: true\n",

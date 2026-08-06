@@ -2,7 +2,7 @@
 
 HTTP API for the Engram memory prototype: **capture → dream (draft files + report) → approve (deploy + git) → memory**.
 
-**Runtime deps:** Bun, **Git** (store must be a local repo), Agent CLI (Cursor／Claude).
+**Runtime deps:** Bun, **Git** (store must be a local repo), Agent CLI (Claude／Cursor／Codex).
 
 ## Quick start
 
@@ -48,7 +48,8 @@ See [`web/README.md`](../../web/README.md).
 | `ENGRAM_STORE_DIR` | `../data`（repo `data/`） | Env：記憶庫絕對路徑（領域名是 **memory store／記憶庫**，不是本鍵名） |
 | `PORT` | `8787` | HTTP listen port（綁 `127.0.0.1`） |
 | `CLAUDE_BIN` | `claude` | Claude Code binary for dream extract |
-| `ENGRAM_AGENT` | `claude` | `claude` \| `cursor` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
+| `CODEX_BIN` | `codex` | Codex CLI binary when `ENGRAM_AGENT=codex` |
+| `ENGRAM_AGENT` | `claude` | `claude` \| `cursor` \| `codex` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
 | `ENGRAM_ALLOW_VIRTUAL_CLOCK` | (off) | `1` = allow `PUT /clock` (time replay) |
 
 ## Base URL

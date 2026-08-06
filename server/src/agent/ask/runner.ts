@@ -11,7 +11,7 @@ import type { AgentInvoker } from "../flow/types";
 
 const PROMPT_PATH = join(import.meta.dir, "../../../prompts/memory-ask.md");
 
-/** Ask via a shared AgentInvoker (Claude／Cursor). */
+/** Ask via a shared AgentInvoker (Claude／Cursor／Codex). */
 export class MemoryAskRunnerImpl implements MemoryAskRunner {
   constructor(private readonly invoker: AgentInvoker) {}
 

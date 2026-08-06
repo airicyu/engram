@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.23.0 — Support Codex CLI (2026-08-06)
+
+第三個 live agent：`ENGRAM_AGENT=codex`（OpenAI Codex CLI `codex exec`）。寫入圍籬用 `workspace-write`＋窄 `--cd`（dream／rollup → `{store}/dreams`；Ask → jobDir＋`--skip-git-repo-check`）。`exec` 不傳 `--ask-for-approval`（CLI 0.114+ 僅頂層有效；exec 預設 never）。**無** store migrate。
+
+### Added
+
+- `server/src/agent/providers/codex.ts` — `CodexInvoker`（唯一 Codex argv）
+- `write-policy`：`codexCdRoot`／`codexAddDirs`／`codexNeedsSkipGitRepoCheck`
+- Config：`codex` mode、`CODEX_BIN`／`codex_bin`
+- setup-wizard 第三選項 Codex CLI
+
+### Changed
+
+- factory／文件：`claude`｜`cursor`｜`codex`（預設仍 `claude`）
+
+---
+
 ## 0.22.0 — 一鍵 dev（API + UI）(2026-08-05)
 
 根目錄 `bun run dev` 同時起 API 與 web；log 交錯時帶 `[server]`／`[web]` 前綴；任一掛掉或 Ctrl+C 則兩邊一起停。

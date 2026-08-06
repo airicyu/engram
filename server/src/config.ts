@@ -35,6 +35,7 @@ const WORKSPACE_KEYS = new Set([
   "claude_bin",
   "cursor_agent_bin",
   "cursor_sandbox",
+  "codex_bin",
   "allow_virtual_clock",
   "allow_stale_store",
   "dream_debug",
@@ -46,13 +47,14 @@ export const DEFAULT_FUTURE_SIGHT_HOT_DAYS = 30;
 export const DEFAULT_DREAM_STAGING_RETENTION_DAYS = 3;
 export const DEFAULT_DREAM_COMMITTED_REPORT_RETENTION_DAYS = 30;
 export const DEFAULT_DREAM_CLEANUP_MIN_AGE_DAYS = 1;
-export const DEFAULT_DREAM_CLEANUP_CRON = "0 3 * * *";
-export const DEFAULT_AUTO_DREAM_CRON = "30 3 * * *";
+export const DEFAULT_DREAM_CLEANUP_CRON = "10 0 * * *";
+export const DEFAULT_AUTO_DREAM_CRON = "30 0 * * *";
 
 /** Valid `ENGRAM_AGENT` / workspace `agent` values. */
 export const AGENT_MODES = [
   "claude",
   "cursor",
+  "codex",
   "mock-ok",
   "mock-fail",
   "mock-bad-involvement",
@@ -127,6 +129,7 @@ type WorkspaceFile = {
   claude_bin?: string;
   cursor_agent_bin?: string;
   cursor_sandbox?: "enabled" | "disabled";
+  codex_bin?: string;
   allow_virtual_clock?: boolean;
   allow_stale_store?: boolean;
   dream_debug?: boolean;
@@ -426,6 +429,14 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
     out.cursor_sandbox = v;
   }
 
+  if ("codex_bin" in obj) {
+    const v = obj.codex_bin;
+    if (typeof v !== "string" || !v.trim()) {
+      failWorkspace(`${path}: codex_bin must be a non-empty string`);
+    }
+    out.codex_bin = v.trim();
+  }
+
   if ("allow_virtual_clock" in obj) {
     const v = obj.allow_virtual_clock;
     if (!isWorkspaceBoolean(v)) {
@@ -595,6 +606,11 @@ function resolveCursorSandbox(workspace: WorkspaceFile | null): "enabled" | "dis
   return v === "enabled" ? "enabled" : "disabled";
 }
 
+function resolveCodexBin(workspace: WorkspaceFile | null): string {
+  const fromEnv = process.env.CODEX_BIN?.trim() || undefined;
+  return pickConfig(workspace?.codex_bin, fromEnv, "codex");
+}
+
 function resolveAllowVirtualClock(workspace: WorkspaceFile | null): boolean {
   if (workspace?.allow_virtual_clock != null) return workspace.allow_virtual_clock;
   return resolveEnvBoolean(process.env.ENGRAM_ALLOW_VIRTUAL_CLOCK, false);
@@ -664,6 +680,8 @@ export const config = {
    * Set `ENGRAM_CURSOR_SANDBOX=enabled` or workspace `cursor_sandbox: enabled` when supported.
    */
   cursorSandbox: resolveCursorSandbox(workspace),
+  /** Codex CLI binary (when agent=codex). */
+  codexBin: resolveCodexBin(workspace),
   timezone: resolveTimezone(workspace),
   /** Effective write language for chain／node／ask (always one of MEMORY_LANGUAGES). */
   memoryLanguage: resolveMemoryLanguage(workspace),

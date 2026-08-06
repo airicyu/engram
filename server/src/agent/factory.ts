@@ -15,6 +15,7 @@ import {
 import type { AgentRunner } from "./dream/types";
 import type { AgentInvoker } from "./flow/types";
 import { ClaudeInvoker } from "./providers/claude";
+import { CodexInvoker } from "./providers/codex";
 import { CursorInvoker } from "./providers/cursor";
 import { CliRollupAgent, MockRollupAgent } from "./rollup/agent";
 import type { RollupAgent } from "../dream/rollup/cascade";
@@ -26,11 +27,13 @@ export function resolveAgentMode(): AgentMode {
   return config.agentMode;
 }
 
-/** Shared Claude／Cursor invoker for Ask／Dream／Rollup file-deliverable jobs. */
+/** Shared Claude／Cursor／Codex invoker for Ask／Dream／Rollup file-deliverable jobs. */
 export function createAgentInvoker(): AgentInvoker {
   switch (resolveAgentMode()) {
     case "cursor":
       return new CursorInvoker();
+    case "codex":
+      return new CodexInvoker();
     case "claude":
       return new ClaudeInvoker();
     default:
@@ -54,6 +57,7 @@ export function createDreamRunner(): AgentRunner {
     case "mock-empty-patches":
       return new MockEmptyPatchesRunner();
     case "cursor":
+    case "codex":
     case "claude":
       return new DreamCliRunner(createAgentInvoker());
     default:
@@ -68,6 +72,7 @@ export function createAskRunner(): MemoryAskRunner {
     case "mock-ask-malicious-live":
       return new MockAskMaliciousLiveWriteRunner();
     case "cursor":
+    case "codex":
     case "claude":
       return new MemoryAskRunnerImpl(createAgentInvoker());
     default:
@@ -78,6 +83,7 @@ export function createAskRunner(): MemoryAskRunner {
 export function createRollupAgent(): RollupAgent {
   switch (resolveAgentMode()) {
     case "cursor":
+    case "codex":
     case "claude":
       return new CliRollupAgent(createAgentInvoker());
     default:

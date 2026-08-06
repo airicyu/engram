@@ -100,6 +100,8 @@ const LEDGER_APPEND_RE =
 /**
  * Apply `draft/appends/**` sidecars onto draft ledger files (copy live first if needed).
  * Sidecar relative path mirrors the live ledger path under `appends/`.
+ * Each sidecar is **removed after a successful apply** so a later `finalizeDraftFromDisk`
+ * (e.g. post-rollup) is idempotent and will not duplicate blocks.
  */
 export async function applyAppendSidecars(dreamRunId: string): Promise<string[]> {
   const appendRoot = draftAbs(dreamRunId, "appends");
@@ -113,7 +115,10 @@ export async function applyAppendSidecars(dreamRunId: string): Promise<string[]>
       throw new Error(`append sidecar not a day ledger path: ${storeRel}`);
     }
     const block = (await readFile(abs, "utf8")).trimEnd();
-    if (!block.trim()) continue;
+    if (!block.trim()) {
+      await rm(abs, { force: true });
+      continue;
+    }
 
     const draftLedger = draftAbs(dreamRunId, ...storeRel.split("/"));
     let base = "";
@@ -132,6 +137,7 @@ export async function applyAppendSidecars(dreamRunId: string): Promise<string[]>
         : `${block}\n`;
     await mkdir(dirname(draftLedger), { recursive: true });
     await writeFile(draftLedger, next, "utf8");
+    await rm(abs, { force: true });
     applied.push(storeRel);
   }
   return applied;
