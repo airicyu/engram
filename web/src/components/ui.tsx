@@ -1,3 +1,5 @@
+import ReactMarkdown from "react-markdown";
+
 export function Msg({
   text,
   kind,
@@ -24,7 +26,15 @@ export function MdBlock({
   empty?: boolean;
   className?: string;
 }) {
+  const body = text ?? "";
+  const isEmpty = Boolean(empty) || !body.trim();
   return (
-    <pre className={`md-block ${empty ? "is-empty" : ""} ${className}`.trim()}>{text}</pre>
+    <div className={`md-block ${isEmpty ? "is-empty" : ""} ${className}`.trim()}>
+      {isEmpty ? (
+        <p className="md-block-empty">{body.trim() || "—"}</p>
+      ) : (
+        <ReactMarkdown>{body}</ReactMarkdown>
+      )}
+    </div>
   );
 }
