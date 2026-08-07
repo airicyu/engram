@@ -15,7 +15,7 @@ import {
   isValidYearId,
   weekDateRange,
 } from "../store/memories/chain-time";
-import { listNodeIds, nodeExists, readWhatCurrent } from "../store/memories/nodes";
+import { listNodeIds, nodeExists, readUnderstanding } from "../store/memories/nodes";
 import {
   displayScore,
   readNodeScore,
@@ -174,7 +174,7 @@ export async function listNodesIndex(): Promise<{
     display_score: number | null;
   }> = [];
   for (const node of ids) {
-    const what = await readWhatCurrent(node);
+    const what = await readUnderstanding(node);
     const scoreFile = await readNodeScore(node);
     const score = scoreFile?.score ?? null;
     nodes.push({
@@ -189,7 +189,7 @@ export async function listNodesIndex(): Promise<{
 
 export async function getNodeDetail(nodeId: string): Promise<{
   node: string;
-  what_current: string | null;
+  understanding: string | null;
   present: boolean;
   score: number | null;
   display_score: number | null;
@@ -199,20 +199,20 @@ export async function getNodeDetail(nodeId: string): Promise<{
   if (!exists) {
     return {
       node: nodeId,
-      what_current: null,
+      understanding: null,
       present: false,
       score: null,
       display_score: null,
       score_timestamp: null,
     };
   }
-  const what_current = await readWhatCurrent(nodeId);
+  const understanding = await readUnderstanding(nodeId);
   const scoreFile = await readNodeScore(nodeId);
   const reg = await readRegistry();
   const score = scoreFile?.score ?? null;
   return {
     node: nodeId,
-    what_current,
+    understanding,
     present: true,
     score,
     display_score: score == null ? null : displayScore(score, reg?.max_score ?? null),

@@ -230,8 +230,8 @@ export function SeekScene() {
                       {n.node} <span>· {n.match_reason || ""}</span>
                     </h3>
                     <MdBlock
-                      text={(n.what_current || "").trim() || t("empty.no_what")}
-                      empty={!(n.what_current || "").trim()}
+                      text={(n.understanding || "").trim() || t("empty.no_what")}
+                      empty={!(n.understanding || "").trim()}
                     />
                   </div>
                 ))

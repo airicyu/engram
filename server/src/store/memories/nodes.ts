@@ -32,8 +32,8 @@ export function whatPath(nodeId: string): string {
   return homePath("memories", "nodes", nodeId, "understand", "what.md");
 }
 
-/** Read the narrative body of a node's understanding file (whole file in 0.16). */
-export async function readWhatCurrent(nodeId: string): Promise<string> {
+/** Read the narrative body of a node's understanding file (whole file = standing understanding in 0.16+; 0.25 expects four fixed headings). */
+export async function readUnderstanding(nodeId: string): Promise<string> {
   const path = whatPath(nodeId);
   if (!(await exists(path))) return "";
   const text = await readFile(path, "utf8");
@@ -92,11 +92,11 @@ export async function seedNode(
 }
 
 /** Read what.md body for every persisted node. */
-export async function readAllWhatCurrents(): Promise<Array<{ node: string; what_current: string }>> {
+export async function readAllUnderstandings(): Promise<Array<{ node: string; understanding: string }>> {
   const ids = await listNodeIds();
-  const out: Array<{ node: string; what_current: string }> = [];
+  const out: Array<{ node: string; understanding: string }> = [];
   for (const id of ids) {
-    out.push({ node: id, what_current: await readWhatCurrent(id) });
+    out.push({ node: id, understanding: await readUnderstanding(id) });
   }
   return out;
 }

@@ -13,7 +13,12 @@ trap 'exit 130' INT
 trap 'kill 0 2>/dev/null || true' EXIT
 
 bun run --cwd server dev &
+pid_server=$!
 bun run --cwd web dev &
+pid_web=$!
 
 # 任一退出(Ctrl-C、crash、或正常結束)就收工,EXIT trap 補殺另一邊。
-wait -n
+# wait -n 需 bash 4.3+;macOS 預設 bash 3.2 不支援,改輪詢子行程。
+while kill -0 "$pid_server" 2>/dev/null && kill -0 "$pid_web" 2>/dev/null; do
+  sleep 0.1
+done

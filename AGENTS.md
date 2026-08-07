@@ -20,7 +20,7 @@
 | **short-term memory** | 短期記憶 pool（`memories/short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
 | **dream staging** | draft 工作樹（`dreams/draft/{run_id}/`）＋協定 report（`dreams/reports/`）；Approve 才 deploy 至 **L2** 並 `git commit`。入夢／Ask／Rollup agent **approve 前不可寫** live `memories/**`（僅 draft／report／契約 temp） |
 | **L2** | **長期已沉澱記憶**＝**nodes**（主題理解）＋**chain**（時間軸）；見下行兩欄 |
-| └ **nodes** | `memories/nodes/{id}/understand/what.md`（整檔＝最新理解） |
+| └ **nodes** | `memories/nodes/{id}/understand/what.md`（整檔＝**standing understanding**；期望四段 Identity／Relation／Standing facts／Current situation；API 回 `understanding`） |
 | └ **chain** | `memories/chain/days|weeks|months|years/`（day summary＝整檔敘事；ledger＝append-only） |
 | **future-sight** | 近程前瞻錨點（`memories/future-sight/hot.md`＋`later.md`）；入夢前 script 過期／重桶並 git commit；GET 懶清過期 |
 | **store git** | `ENGRAM_STORE_DIR` 必為 local git；追蹤 `memories/**`＋`engram.workspace.yaml`；**不**追 `dreams/`、store `tmp/` |
@@ -118,11 +118,11 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.23.0` — Codex CLI（`ENGRAM_AGENT=codex`）— 見 `docs/roadmap/0.23.0/`（**shipped**；**無** store migrate）
-- **上一版：** `0.22.0` — 根目錄 `bun run dev` 一鍵 API＋UI — 見 `docs/roadmap/0.22.0/`
-- **更早：** `0.21.0` dream staging cleanup；`0.20.0` 正確性加固；`0.19.0` Node 活躍分
+- **已出貨：** `0.26.0` — Node API `what_current` → `understanding` — 見 `docs/roadmap/0.26.0/`（**shipped**；**無** store migrate）
+- **上一版：** `0.25.0` — Node standing understanding（四段骨架）— 見 `docs/roadmap/0.25.0/`
+- **更早：** `0.24.0` 空 pool 入夢＝rollup-only；`0.23.0` Codex CLI；`0.22.0` 一鍵 `bun run dev`
 - **Backlog：** 見 `docs/roadmap/backlog/`（含 2b 自由句改 draft；Seek／network 依分）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；**0.19→0.20 無 migrate**
+- **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；**0.19→0.20／0.24→0.25／0.25→0.26 無 migrate**
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

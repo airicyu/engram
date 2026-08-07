@@ -291,6 +291,16 @@ async function main() {
       whatNewco.includes("Mock extract") || whatNewco.includes("Organization mentioned"),
       "L2 newco updated",
     );
+    assert(
+      whatNewco.includes("## Identity") &&
+        whatNewco.includes("## Relation") &&
+        whatNewco.includes("## Standing facts") &&
+        whatNewco.includes("## Current situation") &&
+        whatNewco.indexOf("## Identity") < whatNewco.indexOf("## Relation") &&
+        whatNewco.indexOf("## Relation") < whatNewco.indexOf("## Standing facts") &&
+        whatNewco.indexOf("## Standing facts") < whatNewco.indexOf("## Current situation"),
+      "what.md has standing understanding headings in order",
+    );
     const daysRoot = join(TEST_HOME, "memories/chain/days");
     const monthDirs = (await readdir(daysRoot, { withFileTypes: true }))
       .filter((e) => e.isDirectory() && /^\d{4}-\d{2}$/.test(e.name))
@@ -330,8 +340,8 @@ async function main() {
     assert(!/^##\s*History\b/m.test(summaryBody), "summary has no History");
     assert(summaryBody.includes("Day summary (mock)") || summaryBody.includes("Day ledger"), "summary content");
     assert(
-      !/^##\s*Current\b/m.test(whatNewco) && !/^##\s*History\b/m.test(whatNewco),
-      "what.md has no Current/History",
+      !/^##\s*Current\s*$/m.test(whatNewco) && !/^##\s*History\b/m.test(whatNewco),
+      "what.md has no Current/History wrappers",
     );
 
     const searchChain = await json("GET", "/memories/search?q=summary");

@@ -13,11 +13,52 @@ You are consolidating short-term memory into long-term store files for dream run
 
 Timezone: `{{TIMEZONE}}` · Memory language: `{{MEMORY_LANGUAGE}}` · today=`{{TODAY}}` · now=`{{NOW}}`
 
+## Product roles (read before writing)
+
+| Layer | Holds | Does **not** hold |
+|-------|--------|-------------------|
+| **Node `what.md`** | **Standing understanding** — what this person／project／theme **is now** (definition, relation, stable facts, condensed current state) | Day-by-day event diary; a second timeline |
+| **Chain** (day ledger／summary, higher rollups) | **What happened** on the timeline | Replacing a node’s identity model |
+| **Future-sight** | Near-horizon anchors | Long-term identity prose |
+
+**Rule:** event detail → **chain** (and future-sight when it is a near-horizon anchor). Only **settled conclusions** that change long-term cognition → **node `what.md`**.
+
+Frozen context `l2_current[].understanding` is the live whole-file body of each node’s `what.md`. If it reads like a dated diary or event list, **rewrite** it this round into the standing model below — lift still-valid stable facts into Identity／Relation／Standing facts; leave episode detail to chain (write into this round’s day summary／ledger when applicable; do **not** invent day chain entries just to “move” old diary text).
+
+## Standing understanding skeleton (`nodes/*/understand/what.md`)
+
+Every `what.md` you write or update **must** be a **whole-file rewrite** containing these four `##` headings **in this order and exact spelling** (English titles; body language = `{{MEMORY_LANGUAGE}}`):
+
+```markdown
+## Identity
+
+（定義：是誰／是什麼）
+
+## Relation
+
+（與使用者的關係；不適用則 `_None_`）
+
+## Standing facts
+
+（穩定、已確定、不依賴單一日期的事實）
+
+## Current situation
+
+（當前狀態濃縮；可含「截至 YYYY-MM-DD」；或 `_None_`）
+```
+
+- **Keep all four headings** even when a section is empty; empty section body = `_None_` alone.
+- **No** `## Current`／`## History`. Whole file = latest understanding.
+- **Forbidden:** using `YYYY-MM-DD：做了什麼` lists (or equivalent day-by-day logs) as the backbone of `what.md` — that belongs in chain.
+- **Update:** rewrite the full four-section file; **do not** append another day’s log to the end of an old diary-shaped file.
+- **Create node:** seed `what.md` with the four-section skeleton from the start (most sections may be `_None_`; Identity should preferably have at least one non-`_None_` definition line). Do not seed a single raw line with no headings.
+- **Kind hints** (same file; unused sections still get `_None_`): `person` → Identity＋Relation usually filled; `project`／`theme`／`org` → Identity＋Standing facts primary, Relation often `_None_`.
+
 ## Rules
 
 1. **Do not** edit live `{{STORE_DIR}}/memories/**` directly. Only edit under `{{DRAFT_DIR}}/memories/**`.
 2. Prefer **Read** live (or use frozen context) then **Write／Edit** the draft copy under `{{DRAFT_DIR}}`. Do **not** use Bash／shell to rewrite store files. Do **not** paste huge files into chat as the write mechanism.
-3. **file_update**: rewrite whole narrative files (`*.summary.md`, `nodes/*/understand/what.md`, **`memories/future-sight/hot.md`** and **`later.md`** only — never `active/{id}.md`, new node files). Whole file = latest narrative — **no** `## Current` / `## History`.
+3. **file_update**: rewrite whole narrative files (`*.summary.md`, `nodes/*/understand/what.md`, **`memories/future-sight/hot.md`** and **`later.md`** only — never `active/{id}.md`, new node files). Whole file = latest narrative — **no** `## Current` / `## History`. Node `what.md` must follow the standing skeleton above.
    - Future-sight: two zone files. Each item is `## {id}` + yaml fence with **only** `anchor_start`／`anchor_end` + short body. Sort near→far (`anchor_start`, then `anchor_end`, then `id`). Do **not** write `node_refs`／`event_refs`／`dream_run_id`／`committed_at` into items.
    - **Must** read live／draft `hot.md`／`later.md` and propose add／update／delete when this round’s events affect near-horizon anchors. Unrelated mentions → leave files alone.
    - Do **not** add anchors with `anchor_start` later than today+`future_sight_window_days` (default 365). Prefer hot vs later by `future_sight_hot_days` (default 30) from today.
@@ -55,6 +96,7 @@ Write markdown with **exactly** these section headings (fill narrative; Scope／
 ### Paths
 ```
 
+In **Long-term updates**, describe **how standing understanding changed** for which nodes (e.g. Identity／Relation／facts／situation shifts). Do **not** paste event copies or day-by-day logs.  
 In **Near future**, explain add／update／delete on `memories/future-sight/hot.md` and／or `later.md` (or `_None_`).  
 Empty narrative subsections must say `_None_`. Do **not** embed full unified diffs. Appendix Paths should list the two future-sight zone paths when touched.
 

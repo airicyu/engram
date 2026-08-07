@@ -35,6 +35,46 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
+/** 0.25 standing understanding skeleton — four fixed English `##` headings. */
+export function standingWhatMarkdown(sections: {
+  identity: string;
+  relation?: string;
+  standingFacts?: string;
+  currentSituation?: string;
+}): string {
+  const body = (s: string | undefined) => {
+    const t = (s ?? "").trim();
+    return t.length ? t : "_None_";
+  };
+  return [
+    "## Identity",
+    "",
+    body(sections.identity),
+    "",
+    "## Relation",
+    "",
+    body(sections.relation),
+    "",
+    "## Standing facts",
+    "",
+    body(sections.standingFacts),
+    "",
+    "## Current situation",
+    "",
+    body(sections.currentSituation),
+    "",
+  ].join("\n");
+}
+
+/** True when markdown contains the four standing headings in order. */
+export function hasStandingHeadings(md: string): boolean {
+  const i = md.indexOf("## Identity");
+  const r = md.indexOf("## Relation");
+  const s = md.indexOf("## Standing facts");
+  const c = md.indexOf("## Current situation");
+  return i >= 0 && r > i && s > r && c > s;
+}
+
 /** Write under draft／report only — enforces 0.20 write policy for mocks. */
 async function policyWrite(ctx: DreamContext, path: string, content: string): Promise<void> {
   const policy = dreamWritePolicy(ctx);
@@ -204,6 +244,13 @@ export class MockOkRunner implements AgentRunner {
       (wantsBrandnew && !ctx.existing_nodes.includes("brandnew") && "brandnew") ||
       null;
 
+    const mockNote = (prefix = "Mock extract note from short-term") =>
+      `${prefix}: ${ctx.l1.summary.slice(0, 120)}${
+        ctx.review_feedback
+          ? ` [retry from ${ctx.review_feedback.retried_from}: ${ctx.review_feedback.reason.slice(0, 80)}]`
+          : ""
+      }`;
+
     if (creatingId) {
       const metaRel = `memories/nodes/${creatingId}/node.meta.yaml`;
       await writeDraftFile(
@@ -219,7 +266,12 @@ export class MockOkRunner implements AgentRunner {
       await writeDraftFile(
         ctx.dream_run_id,
         `memories/nodes/${creatingId}/understand/what.md`,
-        "Organization mentioned in ingest\n",
+        standingWhatMarkdown({
+          identity: "Organization mentioned in ingest",
+          relation: "_None_",
+          standingFacts: "_None_",
+          currentSituation: mockNote(),
+        }),
       );
       await writeDraftFile(
         ctx.dream_run_id,
@@ -233,26 +285,40 @@ export class MockOkRunner implements AgentRunner {
     const primaryExisting =
       ctx.existing_nodes.find((id) => id === "acme") ?? ctx.existing_nodes[0] ?? null;
 
+    /** Whole-file rewrite to standing skeleton — never diary-append. */
     async function touchExistingWhat(nodeId: string): Promise<void> {
       const whatRel = `memories/nodes/${nodeId}/understand/what.md`;
       await copyLiveIntoDraft(ctx.dream_run_id, whatRel);
       const prior =
-        ctx.l2_current.find((n) => n.node === nodeId)?.what_current.trim() ?? "";
-      const note = `Mock extract note from short-term: ${ctx.l1.summary.slice(0, 120)}${
-        ctx.review_feedback
-          ? ` [retry from ${ctx.review_feedback.retried_from}: ${ctx.review_feedback.reason.slice(0, 80)}]`
-          : ""
-      }`;
-      const body = prior ? `${prior}\n\n${note}` : note;
-      await writeDraftFile(ctx.dream_run_id, whatRel, `${body}\n`);
+        ctx.l2_current.find((n) => n.node === nodeId)?.understanding.trim() ?? "";
+      let identity = `Node \`${nodeId}\``;
+      let standingFacts = "_None_";
+      if (hasStandingHeadings(prior)) {
+        const idMatch = prior.match(/## Identity\s*\n([\s\S]*?)(?=\n## Relation\b|$)/);
+        const factsMatch = prior.match(
+          /## Standing facts\s*\n([\s\S]*?)(?=\n## Current situation\b|$)/,
+        );
+        const idBody = idMatch?.[1]?.trim();
+        const factsBody = factsMatch?.[1]?.trim();
+        if (idBody && idBody !== "_None_") identity = idBody;
+        if (factsBody && factsBody !== "_None_") standingFacts = factsBody;
+      } else if (prior) {
+        // Diary-shaped or freeform prior → lift a short carry-forward into Standing facts once.
+        standingFacts = prior.slice(0, 200);
+      }
+      await writeDraftFile(
+        ctx.dream_run_id,
+        whatRel,
+        standingWhatMarkdown({
+          identity,
+          relation: "_None_",
+          standingFacts,
+          currentSituation: mockNote(),
+        }),
+      );
     }
 
     if (creatingId) {
-      await writeDraftFile(
-        ctx.dream_run_id,
-        `memories/nodes/${creatingId}/understand/what.md`,
-        `Organization mentioned in ingest\n\nMock extract note from short-term: ${ctx.l1.summary.slice(0, 120)}\n`,
-      );
       // brandnew path also refreshes primary existing (downscale exclude scenario).
       if (creatingId === "brandnew" && primaryExisting) {
         await touchExistingWhat(primaryExisting);
@@ -404,7 +470,9 @@ export class MockOkRunner implements AgentRunner {
       "",
       "### Long-term updates",
       "",
-      `Updated node \`${node}\` and day summary／ledger for ${chainDay}.`,
+      creatingId
+        ? `Created node \`${node}\` standing understanding (Identity＋Current situation); day summary／ledger for ${chainDay}.`
+        : `Rewrote node \`${node}\` standing understanding (Current situation from short-term); day summary／ledger for ${chainDay}.`,
       "",
       "### Near future",
       "",

@@ -233,8 +233,8 @@ export function MemoryScene() {
             ? t("memory.score_none")
             : t("memory.score_display", { score: data.display_score }),
         );
-        setNodeBody(data.what_current?.trim() || t("empty.no_what"));
-        setNodeEmpty(!data.what_current?.trim());
+        setNodeBody(data.understanding?.trim() || t("empty.no_what"));
+        setNodeEmpty(!data.understanding?.trim());
       } catch (error) {
         if (cancelled || (error as DOMException).name === "AbortError") return;
         setNodeBody(t("memory.browse_fail"));

@@ -84,7 +84,7 @@
 | **L0** | 事件層 | 發生了什麼（原文、時間、來源） | `memories/activities/events.jsonl` | 唯附加 |
 | **short-term memory** | 短期記憶層 | 尚未整理進長期的工作區 pool | `memories/short-term-memory/pool.jsonl` | Activities 寫入；Approve 後清 scope S |
 | **dream staging** | 入夢中間層 | 由 short-term 入夢產出、待 Approve 才進 L2（draft＋report） | `dreams/draft/`、`dreams/reports/` | `dreams/` 不進 store git |
-| **L2 · nodes** | 長期節點理解 | 對某主題／人目前「相信什麼」 | `memories/nodes/{id}/understand/what.md` | Approve 寫入；可手改 |
+| **L2 · nodes** | 長期節點理解 | 對某主題／人目前「相信什麼」＝**standing understanding**（整檔 `what.md`） | `memories/nodes/{id}/understand/what.md` | Approve 寫入；可手改 |
 | **L2 · chain** | 長期記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary |
 | **future-sight** | 近程前瞻 | 短期要盯的錨點（deadline 等）；hot＝近窗熱區 | `memories/future-sight/hot.md`＋`later.md` | 入夢前／GET 機械過期；內容經入夢＋人審 |
 
@@ -135,7 +135,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 
 | 產物 | 說明 | 寫入目標 |
 |------|------|----------|
-| 新建／更新 node | 主題理解 | `memories/nodes/{id}/understand/what.md`（整檔） |
+| 新建／更新 node | **Standing understanding**（四段骨架） | `memories/nodes/{id}/understand/what.md`（整檔；見下行） |
 | day ledger block | 日鏈增量稽核 | `memories/chain/days/{YYYY-MM}/{id}.md`（append-only） |
 | day／week／month／year summary | 可讀敘事 snapshot | 對應 `*.summary.md`（整檔） |
 | future-sight | 近程錨點 | `future-sight/hot.md`／`later.md` |
@@ -157,8 +157,9 @@ activities → dreams/run → pending_review → approve | discard | retry
 |----|------|------|
 | **node** | 節點 | L2 主題軸實體：人、組織、專案、主題等 |
 | **node_refs** | 節點參照 | Activities 可選標註「跟哪些 node 有關」 |
-| **what.md** | 是什麼（facet） | 該 node 當前定義與邊界；MVP 主 facet |
-| **facet** | 理解面向 | what／who／why 等；多數尚未實作 |
+| **what.md**／**standing understanding** | 長期理解檔 | 該 node **現在是什麼** 的可維護模型；固定四段 `## Identity` → `## Relation` → `## Standing facts` → `## Current situation`（空段 `_None_`）。**事件流水在 chain**，不在此檔主幹。整檔＝最新理解；無 `## Current`／`## History` |
+| **understanding** | API 欄位 | `GET`／search／dream `l2_current` 回傳的 **整檔** `what.md` 字串（standing understanding）；**不是**「僅 Current situation 段」。0.26 起取代舊鍵 `what_current` |
+| **facet** | 理解面向 | 舊設計 who／why／open 等多檔；現行 file pipeline **只**寫 what；多 facet **未**接線 |
 | **match_reason** | 命中原因 | search 時為何選中該 node |
 | **score**（帳面） | 活躍分 | 有結算的 dream 才增減；存 `score.yaml`；**非**未來視 hot |
 | **display_score** | 相對活躍分 | `ceil(score/max_score*100)`（1–100）；無 max → null／— |

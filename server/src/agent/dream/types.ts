@@ -26,7 +26,8 @@ export interface DreamContext {
   /** Frozen short-term pool view. JSON key `l1` is frozen (agent context wire). */
   l1: { summary: string; node_notes: Record<string, string> };
   events: Array<{ id: string; ts: string; raw: string; node_refs?: string[] }>;
-  l2_current: Array<{ node: string; what_current: string }>;
+  /** Live node understandings: `understanding` = whole `what.md` (standing understanding). */
+  l2_current: Array<{ node: string; understanding: string }>;
   existing_nodes: string[];
   /**
    * Day-chain summary body for candidate occurrence days.

@@ -6,7 +6,7 @@ import { draftSummary } from "../../store/dreams/draft";
 import { draftDir, reportPath } from "../../store/dreams/dream-runs";
 import { readPoolEntriesForScope } from "../../store/memories/short-term-memory";
 import { calendarDate, nowIso } from "../../store/memories/activities";
-import { readAllWhatCurrents, listNodeIds } from "../../store/memories/nodes";
+import { readAllUnderstandings, listNodeIds } from "../../store/memories/nodes";
 import { readDay, readDaySummary } from "../../store/memories/chain";
 import { makeRunId } from "../../store/run-id";
 
@@ -71,7 +71,7 @@ export async function buildDreamContext(
   }
 
   const existing_nodes = await listNodeIds();
-  const l2_current = await readAllWhatCurrents();
+  const l2_current = await readAllUnderstandings();
   const today = calendarDate();
   const candidateDays = new Set<string>([today]);
   for (const e of events) candidateDays.add(calendarDate(e.ts));

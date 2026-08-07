@@ -9,7 +9,7 @@ import {
   readHigherSummaryCurrent,
   type HigherChainLevel,
 } from "../store/memories/chain-higher";
-import { listNodeIds, readWhatCurrent } from "../store/memories/nodes";
+import { listNodeIds, readUnderstanding } from "../store/memories/nodes";
 import {
   listAnchors,
   type FutureSightListedAnchor,
@@ -25,7 +25,7 @@ export type FutureSightMatchReason = "id" | "content" | "anchor";
 
 export interface MemorySearchNodeHit {
   node: string;
-  what_current: string;
+  understanding: string;
   match_reason: NodeMatchReason;
 }
 
@@ -143,7 +143,7 @@ async function matchNodes(
       if (note && contains(note, qLower)) {
         reason = "l1_note";
       } else {
-        const what = await readWhatCurrent(id);
+        const what = await readUnderstanding(id);
         if (contains(what, qLower)) reason = "what_content";
       }
     }
@@ -151,7 +151,7 @@ async function matchNodes(
     if (reason) {
       out.push({
         node: id,
-        what_current: await readWhatCurrent(id),
+        understanding: await readUnderstanding(id),
         match_reason: reason,
       });
     }

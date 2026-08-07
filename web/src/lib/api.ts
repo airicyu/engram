@@ -38,7 +38,7 @@ export type SearchScope = "l1" | "nodes" | "chain" | "future";
 export type MemorySearch = {
   l1?: { summary?: string; node_notes?: Record<string, string> } | null;
   chain?: Array<{ day_id?: string; id?: string; content: string }>;
-  nodes?: Array<{ node: string; match_reason?: string; what_current?: string }>;
+  nodes?: Array<{ node: string; match_reason?: string; understanding?: string }>;
   future_sight?: Array<{
     id: string;
     zone: string;
@@ -91,7 +91,7 @@ export type NodeIndex = {
 };
 export type NodeDetail = {
   present?: boolean;
-  what_current?: string;
+  understanding?: string;
   display_score?: number | null;
   score?: number | null;
   score_timestamp?: string | null;

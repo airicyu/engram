@@ -1,6 +1,35 @@
 # Changelog
 
+## 0.26.0 — Node API `what_current` → `understanding` (2026-08-07)
+
+**Breaking：** 對外 JSON 鍵 `what_current` 一次改名為 **`understanding`**（語意不變＝`what.md` 整檔 standing understanding）。涵蓋 node detail、search `nodes[]`、dream `l2_current[]`。Store 路徑不變；**無** migrate。
+
+### Changed
+
+- Server：`readUnderstanding`／`readAllUnderstandings`；browse／search／dream context 回 `understanding`
+- Web：Memory／Seek 讀新鍵
+- `docs/api-docs/`／`docs/domain-language.md`／`AGENTS.md`：契約對齊 `understanding`
+
+---
+
+## 0.25.0 — Node standing understanding（四段骨架）(2026-08-07)
+
+入夢寫入的 node `what.md` 改為 **standing understanding**（固定四段 `## Identity` → `## Relation` → `## Standing facts` → `## Current situation`），不再把 day chain 抄成 node 日記。事件細節仍在 chain；API 仍回 **`what_current`**（整檔；鍵名不變）。**無** store migrate；approve **不**因缺小標硬拒。
+
+### Changed
+
+- `server/prompts/dream-files.md`：產品分工（node／chain／future-sight）、四段骨架、`_None_`、整檔 rewrite、禁止日記 append、新建四段 seed、日記式舊檔改寫、Long-term updates 指引
+- `MockOkRunner`：新建／更新 `what.md` 皆產出四段骨架（不再檔尾 append）
+- `docs/api-docs/api.md`／`docs/domain-language.md`／`AGENTS.md`：`what_current`＝整檔 standing understanding
+
+### Tests
+
+- `self-test`：approve 後 assert `what.md` 四段標題依序存在
+
+---
+
 ## 0.24.0 — 空 pool 入夢＝rollup-only（關帳補建）(2026-08-07)
+
 
 短期記憶為空時，同一 `POST /dreams/run` 仍可跑 **只做 higher-chain rollup**（跳過 day extract）：只要磁碟上有「已結束、缺 higher、下層有內容」的 week／month／year，就 202 進 pending；反之才 409 `nothing_to_dream`（錯誤碼不變）。**無** store migrate；不新增第二個產品動作或 HTTP 動詞。
 

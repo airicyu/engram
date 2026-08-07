@@ -503,7 +503,7 @@ Keyword search across short-term memory, memory-chain, L2 nodes, and **future-si
   "q": "acme",
   "scope": ["nodes", "chain", "future"],
   "nodes": [
-    { "node": "acme", "what_current": "…", "match_reason": "node_id" }
+    { "node": "acme", "understanding": "…", "match_reason": "node_id" }
   ],
   "chain": [
     { "day_id": "2026-07-23", "id": "2026-07-23", "level": "day", "content": "…", "source": "summary" },
@@ -522,10 +522,12 @@ Keyword search across short-term memory, memory-chain, L2 nodes, and **future-si
 }
 ```
 
+`nodes[].understanding` = whole `what.md` standing understanding string (same field as node detail).
+
 | Field | Meaning |
 |-------|---------|
 | `scope` | Scopes searched on this request (echo) |
-| `nodes` | Present only when `nodes` in scope; L2 hits (`node_id` \| `what_content` \| `l1_note`) |
+| `nodes` | Present only when `nodes` in scope; L2 hits (`node_id`｜`what_content`｜`l1_note`) |
 | `l1` | Present only when `l1` in scope; `null` when no short-term hit |
 | `chain` | Present only when `chain` in scope; day／week／month／year hits. Each has `id` + `level`; day also keeps `day_id` |
 | `future_sight` | Present only when `future` in scope; hot＋later keyword hits. Each has `id`, `zone` (`hot`\|`later`), `anchor_start`／`anchor_end`, `content`, `match_reason` (`id`\|`content`\|`anchor`). Order: all hot first (near→far), then later |
@@ -636,9 +638,15 @@ Empty → `{ "nodes": [], "present": false }`.
 
 ## `GET /memories/nodes/{node_id}`
 
-Single node **detail** — narrative body of `what.md` (0.16+: whole file; pre-0.16 stores may still use `## Current`).  
+Single node **detail** — **`understanding`** is the **whole-file** body of `memories/nodes/{id}/understand/what.md`（**not** “Current situation section only”).
+
+- **0.25+ expectation:** standing understanding with fixed headings in order: `## Identity` → `## Relation` → `## Standing facts` → `## Current situation` (empty sections use `_None_`). Event diaries belong in **chain**, not here.
+- **0.16–0.24:** whole file = latest understanding (no `## Current`／`## History` contract).
+- Pre-0.16 stores may still use `## Current`; readers peel that for unmigrated files.
+- **0.26 breaking:** response key renamed from `what_current` → `understanding`（same body）.
+
 Illegal path chars → **`400 invalid_node_id`**.  
-Missing node → **200** `{ node, what_current: null, present: false, score: null, display_score: null, score_timestamp: null }`.
+Missing node → **200** `{ node, understanding: null, present: false, score: null, display_score: null, score_timestamp: null }`.
 
 Present also returns `score`／`display_score`／`score_timestamp`（有檔時）.
 
