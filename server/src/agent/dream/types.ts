@@ -49,7 +49,25 @@ export interface DreamContext {
 /** @deprecated Use DreamContext — alias kept for transitional imports. */
 export type ExtractContext = DreamContext;
 
+/** Context for amend-dream: same pending run, free-form instruction, no full re-extract. */
+export interface AmendContext {
+  dream_run_id: string;
+  instruction: string;
+  timezone: string;
+  memory_language: string;
+  now: string;
+  today: string;
+  scope: string[];
+  /** Compact orientation of paths already in this pending draft. */
+  draft_summary: string;
+  store_dir: string;
+  draft_dir: string;
+  report_path: string;
+}
+
 /** Runner that edits draft files and writes the dream report (no typed Patch[]). */
 export interface AgentRunner {
   dream(ctx: DreamContext): Promise<void>;
+  /** Minimal same-run_id draft edit while pending (0.27+). */
+  amend(ctx: AmendContext): Promise<void>;
 }

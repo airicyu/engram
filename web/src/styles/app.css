@@ -267,6 +267,24 @@ body {
   margin: 0 0 1.25rem;
 }
 
+.scene-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.scene-header .scene-lead {
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.scene-refresh {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}
+
 /* —— Forms —— */
 .activities-form textarea,
 .recall-form input[type="search"],
@@ -403,6 +421,18 @@ body {
 .btn.ghost:hover:not(:disabled) {
   color: var(--ink);
   border-color: var(--ink-muted);
+}
+
+.btn.warn {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+  color: var(--warn);
+}
+
+.btn.warn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border-color: var(--warn);
+  color: var(--warn);
 }
 
 /* —— L1 / panels —— */
@@ -565,6 +595,26 @@ body {
   font-weight: 650;
 }
 
+.md-block table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  font-size: 0.9rem;
+}
+
+.md-block th,
+.md-block td {
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.md-block th {
+  font-weight: 650;
+  background: color-mix(in srgb, var(--paper-deep) 70%, transparent);
+}
+
 /* —— Consolidate —— */
 
 .dream-progress {
@@ -656,10 +706,69 @@ body {
   margin-top: 1.25rem;
 }
 
+.pending-actions-rule {
+  margin: 1.35rem 0 0;
+  border: none;
+  border-top: 1px solid var(--line);
+}
+
+.pending-user-actions {
+  margin-top: 1rem;
+}
+
+.revise-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(28, 36, 48, 0.48);
+}
+
+.revise-dialog {
+  width: min(28rem, 100%);
+  max-height: min(90vh, 36rem);
+  overflow: auto;
+  padding: 1.25rem 1.35rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 16px 48px rgba(28, 36, 48, 0.22);
+}
+
+.revise-dialog .retry-reason {
+  background: #fff;
+}
+
+.revise-dialog-title {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+}
+
+.revise-dialog-actions {
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.revise-mode {
+  border: none;
+  margin: 0 0 0.85rem;
+  padding: 0;
+}
+
+.revise-mode-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 0;
+  font-size: 0.875rem;
+}
+
 .involvements-panel {
   margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--line);
 }
 
 .involvements-panel h3 {
@@ -716,7 +825,8 @@ body {
   color: var(--ink-muted);
 }
 
-.retry-label {
+.retry-label,
+.revise-label {
   display: block;
   margin-bottom: 0.4rem;
   font-size: 0.875rem;

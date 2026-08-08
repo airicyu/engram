@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.27.0 — Amend-dream（pending 同稿自由句小修）(2026-08-09)
+
+Pending review 時除 **re-dream**（`POST /dreams/retry`）外，新增 **amend-dream**：同一 `dream_run_id` 依自由句小修 draft／report。Consolidate **Revise** 二選一觸發。**無** store migrate。
+
+### Added
+
+- `POST /dreams/amend` — body `{ instruction, dream_run_id? }`；缺 instruction → 400 `missing_instruction`
+- `server/prompts/amend-dream.md`＋`DreamCliRunner.amend`／`amendDream` pipeline（不 discard、不 wipe draft、不重跑 rollup cascade）
+- Report `## Amend feedback`；失敗保留 pending／draft（`AmendFailedError`）
+- Web：待審版面＝報告／involvements → `hr` → 丟棄｜修正｜批准；修正開 overlay（re-dream｜amend-dream）
+
+### Changed
+
+- api-docs／AGENTS／workbench：pending 動作含 amend；產品動詞 re-dream ≠ amend-dream
+
+### Tests
+
+- `self-test` Phase 1b2：amend 400／202、同 `dream_run_id`、report 含 Amend feedback
+
+---
+
 ## 0.26.0 — Node API `what_current` → `understanding` (2026-08-07)
 
 **Breaking：** 對外 JSON 鍵 `what_current` 一次改名為 **`understanding`**（語意不變＝`what.md` 整檔 standing understanding）。涵蓋 node detail、search `nodes[]`、dream `l2_current[]`。Store 路徑不變；**無** migrate。

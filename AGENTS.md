@@ -80,7 +80,7 @@ cd web && bun run dev             # 同 dev:ui
 | `curl` / `engram-workbench` skill 打 API | 手改 `events.jsonl`、short-term notes、L2 `what.md` |
 | `POST /activities` 寫入 | 把 fixture seed 當試用資料 |
 | `POST /dreams/run` extract／file pipeline → pending（pending 時 409） | 未經同意就 `reset` |
-| `POST /dreams/approve`／`discard`／`retry` | 手改 short-term／L2／draft「幫忙改對」 |
+| `POST /dreams/approve`／`discard`／`retry`／`amend` | 手改 short-term／L2／draft「幫忙改對」 |
 | `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 
 API 欄位提醒：
@@ -89,8 +89,9 @@ API 欄位提醒：
 - memory search query 用 **`q`**（必填）；可選 **`scope`** = `l1,nodes,chain,future`（逗號分隔，預設四者全開）
 - memory ask body 用 **`q`**；可選 **`include_later`**（boolean，預設 false＝可讀 hot、不可讀 later）
 - dream **retry** body 用 **`reason`**（必填）；對同一凍結 scope 重跑，注入上一輪摘要
+- dream **amend** body 用 **`instruction`**（必填）；**同一** `dream_run_id` 小修 draft；失敗仍保留 pending
 - dream **lock**（入夢／deploy）時 activities → `409 dream_locked`；**`pending_review` 可寫 activities**
-- **`pending_review` 時不可**再 `POST /dreams/run`（改 approve／discard／retry）
+- **`pending_review` 時不可**再 `POST /dreams/run`（改 approve／discard／retry／amend）
 - **空 pool 仍可入夢（0.24）：** short-term 空但存在已結束、缺 higher 的 week／month／year → `POST /dreams/run` 走 **rollup-only**（跳過 day extract，只跑 cascade）→ 202；若無此類 catch-up 才 409 `nothing_to_dream`
 - **虛擬時鐘：** `PUT /clock` 需 `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`；`DELETE /clock` 恆可；見 `/status.clock`
 - **無資料不用 404**：讀取型「目前沒有內容」回 **200**，在 body 用 `null`／`[]`／`present: false` 等表達；404 留給路徑／方法真正不存在
@@ -118,11 +119,11 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.26.0` — Node API `what_current` → `understanding` — 見 `docs/roadmap/0.26.0/`（**shipped**；**無** store migrate）
-- **上一版：** `0.25.0` — Node standing understanding（四段骨架）— 見 `docs/roadmap/0.25.0/`
-- **更早：** `0.24.0` 空 pool 入夢＝rollup-only；`0.23.0` Codex CLI；`0.22.0` 一鍵 `bun run dev`
-- **Backlog：** 見 `docs/roadmap/backlog/`（含 2b 自由句改 draft；Seek／network 依分）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；**0.19→0.20／0.24→0.25／0.25→0.26 無 migrate**
+- **已出貨：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`（**shipped**；**無** store migrate）
+- **上一版：** `0.26.0` — Node API `what_current` → `understanding` — 見 `docs/roadmap/0.26.0/`
+- **更早：** `0.25.0` Node standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
+- **Backlog：** 見 `docs/roadmap/backlog/`（含 Seek／network 依分等）
+- **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27 無 migrate**
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

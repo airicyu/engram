@@ -1,4 +1,5 @@
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export function Msg({
   text,
@@ -33,7 +34,7 @@ export function MdBlock({
       {isEmpty ? (
         <p className="md-block-empty">{body.trim() || "—"}</p>
       ) : (
-        <ReactMarkdown>{body}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
       )}
     </div>
   );

@@ -31,12 +31,13 @@ Service discovery.
   "endpoints": [
     "POST /activities",
     "POST /dreams/run",
-            "GET /dreams/pending",
-            "PATCH /dreams/pending/node-score-involvements",
-            "GET /dreams/events",
+    "GET /dreams/pending",
+    "PATCH /dreams/pending/node-score-involvements",
+    "GET /dreams/events",
     "POST /dreams/approve",
     "POST /dreams/discard",
     "POST /dreams/retry",
+    "POST /dreams/amend",
     "GET /memories/future-sight",
     "GET /memories/short-term-memory",
     "GET /memories/search",
@@ -292,7 +293,7 @@ Async **extract → materialize draft → unique pending**. Does **not** write L
 - Pool **empty**：
   - 尚有「已結束、缺 higher、下層有內容」的 week／month／year → **202** rollup-only（跳過 day extract，只跑 cascade）
   - 無上述 catch-up → **409** `nothing_to_dream`
-- Existing pending → **409** `pending_review`（禁止無理由取代；改用 `POST /dreams/retry` 或先 `discard`）
+- Existing pending → **409** `pending_review`（禁止無理由取代；改用 `POST /dreams/retry`／`POST /dreams/amend` 或先 `discard`）
 - Scope **S** = all event ids in the pool at call time（pool 空時 S＝`[]`）
 - Extract input = L0 events for S (may span days) + short-term view for S + existing L2（rollup-only 跳過 extract）
 - `job_id` / `dream_run_id` shape: `dream-YYYYMMDD-HHmmss-{rand6}` (ENGRAM_TZ local time)
@@ -353,6 +354,50 @@ Consecutive retries: each uses the **just-discarded** attempt’s summary; **S s
 | `409` | `no_pending` | No pending dream |
 | `409` | `dream_run_mismatch` | Body id ≠ active pending |
 | `409` | `dream_locked` | Extract／commit in progress |
+
+---
+
+## `POST /dreams/amend`
+
+Async. Requires active **pending_review**. Body:
+
+```json
+{ "instruction": "…", "dream_run_id": "…" }
+```
+
+- `instruction` **required** (non-empty after trim) → else **400** `missing_instruction`
+- Optional `dream_run_id` — mismatch → **409** `dream_run_mismatch`
+
+**Semantics（amend-dream；≠ re-dream／retry）**
+
+1. Keep the **same** `dream_run_id` and frozen **scope S**
+2. **Do not** discard pending; **do not** wipe／`prepareDreamDraft`
+3. Spawn amend agent with `amend-dream.md` + instruction; may edit draft whitelist paths（write-policy：該 run 的 `draft_dir`＋`reports/`）and update report Narrative
+4. Server `finalizeDraftFromDisk` → involvements 校驗 → `finalizeDreamReport`（寫入／覆寫 `## Amend feedback`）；**不**重跑 higher-chain rollup cascade
+5. Still `pending_review` on success（`job_id`＝同一 run id）
+
+**On failure:** `dream_job.status=failed`；**pending 與 draft 保留**（仍可 approve／discard／retry／再 amend）；`dream_status` 因 pending 仍在而維持 `pending_review`。
+
+**Response `202`**
+
+```json
+{
+  "job_id": "dream-…",
+  "status": "started",
+  "message": "Dream amend submitted. …"
+}
+```
+
+**Errors**
+
+| Status | error | When |
+|--------|-------|------|
+| `400` | `missing_instruction` | Missing／blank `instruction` |
+| `409` | `no_pending` | No pending dream |
+| `409` | `dream_run_mismatch` | Body id ≠ active pending |
+| `409` | `dream_locked` | Extract／commit／amend in progress |
+
+產品 UI：**Revise** 內二選一 — **re-dream** → 本節 retry；**amend-dream** → 本節 amend。
 
 ---
 
@@ -689,7 +734,7 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 | Value | Meaning |
 |-------|---------|
 | `never_dreamed` | No successful extract recorded |
-| `pending_review` | Unique pending run awaiting approve／discard／retry |
+| `pending_review` | Unique pending run awaiting approve／discard／retry／amend |
 | `l1_clear_pending` | Commit done; scope clear failed — retry approve |
 | `dream_incomplete` | Last extract／materialize failed; short-term retained |
 | `ok` | Steady state |
@@ -723,7 +768,7 @@ GET  /status  until dream_status=pending_review (or dream_job failed)
      ↓
 GET  /dream/pending  (read report)
      ↓
-POST /dreams/approve   OR   POST /dreams/discard   OR   POST /dreams/retry
+POST /dreams/approve   OR   POST /dreams/discard   OR   POST /dreams/retry   OR   POST /dreams/amend
      OR   POST /dreams/cancel (while running)
      ↓
 GET  /memories/search?q=…&scope=l1,nodes,chain,future

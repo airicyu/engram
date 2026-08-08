@@ -1,6 +1,6 @@
 /** Dream extraction and draft-file execution pipeline. */
 
-import type { AgentRunner, ReviewFeedback } from "../../agent/dream/types";
+import type { AgentRunner, AmendContext, ReviewFeedback } from "../../agent/dream/types";
 import { createDreamRunner, createRollupAgent } from "../../agent/factory";
 import { acquireLock, isLocked, LockError, releaseLock } from "../../store/dreams/lock";
 import {
@@ -19,10 +19,10 @@ import {
   DreamRunMismatchError,
 } from "../../store/dreams/dream-runs";
 import { prepareDreamDraft, finalizeDraftFromDisk } from "../../store/dreams/file-pipeline";
-import { reportPath } from "../../store/dreams/dream-runs";
+import { draftDir, reportPath } from "../../store/dreams/dream-runs";
 import { writeFile } from "node:fs/promises";
 import { maintainFutureSight } from "../../store/memories/future-sight";
-import { readExtractState, writeExtractState } from "../../store/dreams/extract-state";
+import { writeExtractState } from "../../store/dreams/extract-state";
 import { updateDreamJobPhase } from "../../store/dreams/dream-job";
 import { logError } from "../../log";
 import { logExtractContext } from "../../agent/shared/log";
@@ -30,8 +30,10 @@ import { assertInvolvementsValidForPending } from "../score/involvements";
 import { beginDreamRun, endDreamRun, isDreamCancelled, throwIfDreamCancelled } from "../review/cancel-state";
 import { buildDreamContext, compactChangeLines, formatPreviousSummary, makeDreamRunId } from "./context";
 import {
+  AmendFailedError,
   DreamCancelledError,
   DreamIncompleteError,
+  MissingInstructionError,
   MissingReasonError,
   NoPendingError,
   NothingToDreamError,
@@ -41,6 +43,8 @@ import { emitDreamEvent } from "../report/emit-event";
 import { finalizeDreamReport } from "../report/finalize";
 import { formatRollupReportSection, runRollupCascade } from "../rollup/cascade";
 import { hasRollupCatchupWork } from "../rollup/candidates";
+import { config } from "../../config";
+import { calendarDate, nowIso } from "../../store/memories/activities";
 
 /** Result returned after a dream reaches pending review. */
 export interface DreamRunResult {
@@ -123,6 +127,144 @@ export async function retryDream(opts: {
     endDreamRun(dreamRunId);
     if (lockToken) await releaseLock(lockToken);
   }
+}
+
+/**
+ * Amend the active pending dream in place (same dream_run_id).
+ * Does not discard, wipe draft, or re-run rollup cascade.
+ * On failure: pending + draft are preserved (AmendFailedError — no removeDraft).
+ */
+export async function amendDream(opts: {
+  instruction: string;
+  dream_run_id?: string;
+  runner?: AgentRunner;
+  lockAlreadyHeld?: boolean;
+}): Promise<DreamRunResult> {
+  const instruction = opts.instruction.trim();
+  if (!instruction) throw new MissingInstructionError();
+  let lockToken: string | null = null;
+  if (!opts.lockAlreadyHeld) {
+    if (await isLocked()) throw new LockError("dream already running");
+    lockToken = (await acquireLock("dream-amend")).token;
+  }
+  const pending = await getPendingRun();
+  if (!pending) throw new NoPendingError();
+  if (opts.dream_run_id && opts.dream_run_id !== pending.id) {
+    throw new DreamRunMismatchError(pending.id, opts.dream_run_id);
+  }
+  const dreamRunId = pending.id;
+  beginDreamRun(dreamRunId);
+  try {
+    return await executeAmendPipeline({
+      pending,
+      instruction,
+      runner: opts.runner,
+    });
+  } catch (e) {
+    if (e instanceof DreamCancelledError || isDreamCancelled(dreamRunId)) {
+      throw new DreamCancelledError(dreamRunId);
+    }
+    // Preserve pending／draft — do not call recordDreamFailure／removeDraft.
+    const msg = e instanceof Error ? e.message : String(e);
+    emitDreamEvent(dreamRunId, {
+      phase: e instanceof AmendFailedError ? e.phase : "extract",
+      level: "error",
+      event: "amend_failed",
+      message: msg,
+    });
+    logError("dream amend failed (pending kept)", e, { dream_run_id: dreamRunId });
+    if (e instanceof AmendFailedError) throw e;
+    throw new AmendFailedError(dreamRunId, msg, "extract");
+  } finally {
+    endDreamRun(dreamRunId);
+    if (lockToken) await releaseLock(lockToken);
+  }
+}
+
+async function executeAmendPipeline(opts: {
+  pending: DreamRunState;
+  instruction: string;
+  runner?: AgentRunner;
+}): Promise<DreamRunResult> {
+  const { pending, instruction, runner } = opts;
+  const dreamRunId = pending.id;
+  const scope = [...pending.scope];
+  emitDreamEvent(dreamRunId, {
+    phase: "extract",
+    event: "amend_start",
+    message: `Amend started (same run ${dreamRunId})`,
+    detail: { instruction_len: instruction.length, scope_count: scope.length },
+  });
+
+  const prevDraft = await draftSummary(dreamRunId);
+  const draftSummaryText = formatPreviousSummary(prevDraft);
+  const agent = runner ?? createDreamRunner();
+  const ctx: AmendContext = {
+    dream_run_id: dreamRunId,
+    instruction,
+    timezone: config.timezone,
+    memory_language: config.memoryLanguage,
+    now: nowIso(),
+    today: calendarDate(),
+    scope,
+    draft_summary: draftSummaryText,
+    store_dir: config.storeDir,
+    draft_dir: draftDir(dreamRunId),
+    report_path: reportPath(dreamRunId),
+  };
+
+  try {
+    await agent.amend(ctx);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new AmendFailedError(dreamRunId, msg, "extract");
+  }
+  throwIfDreamCancelled(dreamRunId);
+
+  await updateDreamJobPhase("materialize");
+  emitDreamEvent(dreamRunId, {
+    phase: "materialize",
+    event: "amend_materialize_start",
+    message: "Finalizing amended draft files",
+  });
+  try {
+    await finalizeDraftFromDisk(dreamRunId);
+    await assertInvolvementsValidForPending(dreamRunId);
+  } catch (e) {
+    if (isDreamCancelled(dreamRunId)) throw new DreamCancelledError(dreamRunId);
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new AmendFailedError(dreamRunId, msg, "materialize");
+  }
+
+  const poolEntries = await readPoolEntriesForScope(scope);
+  await finalizeDreamReport({
+    dream_run_id: dreamRunId,
+    scope,
+    events: poolEntries,
+    amend_feedback: { instruction },
+  });
+
+  const entryCount = (await draftSummary(dreamRunId))?.entry_count ?? 0;
+  await writeDreamRun({
+    ...pending,
+    patch_count: entryCount,
+  });
+  await writeExtractState({ status: "ok", dream_run_id: dreamRunId });
+  emitDreamEvent(dreamRunId, {
+    phase: "pending_review",
+    event: "amend_complete",
+    message: `Amend ready for review (${entryCount} draft entries)`,
+    detail: { entries: entryCount },
+  });
+  return {
+    dream_run_id: dreamRunId,
+    scope,
+    patch_count: entryCount,
+    superseded: null,
+    retried_from: pending.retried_from ?? null,
+    extract_status: "ok",
+    phase: "pending_review",
+  };
 }
 
 async function recordDreamFailure(error: unknown, dreamRunId: string): Promise<void> {

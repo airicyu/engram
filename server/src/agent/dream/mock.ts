@@ -1,7 +1,7 @@
 /** Deterministic mock runners used by local dream pipeline tests (0.16 file pipeline). */
 
 import { join } from "node:path";
-import type { AgentRunner, DreamContext } from "./types";
+import type { AgentRunner, AmendContext, DreamContext } from "./types";
 import { calendarDate, nowIso } from "../../store/memories/activities";
 import {
   copyLiveIntoDraft,
@@ -24,6 +24,7 @@ import {
   dreamWritePolicy,
   guardedWriteFile,
   liveMemoriesRoot,
+  type DreamWriteRoots,
 } from "../shared/write-policy";
 
 async function exists(path: string): Promise<boolean> {
@@ -76,7 +77,7 @@ export function hasStandingHeadings(md: string): boolean {
 }
 
 /** Write under draft／report only — enforces 0.20 write policy for mocks. */
-async function policyWrite(ctx: DreamContext, path: string, content: string): Promise<void> {
+async function policyWrite(ctx: DreamWriteRoots, path: string, content: string): Promise<void> {
   const policy = dreamWritePolicy(ctx);
   await guardedWriteFile(policy, path, content);
 }
@@ -85,6 +86,10 @@ async function policyWrite(ctx: DreamContext, path: string, content: string): Pr
 export class MockFailRunner implements AgentRunner {
   async dream(_ctx: DreamContext): Promise<void> {
     throw new Error("mock extract failure");
+  }
+
+  async amend(_ctx: AmendContext): Promise<void> {
+    throw new Error("mock amend failure");
   }
 }
 
@@ -146,6 +151,10 @@ export class MockMaliciousLiveWriteRunner implements AgentRunner {
       ].join("\n"),
     );
   }
+
+  async amend(ctx: AmendContext): Promise<void> {
+    await new MockOkRunner().amend(ctx);
+  }
 }
 
 /** Writes draft + involvements with an illegal category (must not reach pending_review). */
@@ -160,6 +169,10 @@ export class MockBadInvolvementRunner implements AgentRunner {
         nodes: [{ id: ctx.existing_nodes[0] ?? "acme", category: "GRADE_9", reason: "bad" }],
       }),
     );
+  }
+
+  async amend(ctx: AmendContext): Promise<void> {
+    await new MockOkRunner().amend(ctx);
   }
 }
 
@@ -211,6 +224,10 @@ export class MockEmptyPatchesRunner implements AgentRunner {
       "",
     ].join("\n");
     await policyWrite(ctx, ctx.report_path, report);
+  }
+
+  async amend(ctx: AmendContext): Promise<void> {
+    await new MockOkRunner().amend(ctx);
   }
 }
 
@@ -490,5 +507,46 @@ export class MockOkRunner implements AgentRunner {
     ].join("\n");
 
     await policyWrite(ctx, ctx.report_path, report);
+  }
+
+  /** Minimal same-run amend: update Uncertainties to echo the instruction. */
+  async amend(ctx: AmendContext): Promise<void> {
+    let raw = "";
+    try {
+      raw = await readFile(ctx.report_path, "utf8");
+    } catch {
+      raw = "";
+    }
+    const note = `Mock amend applied: ${ctx.instruction.slice(0, 200)}`;
+    let next: string;
+    if (raw.includes("### Uncertainties")) {
+      next = raw.replace(
+        /### Uncertainties\s*\n[\s\S]*?(?=\n## |\n### |$)/,
+        `### Uncertainties\n\n${note}\n\n`,
+      );
+    } else {
+      next = [
+        `# Dream report — ${ctx.dream_run_id}`,
+        "",
+        "## Narrative",
+        "### Timeline",
+        "",
+        "_None_",
+        "",
+        "### Long-term updates",
+        "",
+        "_None_",
+        "",
+        "### Near future",
+        "",
+        "_None_",
+        "",
+        "### Uncertainties",
+        "",
+        note,
+        "",
+      ].join("\n");
+    }
+    await policyWrite(ctx, ctx.report_path, next);
   }
 }

@@ -141,6 +141,14 @@ export const engramApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+    amend: (
+      body: { instruction: string; dream_run_id?: string },
+      options?: ApiOptions,
+    ) => api<{ job_id?: string; message?: string; error?: string }>("/dreams/amend", {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
     cancel: (options?: ApiOptions) =>
       api<{ message?: string; error?: string }>("/dreams/cancel", {
         ...options,

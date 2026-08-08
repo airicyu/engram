@@ -14,7 +14,7 @@ Canonical spec: [../../../docs/api-docs/api.md](../../../docs/api-docs/api.md)
 .claude/skills/engram-workbench/scripts/engram-api.sh <command> [args]
 ```
 
-Commands: `status` | `capture` | `dream` | `dream-retry` | `dream-cancel` | `pending` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `root`
+Commands: `status` | `capture` | `dream` | `dream-retry` | `dream-amend` | `dream-cancel` | `pending` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `root`
 
 ## curl catalog
 
@@ -68,7 +68,7 @@ Always 200. Expire-only maintain（過期 → L0+short-term + 從 `hot.md`／`la
 | Value | Meaning |
 |-------|---------|
 | `never_dreamed` | No successful extract yet |
-| `pending_review` | Awaiting approve／discard／retry |
+| `pending_review` | Awaiting approve／discard／retry／amend |
 | `l1_clear_pending` | Retry approve to clear S only |
 | `dream_incomplete` | Extract／materialize failed; L1 kept |
 | `ok` | Steady |

@@ -67,8 +67,20 @@ function extractNarrative(md: string): string {
 }
 
 function extractRetryFeedback(md: string): string {
-  const m = md.match(/## Retry feedback\s*\n([\s\S]*?)(?=\n## Scope\b)/);
+  const m = md.match(/## Retry feedback\s*\n([\s\S]*?)(?=\n## Scope\b|\n## Amend feedback\b)/);
   return m ? `## Retry feedback\n\n${m[1].trim()}\n\n` : "";
+}
+
+function extractAmendFeedback(md: string): string {
+  const m = md.match(/## Amend feedback\s*\n([\s\S]*?)(?=\n## Scope\b)/);
+  return m ? `## Amend feedback\n\n${m[1].trim()}\n\n` : "";
+}
+
+function extractRollupSection(md: string): string {
+  const m = md.match(
+    /## Higher chain rollup \(week／month／year\)\s*\n([\s\S]*?)(?=\n## Appendix — pending deploy\b|$)/,
+  );
+  return m ? `## Higher chain rollup (week／month／year)\n\n${m[1].trim()}` : "";
 }
 
 /** Validate agent report has required structure (soft: warn via throw if missing title). */
@@ -94,6 +106,10 @@ export async function finalizeDreamReport(opts: {
     previous_summary: string;
     previous_changes: string[];
     retried_from: string;
+  };
+  /** Present after POST /dreams/amend (same run_id). */
+  amend_feedback?: {
+    instruction: string;
   };
   rollup_section?: string;
 }): Promise<string> {
@@ -147,6 +163,17 @@ export async function finalizeDreamReport(opts: {
     retry = lines.join("\n");
   }
 
+  let amend = extractAmendFeedback(raw);
+  if (opts.amend_feedback) {
+    const lines = [
+      "## Amend feedback",
+      "",
+      `- **instruction:** ${opts.amend_feedback.instruction.trim()}`,
+      "",
+    ];
+    amend = lines.join("\n");
+  }
+
   const manifest = await readManifest(opts.dream_run_id);
   const deletes = await readDraftDeletes(opts.dream_run_id);
   const pathLines: string[] = [];
@@ -170,6 +197,7 @@ export async function finalizeDreamReport(opts: {
     "",
   ];
   if (retry) lines.push(retry.replace(/\n+$/, ""), "");
+  if (amend) lines.push(amend.replace(/\n+$/, ""), "");
 
   lines.push("## Scope", "");
   if (opts.scope.length === 0) lines.push("- (empty)");
@@ -193,6 +221,9 @@ export async function finalizeDreamReport(opts: {
 
   if (opts.rollup_section?.trim()) {
     lines.push(opts.rollup_section.trim(), "");
+  } else {
+    const preserved = extractRollupSection(raw);
+    if (preserved) lines.push(preserved, "");
   }
 
   lines.push("## Appendix — pending deploy", "### Paths", "", ...pathLines, "");

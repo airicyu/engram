@@ -1,6 +1,8 @@
 # Backlog — Dream draft 自由句編輯（2b）
 
-← [backlog INDEX](./INDEX.md) · 相關已排程：[0.19.0](../0.19.0/INDEX.md)（只做結構化 category 2a）
+← [backlog INDEX](./INDEX.md) · **已出貨：** [0.27.0](../0.27.0/INDEX.md)（`POST /dreams/amend` + Revise UI）
+
+> 本檔保留為構想史料。產品真相以 **0.27.0 INDEX** 與 `docs/api-docs/api.md` 為準；backlog INDEX 已不再列本條。
 
 ## 題目
 

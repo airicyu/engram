@@ -12,6 +12,7 @@ import { loadClockFromDisk } from "./store/clock";
 import {
   handleDreamRun,
   handleDreamRetry,
+  handleDreamAmend,
 } from "./api/dream/run";
 import {
   handleDreamPending,
@@ -75,6 +76,7 @@ try {
             "POST /activities",
             "POST /dreams/run",
             "POST /dreams/retry",
+            "POST /dreams/amend",
             "POST /dreams/cancel",
             "GET /dreams/pending",
             "PATCH /dreams/pending/node-score-involvements",
@@ -161,6 +163,19 @@ try {
           return Response.json({ error: "invalid JSON body" }, { status: 400 });
         }
         return handleDreamRetry(body);
+      }),
+    },
+
+    "/dreams/amend": {
+      POST: withRequestLog(async (req) => {
+        let body: { instruction?: string; dream_run_id?: string } = {};
+        try {
+          const text = await req.text();
+          if (text.trim()) body = JSON.parse(text) as { instruction?: string; dream_run_id?: string };
+        } catch {
+          return Response.json({ error: "invalid JSON body" }, { status: 400 });
+        }
+        return handleDreamAmend(body);
       }),
     },
 

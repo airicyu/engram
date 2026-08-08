@@ -58,9 +58,12 @@ export async function guardedWriteFile(
   await writeFile(path, content.endsWith("\n") ? content : `${content}\n`, "utf8");
 }
 
-/** Dream extract: draft tree + reports dir (+ optional temp workdir). */
+/** Paths needed to fence dream／amend writes (draft + report). */
+export type DreamWriteRoots = Pick<DreamContext, "store_dir" | "draft_dir" | "report_path">;
+
+/** Dream extract／amend: draft tree + reports dir (+ optional temp workdir). */
 export function dreamWritePolicy(
-  ctx: DreamContext,
+  ctx: DreamWriteRoots,
   extraWritable: string[] = [],
 ): WritePolicy {
   const storeDir = normRoot(ctx.store_dir);

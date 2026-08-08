@@ -53,6 +53,30 @@ export class MissingReasonError extends Error {
   }
 }
 
+/** Indicates POST /dreams/amend without a usable instruction. */
+export class MissingInstructionError extends Error {
+  constructor() {
+    super("instruction is required for dream amend");
+    this.name = "MissingInstructionError";
+  }
+}
+
+/**
+ * Amend-dream failed after／during agent work.
+ * Unlike DreamIncompleteError, callers must **not** remove the pending draft.
+ */
+export class AmendFailedError extends Error {
+  dream_run_id: string;
+  phase: "extract" | "materialize";
+
+  constructor(dream_run_id: string, message: string, phase: "extract" | "materialize" = "extract") {
+    super(message);
+    this.name = "AmendFailedError";
+    this.dream_run_id = dream_run_id;
+    this.phase = phase;
+  }
+}
+
 /** Indicates day-chain patches that incorrectly target future dates. */
 export class FutureChainIdError extends Error {
   rejected_chain_ids: string[];

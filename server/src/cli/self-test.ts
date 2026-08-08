@@ -186,6 +186,35 @@ async function main() {
     assert(i3.status === 201, "ingest during pending_review");
     assert(i3.data.event_id === "e0000000003", "third event");
 
+    console.log("Phase 1b2: amend same run_id with instruction");
+    const missingInstr = await json("POST", "/dreams/amend", {});
+    assert(
+      missingInstr.status === 400 && missingInstr.data.error === "missing_instruction",
+      "amend without instruction → 400",
+    );
+    const amendRunId = pending.data.dream_run_id as string;
+    const amend1 = await json("POST", "/dreams/amend", {
+      instruction: "Clarify Acme rate-limit wording in the day summary",
+      dream_run_id: amendRunId,
+    });
+    assert(amend1.status === 202, `amend 202 got ${amend1.status} ${JSON.stringify(amend1.data)}`);
+    assert(amend1.data.job_id === amendRunId, "amend job_id equals pending run id");
+    await waitForJob(
+      (job, st) =>
+        job?.status === "completed" &&
+        st.dream_status === "pending_review" &&
+        (job.dream_run_id as string) === amendRunId,
+    );
+    const pendingAmend = await json("GET", "/dreams/pending");
+    assert(pendingAmend.status === 200 && pendingAmend.data.present === true, "pending after amend");
+    assert(pendingAmend.data.dream_run_id === amendRunId, "amend keeps same dream_run_id");
+    assert(
+      typeof pendingAmend.data.report === "string" &&
+        pendingAmend.data.report.includes("Amend feedback") &&
+        pendingAmend.data.report.includes("Clarify Acme rate-limit"),
+      "amend report has Amend feedback + instruction",
+    );
+
     console.log("Phase 1c: pending blocks /dreams/run; retry with reason");
     const blockedRun = await json("POST", "/dreams/run");
     assert(
@@ -199,9 +228,9 @@ async function main() {
       "retry without reason → 400",
     );
 
-    const firstScope = pending.data.scope as string[];
+    const firstScope = pendingAmend.data.scope as string[];
     assert(Array.isArray(firstScope) && firstScope.length === 2, "baseline scope length 2");
-    const firstRunId = pending.data.dream_run_id as string;
+    const firstRunId = pendingAmend.data.dream_run_id as string;
 
     const retry1 = await json("POST", "/dreams/retry", {
       reason: "Too vague — name the Acme rate-limit discussion explicitly",

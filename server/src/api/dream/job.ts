@@ -3,6 +3,7 @@
 import {
   DreamIncompleteError,
   DreamCancelledError,
+  AmendFailedError,
   NothingToDreamError,
 } from "../../dream/run";
 import { readDreamJob, writeDreamJob } from "../../store/dreams/dream-job";
@@ -11,7 +12,10 @@ import { emitDreamEvent } from "../../dream/report/emit-event";
 import { logError, logInfo } from "../../log";
 
 export const DREAM_SUBMITTED_MESSAGE =
-  "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dreams/pending then approve, discard, or retry.";
+  "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dreams/pending then approve, discard, retry, or amend.";
+
+export const DREAM_AMEND_SUBMITTED_MESSAGE =
+  "Dream amend submitted. Poll GET /status; same dream_run_id stays pending_review on success (or remains reviewable if amend fails).";
 
 export function startDreamJob(
   dreamRunId: string,
@@ -68,7 +72,7 @@ export function startDreamJob(
         }
         const errorMessage = e instanceof Error ? e.message : String(e);
         const phase =
-          e instanceof DreamIncompleteError
+          e instanceof DreamIncompleteError || e instanceof AmendFailedError
             ? e.phase
             : e instanceof NothingToDreamError
               ? "extract"
@@ -82,7 +86,8 @@ export function startDreamJob(
           lock_token: lockToken,
           error: errorMessage,
         });
-        if (!(e instanceof DreamIncompleteError)) {
+        // DreamIncompleteError／AmendFailedError already emit domain events in pipeline.
+        if (!(e instanceof DreamIncompleteError) && !(e instanceof AmendFailedError)) {
           emitDreamEvent(dreamRunId, {
             phase: phase === "materialize" ? "materialize" : "extract",
             level: "error",

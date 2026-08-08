@@ -13,6 +13,7 @@ Commands:
   capture <text> [src] POST /activities (source defaults to claude-skill)
   dream               POST /dreams/run (extract → pending)
   dream-retry <reason> POST /dreams/retry (discard + same scope + reason)
+  dream-amend <instruction> POST /dreams/amend (same run_id + instruction)
   dream-cancel        POST /dreams/cancel (running job only)
   pending             GET /dreams/pending
   approve             POST /dreams/approve
@@ -50,6 +51,11 @@ case "$cmd" in
     reason="${1:?usage: engram-api.sh dream-retry <reason>}"
     python3 -c 'import json,sys; print(json.dumps({"reason":sys.argv[1]}))' "$reason" \
       | curl -sS -X POST "$BASE/dreams/retry" -H 'content-type: application/json' -d @-
+    ;;
+  dream-amend)
+    instruction="${1:?usage: engram-api.sh dream-amend <instruction>}"
+    python3 -c 'import json,sys; print(json.dumps({"instruction":sys.argv[1]}))' "$instruction" \
+      | curl -sS -X POST "$BASE/dreams/amend" -H 'content-type: application/json' -d @-
     ;;
   dream-cancel)
     curl -sS -X POST "$BASE/dreams/cancel" -H 'content-type: application/json' -d '{}'

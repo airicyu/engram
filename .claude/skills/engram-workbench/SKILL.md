@@ -34,7 +34,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 |----|-------|
 | `curl` / `engram-api.sh` against `ENGRAM_URL` | Edit `data/**`, `memories/nodes/**`, `dream/**` |
 | `POST /activities` to capture | Append to `events.jsonl` by hand |
-| `POST /dreams/run` → pending → `approve`／`discard`／`retry`／`cancel` | Hand-edit short-term／L2／draft during review |
+| `POST /dreams/run` → pending → `approve`／`discard`／`retry`／`amend`／`cancel` | Hand-edit short-term／L2／draft during review |
 | `GET /memories/short-term-memory` / `GET /memories/search` / `POST /memories/ask` | Assemble context by reading markdown files |
 | `GET /memories/future-sight` for near-horizon anchors | Hand-edit `future-sight/` |
 | Report `dream_status` from `/status` | Hand-edit dream state files |
@@ -53,6 +53,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Approve** | `POST /dreams/approve` — deploy draft→live＋git commit → clear scope S |
 | **Discard** | `POST /dreams/discard` — drop pending；short-term／L2 不變 |
 | **Retry** | `POST /dreams/retry` `{ reason }` — discard → same frozen scope + feedback → new pending |
+| **Amend** | `POST /dreams/amend` `{ instruction }` — same `dream_run_id` minimal draft edit; failure keeps pending |
 | **Dream cancel** | `POST /dreams/cancel` — stop running dream；revert draft |
 | **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain,future`; default all four; `future`＝hot＋later) |
 | **Ask** | `POST /memories/ask` `{ q, include_later? }` — async AI Q&A（預設可讀 hot；`include_later:true` 才讀 later）；poll `GET /memories/ask/{job_id}` |
@@ -70,6 +71,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /activities` | `raw` (not `content`／`text`) | `event_id` |
 | `POST /dreams/run` | none | `202` + `job_id` — poll `/status`；pending 時 `409 pending_review` |
 | `POST /dreams/retry` | `{ reason }` required | `202` + `job_id` — same scope + review feedback |
+| `POST /dreams/amend` | `{ instruction }` required | `202` + `job_id`（＝pending id）— same draft；失敗仍可審 |
 | `GET /dreams/pending` | none | always `200`; `present: false` if none；含 `node_score_involvements` |
 | `PATCH /dreams/pending/node-score-involvements` | `{ id, category }` | 2a 改涉入 category（pending 時）；非法 category → 400；未知 id → 404 |
 | `POST /dreams/approve` | body optional | committed paths + cleared_scope；非 empty_patches 時結算 node score |
@@ -115,6 +117,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "近期前瞻／未來視" | `GET /memories/future-sight`（過期清掉；discard 不回滾入夢前維護 commit）；Seek Search／Ask 亦可讀 |
 | "丟掉這次夢" | `POST /dreams/discard` |
 | "重試／改方向" | `POST /dreams/retry` + `{ reason }` — **不要**手改檔案；**不要**無理由再 `dream/run` |
+| "同稿小修／amend" | `POST /dreams/amend` + `{ instruction }` — 同一 `dream_run_id`；失敗仍 pending |
 | pending 期間還要記 | 直接 capture（允許） |
 | `l1_clear_pending` | 再 `approve`（只清 S） |
 | extract 失敗 | short-term 保留；可重試 `/dreams/run`（無 pending 時） |

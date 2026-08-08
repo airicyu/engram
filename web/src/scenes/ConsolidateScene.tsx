@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../lib/api";
 import {
   adviceFor,
@@ -10,13 +11,19 @@ import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
 import { MdBlock, Msg } from "../components/ui";
 
+type ReviseMode = "re_dream" | "amend_dream";
+
 export function ConsolidateScene() {
   const { t } = useI18n();
   const { status, pending, dreaming, setDreaming, refreshStatus } = useStatus();
   const [msg, setMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [resultBody, setResultBody] = useState<string | null>(null);
-  const [retryReason, setRetryReason] = useState("");
+  const [reviseDialogOpen, setReviseDialogOpen] = useState(false);
+  const [reviseMode, setReviseMode] = useState<ReviseMode>("re_dream");
+  const [reviseContext, setReviseContext] = useState("");
   const [patchingId, setPatchingId] = useState<string | null>(null);
+  const reviseTitleId = useId();
+  const reviseContextId = useId();
 
   const dash = t("consolidate.dash");
   const pendingReview = status?.dream_status === "pending_review";
@@ -24,10 +31,30 @@ export function ConsolidateScene() {
   const dreamDisabled =
     !status || status.lock || dreaming || pendingReview || clearRetry;
   const canReview = !!(pendingReview || clearRetry) && !status?.lock && !dreaming;
-  const canRetry =
-    pendingReview && !status?.lock && !dreaming && retryReason.trim().length > 0;
+  const canOpenRevise = pendingReview && !status?.lock && !dreaming;
+  const canSubmitRevise =
+    canOpenRevise && reviseDialogOpen && reviseContext.trim().length > 0;
   const job = status?.dream_job ?? null;
   const progressActive = !!(status?.lock || dreaming || job?.status === "running");
+
+  function closeReviseDialog() {
+    setReviseDialogOpen(false);
+    setReviseContext("");
+    setReviseMode("re_dream");
+  }
+
+  useEffect(() => {
+    if (!reviseDialogOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setReviseDialogOpen(false);
+        setReviseContext("");
+        setReviseMode("re_dream");
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [reviseDialogOpen]);
 
   function dreamBtnLabel() {
     if (status?.lock || dreaming) return t("consolidate.dreaming");
@@ -111,7 +138,7 @@ export function ConsolidateScene() {
         : t("dream.approve_ok", { count: data.committed?.length ?? 0 });
     setMsg({ text: note, kind: data.l1_clear_pending ? "error" : "ok" });
     setResultBody(JSON.stringify(data, null, 2));
-    setRetryReason("");
+    closeReviseDialog();
     await refreshStatus();
   }
 
@@ -130,7 +157,7 @@ export function ConsolidateScene() {
       return;
     }
     setMsg({ text: t("dream.discard_ok"), kind: "ok" });
-    setRetryReason("");
+    closeReviseDialog();
     await refreshStatus();
   }
 
@@ -158,18 +185,27 @@ export function ConsolidateScene() {
     await refreshStatus();
   }
 
-  async function onRetry() {
-    const reason = retryReason.trim();
-    if (!reason) {
-      setMsg({ text: t("dream.retry_need_reason"), kind: "error" });
+  async function onReviseSubmit() {
+    const context = reviseContext.trim();
+    if (!context) {
+      setMsg({ text: t("dream.revise_need_context"), kind: "error" });
       return;
     }
     if (status?.lock || dreaming) {
       setMsg({ text: t("dream.already"), kind: "error" });
       return;
     }
+    if (reviseMode === "re_dream") {
+      await onRetry(context);
+    } else {
+      await onAmend(context);
+    }
+  }
+
+  async function onRetry(reason: string) {
     setDreaming(true);
     setMsg({ text: t("dream.retrying"), kind: "" });
+    closeReviseDialog();
     const { ok, status: http, data } = await api<{
       job_id?: string;
       message?: string;
@@ -198,8 +234,44 @@ export function ConsolidateScene() {
       await refreshStatus();
       return;
     }
-    setRetryReason("");
     setMsg({ text: t("dream.retry_submitted"), kind: "ok" });
+    setResultBody(`job_id: ${data.job_id}\n${data.message || ""}`);
+    await refreshStatus();
+  }
+
+  async function onAmend(instruction: string) {
+    setDreaming(true);
+    setMsg({ text: t("dream.amending"), kind: "" });
+    closeReviseDialog();
+    const { ok, status: http, data } = await api<{
+      job_id?: string;
+      message?: string;
+      error?: string;
+    }>("/dreams/amend", {
+      method: "POST",
+      body: JSON.stringify({
+        instruction,
+        ...(pending?.dream_run_id ? { dream_run_id: pending.dream_run_id } : {}),
+      }),
+    });
+
+    if (http === 400 || http === 409) {
+      setDreaming(false);
+      setMsg({ text: data?.message || data?.error || t("dream.amend_fail"), kind: "error" });
+      await refreshStatus();
+      return;
+    }
+    if (!ok) {
+      setDreaming(false);
+      setResultBody(JSON.stringify(data, null, 2));
+      setMsg({
+        text: data?.message || data?.error || t("dream.fail", { status: http }),
+        kind: "error",
+      });
+      await refreshStatus();
+      return;
+    }
+    setMsg({ text: t("dream.amend_submitted"), kind: "ok" });
     setResultBody(`job_id: ${data.job_id}\n${data.message || ""}`);
     await refreshStatus();
   }
@@ -241,9 +313,19 @@ export function ConsolidateScene() {
     dash,
   );
 
+  const revisePlaceholder =
+    reviseMode === "amend_dream"
+      ? t("consolidate.revise_context_placeholder_amend")
+      : t("consolidate.revise_context_placeholder_re_dream");
+
   return (
     <section className="scene is-active" role="tabpanel">
-      <p className="scene-lead">{t("consolidate.lead")}</p>
+      <div className="scene-header">
+        <p className="scene-lead">{t("consolidate.lead")}</p>
+        <button type="button" className="btn ghost scene-refresh" onClick={() => void refreshStatus()}>
+          {t("consolidate.refresh")}
+        </button>
+      </div>
       <div className="status-panel">
         <dl className="status-grid">
           <div>
@@ -312,7 +394,28 @@ export function ConsolidateScene() {
               </ul>
             </div>
           ) : null}
-          <div className="consolidate-actions">
+          <hr className="pending-actions-rule" />
+          <div className="consolidate-actions pending-user-actions">
+            <button
+              type="button"
+              className="btn warn"
+              disabled={!pendingReview || !!status?.lock || dreaming}
+              onClick={() => void onDiscard()}
+            >
+              {t("consolidate.discard")}
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={!canOpenRevise}
+              onClick={() => {
+                setReviseMode("re_dream");
+                setReviseContext("");
+                setReviseDialogOpen(true);
+              }}
+            >
+              {t("consolidate.revise")}
+            </button>
             <button
               type="button"
               className="btn primary"
@@ -321,43 +424,82 @@ export function ConsolidateScene() {
             >
               {t("consolidate.approve")}
             </button>
-            <button
-              type="button"
-              className="btn ghost"
-              disabled={!pendingReview || !!status?.lock || dreaming}
-              onClick={() => void onDiscard()}
-            >
-              {t("consolidate.discard")}
-            </button>
           </div>
-          {pendingReview ? (
-            <div className="retry-panel">
-              <label className="retry-label" htmlFor="dream-retry-reason">
-                {t("consolidate.retry_reason_label")}
-              </label>
-              <textarea
-                id="dream-retry-reason"
-                className="retry-reason"
-                rows={3}
-                value={retryReason}
-                disabled={!!status?.lock || dreaming}
-                placeholder={t("consolidate.retry_reason_placeholder")}
-                onChange={(e) => setRetryReason(e.target.value)}
-              />
-              <div className="consolidate-actions">
-                <button
-                  type="button"
-                  className="btn ghost"
-                  disabled={!canRetry}
-                  onClick={() => void onRetry()}
-                >
-                  {t("consolidate.retry")}
-                </button>
-              </div>
-            </div>
-          ) : null}
         </div>
       ) : null}
+
+      {reviseDialogOpen
+        ? createPortal(
+            <div
+              className="revise-dialog-backdrop"
+              role="presentation"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) closeReviseDialog();
+              }}
+            >
+              <div
+                className="revise-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={reviseTitleId}
+              >
+                <h2 id={reviseTitleId} className="revise-dialog-title">
+                  {t("consolidate.revise")}
+                </h2>
+                <fieldset className="revise-mode" disabled={!!status?.lock || dreaming}>
+                  <legend className="revise-label">{t("consolidate.revise_mode_label")}</legend>
+                  <label className="revise-mode-option">
+                    <input
+                      type="radio"
+                      name="revise-mode"
+                      value="re_dream"
+                      checked={reviseMode === "re_dream"}
+                      onChange={() => setReviseMode("re_dream")}
+                    />
+                    {t("consolidate.revise_mode.re_dream")}
+                  </label>
+                  <label className="revise-mode-option">
+                    <input
+                      type="radio"
+                      name="revise-mode"
+                      value="amend_dream"
+                      checked={reviseMode === "amend_dream"}
+                      onChange={() => setReviseMode("amend_dream")}
+                    />
+                    {t("consolidate.revise_mode.amend_dream")}
+                  </label>
+                </fieldset>
+                <label className="revise-label" htmlFor={reviseContextId}>
+                  {t("consolidate.revise_context_label")}
+                </label>
+                <textarea
+                  id={reviseContextId}
+                  className="retry-reason"
+                  rows={4}
+                  value={reviseContext}
+                  disabled={!!status?.lock || dreaming}
+                  placeholder={revisePlaceholder}
+                  onChange={(e) => setReviseContext(e.target.value)}
+                  autoFocus
+                />
+                <div className="consolidate-actions revise-dialog-actions">
+                  <button type="button" className="btn ghost" onClick={closeReviseDialog}>
+                    {t("consolidate.revise_cancel")}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={!canSubmitRevise}
+                    onClick={() => void onReviseSubmit()}
+                  >
+                    {t("consolidate.revise_submit")}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {!pendingReview && !clearRetry ? (
         <div className="consolidate-actions">
@@ -369,17 +511,8 @@ export function ConsolidateScene() {
           >
             {dreamBtnLabel()}
           </button>
-          <button type="button" className="btn ghost" onClick={() => void refreshStatus()}>
-            {t("consolidate.refresh")}
-          </button>
         </div>
-      ) : (
-        <div className="consolidate-actions">
-          <button type="button" className="btn ghost" onClick={() => void refreshStatus()}>
-            {t("consolidate.refresh")}
-          </button>
-        </div>
-      )}
+      ) : null}
       <Msg text={msg.text} kind={msg.kind} />
 
       {progressActive ? (

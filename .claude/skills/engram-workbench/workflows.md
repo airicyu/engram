@@ -6,7 +6,7 @@
 2. `POST /activities` with `{ "raw": "…" }` (repeat as needed)
 3. `POST /dreams/run` → 202; poll `/status` until `dream_status=pending_review` (or `dream_job.status=failed`)
 4. `GET /dreams/pending` — read report; check timeline / new nodes
-5. If wrong direction → `POST /dreams/retry` with `{ reason }` (same frozen scope), or `POST /dreams/discard`, or `POST /dreams/cancel` if still running. Do **not** call `/dreams/run` while pending.
+5. If wrong direction → `POST /dreams/retry` with `{ reason }` (same frozen scope), or `POST /dreams/amend` with `{ instruction }` (same `dream_run_id`), or `POST /dreams/discard`, or `POST /dreams/cancel` if still running. Do **not** call `/dreams/run` while pending.
 6. If OK → `POST /dreams/approve`
 7. `GET /memories/search?q=…` — verify hits（預設含 future-sight）
 8. `GET /memories/future-sight` — list active near-horizon anchors (optional)
@@ -18,7 +18,7 @@ New events enter the pool but are **outside** frozen S. Approve clears only S; n
 
 ## Review 禁止事項
 
-Do **not** hand-edit L1／L2／draft／future-sight to “fix” a pending dream. Only retry／approve／discard.
+Do **not** hand-edit L1／L2／draft／future-sight to “fix” a pending dream. Only retry／amend／approve／discard.
 
 ## Empty patches
 
