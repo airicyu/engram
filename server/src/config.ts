@@ -40,11 +40,19 @@ const WORKSPACE_KEYS = new Set([
   "allow_stale_store",
   "dream_debug",
   "memory_debug",
+  "attachment_max_bytes",
+  "attachment_tmp_retention_days",
+  "attachment_housekeep_cron",
+  "attachment_housekeep_cron_enabled",
+  "attachment_housekeep_on_start",
 ]);
 
 export const DEFAULT_FUTURE_SIGHT_WINDOW_DAYS = 365;
 export const DEFAULT_FUTURE_SIGHT_HOT_DAYS = 30;
 export const DEFAULT_DREAM_STAGING_RETENTION_DAYS = 3;
+export const DEFAULT_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024; // 10 MiB
+export const DEFAULT_ATTACHMENT_TMP_RETENTION_DAYS = 2;
+export const DEFAULT_ATTACHMENT_HOUSEKEEP_CRON = "30 2 * * *";
 export const DEFAULT_DREAM_COMMITTED_REPORT_RETENTION_DAYS = 7;
 export const DEFAULT_DREAM_CLEANUP_MIN_AGE_DAYS = 1;
 export const DEFAULT_DREAM_CLEANUP_CRON = "10 0 * * *";
@@ -134,6 +142,11 @@ type WorkspaceFile = {
   allow_stale_store?: boolean;
   dream_debug?: boolean;
   memory_debug?: boolean;
+  attachment_max_bytes?: number;
+  attachment_tmp_retention_days?: number;
+  attachment_housekeep_cron?: string;
+  attachment_housekeep_cron_enabled?: boolean;
+  attachment_housekeep_on_start?: boolean;
 };
 
 /** Positive integer day-count (future-sight windows). */
@@ -469,6 +482,50 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
     out.memory_debug = v;
   }
 
+  if ("attachment_max_bytes" in obj) {
+    const v = obj.attachment_max_bytes;
+    if (!isPositiveIntDays(v)) {
+      failWorkspace(
+        `${path}: attachment_max_bytes must be a positive integer (got ${JSON.stringify(v)})`,
+      );
+    }
+    out.attachment_max_bytes = v;
+  }
+
+  if ("attachment_tmp_retention_days" in obj) {
+    const v = obj.attachment_tmp_retention_days;
+    if (!isNonNegativeIntDays(v)) {
+      failWorkspace(
+        `${path}: attachment_tmp_retention_days must be a non-negative integer (got ${JSON.stringify(v)})`,
+      );
+    }
+    out.attachment_tmp_retention_days = v;
+  }
+
+  if ("attachment_housekeep_cron" in obj) {
+    const v = obj.attachment_housekeep_cron;
+    if (!isCronExpression(v)) {
+      failWorkspace(`${path}: attachment_housekeep_cron must be a 5-field cron string`);
+    }
+    out.attachment_housekeep_cron = v.trim();
+  }
+
+  if ("attachment_housekeep_cron_enabled" in obj) {
+    const v = obj.attachment_housekeep_cron_enabled;
+    if (!isWorkspaceBoolean(v)) {
+      failWorkspace(`${path}: attachment_housekeep_cron_enabled must be boolean`);
+    }
+    out.attachment_housekeep_cron_enabled = v;
+  }
+
+  if ("attachment_housekeep_on_start" in obj) {
+    const v = obj.attachment_housekeep_on_start;
+    if (!isWorkspaceBoolean(v)) {
+      failWorkspace(`${path}: attachment_housekeep_on_start must be boolean`);
+    }
+    out.attachment_housekeep_on_start = v;
+  }
+
   return out;
 }
 
@@ -631,6 +688,41 @@ function resolveMemoryDebug(workspace: WorkspaceFile | null): boolean {
   return resolveEnvBoolean(process.env.ENGRAM_MEMORY_DEBUG, false);
 }
 
+function resolveAttachmentMaxBytes(workspace: WorkspaceFile | null): number {
+  if (workspace?.attachment_max_bytes != null) return workspace.attachment_max_bytes;
+  const fromEnv = process.env.ENGRAM_ATTACHMENT_MAX_BYTES?.trim();
+  if (fromEnv) {
+    return parsePositiveIntDays(fromEnv, "ENGRAM_ATTACHMENT_MAX_BYTES");
+  }
+  return DEFAULT_ATTACHMENT_MAX_BYTES;
+}
+
+function resolveAttachmentTmpRetentionDays(workspace: WorkspaceFile | null): number {
+  if (workspace?.attachment_tmp_retention_days != null) return workspace.attachment_tmp_retention_days;
+  const fromEnv = process.env.ENGRAM_ATTACHMENT_TMP_RETENTION_DAYS?.trim();
+  if (fromEnv) {
+    return parseNonNegativeIntDays(fromEnv, "ENGRAM_ATTACHMENT_TMP_RETENTION_DAYS");
+  }
+  return DEFAULT_ATTACHMENT_TMP_RETENTION_DAYS;
+}
+
+function resolveAttachmentHousekeepCron(workspace: WorkspaceFile | null): string {
+  if (workspace?.attachment_housekeep_cron) return workspace.attachment_housekeep_cron;
+  const fromEnv = process.env.ENGRAM_ATTACHMENT_HOUSEKEEP_CRON?.trim();
+  if (fromEnv) return parseCronExpression(fromEnv, "ENGRAM_ATTACHMENT_HOUSEKEEP_CRON");
+  return DEFAULT_ATTACHMENT_HOUSEKEEP_CRON;
+}
+
+function resolveAttachmentHousekeepCronEnabled(workspace: WorkspaceFile | null): boolean {
+  if (workspace?.attachment_housekeep_cron_enabled != null) return workspace.attachment_housekeep_cron_enabled;
+  return resolveEnvBoolean(process.env.ENGRAM_ATTACHMENT_HOUSEKEEP_CRON_ENABLED, true);
+}
+
+function resolveAttachmentHousekeepOnStart(workspace: WorkspaceFile | null): boolean {
+  if (workspace?.attachment_housekeep_on_start != null) return workspace.attachment_housekeep_on_start;
+  return resolveEnvBoolean(process.env.ENGRAM_ATTACHMENT_HOUSEKEEP_ON_START, true);
+}
+
 function resolveTimezone(workspace: WorkspaceFile | null): string {
   if (workspace?.timezone) return workspace.timezone;
   const fromEnv = process.env.ENGRAM_TZ?.trim();
@@ -720,4 +812,14 @@ export const config = {
   autoDreamEnabled: resolveAutoDreamEnabled(workspace),
   /** In-process cron for auto dream when enabled. */
   autoDreamCron: resolveAutoDreamCron(workspace),
+  /** Max bytes per attachment file (default 10 MiB). */
+  attachmentMaxBytes: resolveAttachmentMaxBytes(workspace),
+  /** Days to retain tmp uploads before housekeep (default 2). */
+  attachmentTmpRetentionDays: resolveAttachmentTmpRetentionDays(workspace),
+  /** In-process cron expression for attachment tmp housekeep. */
+  attachmentHousekeepCron: resolveAttachmentHousekeepCron(workspace),
+  /** Register in-process attachment housekeep cron (default true). */
+  attachmentHousekeepCronEnabled: resolveAttachmentHousekeepCronEnabled(workspace),
+  /** Run attachment tmp housekeep on server start (default true). */
+  attachmentHousekeepOnStart: resolveAttachmentHousekeepOnStart(workspace),
 };

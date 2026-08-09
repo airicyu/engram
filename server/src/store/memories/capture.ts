@@ -17,7 +17,7 @@ import { appendPoolEntry, type PoolEntry } from "./short-term-memory";
 /** Serialize all capture mutations in this process. */
 let captureChain: Promise<unknown> = Promise.resolve();
 
-function withCaptureLock<T>(fn: () => Promise<T>): Promise<T> {
+export function withCaptureLock<T>(fn: () => Promise<T>): Promise<T> {
   const run = captureChain.then(fn, fn);
   // Keep the chain alive even if `fn` rejects.
   captureChain = run.then(
@@ -35,6 +35,7 @@ export type CaptureInput = {
   ingest_meta?: Record<string, unknown>;
   /** Override timestamp (tests／system); default nowIso(). */
   ts?: string;
+  attachments?: { path: string; relationship: string }[];
 };
 
 export type CaptureResult = {
@@ -46,7 +47,7 @@ export type CaptureResult = {
  * If pool／derived write fails after L0 append, remove the trailing L0 line
  * when it matches `event_id` (best-effort compensation; prototype single-server).
  */
-async function rollbackLastEventIfMatch(eventId: string): Promise<void> {
+export async function rollbackLastEventIfMatch(eventId: string): Promise<void> {
   try {
     const events = await readAllEvents();
     const last = events[events.length - 1];
@@ -77,6 +78,7 @@ export async function captureActivity(input: CaptureInput): Promise<CaptureResul
       node_refs,
       idempotency_key: input.idempotency_key,
       ingest_meta: input.ingest_meta,
+      attachments: input.attachments,
     };
 
     await appendEvent(event);

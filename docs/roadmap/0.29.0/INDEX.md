@@ -2,7 +2,7 @@
 
 ← [changelog](../../../changelog.md) · 上游：[0.28.0](../0.28.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md) · 來源：[backlog activity-images](../backlog/activity-images.md)
 
-> **狀態：** **planned**  
+> **狀態：** **shipped**  
 > **本版只做這一項：** Activities 捕捉附圖（tmp 上傳、media attachments UI、submit 搬檔＋標題區塊 appendix、對稱校驗、tmp housekeep、dream／STM prompt 教讀寫 embed）。**不做**其他 backlog（graph、vector、反思補問等）。
 
 ## 產品句
@@ -18,7 +18,8 @@
 | 2 | [docs/capture-and-appendix.md](./docs/capture-and-appendix.md) | 路徑、API 形狀、校驗、appendix 渲染規則 |
 | 3 | [docs/reasoning.md](./docs/reasoning.md) | 為何 tmp／標題區塊／不依賴 vision／不做 WYSIWYG |
 | 4 | [docs/design-review.md](./docs/design-review.md) | 設計審查史料；**D／F 已併入本檔已定案**（2026-08-10） |
-| 5 | [../backlog/activity-images.md](../backlog/activity-images.md) | 討論史料；**以本版 INDEX／docs 為準** |
+| 5 | [docs/implementation-review.md](./docs/implementation-review.md) | 實作審查（HIGH／MEDIUM／驗收對照；初審 2026-08-10） |
+| 6 | [../backlog/activity-images.md](../backlog/activity-images.md) | 討論史料；出貨後自 backlog INDEX **刪除**本列 |
 
 ---
 
@@ -60,7 +61,7 @@
 | 20 | Relationship 空 | 前端擋＋後端 **400** |
 | 21 | attachments 重複 path | 同一 `path` 出現超過一次 → **400**（勿靜默去重） |
 | 22 | 檔名無衝突 | 檢查該日 **tmp＋正式**；無衝突用原名 |
-| 23 | 檔名衝突 | `{stem}-YYYYMMDD-HHmmss-{rand6}.ext`；`rand6`＝`Math.random().toString(36).slice(2, 8)` |
+| 23 | 檔名衝突 | `{stem}-YYYYMMDD-HHmmss-{rand6}.ext`；時間戳＝**有效 timezone**（＋虛擬鐘，同 `nowIso`／run-id）；`rand6`＝`Math.random().toString(36).slice(2, 8)` |
 | 24 | 檔名誰定 | **只在 server 定名**；上傳回應回傳最終 `path`／`day`／`filename` |
 | 25 | Event 雙軌 | `attachments?: { path, relationship }[]`（機器真相）＋ `raw`＝正文＋appendix（由 attachments 渲染）。L0 與 STM 所見 `raw` 皆為 **server 最終稿**（含 appendix，若有附件） |
 
@@ -97,17 +98,19 @@
 | 37 | 刪 tmp | `DELETE /attachments/uploads/tmp?day=&filename=`（**query**）；不可刪正式目錄；缺檔 → **200** 冪等 |
 | 38 | 寫入 | 擴充 `POST /activities`：`raw`（無 appendix）＋可選 `attachments[]`；server 組最終 raw |
 | 39 | Lock | dream lock 時上傳與 activities → **409** `dream_locked` |
+| 40 | 預覽 | `GET /attachments/file?path=`（**query**）；回傳檔案 bytes；先查正式再查 tmp |
+| 41 | Housekeep API | `POST /attachments/housekeep`；手動觸發 tmp 清理；回應 `{ removed: string[] }` |
 
 ### Store／Git／Housekeep／出貨
 
 | # | 題 | 決定 |
 |---|-----|------|
-| 40 | `store_version` | **無**新 migrate hop；boot 仍 **≥ 0.28**；新建可 stamp `0.29.0` |
-| 41 | Housekeep | 只清 `uploads/tmp/**`；依 **目錄名 `{YYYY-MM-DD}`** 相對有效時鐘「今天」的日差 ≥ retention 則清理該日 tmp（虛擬鐘友好）。預設 **2** 天；workspace **`attachment_tmp_retention_days`**／env **`ENGRAM_ATTACHMENT_TMP_RETENTION_DAYS`** |
-| 42 | Git ignore | 忽略 `memories/_attachments/uploads/tmp/`；ensure 時 **自動確保** ignore；正式 `uploads/{日}/` **不**被 ignore |
-| 43 | Git commit 時機 | **對齊現行**：activities／上傳只寫盤；**dream approve**（既有 store git）才 commit。本版**不**為每則 activity 新增 commit |
-| 44 | 產品版號 | 出貨 `version.md`／changelog → `0.29.0`；本版只含附圖相關變更 |
-| 45 | 跨日／tmp 過期 | path 日＝**上傳日**；upload 與 submit 可跨日。tmp 被 housekeep 後 submit 缺檔 → **400**；UI 顯示錯誤即可，本版不做自動恢復 |
+| 42 | `store_version` | **無**新 migrate hop；boot 仍 **≥ 0.28**；新建可 stamp `0.29.0` |
+| 43 | Housekeep 策略 | 只清 `uploads/tmp/**`；依 **目錄名 `{YYYY-MM-DD}`** 相對有效時鐘「今天」的日差 ≥ retention 則清理該日 tmp（虛擬鐘友好）。預設 **2** 天；workspace **`attachment_tmp_retention_days`**／env **`ENGRAM_ATTACHMENT_TMP_RETENTION_DAYS`**；startup 自動跑＋cron（`attachment_housekeep_cron` 預設 `30 2 * * *`） |
+| 44 | Git ignore | 忽略 `memories/_attachments/uploads/tmp/`；ensure 時 **自動確保** ignore；正式 `uploads/{日}/` **不**被 ignore |
+| 45 | Git commit 時機 | **對齊現行**：activities／上傳只寫盤；**dream approve**（既有 store git）才 commit。本版**不**為每則 activity 新增 commit |
+| 46 | 產品版號 | 出貨 `version.md`／changelog → `0.29.0`；本版只含附圖相關變更 |
+| 47 | 跨日／tmp 過期 | path 日＝**上傳日**；upload 與 submit 可跨日。tmp 被 housekeep 後 submit 缺檔 → **400**；UI 顯示錯誤即可，本版不做自動恢復 |
 
 ---
 
@@ -162,19 +165,19 @@
 
 ## 驗收
 
-- [ ] 拖放／貼上 → tmp；正文為精確 `![[_attachments/uploads/…]]`（無 `/tmp`）
-- [ ] media attachments 必填 relationship；空 → 前後端拒絕
-- [ ] raw 空 → 拒絕；已含 `## Attachment relationships` → 400
-- [ ] Submit：move＋最終 raw 含標題區塊 appendix；`attachments[]` 一致
-- [ ] 對稱失敗／`|alias`／重複 path／非法 path → 400＋UI 錯誤
-- [ ] 寫入失敗：非 2xx；盡力搬回 tmp
-- [ ] Delete compose：刪 tmp＋去占位；DELETE 缺檔 200
-- [ ] 上傳 201、欄位 `file`；lock → 409
-- [ ] Housekeep 只清 tmp、依目錄日；預設 2 天；max bytes 鍵生效（預設 10MiB）
-- [ ] Ensure 自動 ignore tmp；正式 uploads 可追蹤；**無**每則 activity commit
-- [ ] Dream prompt 含教學；無 vision 硬依賴
-- [ ] 無 0.29 migrate hop；boot ≥0.28；`version.md`＝`0.29.0`
-- [ ] `bun run test:phases` 通過；出貨後 backlog 附圖列移除
+- [x] 拖放／貼上 → tmp；正文為精確 `![[_attachments/uploads/…]]`（無 `/tmp`）
+- [x] media attachments 必填 relationship；空 → 前後端拒絕
+- [x] raw 空 → 拒絕；已含 `## Attachment relationships` → 400
+- [x] Submit：move＋最終 raw 含標題區塊 appendix；`attachments[]` 一致
+- [x] 對稱失敗／`|alias`／重複 path／非法 path → 400＋UI 錯誤
+- [x] 寫入失敗：非 2xx；盡力搬回 tmp
+- [x] Delete compose：刪 tmp＋去占位；DELETE 缺檔 200
+- [x] 上傳 201、欄位 `file`；lock → 409
+- [x] Housekeep 只清 tmp、依目錄日；預設 2 天；max bytes 鍵生效（預設 10MiB）
+- [x] Ensure 自動 ignore tmp；正式 uploads 可追蹤；**無**每則 activity commit
+- [x] Dream prompt 含教學；無 vision 硬依賴
+- [x] 無 0.29 migrate hop；boot ≥0.28；`version.md`＝`0.29.0`
+- [x] `bun run test:phases` 通過；出貨後 backlog 附圖列移除
 
 ---
 

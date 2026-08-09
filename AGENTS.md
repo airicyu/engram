@@ -82,6 +82,8 @@ cd web && bun run dev             # 同 dev:ui
 | `POST /dreams/run` extract／file pipeline → pending（pending 時 409） | 未經同意就 `reset` |
 | `POST /dreams/approve`／`discard`／`retry`／`amend` | 手改 short-term／L2／draft「幫忙改對」 |
 | `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
+| `POST /attachments/uploads` 上傳附件圖檔（multipart `file`） | 手動放檔案到 `_attachments/uploads/` |
+| `DELETE /attachments/uploads/tmp?day=&filename=` 刪暫存 | 手刪 tmp 目錄 |
 
 API 欄位提醒：
 
@@ -119,12 +121,12 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.28.0` — Node 主檔 `{id}.md`＋Obsidian vault＝`memories/`＋Structure notes — 見 `docs/roadmap/0.28.0/`（**shipped**；**有** store migrate）
-- **下一版（planned）：** `0.29.0` — Activity 附圖（media attachments）；**本版只做這一項** — 見 `docs/roadmap/0.29.0/`
-- **上一版：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
+- **已出貨：** `0.29.0` — Activity 附圖（media attachments）；**本版只做這一項** — 見 `docs/roadmap/0.29.0/`（**shipped**；**無** store migrate）
+- **上一版：** `0.28.0` — Node 主檔 `{id}.md`＋Obsidian vault＝`memories/`＋Structure notes — 見 `docs/roadmap/0.28.0/`（**shipped**；**有** store migrate）
+- **更早：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
 - **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
-- **Backlog：** 見 `docs/roadmap/backlog/`（附圖已排入 0.29；其餘含 Seek／network 依分等）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28** store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29（planned）無 migrate hop**
+- **Backlog：** 見 `docs/roadmap/backlog/`（含 Seek／network 依分等）
+- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28** store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29 無 migrate hop**
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

@@ -1,11 +1,12 @@
-/** In-process Bun.cron jobs for dream maintenance (0.21). */
+/** In-process Bun.cron jobs for dream maintenance and attachment housekeep (0.21, 0.29). */
 
 import { config } from "../config";
 import { logError, logInfo } from "../log";
 import { sweepDreamArtifacts } from "../store/dreams/cleanup";
+import { housekeepTmpUploads } from "../store/memories/attachments";
 import { tryScheduledAutoDream } from "./auto-dream";
 
-/** Register cleanup and optional auto-dream crons. OS-level cron is intentionally not used. */
+/** Register cleanup, attachment housekeep, and optional auto-dream crons. */
 export function registerEngramCronJobs(): void {
   if (config.dreamCleanupCronEnabled) {
     Bun.cron(
@@ -21,6 +22,24 @@ export function registerEngramCronJobs(): void {
     );
     logInfo("dream cleanup cron registered", {
       schedule: config.dreamCleanupCron,
+      timezone: config.timezone,
+    });
+  }
+
+  if (config.attachmentHousekeepCronEnabled) {
+    Bun.cron(
+      config.attachmentHousekeepCron,
+      async () => {
+        try {
+          await housekeepTmpUploads();
+        } catch (e) {
+          logError("scheduled attachment housekeep failed", e);
+        }
+      },
+      { tz: config.timezone },
+    );
+    logInfo("attachment housekeep cron registered", {
+      schedule: config.attachmentHousekeepCron,
       timezone: config.timezone,
     });
   }

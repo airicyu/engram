@@ -97,6 +97,16 @@ Engram 設定分兩層：**進程／本機**（`server/.env` 或環境變數）�
 | `auto_dream_enabled` | `ENGRAM_AUTO_DREAM_ENABLED` | `false` | 定時 auto dream |
 | `auto_dream_cron` | `ENGRAM_AUTO_DREAM_CRON` | `30 3 * * *` | auto dream cron |
 
+### 附件（0.29+）
+
+| workspace 鍵 | env | 預設 | 說明 |
+|--------------|-----|------|------|
+| `attachment_max_bytes` | `ENGRAM_ATTACHMENT_MAX_BYTES` | `10485760`（10 MiB） | 單檔上傳大小上限 |
+| `attachment_tmp_retention_days` | `ENGRAM_ATTACHMENT_TMP_RETENTION_DAYS` | `2` | tmp 保留天數 |
+| `attachment_housekeep_cron` | `ENGRAM_ATTACHMENT_HOUSEKEEP_CRON` | `30 2 * * *` | tmp housekeep cron |
+| `attachment_housekeep_cron_enabled` | `ENGRAM_ATTACHMENT_HOUSEKEEP_CRON_ENABLED` | `true` | 啟用 housekeep cron |
+| `attachment_housekeep_on_start` | `ENGRAM_ATTACHMENT_HOUSEKEEP_ON_START` | `true` | 啟動時清理 tmp |
+
 env 布林值：`0`/`1`、`true`/`false`、`yes`/`no`（大小寫不敏感）。
 
 ---

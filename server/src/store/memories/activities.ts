@@ -18,6 +18,7 @@ export interface Event {
   node_refs?: string[];
   ingest_meta?: Record<string, unknown>;
   idempotency_key?: string;
+  attachments?: { path: string; relationship: string }[];
 }
 
 function eventsPath(): string {

@@ -30,6 +30,10 @@ Service discovery.
   "name": "engram",
   "endpoints": [
     "POST /activities",
+    "POST /attachments/uploads",
+    "GET /attachments/file",
+    "DELETE /attachments/uploads/tmp",
+    "POST /attachments/housekeep",
     "POST /dreams/run",
     "GET /dreams/pending",
     "PATCH /dreams/pending/node-score-involvements",
@@ -75,8 +79,8 @@ Snapshot of store health, dream state, and async job status.
 {
   "store_dir": "/path/to/data",
   "store_git": true,
-  "store_version": "0.16.0",
-  "product_version": "0.16.0",
+  "store_version": "0.29.0",
+  "product_version": "0.29.0",
   "temp_dir": "/tmp",
   "timezone": "Asia/Hong_Kong",
   "memory_language": "en",
@@ -274,15 +278,79 @@ Append one event to L0 and the short-term memory pool (indexed by event id).
   "raw": "required — free-text memory input",
   "source": "api",
   "node_refs": ["optional-node-id"],
-  "idempotency_key": "optional"
+  "idempotency_key": "optional",
+  "attachments": [
+    {
+      "path": "_attachments/uploads/2026-08-09/menu.png",
+      "relationship": "Lunch menu photo"
+    }
+  ]
 }
 ```
 
 **Response `201`:** `{ "event_id": "e0000000001" }`
 
-**Errors:** `400` missing `raw`; `400` `invalid_node_refs`（`node_refs` 出現但不是 `string[]`）；`409` `dream_locked`.
+**Errors:** `400` missing `raw`; `400` `invalid_node_refs`（`node_refs` 出現但不是 `string[]`）；`400` `embed_without_attachment`／`attachment_not_in_embeds`／`empty_relationship`／`duplicate_attachment_path`／`invalid_attachment_path`／`attachment_file_missing`／`double_appendix`；`409` `dream_locked`.
 
 `node_refs` 若提供必須是字串陣列（禁止傳字串，以免被逐字元當成 node id）。單次成功回應時 L0 與 short-term pool 一致反映該事件（0.20 capture 原子路徑）。
+
+**0.29+ 附件：** `attachments` 可選；若有則需與 `raw` 內 `![[_attachments/uploads/…]]` embed 精確對稱（集合相等），不可含 `|alias` 變體。Server 會將 tmp 檔搬至正式目錄，並在 `raw` 末尾追加 `## Attachment relationships` appendix。Event 記錄含結構化 `attachments` 欄位與含 appendix 的最終 `raw`。
+
+---
+
+## `POST /attachments/uploads`
+
+上傳圖檔至 tmp 暫存目錄。Multipart 欄位名 **`file`**。
+
+**MIME 限制：** `image/jpeg`｜`image/png`｜`image/webp`｜`image/gif`（拒 HEIC 與其餘）。  
+**大小限制：** 預設 10 MiB（`attachment_max_bytes` workspace／`ENGRAM_ATTACHMENT_MAX_BYTES`）。  
+**Dream lock 時：** `409 dream_locked`。
+
+**Response `201`**
+
+```json
+{
+  "path": "_attachments/uploads/2026-08-09/menu.png",
+  "day": "2026-08-09",
+  "filename": "menu.png"
+}
+```
+
+**實體：** `memories/_attachments/uploads/tmp/{day}/{filename}`。  
+`path` 為最終正式路徑（永不含 `/tmp`），可直接嵌入 `raw`。
+
+**Errors:** `400` `missing_file`／`invalid_mime`／`file_too_large`／`invalid_filename`；`409` `dream_locked`。
+
+---
+
+## `GET /attachments/file`
+
+Serve an attachment file for preview (formal or tmp).
+
+**Query:** `?path=_attachments/uploads/{day}/{filename}`
+
+**Response `200`:** binary image with appropriate `Content-Type` header.  
+**Errors:** `400` `missing_path`／`invalid_path`；`404` `not_found`.
+
+---
+
+## `DELETE /attachments/uploads/tmp`
+
+刪除一筆 tmp 暫存圖檔。**冪等**（缺檔仍 200）。**不**刪正式 `uploads/{day}/`。
+
+**Query:** `?day=YYYY-MM-DD&filename=name.ext`
+
+**Response `200`:** `{ "deleted": true, "day": "…", "filename": "…" }`
+
+**Errors:** `400` `missing_params`／`invalid_day`／`invalid_filename`。
+
+---
+
+## `POST /attachments/housekeep`
+
+觸發 tmp 上傳目錄清理：依目錄名 `YYYY-MM-DD` 與有效時鐘的日差 ≥ retention 天數則移除該日 tmp 目錄。預設 retention **2** 天（`attachment_tmp_retention_days`／`ENGRAM_ATTACHMENT_TMP_RETENTION_DAYS`）。
+
+**Response `200`:** `{ "removed": ["2026-08-07", "2026-08-06"] }`
 
 ---
 
@@ -764,20 +832,21 @@ Same-run order: create new nodes first, then semantic／episodic for those ids. 
 ## Typical session flow
 
 ```
-POST /activities  (one or more; also OK during pending_review)
+POST /attachments/uploads  (optional: upload images for activities)
+POST /activities  (one or more; also OK during pending_review; raw may contain ![[_attachments/uploads/…]] embeds)
      ↓
 POST /dreams/run  → 202
      ↓
 GET  /status  until dream_status=pending_review (or dream_job failed)
      ↓
-GET  /dream/pending  (read report)
+GET  /dreams/pending  (read report)
      ↓
 POST /dreams/approve   OR   POST /dreams/discard   OR   POST /dreams/retry   OR   POST /dreams/amend
      OR   POST /dreams/cancel (while running)
      ↓
 GET  /memories/search?q=…&scope=l1,nodes,chain,future
-GET  /memory/chain  →  GET /memories/chain/{day_id}
-GET  /memory/nodes  →  GET /memories/nodes/{node_id}
+GET  /memories/chain  →  GET /memories/chain/{day_id}
+GET  /memories/nodes  →  GET /memories/nodes/{node_id}
 POST /memories/ask { "q": "…", "include_later": false }  →  GET /memories/ask/{job_id}
 ```
 
@@ -790,13 +859,17 @@ BASE=http://localhost:8787
 
 curl -s "$BASE/status" | jq .
 
-curl -s -X POST "$BASE/capture" \
+curl -s -X POST "$BASE/activities" \
   -H 'content-type: application/json' \
   -d '{"raw":"早兩天確認了需求","source":"api"}' | jq .
 
-curl -s -X POST "$BASE/dream/run" | jq .
+# optional: upload image → capture with embed + attachments[]
+curl -s -X POST "$BASE/attachments/uploads" -F 'file=@menu.png' | jq .
+# then POST /activities with raw containing ![[_attachments/uploads/…]] and matching attachments[]
+
+curl -s -X POST "$BASE/dreams/run" | jq .
 # poll
 curl -s "$BASE/status" | jq '{dream_status,dream_job,dream_pending}'
-curl -s "$BASE/dream/pending" | jq '{present,dream_run_id,scope}'
-curl -s -X POST "$BASE/dream/approve" -H 'content-type: application/json' -d '{}' | jq .
+curl -s "$BASE/dreams/pending" | jq '{present,dream_run_id,scope}'
+curl -s -X POST "$BASE/dreams/approve" -H 'content-type: application/json' -d '{}' | jq .
 ```

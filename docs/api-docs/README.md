@@ -18,6 +18,8 @@ curl -s http://localhost:8787/status
 curl -s -X POST http://localhost:8787/activities \
   -H 'content-type: application/json' \
   -d '{"raw":"今天和同事討論了…","source":"api"}'
+# optional (0.29+): upload image, then capture with embed + attachments[]
+curl -s -X POST http://localhost:8787/attachments/uploads -F 'file=@photo.png'
 curl -s -X POST http://localhost:8787/dreams/run
 # poll /status until dream_status=pending_review
 curl -s http://localhost:8787/dreams/pending
@@ -51,6 +53,10 @@ See [`web/README.md`](../../web/README.md).
 | `CODEX_BIN` | `codex` | Codex CLI binary when `ENGRAM_AGENT=codex` |
 | `ENGRAM_AGENT` | `claude` | `claude` \| `cursor` \| `codex` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
 | `ENGRAM_ALLOW_VIRTUAL_CLOCK` | (off) | `1` = allow `PUT /clock` (time replay) |
+| `ENGRAM_ATTACHMENT_MAX_BYTES` | `10485760` (10 MiB) | Max upload size per image (0.29+) |
+| `ENGRAM_ATTACHMENT_TMP_RETENTION_DAYS` | `2` | Tmp upload retention days (0.29+) |
+
+Workspace yaml keys: `attachment_max_bytes`, `attachment_tmp_retention_days`, `attachment_housekeep_cron`, etc. — see [configurations.md](../configurations.md).
 
 ## Base URL
 
@@ -66,16 +72,21 @@ No authentication in the prototype. Timestamps use effective timezone (workspace
 |--------|------|---------|
 | `GET` | `/` | Service discovery |
 | `GET` | `/status` | Lock, short-term empty (`l1_empty`), dream status, pending summary |
-| `POST` | `/activities` | Append L0 event + update short-term pool |
+| `POST` | `/activities` | Append L0 event + update short-term pool（0.29+ 可選 `attachments[]`） |
+| `POST` | `/attachments/uploads` | Upload image to tmp (`file` multipart; 201) |
+| `GET` | `/attachments/file` | Serve attachment for preview (`?path=`) |
+| `DELETE` | `/attachments/uploads/tmp` | Delete tmp upload (`?day=&filename=`; idempotent) |
+| `POST` | `/attachments/housekeep` | Clean expired tmp upload dirs |
 | `POST` | `/dreams/run` | Extract→draft→pending（async 202）；空 pool 且有 closed higher catch-up → **rollup-only** 202；空且無事可做 → **409** `nothing_to_dream`；已有 pending → **409** `pending_review` |
 | `GET` | `/dreams/pending` | Active pending report + patches (`present: false` if none) |
 | `POST` | `/dreams/approve` | `commitDraft` → L2, clear scope S |
 | `POST` | `/dreams/discard` | Drop pending + draft; short-term／L2 unchanged |
 | `POST` | `/dreams/retry` | Discard pending → re-extract same scope with reason (async 202) |
+| `POST` | `/dreams/amend` | Same `dream_run_id` minimal draft edit (async 202) |
 | `POST` | `/dreams/cancel` | Cancel running dream (kill agent + revert draft) |
 | `GET` | `/memories/future-sight` | Active near-horizon anchors (sweeps expired first) |
 | `GET` | `/memories/short-term-memory` | Short-term preview for Activities |
-| `GET` | `/memories/search` | Keyword search (`q` required; optional `scope=l1,nodes,chain`) |
+| `GET` | `/memories/search` | Keyword search (`q` required; optional `scope=l1,nodes,chain,future`) |
 | `GET` | `/memories/chain` | Day chain index (browse) |
 | `GET` | `/memories/chain/{day_id}` | Day chain detail |
 | `GET` | `/memories/nodes` | L2 node index (browse) |

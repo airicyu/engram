@@ -1,5 +1,13 @@
 # Engram workbench workflows
 
+## Capture with attachments (0.29+)
+
+1. `POST /attachments/uploads` — multipart `file` → `201` `{ path, day, filename }` (tmp)
+2. Build `raw` with exact `![[{path}]]` embed at cursor position (no `|alias`)
+3. `POST /activities` — `{ raw, attachments: [{ path, relationship }] }` (relationship required)
+4. Server moves tmp→formal, appends `## Attachment relationships` appendix to stored `raw`
+5. Compose cancel before submit: `DELETE /attachments/uploads/tmp?day=&filename=` (idempotent)
+
 ## Capture → Extract → Approve → Memory
 
 1. `GET /status` — confirm server up

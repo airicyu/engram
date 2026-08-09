@@ -1,9 +1,9 @@
 # Backlog — Activity 附圖（image／media）
 
-← [backlog INDEX](./INDEX.md) · **已排程：** [0.29.0](../0.29.0/INDEX.md)（planned；本版獨立只做附圖）
+← [backlog INDEX](./INDEX.md) · **已出貨：** [0.29.0](../0.29.0/INDEX.md)（shipped）
 
 > **產品真相以 [0.29.0 INDEX](../0.29.0/INDEX.md) 與 [capture-and-appendix](../0.29.0/docs/capture-and-appendix.md) 為準。**  
-> 本檔保留討論史料；出貨後自 backlog INDEX **刪除**本條（見 GUIDELINES）。
+> 本檔保留討論史料。
 
 ## 題目
 

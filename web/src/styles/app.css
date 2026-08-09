@@ -372,6 +372,120 @@ body {
   color: var(--dreaming);
 }
 
+.form-hint.error {
+  color: var(--bad);
+}
+
+/* Activities textarea wrapper (drag/drop zone) */
+.activities-textarea-wrapper {
+  position: relative;
+}
+
+.activities-textarea-wrapper.drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  font-size: 1rem;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+/* Media attachments section */
+.attachments-section {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.attachments-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.attachments-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.attachment-add-btn {
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.1rem 0.5rem;
+}
+
+/* Individual attachment item */
+.attachment-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.attachment-item:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.attachment-preview {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+}
+
+.attachment-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.attachment-path {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.3rem;
+  word-break: break-all;
+}
+
+.attachment-relationship {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.8rem;
+  resize: vertical;
+  min-height: 2.2em;
+}
+
+.attachment-remove-btn {
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.4rem;
+  color: var(--bad);
+}
+
 .form-msg {
   min-height: 1.4em;
   margin: 0.65rem 0 0;

@@ -11,6 +11,10 @@ Usage: engram-api.sh <command> [args]
 Commands:
   status              GET /status
   capture <text> [src] POST /activities (source defaults to claude-skill)
+  attachment-upload <file> POST /attachments/uploads (multipart file)
+  attachment-delete-tmp <day> <filename> DELETE /attachments/uploads/tmp
+  attachment-file <path> [out] GET /attachments/file (default out: basename of path)
+  attachment-housekeep POST /attachments/housekeep
   dream               POST /dreams/run (extract → pending)
   dream-retry <reason> POST /dreams/retry (discard + same scope + reason)
   dream-amend <instruction> POST /dreams/amend (same run_id + instruction)
@@ -43,6 +47,26 @@ case "$cmd" in
     source="${2:-claude-skill}"
     python3 -c 'import json,sys; print(json.dumps({"raw":sys.argv[1],"source":sys.argv[2]}))' "$text" "$source" \
       | curl -sS -X POST "$BASE/activities" -H 'content-type: application/json' -d @-
+    ;;
+  attachment-upload)
+    file="${1:?usage: engram-api.sh attachment-upload <file>}"
+    curl -sS -X POST "$BASE/attachments/uploads" -F "file=@${file}"
+    ;;
+  attachment-delete-tmp)
+    day="${1:?usage: engram-api.sh attachment-delete-tmp <day> <filename>}"
+    filename="${2:?usage: engram-api.sh attachment-delete-tmp <day> <filename>}"
+    enc_day=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$day")
+    enc_file=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$filename")
+    curl -sS -X DELETE "$BASE/attachments/uploads/tmp?day=$enc_day&filename=$enc_file"
+    ;;
+  attachment-file)
+    path="${1:?usage: engram-api.sh attachment-file <path> [outfile]}"
+    out="${2:-$(basename "$path")}"
+    enc_path=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$path")
+    curl -sS "$BASE/attachments/file?path=$enc_path" -o "$out"
+    ;;
+  attachment-housekeep)
+    curl -sS -X POST "$BASE/attachments/housekeep"
     ;;
   dream)
     curl -sS -X POST "$BASE/dreams/run"

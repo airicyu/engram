@@ -66,6 +66,45 @@ Engram machine writes **must** use path + display form (display name = node id u
 - Do **not** invent wikilinks for one-off passers-by you are not creating as nodes.
 - Do **not** link to `node.meta.yaml`／`score.yaml`／`what.md`／`INDEX.md`.
 
+### Media attachments (`![[_attachments/uploads/…]]`)
+
+Events may contain **media attachments** (images). When present, the event `raw` includes an **`## Attachment relationships`** appendix section at the end, after a `------` separator. Each attachment entry has:
+
+- `**name:** ![[_attachments/uploads/{day}/{filename}]]` — the exact embed path
+- `**relationship:**` — a short human-written description of how the image relates to the memory
+
+**How to handle attachments:**
+
+1. **Read the relationship text** to understand what each image is about. **Do not** assume you can see image pixels — you are working with text-only descriptions.
+2. **When writing into chain (day/week/month/year summaries)**: you **may** include the exact `![[_attachments/uploads/…]]` embeds inline if they are relevant to the narrative. Treat them like any other markdown embed — they are clickable in Obsidian when the vault is opened at `memories/`.
+3. **Higher-level rollups (week/month/year)**: you **may omit** attachments — they are optional at higher granularity. Do not force-embed every attachment from every day.
+4. **Never invent** attachment paths that don't exist in the source events. Only use exact paths from the event `raw`.
+5. **Do not** write `![[path|alias]]` variants — use the exact path as it appears in the source.
+
+The appendix structure looks like:
+
+```markdown
+------
+
+## Attachment relationships
+
+### 1
+
+**name:** ![[_attachments/uploads/2026-08-09/menu.png]]
+
+**relationship:**
+
+Lunch menu showing the daily specials
+
+### 2
+
+**name:** ![[_attachments/uploads/2026-08-09/whiteboard.jpg]]
+
+**relationship:**
+
+Whiteboard sketch of the architecture discussion
+```
+
 ## Rules
 
 1. **Do not** edit live `{{STORE_DIR}}/memories/**` directly. Only edit under `{{DRAFT_DIR}}/memories/**`.

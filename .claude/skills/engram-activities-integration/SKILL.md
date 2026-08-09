@@ -40,6 +40,7 @@ Prototype has **no auth**. Integrations assume a trusted network (localhost or p
 | `source` | no | Stable integrator id (e.g. `github`, `my-cron`, `journal-app`). Default server: `api`. |
 | `node_refs` | no | `string[]` only — never a single string. |
 | `idempotency_key` | no | Stored on the event for audit; **no server-side dedup yet** — integrator must handle retries. |
+| `attachments` | no | `{ path: string, relationship: string }[]` (0.29+). Upload files first via `POST /attachments/uploads` (multipart `file`), then reference the returned `path` in `raw` as `![[path]]` and list in `attachments[]`. |
 
 **Success:** `201` → `{ "event_id": "e0000000001" }`
 
@@ -47,7 +48,7 @@ Prototype has **no auth**. Integrations assume a trusted network (localhost or p
 
 | Status | Meaning | Integrator action |
 |--------|---------|-------------------|
-| `400` | Missing `raw` or bad `node_refs` | Fix payload |
+| `400` | Missing `raw`, bad `node_refs`, or attachment validation error | Fix payload |
 | `409` `dream_locked` | Extract／commit in progress | Retry with backoff (see below) |
 | Connection refused | Server down | Queue or fail loudly |
 

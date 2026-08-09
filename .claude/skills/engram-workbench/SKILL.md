@@ -33,6 +33,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | Do | Don't |
 |----|-------|
 | `curl` / `engram-api.sh` against `ENGRAM_URL` | Edit `data/**`, `memories/nodes/**`, `dream/**` |
+| `POST /attachments/uploads` to upload images | Hand-place files under `_attachments/` |
 | `POST /activities` to capture | Append to `events.jsonl` by hand |
 | `POST /dreams/run` → pending → `approve`／`discard`／`retry`／`amend`／`cancel` | Hand-edit short-term／L2／draft during review |
 | `GET /memories/short-term-memory` / `GET /memories/search` / `POST /memories/ask` | Assemble context by reading markdown files |
@@ -70,6 +71,10 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | Endpoint | Required field | Returns |
 |----------|---------------|---------|
 | `POST /activities` | `raw` (not `content`／`text`) | `event_id` |
+| `POST /attachments/uploads` | multipart `file` (image/png, jpeg, webp, gif) | `201` + `{ path, day, filename }` |
+| `GET /attachments/file` | query `path` | `200` image bytes |
+| `DELETE /attachments/uploads/tmp` | query `day` + `filename` | `200` idempotent |
+| `POST /attachments/housekeep` | none | `200` + `{ removed: string[] }` |
 | `POST /dreams/run` | none | `202` + `job_id` — poll `/status`；pending 時 `409 pending_review` |
 | `POST /dreams/retry` | `{ reason }` required | `202` + `job_id` — same scope + review feedback |
 | `POST /dreams/amend` | `{ instruction }` required | `202` + `job_id`（＝pending id）— same draft；失敗仍可審 |
@@ -92,6 +97,8 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 ```bash
 ./.claude/skills/engram-workbench/scripts/engram-api.sh status
 ./.claude/skills/engram-workbench/scripts/engram-api.sh capture '今天討論了 API 設計'
+./.claude/skills/engram-workbench/scripts/engram-api.sh attachment-upload ./photo.png
+./.claude/skills/engram-workbench/scripts/engram-api.sh attachment-housekeep
 ./.claude/skills/engram-workbench/scripts/engram-api.sh dream
 ./.claude/skills/engram-workbench/scripts/engram-api.sh pending
 ./.claude/skills/engram-workbench/scripts/engram-api.sh approve
@@ -109,6 +116,9 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | User intent | Action |
 |-------------|--------|
 | "記一下…" | `POST /activities` |
+| "記一下…（附圖）" | `POST /attachments/uploads` → 取得 `path` → `POST /activities`（含 `attachments[]`） |
+| "刪 compose 暫存圖" | `DELETE /attachments/uploads/tmp?day=&filename=` |
+| "清 tmp 上傳" | `POST /attachments/housekeep` |
 | "整理記憶"／extract | `POST /dreams/run`；poll 至 `pending_review` |
 | "看看夢報告" | `GET /dreams/pending` |
 | "批准"／寫入長期 | `POST /dreams/approve` |
@@ -117,7 +127,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "問記憶庫" | `POST /memories/ask`（可選 `include_later`）；poll job |
 | "近期前瞻／未來視" | `GET /memories/future-sight`（過期清掉；discard 不回滾入夢前維護 commit）；Seek Search／Ask 亦可讀 |
 | "丟掉這次夢" | `POST /dreams/discard` |
-| "重試／改方向" | `POST /dreams/retry` + `{ reason }` — **不要**手改檔案；**不要**無理由再 `dream/run` |
+| "重試／改方向" | `POST /dreams/retry` + `{ reason }` — **不要**手改檔案；**不要**無理由再 `dreams/run` |
 | "同稿小修／amend" | `POST /dreams/amend` + `{ instruction }` — 同一 `dream_run_id`；失敗仍 pending |
 | pending 期間還要記 | 直接 capture（允許） |
 | `l1_clear_pending` | 再 `approve`（只清 S） |

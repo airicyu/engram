@@ -1315,7 +1315,271 @@ Unique later keyword xylophone-launch window for search.
       assert(poolTail.includes(id), `pool has ${id}`);
     }
 
-    console.log("\n✅ All self-checks passed (through 0.28)");
+    console.log("\nPhase 9b: attachments (0.29)");
+
+    // Upload a test image
+    const pngBytes = new Uint8Array([
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+      0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
+      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+      0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41,
+      0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
+      0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0xFD, 0x33,
+      0x1F, 0xCA, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
+      0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+    ]);
+
+    const formData = new FormData();
+    const blob = new Blob([pngBytes], { type: "image/png" });
+    formData.set("file", blob, "test-menu.png");
+
+    const uploadRes = await fetch(`${BASE}/attachments/uploads`, {
+      method: "POST",
+      body: formData,
+    });
+    assert(uploadRes.status === 201, `upload 201 got ${uploadRes.status}`);
+    const uploadData = await uploadRes.json() as { path: string; day: string; filename: string };
+    assert(typeof uploadData.path === "string" && uploadData.path.startsWith("_attachments/uploads/"), "upload path");
+    assert(!uploadData.path.includes("/tmp"), "upload path never /tmp");
+    assert(typeof uploadData.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(uploadData.day), "upload day");
+    assert(typeof uploadData.filename === "string" && uploadData.filename.length > 0, "upload filename");
+
+    // Verify tmp file exists on disk
+    const tmpPath = join(TEST_HOME, "memories", "_attachments", "uploads", "tmp", uploadData.day, uploadData.filename);
+    assert(await Bun.file(tmpPath).exists(), "tmp file exists on disk");
+
+    // Verify .gitignore has tmp entry
+    const gi2 = await readFile(join(TEST_HOME, ".gitignore"), "utf8");
+    assert(gi2.includes("memories/_attachments/uploads/tmp/"), ".gitignore has attachments tmp");
+
+    // Upload with invalid MIME (JSON)
+    const badForm = new FormData();
+    const jsonBlob = new Blob([JSON.stringify({ x: 1 })], { type: "application/json" });
+    badForm.set("file", jsonBlob, "test.json");
+    const badMime = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: badForm });
+    assert(badMime.status === 400, `invalid mime 400 got ${badMime.status}`);
+    const badMimeData = await badMime.json() as { error: string };
+    assert(badMimeData.error === "invalid_mime", "invalid mime error");
+
+    // Upload without file field
+    const noFile = await fetch(`${BASE}/attachments/uploads`, {
+      method: "POST",
+      body: (() => { const f = new FormData(); f.set("other", "value"); return f; })(),
+    });
+    assert(noFile.status === 400, `missing file 400 got ${noFile.status}`);
+
+    // Upload > lock check: upload should be accepted while no lock
+    const uploadBeforeLock = await fetch(`${BASE}/attachments/uploads`, {
+      method: "POST",
+      body: (() => { const f = new FormData(); f.set("file", blob, "menu2.png"); return f; })(),
+    });
+    assert(uploadBeforeLock.status === 201, "upload while not locked");
+
+    // DELETE tmp file (idempotent)
+    const delRes = await fetch(
+      `${BASE}/attachments/uploads/tmp?day=${uploadData.day}&filename=${uploadData.filename}`,
+      { method: "DELETE" },
+    );
+    assert(delRes.status === 200, `delete tmp 200 got ${delRes.status}`);
+    const delData = await delRes.json() as { deleted: boolean };
+    assert(delData.deleted === true, "delete tmp ok");
+
+    // DELETE missing file (idempotent 200)
+    const delMissing = await fetch(
+      `${BASE}/attachments/uploads/tmp?day=${uploadData.day}&filename=nonexistent.png`,
+      { method: "DELETE" },
+    );
+    assert(delMissing.status === 200, "delete missing 200");
+
+    // DELETE with bad params
+    const delBad = await fetch(`${BASE}/attachments/uploads/tmp?day=bad`, { method: "DELETE" });
+    assert(delBad.status === 400, "delete missing params 400");
+
+    // Re-upload for activities test
+    const formData2 = new FormData();
+    formData2.set("file", blob, "menu.png");
+    const upload2 = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: formData2 });
+    assert(upload2.status === 201, "re-upload 201");
+    const up2 = await upload2.json() as { path: string; day: string; filename: string };
+
+    // Activities with attachment: symmetric success
+    const rawWithEmbed = `Had lunch today\n\n![[${up2.path}]]\n`;
+    const actWithAtt = await json("POST", "/activities", {
+      raw: rawWithEmbed,
+      attachments: [{ path: up2.path, relationship: "Lunch menu photo" }],
+    });
+    assert(actWithAtt.status === 201, `activity with attachment 201 got ${actWithAtt.status} ${JSON.stringify(actWithAtt.data)}`);
+
+    // Verify event has attachments + appendix in raw
+    const eventsWithAtt = await readFile(join(TEST_HOME, "memories/activities/events.jsonl"), "utf8");
+    const lastEvent = JSON.parse(eventsWithAtt.trim().split("\n").pop()!) as Record<string, unknown>;
+    assert(Array.isArray(lastEvent.attachments), "event has attachments array");
+    assert((lastEvent.attachments as unknown[]).length === 1, "event has 1 attachment");
+    assert(typeof lastEvent.raw === "string" && lastEvent.raw.includes("## Attachment relationships"), "event raw has appendix");
+    assert(lastEvent.raw.includes("**name:** ![[") && lastEvent.raw.includes("**relationship:**"), "appendix has name/relationship");
+    assert(lastEvent.raw.includes("Lunch menu photo"), "appendix has relationship text");
+
+    // Verify formal file exists (moved from tmp)
+    const formalPath = join(TEST_HOME, "memories", "_attachments", "uploads", up2.day, up2.filename);
+    assert(await Bun.file(formalPath).exists(), "formal file exists after submit");
+
+    // Verify tmp file is gone
+    const tmpGone = await Bun.file(join(TEST_HOME, "memories", "_attachments", "uploads", "tmp", up2.day, up2.filename)).exists();
+    assert(!tmpGone, "tmp file gone after submit");
+
+    // STM should have the appendix
+    const poolAtt = await readFile(join(TEST_HOME, "memories/short-term-memory/pool.jsonl"), "utf8");
+    assert(poolAtt.includes("## Attachment relationships"), "STM pool has appendix");
+
+    // Activities: embed without attachment list (upload a fresh file)
+    const upEmbedForm = new FormData();
+    upEmbedForm.set("file", blob, "embed-only.png");
+    const uploadEmbed = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: upEmbedForm });
+    const upEmbed = await uploadEmbed.json() as { path: string; day: string; filename: string };
+    const actEmbedOnly = await json("POST", "/activities", {
+      raw: `Test\n\n![[${upEmbed.path}]]\n`,
+    });
+    assert(actEmbedOnly.status === 400, "embed_without_attachment 400");
+    assert(actEmbedOnly.data.error === "embed_without_attachment", "embed without attachment error");
+
+    // Activities: attachment not in embeds (upload a fresh file, not submitted first)
+    const upMismatchForm = new FormData();
+    upMismatchForm.set("file", blob, "mismatch.png");
+    const uploadMismatch = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: upMismatchForm });
+    const upMismatch = await uploadMismatch.json() as { path: string; day: string; filename: string };
+    const actMismatch = await json("POST", "/activities", {
+      raw: "No embed here",
+      attachments: [{ path: upMismatch.path, relationship: "orphan" }],
+    });
+    assert(actMismatch.status === 400, "attachment_not_in_embeds 400");
+    assert(actMismatch.data.error === "attachment_not_in_embeds", "attachment not in embeds error");
+
+    // Activities: empty relationship (upload a fresh file)
+    const upEmptyRelForm = new FormData();
+    upEmptyRelForm.set("file", blob, "empty-rel.png");
+    const uploadEmptyRel = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: upEmptyRelForm });
+    const upEmptyRel = await uploadEmptyRel.json() as { path: string; day: string; filename: string };
+    const actEmptyRel = await json("POST", "/activities", {
+      raw: `Test\n\n![[${upEmptyRel.path}]]\n`,
+      attachments: [{ path: upEmptyRel.path, relationship: "  " }],
+    });
+    assert(actEmptyRel.status === 400, "empty_relationship 400");
+    assert(actEmptyRel.data.error === "empty_relationship", "empty relationship error");
+
+    // Activities: duplicate path (upload a fresh file)
+    const upDupForm = new FormData();
+    upDupForm.set("file", blob, "duplicate.png");
+    const uploadDup = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: upDupForm });
+    const upDup = await uploadDup.json() as { path: string; day: string; filename: string };
+    const actDup = await json("POST", "/activities", {
+      raw: `Test\n\n![[${upDup.path}]]\n`,
+      attachments: [
+        { path: upDup.path, relationship: "a" },
+        { path: upDup.path, relationship: "b" },
+      ],
+    });
+    assert(actDup.status === 400, "duplicate_attachment_path 400");
+    assert(actDup.data.error === "duplicate_attachment_path", "duplicate path error");
+
+    // Activities: double appendix (upload a fresh file)
+    const upDoubleAppForm = new FormData();
+    upDoubleAppForm.set("file", blob, "double-appendix.png");
+    const uploadDoubleApp = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: upDoubleAppForm });
+    const upDoubleApp = await uploadDoubleApp.json() as { path: string; day: string; filename: string };
+    const actDoubleApp = await json("POST", "/activities", {
+      raw: `Test\n\n## Attachment relationships\n\nSome content\n\n![[${upDoubleApp.path}]]\n`,
+      attachments: [{ path: upDoubleApp.path, relationship: "test" }],
+    });
+    assert(actDoubleApp.status === 400, "double_appendix 400");
+    assert(actDoubleApp.data.error === "double_appendix", "double appendix error");
+
+    // Activities: invalid path (path traversal)
+    const actBadPath = await json("POST", "/activities", {
+      raw: "Test\n\n![[_attachments/uploads/2020-01-01/../../etc/passwd]]\n",
+      attachments: [{ path: "_attachments/uploads/2020-01-01/../../etc/passwd", relationship: "test" }],
+    });
+    assert(actBadPath.status === 400, "invalid_attachment_path 400");
+
+    // Activities: |alias variant → 400 (non_exact_attachment_wikilink)
+    // With attachments list
+    const upAliasForm = new FormData();
+    upAliasForm.set("file", blob, "alias-test.png");
+    const uploadAlias = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: upAliasForm });
+    const upAlias = await uploadAlias.json() as { path: string; day: string; filename: string };
+    const actAlias = await json("POST", "/activities", {
+      raw: `Test\n\n![[${upAlias.path}|nice pic]]\n`,
+      attachments: [{ path: upAlias.path, relationship: "alias test" }],
+    });
+    assert(actAlias.status === 400, `|alias with attachments → 400 got ${actAlias.status}`);
+    assert(actAlias.data.error === "non_exact_attachment_wikilink", "non_exact_attachment_wikilink error");
+
+    // |alias without attachments list → 400
+    const actAliasNoAtt = await json("POST", "/activities", {
+      raw: `Test\n\n![[${upAlias.path}|nice pic]]\n`,
+    });
+    assert(actAliasNoAtt.status === 400, `|alias without attachments → 400 got ${actAliasNoAtt.status}`);
+    assert(actAliasNoAtt.data.error === "non_exact_attachment_wikilink", "alias no-att error");
+
+    // Clean up alias tmp
+    await fetch(`${BASE}/attachments/uploads/tmp?day=${upAlias.day}&filename=${upAlias.filename}`, { method: "DELETE" });
+
+    // HEIC rejection
+    const heicForm = new FormData();
+    const heicBlob = new Blob([new Uint8Array(8)], { type: "image/heic" });
+    heicForm.set("file", heicBlob, "photo.heic");
+    const heicRes = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: heicForm });
+    assert(heicRes.status === 400, `HEIC upload → 400 got ${heicRes.status}`);
+    const heicData = await heicRes.json() as { error: string };
+    assert(heicData.error === "invalid_mime", "HEIC invalid_mime");
+
+    // file_too_large (exceeds max_bytes)
+    const tooBigForm = new FormData();
+    const bigBytes = new Uint8Array(11 * 1024 * 1024); // 11 MiB > default 10 MiB
+    const bigBlob = new Blob([bigBytes], { type: "image/png" });
+    tooBigForm.set("file", bigBlob, "big.png");
+    const bigRes = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: tooBigForm });
+    assert(bigRes.status === 400, `file_too_large → 400 got ${bigRes.status}`);
+    const bigData = await bigRes.json() as { error: string };
+    assert(bigData.error === "file_too_large", "file_too_large error");
+
+    // Upload during lock → 409
+    const lockPath = join(TEST_HOME, "dreams", "dream.lock");
+    await Bun.write(lockPath, JSON.stringify({
+      holder: "test-lock",
+      token: "tok-test",
+      acquired_at: new Date().toISOString(),
+    }));
+    const lockedUpload = await fetch(`${BASE}/attachments/uploads`, {
+      method: "POST",
+      body: (() => { const f = new FormData(); f.set("file", blob, "locked.png"); return f; })(),
+    });
+    assert(lockedUpload.status === 409, `upload during lock → 409 got ${lockedUpload.status}`);
+    const lockedData = await lockedUpload.json() as { error: string };
+    assert(lockedData.error === "dream_locked", "dream_locked error");
+    await rm(lockPath);
+
+    // Housekeep: create expired tmp dir and verify it's cleaned
+    const oldDay = "2020-01-01"; // ~6 years ago > 2 day retention
+    const oldTmpDir = join(TEST_HOME, "memories", "_attachments", "uploads", "tmp", oldDay);
+    await mkdir(oldTmpDir, { recursive: true });
+    await Bun.write(join(oldTmpDir, "old-file.png"), new Uint8Array(4));
+    const hk = await json("POST", "/attachments/housekeep");
+    assert(hk.status === 200, "housekeep 200");
+    assert(Array.isArray(hk.data.removed), "housekeep has removed array");
+    assert(hk.data.removed.includes(oldDay), `housekeep removed expired ${oldDay}: ${JSON.stringify(hk.data.removed)}`);
+    const oldDirGone = await access(oldTmpDir).then(() => false).catch(() => true);
+    assert(oldDirGone, "expired tmp dir removed by housekeep");
+
+    // Clean up leftover tmp files from error tests
+    for (const up of [upEmbed, upMismatch, upEmptyRel, upDup, upDoubleApp]) {
+      await fetch(
+        `${BASE}/attachments/uploads/tmp?day=${up.day}&filename=${up.filename}`,
+        { method: "DELETE" },
+      ).catch(() => {});
+    }
+
+    console.log("\n✅ All self-checks passed (through 0.29)");
   } finally {
     await stopServer(server);
   }

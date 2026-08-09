@@ -6,6 +6,7 @@ import { config } from "./config";
 import { ensureEngramHome } from "./store/home";
 import { assertStoreStructureOrExit } from "./store/store-structure";
 import { handleActivities } from "./api/activities";
+import { handleUpload, handleDeleteTmp, handleHousekeep, handleGetFile } from "./api/attachments";
 import { handleStatus } from "./api/status";
 import { handleClockGet, handleClockPut, handleClockDelete } from "./api/clock";
 import { loadClockFromDisk } from "./store/clock";
@@ -44,6 +45,7 @@ import { handleFutureSight } from "./api/memory/future-sight";
 import { logError, logInfo, logMemory, withRequestLog } from "./log";
 import { killAllTrackedAgentProcesses } from "./store/agent-process";
 import { sweepDreamArtifacts } from "./store/dreams/cleanup";
+import { housekeepTmpUploads } from "./store/memories/attachments";
 import { registerEngramCronJobs } from "./scheduler";
 
 try {
@@ -60,6 +62,10 @@ if (config.dreamCleanupOnStart) {
   await sweepDreamArtifacts();
 }
 
+if (config.attachmentHousekeepOnStart) {
+  await housekeepTmpUploads();
+}
+
 registerEngramCronJobs();
 
 let server: ReturnType<typeof Bun.serve>;
@@ -74,6 +80,10 @@ try {
           name: "engram",
           endpoints: [
             "POST /activities",
+            "POST /attachments/uploads",
+            "GET /attachments/file",
+            "DELETE /attachments/uploads/tmp",
+            "POST /attachments/housekeep",
             "POST /dreams/run",
             "POST /dreams/retry",
             "POST /dreams/amend",
@@ -136,6 +146,7 @@ try {
           source?: string;
           node_refs?: string[];
           idempotency_key?: string;
+          attachments?: { path: string; relationship: string }[];
         };
         const result = await handleActivities(body);
         if (result instanceof Response) return result;
@@ -147,6 +158,22 @@ try {
         });
         return Response.json(result, { status: 201 });
       }),
+    },
+
+    "/attachments/uploads": {
+      POST: withRequestLog(async (req) => handleUpload(req)),
+    },
+
+    "/attachments/file": {
+      GET: withRequestLog(async (req) => handleGetFile(req)),
+    },
+
+    "/attachments/uploads/tmp": {
+      DELETE: withRequestLog(async (req) => handleDeleteTmp(req)),
+    },
+
+    "/attachments/housekeep": {
+      POST: withRequestLog(async () => handleHousekeep()),
     },
 
     "/dreams/run": {

@@ -14,7 +14,7 @@ Canonical spec: [../../../docs/api-docs/api.md](../../../docs/api-docs/api.md)
 .claude/skills/engram-workbench/scripts/engram-api.sh <command> [args]
 ```
 
-Commands: `status` | `capture` | `dream` | `dream-retry` | `dream-amend` | `dream-cancel` | `pending` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `root`
+Commands: `status` | `capture` | `attachment-upload` | `attachment-delete-tmp` | `attachment-file` | `attachment-housekeep` | `dream` | `dream-retry` | `dream-amend` | `dream-cancel` | `pending` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `root`
 
 ## curl catalog
 
@@ -22,20 +22,33 @@ Commands: `status` | `capture` | `dream` | `dream-retry` | `dream-amend` | `drea
 export ENGRAM_URL="${ENGRAM_URL:-http://localhost:8787}"
 
 curl -s "$ENGRAM_URL/status"
-curl -s -X POST "$ENGRAM_URL/capture" \
+curl -s -X POST "$ENGRAM_URL/activities" \
   -H 'content-type: application/json' \
   -d '{"raw":"記得明天開會","source":"claude-skill"}'
-curl -s -X POST "$ENGRAM_URL/dream/run"
+curl -s -X POST "$ENGRAM_URL/attachments/uploads" -F 'file=@photo.png'
+curl -s "$ENGRAM_URL/attachments/file?path=_attachments/uploads/2026-08-09/photo.png" -o photo.png
+curl -s -X DELETE "$ENGRAM_URL/attachments/uploads/tmp?day=2026-08-09&filename=photo.png"
+curl -s -X POST "$ENGRAM_URL/attachments/housekeep"
+curl -s -X POST "$ENGRAM_URL/dreams/run"
 # poll until dream_status=pending_review
-curl -s "$ENGRAM_URL/dream/pending"
-curl -s -X POST "$ENGRAM_URL/dream/approve" -H 'content-type: application/json' -d '{}'
+curl -s "$ENGRAM_URL/dreams/pending"
+curl -s -X POST "$ENGRAM_URL/dreams/approve" -H 'content-type: application/json' -d '{}'
 curl -s "$ENGRAM_URL/memories/short-term-memory"
-curl -s "$ENGRAM_URL/memory/search?q=alice&scope=nodes,chain"
-curl -s -X POST "$ENGRAM_URL/memory/ask" \
+curl -s "$ENGRAM_URL/memories/search?q=alice&scope=nodes,chain"
+curl -s -X POST "$ENGRAM_URL/memories/ask" \
   -H 'content-type: application/json' \
   -d '{"q":"What about Alice?"}'
-curl -s "$ENGRAM_URL/future-sight"
+curl -s "$ENGRAM_URL/memories/future-sight"
 ```
+
+## Attachments (0.29+)
+
+1. `POST /attachments/uploads` — multipart field **`file`** → `201` + `{ path, day, filename }` (lands in tmp).
+2. Build `raw` with exact embed `![[{path}]]` (no `|alias`; path must match response `path`).
+3. `POST /activities` with `{ raw, attachments: [{ path, relationship }] }` — server moves tmp→formal and appends `## Attachment relationships` appendix.
+4. Preview: `GET /attachments/file?path=…`
+5. Compose cancel: `DELETE /attachments/uploads/tmp?day=&filename=` (idempotent).
+6. Manual tmp cleanup: `POST /attachments/housekeep`
 
 ## Response cheat sheet
 
@@ -78,5 +91,7 @@ Always 200. Expire-only maintain（過期 → L0+short-term + 從 `hot.md`／`la
 | Call | Use | Not |
 |------|-----|-----|
 | capture | `raw` | `content`, `text` |
+| capture with images | `raw` + `attachments[]` (`path`, `relationship`) | client-rendered appendix; `![[path\|alias]]` |
+| attachment upload | multipart `file` | `image`, `upload` |
 | memory search | `q`, `scope` | `query`, `search` (as param name) |
 | memory ask | `q`, `include_later` (boolean) | `question`, `query`; string `"true"` for include_later |

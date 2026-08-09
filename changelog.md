@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.29.0 — Activity 附圖（media attachments）(2026-08-10)
+
+Activities 捕捉附圖：tmp 上傳、拖放／貼上、media attachments UI、submit 搬檔＋server 組 appendix、對稱校驗、tmp housekeep、dream prompt 教讀寫 embed。**無** store migrate。
+
+### Added
+
+- `POST /attachments/uploads` — multipart 上傳圖檔至 tmp（`file` 欄位）；MIME 白名單、大小限制、路徑消毒
+- `GET /attachments/file` — 附件預覽（formal／tmp）
+- `DELETE /attachments/uploads/tmp` — 刪除 tmp 暫存檔（冪等）
+- `POST /attachments/housekeep` — 依目錄日期清理 tmp
+- `POST /activities` 擴充：`attachments[]` 陣列、精確對稱校驗、tmp→formal move、server 組 `## Attachment relationships` appendix、失敗搬回 tmp
+- Config：`attachment_max_bytes`（預設 10 MiB）／`attachment_tmp_retention_days`（預設 2）
+- Store：`memories/_attachments/uploads/` 正式目錄＋`tmp/` 暫存目錄；ensure 自動 gitignore tmp
+- Web ActivitiesScene：textarea＋media attachments 拖放／貼上／選檔、游標插入精確 `![[path]]`、relationship 必填、刪項同步
+- i18n：中英附件 UI 字串
+- Dream prompt：附件讀寫教學（appendix schema、精確 embed、選材可取捨、勿 vision）
+
+### Changed
+
+- `Event` 型別：新增可選 `attachments` 欄位
+- `ActivitiesBody`：接受 `attachments[]`
+- `ensureEngramHome`：確保 `_attachments/` 目錄
+- api.md／api-docs README／AGENTS.md／engram-workbench：契約與路徑更新（修正舊 `/capture`、`/dream/*`、`/memory/*` 範例）
+- 根 README：Activities 附圖說明；本版連結改指向 `0.29.0`
+
+### Non-goals
+
+- 無 store migrate（結構 additive，舊庫不需 hop）
+- 無 WYSIWYG、vision pipeline、HEIC、reuse 既有附件、graph、vector
+- 無每則 activity git commit（對齊現行 approve 才 commit）
+
+---
+
 ## 0.28.0 — Node 主檔 `{id}.md`＋結構生長圍護 (2026-08-09)
 
 L2 node 認知主檔從 `understand/what.md` 遷到 **`memories/nodes/{id}/{id}.md`**；Obsidian vault＝**`memories/`**。Dream／amend 以 P1 wikilink 互指；finalize report 加軟校驗 **`## Structure notes`**。**有** store migrate（離線清 pending）＋boot 最低結構 **≥ 0.28**。

@@ -14,10 +14,11 @@ export async function api<T = Record<string, unknown>>(
   path: string,
   options: ApiOptions = {},
 ): Promise<ApiResult<T>> {
+  const isFormData = options.body instanceof FormData;
   const res = await fetch(`/api${path}`, {
     ...options,
     headers: {
-      ...(options.body ? { "content-type": "application/json" } : {}),
+      ...(options.body && !isFormData ? { "content-type": "application/json" } : {}),
       ...options.headers,
     },
   });
@@ -106,13 +107,28 @@ function encoded(id: string): string {
 export const engramApi = {
   activities: {
     create: (
-      body: { raw: string; source?: string; node_refs?: string[] },
+      body: { raw: string; source?: string; node_refs?: string[]; attachments?: { path: string; relationship: string }[] },
       options?: ApiOptions,
     ) => api<{ event_id?: string; error?: string; message?: string }>("/activities", {
       ...options,
       method: "POST",
       body: JSON.stringify(body),
     }),
+  },
+  attachments: {
+    upload: (file: File) => {
+      const formData = new FormData();
+      formData.set("file", file);
+      return api<{ path?: string; day?: string; filename?: string; error?: string; message?: string }>(
+        "/attachments/uploads",
+        { method: "POST", body: formData, headers: {} },
+      );
+    },
+    deleteTmp: (day: string, filename: string) =>
+      api<{ deleted?: boolean; error?: string }>(
+        `/attachments/uploads/tmp?day=${encodeURIComponent(day)}&filename=${encodeURIComponent(filename)}`,
+        { method: "DELETE" },
+      ),
   },
   dreams: {
     run: (options?: ApiOptions) =>

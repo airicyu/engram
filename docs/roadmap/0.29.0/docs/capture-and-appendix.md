@@ -20,7 +20,7 @@ memories/_attachments/uploads/tmp/{YYYY-MM-DD}/{filename} # compose 未 submit
 
 1. **只在 server 定名。** Client 候選名（或 clipboard `{uuid}{ext}`）僅作輸入。
 2. 無衝突（該日 tmp **與** 正式目錄皆無同名）→ 用原名；否則  
-   `{stem}-YYYYMMDD-HHmmss-{rand6}{ext}`，`rand6 = Math.random().toString(36).slice(2, 8)`。
+   `{stem}-YYYYMMDD-HHmmss-{rand6}{ext}`；`YYYYMMDD-HHmmss`＝**有效 timezone**（＋虛擬鐘，同 `nowIso`／`compactStampFromIso`）；`rand6 = Math.random().toString(36).slice(2, 8)`。
 3. 回應 `path` 一律最終形：`_attachments/uploads/{日}/{最終檔名}`（實體可仍在 tmp）。
 4. **消毒：** `day`＝`/^\d{4}-\d{2}-\d{2}$/`；`filename` 單一段，禁 `..`、`/`、`\`、空字串；`attachments[].path` 必須精確 `_attachments/uploads/{day}/{filename}`。
 

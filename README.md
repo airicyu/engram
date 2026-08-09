@@ -9,7 +9,7 @@ Activities → Consolidate → Seek → Memory
    寫入         沉澱／入夢      尋找         翻閱
 ```
 
-**目前版本：** [0.28.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
+**目前版本：** [0.29.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
 
 > **讀文件時：** 這份 README 是給人看的專案說明。給 AI coding agent 的操作邊界與開發脈絡在 [AGENTS.md](./AGENTS.md)（Cursor／Claude Code 會自動讀取），請勿把兩者當成同一份文件。
 
@@ -66,7 +66,7 @@ bun run dev:ui       # UI   http://localhost:8788
 
 | 場景 | 你在做什麼 |
 |------|------------|
-| **Activities** | 寫下此刻要記住的事；下方可預覽短期記憶 |
+| **Activities** | 寫下此刻要記住的事（可拖放／貼上附圖並填 relationship）；下方可預覽短期記憶 |
 | **Consolidate** | 入夢產出報告 → 批准／丟棄／帶理由重試 |
 | **Seek** | 預設 **Ask**（自然語言）；也可切 **Search**（關鍵字） |
 | **Memory** | 沿記憶鏈／節點翻閱已寫入內容 |
@@ -93,7 +93,7 @@ cd server && bun run reset
 | [docs/domain-language.md](./docs/domain-language.md) | 對齊用詞 | 產品領域詞彙 |
 | [AGENTS.md](./AGENTS.md) | **AI agent** | 自動注入的開發脈絡（非產品說明） |
 
-**記憶庫**（你的資料）由環境變數 `ENGRAM_STORE_DIR` 指向；setup 時可選路徑（常見為旁鄰的 `engram-data/`，或 repo 內預設 `data/`）。那是執行期資料，不是原始碼。若用 Obsidian，請開啟庫內的 **`memories/`** 資料夾作為 vault（不要開 store 根；`dreams/` 是暫存審稿區）。
+**記憶庫**（你的資料）由環境變數 `ENGRAM_STORE_DIR` 指向；setup 時可選路徑（常見為旁鄰的 `engram-data/`，或 repo 內預設 `data/`）。那是執行期資料，不是原始碼。若用 Obsidian，請開啟庫內的 **`memories/`** 資料夾作為 vault（不要開 store 根；`dreams/` 是暫存審稿區）。Activity 附圖（0.29+）落在 `memories/_attachments/uploads/`。
 
 ---
 
@@ -101,7 +101,7 @@ cd server && bun run reset
 
 - HTTP 契約：[docs/api-docs/README.md](./docs/api-docs/README.md) · [docs/api-docs/api.md](./docs/api-docs/api.md)
 - 元件說明：[server/README.md](./server/README.md) · [web/README.md](./web/README.md)
-- 本版重點：[docs/roadmap/0.16.0/](./docs/roadmap/0.16.0/) · [changelog.md](./changelog.md)
+- 本版重點：[docs/roadmap/0.29.0/](./docs/roadmap/0.29.0/) · [changelog.md](./changelog.md)
 - 尚未排程：[docs/roadmap/backlog/](./docs/roadmap/backlog/)
 
 **原型現況：** 無帳號／多租戶；部分能力（例如 node merge）尚無正式 API。日常請用 UI 或 HTTP API 操作記憶，不要手改記憶庫裡的檔案。
