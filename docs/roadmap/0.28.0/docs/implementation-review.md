@@ -109,7 +109,7 @@ cd server && bun run test:phases
 - [x] M2 主入口 setup／根 README 註 vault（server／web README 可選）  
 - [x] `bun run test:phases`  
 - [x] L1–L4／M2 餘（whatPath、structure-notes 隔離、self-test 字串、deletes 允 legacy、server／web README）  
-- [ ] **使用者 commit** 0.28（程序）
+- [x] **使用者 commit** 0.28（`860b4a3`）
 
 ---
 
