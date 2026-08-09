@@ -1,9 +1,11 @@
 # Roadmap 寫作指南
 
-← [AGENTS.md](../../AGENTS.md)
+← [AGENTS.md](../../AGENTS.md) · **開發節奏（多 agent／審查／HANDOFF／相間測試）：** [agent-workflow.md](./agent-workflow.md)
 
 本檔規範如何寫 `docs/roadmap/`，讓 **另一個沒有對話紀錄的 agent** 也能正確開工。  
 寫 roadmap 的 agent 與實作的 agent 常常不是同一個；**對話裡談過但沒寫進檔案的內容，對實作 agent 等於不存在。**
+
+**怎麼開新 agent、何時 design-review／implementation-review、HANDOFF、Track 間自測** → 見 [agent-workflow.md](./agent-workflow.md)。本檔專注 **文件自足與 INDEX 結構**。
 
 ---
 
