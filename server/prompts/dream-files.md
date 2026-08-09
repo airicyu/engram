@@ -17,17 +17,17 @@ Timezone: `{{TIMEZONE}}` · Memory language: `{{MEMORY_LANGUAGE}}` · today=`{{T
 
 | Layer | Holds | Does **not** hold |
 |-------|--------|-------------------|
-| **Node `what.md`** | **Standing understanding** — what this person／project／theme **is now** (definition, relation, stable facts, condensed current state) | Day-by-day event diary; a second timeline |
+| **Node `{id}.md`** | **Standing understanding** — what this person／project／theme **is now** (definition, relation, stable facts, condensed current state) | Day-by-day event diary; a second timeline |
 | **Chain** (day ledger／summary, higher rollups) | **What happened** on the timeline | Replacing a node’s identity model |
 | **Future-sight** | Near-horizon anchors | Long-term identity prose |
 
-**Rule:** event detail → **chain** (and future-sight when it is a near-horizon anchor). Only **settled conclusions** that change long-term cognition → **node `what.md`**.
+**Rule:** event detail → **chain** (and future-sight when it is a near-horizon anchor). Only **settled conclusions** that change long-term cognition → **node `{id}.md`**.
 
-Frozen context `l2_current[].understanding` is the live whole-file body of each node’s `what.md`. If it reads like a dated diary or event list, **rewrite** it this round into the standing model below — lift still-valid stable facts into Identity／Relation／Standing facts; leave episode detail to chain (write into this round’s day summary／ledger when applicable; do **not** invent day chain entries just to “move” old diary text).
+Frozen context `l2_current[].understanding` is the live whole-file body of each node’s main file. If it reads like a dated diary or event list, **rewrite** it this round into the standing model below — lift still-valid stable facts into Identity／Relation／Standing facts; leave episode detail to chain (write into this round’s day summary／ledger when applicable; do **not** invent day chain entries just to “move” old diary text).
 
-## Standing understanding skeleton (`nodes/*/understand/what.md`)
+## Standing understanding skeleton (`memories/nodes/{id}/{id}.md`)
 
-Every `what.md` you write or update **must** be a **whole-file rewrite** containing these four `##` headings **in this order and exact spelling** (English titles; body language = `{{MEMORY_LANGUAGE}}`):
+Every node main file you write or update **must** be a **whole-file rewrite** at draft path `{{DRAFT_DIR}}/memories/nodes/{id}/{id}.md` containing these four `##` headings **in this order and exact spelling** (English titles; body language = `{{MEMORY_LANGUAGE}}`):
 
 ```markdown
 ## Identity
@@ -36,7 +36,7 @@ Every `what.md` you write or update **must** be a **whole-file rewrite** contain
 
 ## Relation
 
-（與使用者的關係；不適用則 `_None_`）
+（與使用者或其他 L2 node 的關係；不適用則 `_None_`）
 
 ## Standing facts
 
@@ -49,16 +49,28 @@ Every `what.md` you write or update **must** be a **whole-file rewrite** contain
 
 - **Keep all four headings** even when a section is empty; empty section body = `_None_` alone.
 - **No** `## Current`／`## History`. Whole file = latest understanding.
-- **Forbidden:** using `YYYY-MM-DD：做了什麼` lists (or equivalent day-by-day logs) as the backbone of `what.md` — that belongs in chain.
+- **Forbidden paths:** do **not** write `nodes/*/understand/what.md` or stub `nodes/*/INDEX.md`. Only `{id}/{id}.md`.
+- **Forbidden content shape:** using `YYYY-MM-DD：做了什麼` lists (or equivalent day-by-day logs) as the backbone of the node main file — that belongs in chain.
 - **Update:** rewrite the full four-section file; **do not** append another day’s log to the end of an old diary-shaped file.
-- **Create node:** seed `what.md` with the four-section skeleton from the start (most sections may be `_None_`; Identity should preferably have at least one non-`_None_` definition line). Do not seed a single raw line with no headings.
-- **Kind hints** (same file; unused sections still get `_None_`): `person` → Identity＋Relation usually filled; `project`／`theme`／`org` → Identity＋Standing facts primary, Relation often `_None_`.
+- **Create node:** seed `{id}.md` with the four-section skeleton from the start (most sections may be `_None_`; Identity should preferably have at least one non-`_None_` definition line). Do not seed a single raw line with no headings. Do **not** create stub `INDEX.md`.
+- **Kind hints** (same file; unused sections still get `_None_`): `person` → Identity＋Relation usually filled; `project`／`theme`／`org` → Identity＋Standing facts primary, Relation often `_None_` unless linked to other nodes.
+
+### Wikilinks (Obsidian vault = `memories/`)
+
+Engram machine writes **must** use path + display form (display name = node id unless you have a clearer short label):
+
+`[[nodes/{id}/{id}|{id}]]` — example: `[[nodes/mak/mak|mak]]`
+
+- Relative to the **vault root `memories/`** — **never** prefix with `memories/`.
+- When Relation (or Standing facts) mentions **another L2 node** that already appears in frozen `l2_current`／`existing_nodes`, **or** a node you create this round → leave a clickable wikilink. Plain spoken names alone with **zero** links is not a finished Relation for known nodes.
+- Do **not** invent wikilinks for one-off passers-by you are not creating as nodes.
+- Do **not** link to `node.meta.yaml`／`score.yaml`／`what.md`／`INDEX.md`.
 
 ## Rules
 
 1. **Do not** edit live `{{STORE_DIR}}/memories/**` directly. Only edit under `{{DRAFT_DIR}}/memories/**`.
 2. Prefer **Read** live (or use frozen context) then **Write／Edit** the draft copy under `{{DRAFT_DIR}}`. Do **not** use Bash／shell to rewrite store files. Do **not** paste huge files into chat as the write mechanism.
-3. **file_update**: rewrite whole narrative files (`*.summary.md`, `nodes/*/understand/what.md`, **`memories/future-sight/hot.md`** and **`later.md`** only — never `active/{id}.md`, new node files). Whole file = latest narrative — **no** `## Current` / `## History`. Node `what.md` must follow the standing skeleton above.
+3. **file_update**: rewrite whole narrative files (`*.summary.md`, `nodes/{id}/{id}.md`, **`memories/future-sight/hot.md`** and **`later.md`** only — never `active/{id}.md`, never `understand/what.md`). Whole file = latest narrative — **no** `## Current` / `## History`. Node main files must follow the standing skeleton above.
    - Future-sight: two zone files. Each item is `## {id}` + yaml fence with **only** `anchor_start`／`anchor_end` + short body. Sort near→far (`anchor_start`, then `anchor_end`, then `id`). Do **not** write `node_refs`／`event_refs`／`dream_run_id`／`committed_at` into items.
    - **Must** read live／draft `hot.md`／`later.md` and propose add／update／delete when this round’s events affect near-horizon anchors. Unrelated mentions → leave files alone.
    - Do **not** add anchors with `anchor_start` later than today+`future_sight_window_days` (default 365). Prefer hot vs later by `future_sight_hot_days` (default 30) from today.
@@ -74,13 +86,13 @@ Every `what.md` you write or update **must** be a **whole-file rewrite** contain
        reason: "short note"  # optional
    ```
    - Only list nodes that **already existed before this dream** and were involved this round. **Omit** nodes created in this draft.
-   - Categories (only these three): `mention` (passed over)｜`update` (substantive what.md change)｜`focus` (main subject of this round).
+   - Categories (only these three): `mention` (passed over)｜`update` (substantive `{id}.md` change)｜`focus` (main subject of this round).
    - Do **not** write any numeric score／`max_score`／`need_downscale`. Server computes scores on approve.
    - Empty list is fine: `nodes: []`.
 
 ## Report (`{{REPORT_PATH}}`)
 
-Write markdown with **exactly** these section headings (fill narrative; Scope／Events／Appendix may be stubbed — server rewrites them). You may omit `## Node score involvements` — the server generates it from the artifact:
+Write markdown with **exactly** these section headings (fill narrative; Scope／Events／Appendix may be stubbed — server rewrites them). You may omit `## Node score involvements` — the server generates it from the artifact. You may omit `## Structure notes` — the server injects soft structure warnings on finalize:
 
 ```markdown
 # Dream report — {{DREAM_RUN_ID}}

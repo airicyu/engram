@@ -1,7 +1,7 @@
 /**
  * Self-test for dream approve + future-sight (isolated ENGRAM_STORE_DIR + mock agent).
  */
-import { rm, mkdir, readFile, readdir } from "node:fs/promises";
+import { rm, mkdir, readFile, readdir, access } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 import { checkStoreStructure, structureAtLeast, parseMajorMinor } from "../store/store-structure";
@@ -141,11 +141,8 @@ async function main() {
       ["alice", "A contact person."],
       ["aurora", "Theme placeholder."],
     ] as const) {
-      await mkdir(join(TEST_HOME, `memories/nodes/${id}/understand`), { recursive: true });
-      await Bun.write(
-        join(TEST_HOME, `memories/nodes/${id}/understand/what.md`),
-        `${what}\n`,
-      );
+      await mkdir(join(TEST_HOME, `memories/nodes/${id}`), { recursive: true });
+      await Bun.write(join(TEST_HOME, `memories/nodes/${id}/${id}.md`), `${what}\n`);
       await Bun.write(join(TEST_HOME, `memories/nodes/${id}/node.meta.yaml`), `id: ${id}\nkind: org\n`);
     }
 
@@ -172,9 +169,14 @@ async function main() {
     assert(pending.status === 200 && pending.data.present === true, "pending present");
     assert(pending.data.scope?.length === 2, "scope frozen to 2 events");
     assert(typeof pending.data.report === "string" && pending.data.report.length > 0, "report");
+    assert(
+      typeof pending.data.report === "string" &&
+        pending.data.report.includes("## Structure notes"),
+      "report has Structure notes section",
+    );
 
     const whatBefore = await readFile(
-      join(TEST_HOME, "memories/nodes/acme/understand/what.md"),
+      join(TEST_HOME, "memories/nodes/acme/acme.md"),
       "utf8",
     );
     assert(whatBefore.includes("Partner organization"), "L2 unchanged before approve");
@@ -313,7 +315,7 @@ async function main() {
 
     // Mock proposes newco from "NewCo" ingest; semantic lands on newco
     const whatNewco = await readFile(
-      join(TEST_HOME, "memories/nodes/newco/understand/what.md"),
+      join(TEST_HOME, "memories/nodes/newco/newco.md"),
       "utf8",
     );
     assert(
@@ -328,8 +330,20 @@ async function main() {
         whatNewco.indexOf("## Identity") < whatNewco.indexOf("## Relation") &&
         whatNewco.indexOf("## Relation") < whatNewco.indexOf("## Standing facts") &&
         whatNewco.indexOf("## Standing facts") < whatNewco.indexOf("## Current situation"),
-      "what.md has standing understanding headings in order",
+      "{id}.md has standing understanding headings in order",
     );
+    assert(
+      whatNewco.includes("[[nodes/acme/acme|acme]]"),
+      "Relation includes P1 wikilink to peer node",
+    );
+    const legacyWhat = await access(join(TEST_HOME, "memories/nodes/newco/understand/what.md"))
+      .then(() => true)
+      .catch(() => false);
+    assert(!legacyWhat, "new node has no understand/what.md");
+    const stubIndex = await access(join(TEST_HOME, "memories/nodes/newco/INDEX.md"))
+      .then(() => true)
+      .catch(() => false);
+    assert(!stubIndex, "new node has no stub INDEX.md");
     const daysRoot = join(TEST_HOME, "memories/chain/days");
     const monthDirs = (await readdir(daysRoot, { withFileTypes: true }))
       .filter((e) => e.isDirectory() && /^\d{4}-\d{2}$/.test(e.name))
@@ -370,7 +384,7 @@ async function main() {
     assert(summaryBody.includes("Day summary (mock)") || summaryBody.includes("Day ledger"), "summary content");
     assert(
       !/^##\s*Current\s*$/m.test(whatNewco) && !/^##\s*History\b/m.test(whatNewco),
-      "what.md has no Current/History wrappers",
+      "{id}.md has no Current/History wrappers",
     );
 
     const searchChain = await json("GET", "/memories/search?q=summary");
@@ -404,7 +418,7 @@ async function main() {
     const noQ = await json("GET", "/memories/search");
     assert(noQ.status === 400 && noQ.data.error === "missing_q", "search requires q");
     const whatAcmeStill = await readFile(
-      join(TEST_HOME, "memories/nodes/acme/understand/what.md"),
+      join(TEST_HOME, "memories/nodes/acme/acme.md"),
       "utf8",
     );
     assert(whatAcmeStill === whatBefore, "unrelated L2 acme unchanged");
@@ -451,6 +465,63 @@ async function main() {
     assert(disc.status === 200 && disc.data.discarded === true, "discard ok");
     const stillPool = await readFile(join(TEST_HOME, "memories/short-term-memory/pool.jsonl"), "utf8");
     assert(stillPool.includes("e0000000003"), "discard leaves short-term");
+
+    console.log("Phase 4a: Structure notes soft lint (missing headings) + approve still ok");
+    const iStruct = await json("POST", "/activities", {
+      raw: "Structure-lint fixture event for skewed node",
+      source: "api",
+    });
+    assert(iStruct.status === 201, "structure fixture activity");
+    const dStruct = await json("POST", "/dreams/run");
+    assert(dStruct.status === 202, "structure dream 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.status === "completed" && st2.dream_status === "pending_review",
+    );
+    const pendStruct = await json("GET", "/dreams/pending");
+    assert(pendStruct.data.present === true, "structure pending");
+    const structRunId = pendStruct.data.dream_run_id as string;
+    const skewedDraft = join(
+      TEST_HOME,
+      "dreams/draft",
+      structRunId,
+      "memories/nodes/skewed",
+    );
+    await mkdir(skewedDraft, { recursive: true });
+    await Bun.write(
+      join(skewedDraft, "skewed.md"),
+      ["## Identity", "", "Broken fixture", "", "## Relation", "", "_None_", ""].join("\n"),
+    );
+    const amendStruct = await json("POST", "/dreams/amend", {
+      instruction: "Re-scan draft for structure notes only",
+      dream_run_id: structRunId,
+    });
+    assert(amendStruct.status === 202, "structure amend 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review" &&
+        (job.dream_run_id as string) === structRunId,
+    );
+    const pendStruct2 = await json("GET", "/dreams/pending");
+    const structReport = String(pendStruct2.data.report ?? "");
+    assert(structReport.includes("## Structure notes"), "structure notes section after amend");
+    assert(
+      structReport.includes("missing heading Standing facts") ||
+        structReport.includes("missing heading Current situation"),
+      "structure notes warn missing headings",
+    );
+    const apStruct = await json("POST", "/dreams/approve", {});
+    assert(apStruct.status === 200, `approve with structure warnings → 200 got ${apStruct.status}`);
+    assert(pendStruct2.data.present === true, "was pending before approve");
+    const pendAfterStruct = await json("GET", "/dreams/pending");
+    assert(pendAfterStruct.data.present === false, "no pending after structure approve");
+    // Re-seed short-term so later phases still have an L1 pool (approve cleared scope).
+    const iKeep = await json("POST", "/activities", {
+      raw: "Keep short-term non-empty after structure approve",
+      source: "api",
+    });
+    assert(iKeep.status === 201, "reseed activity after structure approve");
 
     console.log("Phase 4b: memory l1 + ask");
     const l1 = await json("GET", "/memories/short-term-memory");
@@ -1082,10 +1153,14 @@ Unique later keyword xylophone-launch window for search.
     const pendBad = await json("GET", "/dreams/pending");
     assert(pendBad.data.present === false, "no pending after bad involvement");
 
-    // T1: migrate fills missing score.yaml
+    // T1: migrate 0.17→0.19 fills missing score.yaml (legacy what.md layout)
     await mkdir(join(TEST_HOME, "memories/nodes/orphan/understand"), { recursive: true });
     await Bun.write(join(TEST_HOME, "memories/nodes/orphan/understand/what.md"), "orphan\n");
     await Bun.write(join(TEST_HOME, "memories/nodes/orphan/node.meta.yaml"), "id: orphan\nkind: org\n");
+    await Bun.write(
+      join(TEST_HOME, "memories/nodes/orphan/INDEX.md"),
+      "# orphan\n\nSee understand/what.md\n",
+    );
     // stamp workspace as 0.18 for migrate admit
     const wsPath = join(TEST_HOME, "engram.workspace.yaml");
     let wsText = await readFile(wsPath, "utf8");
@@ -1096,27 +1171,100 @@ Unique later keyword xylophone-launch window for search.
       join(ROOT, ".claude/skills/engram-migration/scripts/migrate-0.17-to-0.19.ts"),
       TEST_HOME,
     ]);
-    assert(mig.exitCode === 0, `migrate exit 0: ${mig.stderr.toString()}`);
+    assert(mig.exitCode === 0, `migrate 0.17→0.19 exit 0: ${mig.stderr.toString()}`);
     const orphanScore = await readFile(
       join(TEST_HOME, "memories/nodes/orphan/score.yaml"),
       "utf8",
     );
     assert(orphanScore.includes("score: 100") || orphanScore.includes("score: 100.0"), "orphan S0");
-    const wsAfter = await readFile(wsPath, "utf8");
+    let wsAfter = await readFile(wsPath, "utf8");
     assert(wsAfter.includes("store_version: 0.19.0"), "store_version 0.19.0");
 
+    // T1b: migrate 0.19→0.28 (offline; discards pending; renames what.md → {id}.md)
+    await mkdir(join(TEST_HOME, "dreams/draft/dream-pending-mig/memories"), { recursive: true });
+    await Bun.write(
+      join(TEST_HOME, "dreams/draft/dream-pending-mig/memories/note.md"),
+      "pending draft junk\n",
+    );
+    await mkdir(join(TEST_HOME, "dreams/runs"), { recursive: true });
+    await Bun.write(
+      join(TEST_HOME, "dreams/runs/dream-pending-mig.yaml"),
+      [
+        "id: dream-pending-mig",
+        "status: pending",
+        "scope: []",
+        "created_at: 2026-08-01T00:00:00.000Z",
+        "patch_count: 0",
+        "report_path: dreams/reports/dream-pending-mig.md",
+        "",
+      ].join("\n"),
+    );
+    await Bun.write(
+      join(TEST_HOME, "dreams/dream.lock"),
+      JSON.stringify({
+        holder: "stale-migrate-test",
+        token: "tok-mig",
+        acquired_at: "2020-01-01T00:00:00.000Z",
+      }) + "\n",
+    );
+    const mig28 = Bun.spawnSync([
+      "bun",
+      join(ROOT, ".claude/skills/engram-migration/scripts/migrate-0.19-to-0.28.ts"),
+      TEST_HOME,
+    ]);
+    assert(mig28.exitCode === 0, `migrate 0.19→0.28 exit 0: ${mig28.stderr.toString()}\n${mig28.stdout.toString()}`);
+    assert(
+      mig28.stdout.toString().includes("discarded pending dream(s): dream-pending-mig"),
+      "migrate stdout lists discarded pending",
+    );
+    assert(
+      mig28.stdout.toString().includes("removed dreams/dream.lock") ||
+        !(await access(join(TEST_HOME, "dreams/dream.lock")).then(() => true).catch(() => false)),
+      "migrate cleared dream.lock",
+    );
+    const lockGone = await access(join(TEST_HOME, "dreams/dream.lock"))
+      .then(() => false)
+      .catch(() => true);
+    assert(lockGone, "dream.lock file removed");
+
+    const orphanMain = await readFile(join(TEST_HOME, "memories/nodes/orphan/orphan.md"), "utf8");
+    assert(orphanMain.includes("orphan"), "orphan.md after hop");
+    const legacyOrphan = await access(
+      join(TEST_HOME, "memories/nodes/orphan/understand/what.md"),
+    )
+      .then(() => true)
+      .catch(() => false);
+    assert(!legacyOrphan, "orphan understand/what.md removed");
+    const stubGone = await access(join(TEST_HOME, "memories/nodes/orphan/INDEX.md"))
+      .then(() => true)
+      .catch(() => false);
+    assert(!stubGone, "stub INDEX.md removed");
+    const draftLeft = await readdir(join(TEST_HOME, "dreams/draft")).catch(() => [] as string[]);
+    assert(draftLeft.length === 0, "dreams/draft cleared");
+    const pendingRun = await readFile(
+      join(TEST_HOME, "dreams/runs/dream-pending-mig.yaml"),
+      "utf8",
+    );
+    assert(pendingRun.includes("status: discarded"), "pending run marked discarded");
+    wsAfter = await readFile(wsPath, "utf8");
+    assert(wsAfter.includes("store_version: 0.28.0"), "store_version 0.28.0");
+
     // T11–T13: boot structure gate (pure check; process exit covered by assertStoreStructureOrExit)
-    const tooOld = checkStoreStructure("0.18.2");
-    assert(tooOld.ok === false && tooOld.reason === "too_old", "T11 0.18 too old");
-    assert(tooOld.message.includes("migrate-0.17-to-0.19"), "T11 migrate hint");
+    const tooOld = checkStoreStructure("0.27.0");
+    assert(tooOld.ok === false && tooOld.reason === "too_old", "T11 0.27 too old");
+    assert(tooOld.message.includes("migrate-0.19-to-0.28"), "T11 migrate hint");
+    assert(
+      tooOld.message.includes("need not be running") || tooOld.message.includes("offline"),
+      "T11 hint says offline／no server required",
+    );
     const missing = checkStoreStructure(null);
     assert(missing.ok === false && missing.reason === "missing", "T12 missing store_version");
-    assert(checkStoreStructure("0.19.0").ok === true, "T13 0.19 ok");
-    assert(checkStoreStructure("0.20.1").ok === true, "T13 newer stamp ok");
-    const mm18 = parseMajorMinor("0.18.2");
-    const mm19 = parseMajorMinor("0.19.0");
-    assert(mm18 && mm19 && !structureAtLeast(mm18, mm19), "structureAtLeast 0.18 < 0.19");
-    assert(mm19 && structureAtLeast(mm19, { major: 0, minor: 19 }), "structureAtLeast 0.19 >=");
+    assert(checkStoreStructure("0.28.0").ok === true, "T13 0.28 ok");
+    assert(checkStoreStructure("0.29.1").ok === true, "T13 newer stamp ok");
+    const mm27 = parseMajorMinor("0.27.0");
+    const mm28 = parseMajorMinor("0.28.0");
+    assert(mm27 && mm28 && !structureAtLeast(mm27, mm28), "structureAtLeast 0.27 < 0.28");
+    assert(mm28 && structureAtLeast(mm28, { major: 0, minor: 28 }), "structureAtLeast 0.28 >=");
 
     console.log("\nPhase 9: capture concurrency + node_refs (0.20)");
     const badRefs = await json("POST", "/activities", {
@@ -1167,7 +1315,7 @@ Unique later keyword xylophone-launch window for search.
       assert(poolTail.includes(id), `pool has ${id}`);
     }
 
-    console.log("\n✅ All 0.19＋0.20 self-checks passed");
+    console.log("\n✅ All self-checks passed (through 0.28)");
   } finally {
     await stopServer(server);
   }

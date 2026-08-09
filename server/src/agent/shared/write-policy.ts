@@ -33,13 +33,44 @@ export function isPathInsideRoot(path: string, root: string): boolean {
   return abs.startsWith(prefix);
 }
 
-/** True if path is under any writable root. */
+/**
+ * Legacy node narrative paths as store-relative strings (0.28).
+ * - `memories/nodes/{id}/understand/what.md`
+ * - `memories/nodes/{id}/INDEX.md`／`index.md`
+ */
+export function isForbiddenLegacyNodeRel(rel: string): boolean {
+  const norm = rel.replace(/\\/g, "/").replace(/^\/+/, "").trim();
+  if (/^memories\/nodes\/[^/]+\/understand\/what\.md$/i.test(norm)) return true;
+  if (/^memories\/nodes\/[^/]+\/index\.md$/i.test(norm)) return true;
+  return false;
+}
+
+/**
+ * Legacy node narrative paths (pre-0.28) that must not be written even under draft.
+ * Accepts absolute or store-relative paths.
+ */
+export function isForbiddenLegacyNodePath(path: string): boolean {
+  const asRel = path.replace(/\\/g, "/");
+  if (isForbiddenLegacyNodeRel(asRel)) return true;
+  const norm = resolve(path).replace(/\\/g, "/");
+  if (/\/memories\/nodes\/[^/]+\/understand\/what\.md$/i.test(norm)) return true;
+  if (/\/memories\/nodes\/[^/]+\/index\.md$/i.test(norm)) return true;
+  return false;
+}
+
+/** True if path is under any writable root and not a forbidden legacy node path. */
 export function isWritablePath(policy: WritePolicy, path: string): boolean {
+  if (isForbiddenLegacyNodePath(path)) return false;
   return policy.writableRoots.some((root) => isPathInsideRoot(path, root));
 }
 
 /** Reject writes outside policy (used by mock runners and tests). */
 export function assertWritablePath(policy: WritePolicy, path: string): void {
+  if (isForbiddenLegacyNodePath(path)) {
+    throw new Error(
+      `write_policy_denied: ${resolve(path)} is a forbidden legacy node path (use memories/nodes/{id}/{id}.md)`,
+    );
+  }
   if (!isWritablePath(policy, path)) {
     throw new Error(
       `write_policy_denied: ${resolve(path)} is outside writable roots [${policy.writableRoots.join(", ")}]`,

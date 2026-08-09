@@ -36,7 +36,7 @@ export class MockAskOkRunner implements MemoryAskRunner {
 export class MockAskMaliciousLiveWriteRunner implements MemoryAskRunner {
   async ask(input: AskInput): Promise<AskAnswer> {
     const policy = askWritePolicy(input);
-    const liveWhat = join(liveMemoriesRoot(input.store_dir), "nodes", "acme", "understand", "what.md");
+    const liveWhat = join(liveMemoriesRoot(input.store_dir), "nodes", "acme", "acme.md");
     let denied = false;
     try {
       assertWritablePath(policy, liveWhat);

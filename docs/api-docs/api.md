@@ -6,7 +6,7 @@ All timestamps and calendar dates use the **effective** IANA timezone: `{ENGRAM_
 
 **Memory write language** (`memory_language`): workspace yaml → `ENGRAM_MEMORY_LANGUAGE` → **`en`**. Allowed values only: `zh-Hant`｜`zh-Hans`｜`en`. Controls language of **new** dream／rollup／ask prose (not L0 `raw`, not workbench UI i18n).  
 
-**Store structure version** (`store_version`): semver in the same workspace yaml（例 `0.19.0`）. **Boot gate (0.19+):** after `ensureEngramHome`, disk `store_version` major.minor must be **≥ 0.19**; missing key or older structure → **server refuses to start** with a migrate hint（`.claude/skills/engram-migration/`, hop `migrate-0.17-to-0.19`). Does **not** require `store_version === product_version`（same structure generation may stamp newer product strings）. Escape hatch: `ENGRAM_ALLOW_STALE_STORE=1`（warns, still starts）. Present but not `X.Y.Z` → **server refuses to start**（workspace parse）. Server never auto-rewrites an existing／missing value to the product version on boot（except creating a brand-new workspace file）.
+**Store structure version** (`store_version`): semver in the same workspace yaml（例 `0.28.0`）. **Boot gate (0.28+):** after `ensureEngramHome`, disk `store_version` major.minor must be **≥ 0.28**; missing key or older structure → **server refuses to start** with an **offline** migrate hint（`.claude/skills/engram-migration/`, hop `migrate-0.19-to-0.28` — **server need not be running first**; unapproved pending dreams are discarded）. Does **not** require `store_version === product_version`（same structure generation may stamp newer product strings）. Escape hatch: `ENGRAM_ALLOW_STALE_STORE=1`（warns, still starts）. Present but not `X.Y.Z` → **server refuses to start**（workspace parse）. Server never auto-rewrites an existing／missing value to the product version on boot（except creating a brand-new workspace file）.
 
 
 Invalid workspace yaml／unknown keys／illegal values → **server refuses to start**.
@@ -108,7 +108,7 @@ Snapshot of store health, dream state, and async job status.
     "cleanup_cron_enabled": true,
     "cleanup_on_start": true,
     "staging_retention_days": 3,
-    "committed_report_retention_days": 30,
+    "committed_report_retention_days": 7,
     "cleanup_min_age_days": 1,
     "auto_dream_enabled": false,
     "auto_dream_cron": "30 3 * * *"
@@ -122,7 +122,7 @@ Snapshot of store health, dream state, and async job status.
 | `dream_scheduler` | object | Effective in-process scheduler settings (workspace → env → defaults) |
 | `store_dir` | string | Resolved `ENGRAM_STORE_DIR` path |
 | `store_git` | boolean | `true` when `ENGRAM_STORE_DIR` is a usable local git work tree (0.16+; server refuses to start otherwise) |
-| `store_version` | string \| null | Disk **structure** generation from `engram.workspace.yaml` `store_version`（semver）. **0.19+ boot** requires major.minor **≥ 0.19** or the process exits before listen（unless `ENGRAM_ALLOW_STALE_STORE=1`）. Missing key → start failure（status is only reachable when gate passed, so typically a stamped string） |
+| `store_version` | string \| null | Disk **structure** generation from `engram.workspace.yaml` `store_version`（semver）. **0.28+ boot** requires major.minor **≥ 0.28** or the process exits before listen（unless `ENGRAM_ALLOW_STALE_STORE=1`）. Migrate offline via `migrate-0.19-to-0.28`（server need not be running first）. Missing key → start failure（status is only reachable when gate passed, so typically a stamped string） |
 | `product_version` | string | Engram product version from repo `version.md`（for comparison； mismatch does **not** refuse start） |
 | `temp_dir` | string | Resolved `ENGRAM_TEMP_DIR` (default `/tmp`) — ask jobs + dream agent disposable workdirs |
 | `timezone` | string | Effective IANA zone (workspace yaml → `ENGRAM_TZ` → `Asia/Hong_Kong`) |
@@ -436,6 +436,10 @@ Always **200**. No pending → empty shape (not 404).
 
 **`node_score_involvements`** (0.19+): collapsed list from draft `node-score-involvements.yaml` — `{ id, category, reason? }` with `category` ∈ `mention`｜`update`｜`focus`. Missing／empty artifact → `[]`.
 
+**Report `## Structure notes`** (0.28+): server soft-lint of draft node mains (`memories/nodes/{id}/{id}.md`) — missing standing headings、Relation mentioning a known node without wikilink、broken `[[nodes/…]]`. Empty → `_None_`. Warnings **do not** fail the job or block `POST /dreams/approve`.
+
+Node standing understanding path (0.28+): `memories/nodes/{id}/{id}.md`（API field still `understanding`）. Obsidian vault root＝`{ENGRAM_STORE_DIR}/memories/`.
+
 ---
 
 ## `PATCH /dreams/pending/node-score-involvements`
@@ -473,7 +477,7 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 ```json
 {
   "dream_run_id": "dream-…",
-  "committed": ["memories/nodes/acme/understand/what.md", "memories/future-sight/hot.md"],
+  "committed": ["memories/nodes/acme/acme.md", "memories/future-sight/hot.md"],
   "cleared_scope": ["e0000000001", "e0000000002"],
   "l1_clear_pending": false,
   "empty_patches": false
@@ -567,7 +571,7 @@ Keyword search across short-term memory, memory-chain, L2 nodes, and **future-si
 }
 ```
 
-`nodes[].understanding` = whole `what.md` standing understanding string (same field as node detail).
+`nodes[].understanding` = whole `{id}.md` standing understanding string (same field as node detail).
 
 | Field | Meaning |
 |-------|---------|
@@ -683,7 +687,7 @@ Empty → `{ "nodes": [], "present": false }`.
 
 ## `GET /memories/nodes/{node_id}`
 
-Single node **detail** — **`understanding`** is the **whole-file** body of `memories/nodes/{id}/understand/what.md`（**not** “Current situation section only”).
+Single node **detail** — **`understanding`** is the **whole-file** body of `memories/nodes/{id}/{id}.md`（**not** “Current situation section only”). Obsidian vault root＝`memories/`（開該資料夾，不是 store 根）。
 
 - **0.25+ expectation:** standing understanding with fixed headings in order: `## Identity` → `## Relation` → `## Standing facts` → `## Current situation` (empty sections use `_None_`). Event diaries belong in **chain**, not here.
 - **0.16–0.24:** whole file = latest understanding (no `## Current`／`## History` contract).
@@ -746,7 +750,7 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 | Type | On approve |
 |------|------------|
 | `propose_node` | Create live node under `memories/nodes/{id}/` (seed what／meta) |
-| `semantic` (`facet: what`) | Update `memories/nodes/{id}/understand/what.md` |
+| `semantic` (`facet: what`) | Update `memories/nodes/{id}/{id}.md` |
 | `chain` (`level: day`) | Dual-track: append ledger `memories/chain/days/{YYYY-MM}/{id}.md` **and** init／revise summary `…/{id}.summary.md`. Occurrence day only; future day ids blocked at approve. Legacy without `summary` → ledger only. |
 | `chain` (`level: week`｜`month`｜`year`) | Summary-only rollup from post-extract planner／writer (not day extract). Paths: `weeks/…`、`months/…`、`years/…`. `summary` + `summary_operation` required; no ledger. |
 | `future` | Legacy typed patch helper — upserts into `hot.md`／`later.md` when still in window；主路徑為 file pipeline 整檔改兩區 |

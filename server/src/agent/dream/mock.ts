@@ -26,6 +26,12 @@ import {
   liveMemoriesRoot,
   type DreamWriteRoots,
 } from "../shared/write-policy";
+import {
+  hasStandingHeadings,
+  nodeWikilink,
+  standingUnderstandingMarkdown,
+  understandingRel,
+} from "../../store/memories/nodes";
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -36,45 +42,17 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-/** 0.25 standing understanding skeleton — four fixed English `##` headings. */
+/** @deprecated Prefer {@link standingUnderstandingMarkdown} from store/memories/nodes. */
 export function standingWhatMarkdown(sections: {
   identity: string;
   relation?: string;
   standingFacts?: string;
   currentSituation?: string;
 }): string {
-  const body = (s: string | undefined) => {
-    const t = (s ?? "").trim();
-    return t.length ? t : "_None_";
-  };
-  return [
-    "## Identity",
-    "",
-    body(sections.identity),
-    "",
-    "## Relation",
-    "",
-    body(sections.relation),
-    "",
-    "## Standing facts",
-    "",
-    body(sections.standingFacts),
-    "",
-    "## Current situation",
-    "",
-    body(sections.currentSituation),
-    "",
-  ].join("\n");
+  return standingUnderstandingMarkdown(sections);
 }
 
-/** True when markdown contains the four standing headings in order. */
-export function hasStandingHeadings(md: string): boolean {
-  const i = md.indexOf("## Identity");
-  const r = md.indexOf("## Relation");
-  const s = md.indexOf("## Standing facts");
-  const c = md.indexOf("## Current situation");
-  return i >= 0 && r > i && s > r && c > s;
-}
+export { hasStandingHeadings, standingUnderstandingMarkdown };
 
 /** Write under draft／report only — enforces 0.20 write policy for mocks. */
 async function policyWrite(ctx: DreamWriteRoots, path: string, content: string): Promise<void> {
@@ -101,13 +79,8 @@ export class MockFailRunner implements AgentRunner {
 export class MockMaliciousLiveWriteRunner implements AgentRunner {
   async dream(ctx: DreamContext): Promise<void> {
     const policy = dreamWritePolicy(ctx);
-    const liveWhat = join(
-      liveMemoriesRoot(ctx.store_dir),
-      "nodes",
-      ctx.existing_nodes[0] ?? "acme",
-      "understand",
-      "what.md",
-    );
+    const nodeId = ctx.existing_nodes[0] ?? "acme";
+    const liveWhat = join(liveMemoriesRoot(ctx.store_dir), "nodes", nodeId, `${nodeId}.md`);
     let denied = false;
     try {
       assertWritablePath(policy, liveWhat);
@@ -268,6 +241,20 @@ export class MockOkRunner implements AgentRunner {
           : ""
       }`;
 
+    // Prefer also refreshing a pre-existing primary node (acme if present) when creating.
+    const primaryExisting =
+      ctx.existing_nodes.find((id) => id === "acme") ?? ctx.existing_nodes[0] ?? null;
+
+    /** P1 sample Relation link to another known／this-round node when available. */
+    function sampleRelation(selfId: string, peerHint?: string | null): string {
+      const peer =
+        peerHint && peerHint !== selfId
+          ? peerHint
+          : ctx.existing_nodes.find((id) => id !== selfId) ?? null;
+      if (!peer) return "_None_";
+      return `Related to ${nodeWikilink(peer)}.`;
+    }
+
     if (creatingId) {
       const metaRel = `memories/nodes/${creatingId}/node.meta.yaml`;
       await writeDraftFile(
@@ -282,29 +269,20 @@ export class MockOkRunner implements AgentRunner {
       );
       await writeDraftFile(
         ctx.dream_run_id,
-        `memories/nodes/${creatingId}/understand/what.md`,
-        standingWhatMarkdown({
+        understandingRel(creatingId),
+        standingUnderstandingMarkdown({
           identity: "Organization mentioned in ingest",
-          relation: "_None_",
+          relation: sampleRelation(creatingId, primaryExisting),
           standingFacts: "_None_",
           currentSituation: mockNote(),
         }),
       );
-      await writeDraftFile(
-        ctx.dream_run_id,
-        `memories/nodes/${creatingId}/INDEX.md`,
-        `# ${creatingId}\n\nSee understand/what.md\n`,
-      );
       node = creatingId;
     }
 
-    // Prefer also refreshing a pre-existing primary node (acme if present) when creating.
-    const primaryExisting =
-      ctx.existing_nodes.find((id) => id === "acme") ?? ctx.existing_nodes[0] ?? null;
-
     /** Whole-file rewrite to standing skeleton — never diary-append. */
-    async function touchExistingWhat(nodeId: string): Promise<void> {
-      const whatRel = `memories/nodes/${nodeId}/understand/what.md`;
+    async function touchExistingWhat(nodeId: string, peerForLink?: string | null): Promise<void> {
+      const whatRel = understandingRel(nodeId);
       await copyLiveIntoDraft(ctx.dream_run_id, whatRel);
       const prior =
         ctx.l2_current.find((n) => n.node === nodeId)?.understanding.trim() ?? "";
@@ -326,9 +304,9 @@ export class MockOkRunner implements AgentRunner {
       await writeDraftFile(
         ctx.dream_run_id,
         whatRel,
-        standingWhatMarkdown({
+        standingUnderstandingMarkdown({
           identity,
-          relation: "_None_",
+          relation: sampleRelation(nodeId, peerForLink),
           standingFacts,
           currentSituation: mockNote(),
         }),
@@ -338,7 +316,7 @@ export class MockOkRunner implements AgentRunner {
     if (creatingId) {
       // brandnew path also refreshes primary existing (downscale exclude scenario).
       if (creatingId === "brandnew" && primaryExisting) {
-        await touchExistingWhat(primaryExisting);
+        await touchExistingWhat(primaryExisting, creatingId);
       }
     } else if (ctx.existing_nodes.includes(node)) {
       await touchExistingWhat(node);

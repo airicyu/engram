@@ -12,4 +12,4 @@
 | Seek／network 依 node 活躍分 | **延後**：現行 Seek／Ask 以 AI 解讀為主，硬排／弱先驗效益低、複雜度不划算；等檢索／上下文組合更複雜再做（分仍可供 Memory／graph 展示） |
 | 前後端 shared Zod／contract package | 完整 monorepo schema |
 
-← [0.27.0](../0.27.0/INDEX.md)（shipped） · [GUIDELINES](../GUIDELINES.md)
+← [0.28.0](../0.28.0/INDEX.md)（shipped：node 主檔重構） · [0.27.0](../0.27.0/INDEX.md)（shipped） · [GUIDELINES](../GUIDELINES.md)

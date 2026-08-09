@@ -9,7 +9,7 @@ Activities → Consolidate → Seek → Memory
    寫入         沉澱／入夢      尋找         翻閱
 ```
 
-**目前版本：** [0.23.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
+**目前版本：** [0.28.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
 
 > **讀文件時：** 這份 README 是給人看的專案說明。給 AI coding agent 的操作邊界與開發脈絡在 [AGENTS.md](./AGENTS.md)（Cursor／Claude Code 會自動讀取），請勿把兩者當成同一份文件。
 
@@ -93,7 +93,7 @@ cd server && bun run reset
 | [docs/domain-language.md](./docs/domain-language.md) | 對齊用詞 | 產品領域詞彙 |
 | [AGENTS.md](./AGENTS.md) | **AI agent** | 自動注入的開發脈絡（非產品說明） |
 
-**記憶庫**（你的資料）由環境變數 `ENGRAM_STORE_DIR` 指向；setup 時可選路徑（常見為旁鄰的 `engram-data/`，或 repo 內預設 `data/`）。那是執行期資料，不是原始碼。
+**記憶庫**（你的資料）由環境變數 `ENGRAM_STORE_DIR` 指向；setup 時可選路徑（常見為旁鄰的 `engram-data/`，或 repo 內預設 `data/`）。那是執行期資料，不是原始碼。若用 Obsidian，請開啟庫內的 **`memories/`** 資料夾作為 vault（不要開 store 根；`dreams/` 是暫存審稿區）。
 
 ---
 

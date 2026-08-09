@@ -35,7 +35,7 @@
 | 面向 | 待決 |
 |------|------|
 | **API** | 單次 multipart（raw + files）vs 先 `POST /media` 再 activity 引用 `media_ids` |
-| **目錄名／佈局** | `memories/attachments/` vs `media/` vs 依 note 同目錄；是否進 git store；與 Obsidian Settings → Files & links → Default attachment location 如何對齊說明 |
+| **目錄名／佈局** | **研究定案（實作跟附圖版）：** `memories/_attachments/`（Obsidian vault＝`memories/` 時設定為 `_attachments`）。**0.28 不建立此目錄**（無 image support）。見 `docs/roadmap/0.28.0/` |
 | **Embed 語法** | 只寫 `![[path]]`、只寫 `![](path)`、或寫入一種＋讀兩種 |
 | **Event 形狀** | `events.jsonl` 是否仍要 `attachments[]`（機器用）＋ md 內連結（人／Obsidian 用）雙軌 |
 | **UI** | Activities 拖放預覽、大小／格式限制 |

@@ -11,6 +11,7 @@ import { draftDir } from "./dream-runs";
 import { nowIso } from "../memories/activities";
 import { dayLedgerPath } from "../memories/chain";
 import type { DraftManifest, ManifestEntry, ManifestOp } from "./draft";
+import { isForbiddenLegacyNodeRel } from "../../agent/shared/write-policy";
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -66,7 +67,10 @@ export async function copyLiveIntoDraft(
 }
 
 /** Reject `..` and non-memories paths for deletes / draft writes. */
-export function assertSafeStoreRel(relPath: string): string {
+export function assertSafeStoreRel(
+  relPath: string,
+  opts?: { allowLegacyNodePaths?: boolean },
+): string {
   const norm = relPath.replace(/\\/g, "/").replace(/^\/+/, "").trim();
   if (!norm || norm.includes("\0")) {
     throw new Error(`invalid path: ${relPath}`);
@@ -76,6 +80,16 @@ export function assertSafeStoreRel(relPath: string): string {
   }
   if (!norm.startsWith("memories/")) {
     throw new Error(`path must be under memories/: ${relPath}`);
+  }
+  // 0.28: refuse legacy node main-file locations (use memories/nodes/{id}/{id}.md).
+  // Deletes may still list legacy paths to remove them from live after a bad draft.
+  if (!opts?.allowLegacyNodePaths) {
+    if (/^memories\/nodes\/[^/]+\/understand\/what\.md$/i.test(norm)) {
+      throw new Error(`legacy node path rejected: ${relPath}`);
+    }
+    if (/^memories\/nodes\/[^/]+\/index\.md$/i.test(norm)) {
+      throw new Error(`legacy stub INDEX rejected: ${relPath}`);
+    }
   }
   return norm;
 }
@@ -89,7 +103,7 @@ export async function readDraftDeletes(dreamRunId: string): Promise<string[]> {
   for (const line of text.split(/\r?\n/)) {
     const t = line.trim();
     if (!t || t.startsWith("#")) continue;
-    out.push(assertSafeStoreRel(t));
+    out.push(assertSafeStoreRel(t, { allowLegacyNodePaths: true }));
   }
   return [...new Set(out)].sort();
 }
@@ -171,6 +185,8 @@ async function listMemoriesRel(dreamRunId: string): Promise<string[]> {
 /**
  * After agent work: apply appends, scan draft memories, write manifest.yaml.
  * Does not trust AI path lists.
+ * 0.28: legacy node paths (`understand/what.md`, stub INDEX) are removed from draft
+ * and omitted from the manifest so approve cannot deploy them.
  */
 export async function finalizeDraftFromDisk(dreamRunId: string): Promise<DraftManifest> {
   await applyAppendSidecars(dreamRunId);
@@ -182,6 +198,11 @@ export async function finalizeDraftFromDisk(dreamRunId: string): Promise<DraftMa
   for (const rel of rels) {
     if (seen.has(rel)) continue;
     seen.add(rel);
+    if (isForbiddenLegacyNodeRel(rel)) {
+      const abs = draftAbs(dreamRunId, ...rel.split("/"));
+      await rm(abs, { force: true });
+      continue;
+    }
     const live = homePath(...rel.split("/"));
     const op: ManifestOp = (await exists(live)) ? "update" : "create";
     entries.push({ op, path: rel });
@@ -202,6 +223,9 @@ export async function upsertManifestEntry(
   relPath: string,
 ): Promise<DraftManifest> {
   const safe = assertSafeStoreRel(relPath);
+  if (isForbiddenLegacyNodeRel(safe)) {
+    throw new Error(`legacy node path rejected: ${relPath}`);
+  }
   const existingPath = draftAbs(dreamRunId, "manifest.yaml");
   let entries: ManifestEntry[] = [];
   if (await exists(existingPath)) {

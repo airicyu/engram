@@ -20,7 +20,7 @@
 | **short-term memory** | 短期記憶 pool（`memories/short-term-memory/pool.jsonl`）；approve 成功後按 scope S 清理 |
 | **dream staging** | draft 工作樹（`dreams/draft/{run_id}/`）＋協定 report（`dreams/reports/`）；Approve 才 deploy 至 **L2** 並 `git commit`。入夢／Ask／Rollup agent **approve 前不可寫** live `memories/**`（僅 draft／report／契約 temp） |
 | **L2** | **長期已沉澱記憶**＝**nodes**（主題理解）＋**chain**（時間軸）；見下行兩欄 |
-| └ **nodes** | `memories/nodes/{id}/understand/what.md`（整檔＝**standing understanding**；期望四段 Identity／Relation／Standing facts／Current situation；API 回 `understanding`） |
+| └ **nodes** | `memories/nodes/{id}/{id}.md`（整檔＝**standing understanding**；期望四段 Identity／Relation／Standing facts／Current situation；API 回 `understanding`）。Obsidian vault＝**`memories/`** |
 | └ **chain** | `memories/chain/days|weeks|months|years/`（day summary＝整檔敘事；ledger＝append-only） |
 | **future-sight** | 近程前瞻錨點（`memories/future-sight/hot.md`＋`later.md`）；入夢前 script 過期／重桶並 git commit；GET 懶清過期 |
 | **store git** | `ENGRAM_STORE_DIR` 必為 local git；追蹤 `memories/**`＋`engram.workspace.yaml`；**不**追 `dreams/`、store `tmp/` |
@@ -30,7 +30,7 @@
 
 時區由 **有效 timezone** 決定：記憶庫內 `engram.workspace.yaml` → 環境變數 `ENGRAM_TZ` → 預設 **`Asia/Hong_Kong`**。  
 記憶寫入語言：workspace config `memory_language` → 環境變數 `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。  
-記憶庫結構世代：workspace **`store_version`**（semver）。**0.19+**：啟動時 major.minor 須 **≥ 0.19**，缺鍵或過舊 → **拒啟**並提示跑 `.claude/skills/engram-migration/`（勿手改當 migrate）；`ENGRAM_ALLOW_STALE_STORE=1` 可警告後仍啟。migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`docs/roadmap/0.19.0/docs/store-boot-gate.md`、`.claude/skills/engram-migration/SKILL.md`。
+記憶庫結構世代：workspace **`store_version`**（semver）。**0.28+**：啟動時 major.minor 須 **≥ 0.28**，缺鍵或過舊 → **拒啟**並提示離線跑 `.claude/skills/engram-migration/`（hop `migrate-0.19-to-0.28`；**無需先啟動 server**；未批准 dream 會被丟棄；勿手改當 migrate）；`ENGRAM_ALLOW_STALE_STORE=1` 可警告後仍啟。migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`docs/roadmap/0.19.0/docs/store-boot-gate.md`、`.claude/skills/engram-migration/SKILL.md`。
 
 
 ## 倉庫結構
@@ -77,7 +77,7 @@ cd web && bun run dev             # 同 dev:ui
 
 | 做 | 不做 |
 |----|------|
-| `curl` / `engram-workbench` skill 打 API | 手改 `events.jsonl`、short-term notes、L2 `what.md` |
+| `curl` / `engram-workbench` skill 打 API | 手改 `events.jsonl`、short-term notes、L2 `{id}.md` |
 | `POST /activities` 寫入 | 把 fixture seed 當試用資料 |
 | `POST /dreams/run` extract／file pipeline → pending（pending 時 409） | 未經同意就 `reset` |
 | `POST /dreams/approve`／`discard`／`retry`／`amend` | 手改 short-term／L2／draft「幫忙改對」 |
@@ -119,11 +119,11 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`（**shipped**；**無** store migrate）
-- **上一版：** `0.26.0` — Node API `what_current` → `understanding` — 見 `docs/roadmap/0.26.0/`
-- **更早：** `0.25.0` Node standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
-- **Backlog：** 見 `docs/roadmap/backlog/`（含 Seek／network 依分等）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19 store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27 無 migrate**
+- **已出貨：** `0.28.0` — Node 主檔 `{id}.md`＋Obsidian vault＝`memories/`＋Structure notes — 見 `docs/roadmap/0.28.0/`（**shipped**；**有** store migrate）
+- **上一版：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
+- **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
+- **Backlog：** 見 `docs/roadmap/backlog/`（含 Seek／network 依分等；附圖上傳仍 backlog）
+- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28** store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27 無 migrate**
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

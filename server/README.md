@@ -36,6 +36,8 @@ curl -s -X POST http://localhost:8787/dreams/run
 
 Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；皆可選）。首次也可用 repo 根目錄 `bun run setup`。
 
+**Obsidian（0.28+）：** 若用 Obsidian 閱讀記憶庫，請開啟 `{ENGRAM_STORE_DIR}/memories/` 作為 vault（不要開 store 根；`dreams/` 是暫存審稿區）。Node 主檔為 `nodes/{id}/{id}.md`。
+
 **0.21+：** 除 `ENGRAM_STORE_DIR` 外，下表變數皆可改寫在 `{ENGRAM_STORE_DIR}/engram.workspace.yaml`（workspace 鍵優先）。完整對照見 [docs/configurations.md](../docs/configurations.md)。
 
 | Var | Default | Meaning |

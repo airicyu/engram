@@ -52,7 +52,7 @@
 | EN | 中文 | 說明 | API | 備註 |
 |----|------|------|-----|------|
 | **Day／week／month／year chain browse** | 記憶鏈翻閱 | 各層 index（新→舊）+ detail | `GET /memories/chain`、`/weeks`、`/months`、`/years`（及 `/{id}`） | 0.11.0 四層；與 Search 分工 |
-| **Nodes browse** | 節點翻閱 | L2 index（字母序）+ what.md 正文 detail | `GET /memories/nodes`、`GET /memories/nodes/{node_id}` | filter 在客戶端 |
+| **Nodes browse** | 節點翻閱 | L2 index（字母序）+ `{id}.md` 正文 detail | `GET /memories/nodes`、`GET /memories/nodes/{node_id}` | filter 在客戶端 |
 | **Short-term preview** | 短期記憶預覽 | Activities 場景顯示短期 pool 摘要 | `GET /memories/short-term-memory` | 僅 short-term；不在 Memory 場景瀏覽 |
 
 ### Time replay（0.9.0）
@@ -84,7 +84,7 @@
 | **L0** | 事件層 | 發生了什麼（原文、時間、來源） | `memories/activities/events.jsonl` | 唯附加 |
 | **short-term memory** | 短期記憶層 | 尚未整理進長期的工作區 pool | `memories/short-term-memory/pool.jsonl` | Activities 寫入；Approve 後清 scope S |
 | **dream staging** | 入夢中間層 | 由 short-term 入夢產出、待 Approve 才進 L2（draft＋report） | `dreams/draft/`、`dreams/reports/` | `dreams/` 不進 store git |
-| **L2 · nodes** | 長期節點理解 | 對某主題／人目前「相信什麼」＝**standing understanding**（整檔 `what.md`） | `memories/nodes/{id}/understand/what.md` | Approve 寫入；可手改 |
+| **L2 · nodes** | 長期節點理解 | 對某主題／人目前「相信什麼」＝**standing understanding**（整檔 `{id}.md`） | `memories/nodes/{id}/{id}.md` | Approve 寫入；可手改。Obsidian 開 **`memories/`** |
 | **L2 · chain** | 長期記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary |
 | **future-sight** | 近程前瞻 | 短期要盯的錨點（deadline 等）；hot＝近窗熱區 | `memories/future-sight/hot.md`＋`later.md` | 入夢前／GET 機械過期；內容經入夢＋人審 |
 
@@ -135,7 +135,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 
 | 產物 | 說明 | 寫入目標 |
 |------|------|----------|
-| 新建／更新 node | **Standing understanding**（四段骨架） | `memories/nodes/{id}/understand/what.md`（整檔；見下行） |
+| 新建／更新 node | **Standing understanding**（四段骨架） | `memories/nodes/{id}/{id}.md`（整檔；見下行） |
 | day ledger block | 日鏈增量稽核 | `memories/chain/days/{YYYY-MM}/{id}.md`（append-only） |
 | day／week／month／year summary | 可讀敘事 snapshot | 對應 `*.summary.md`（整檔） |
 | future-sight | 近程錨點 | `future-sight/hot.md`／`later.md` |
@@ -157,8 +157,9 @@ activities → dreams/run → pending_review → approve | discard | retry
 |----|------|------|
 | **node** | 節點 | L2 主題軸實體：人、組織、專案、主題等 |
 | **node_refs** | 節點參照 | Activities 可選標註「跟哪些 node 有關」 |
-| **what.md**／**standing understanding** | 長期理解檔 | 該 node **現在是什麼** 的可維護模型；固定四段 `## Identity` → `## Relation` → `## Standing facts` → `## Current situation`（空段 `_None_`）。**事件流水在 chain**，不在此檔主幹。整檔＝最新理解；無 `## Current`／`## History` |
-| **understanding** | API 欄位 | `GET`／search／dream `l2_current` 回傳的 **整檔** `what.md` 字串（standing understanding）；**不是**「僅 Current situation 段」。0.26 起取代舊鍵 `what_current` |
+| **`{id}.md`**／**standing understanding** | 長期理解檔 | 該 node **現在是什麼** 的可維護模型；固定四段 `## Identity` → `## Relation` → `## Standing facts` → `## Current situation`（空段 `_None_`）。提及其他 L2 node 時 Relation 用 wikilink `[[nodes/{id}/{id}|{id}]]`（vault＝`memories/`）。**事件流水在 chain**，不在此檔主幹。整檔＝最新理解；無 `## Current`／`## History` |
+| **understanding** | API 欄位 | `GET`／search／dream `l2_current` 回傳的 **整檔** `{id}.md` 字串（standing understanding）；**不是**「僅 Current situation 段」。0.26 起取代舊鍵 `what_current` |
+| **Structure notes** | Dream report 節 | Finalize 後軟校驗警告（缺小標／疑似無 link／死連）；無問題＝`_None_`；**不**擋 approve |
 | **facet** | 理解面向 | 舊設計 who／why／open 等多檔；現行 file pipeline **只**寫 what；多 facet **未**接線 |
 | **match_reason** | 命中原因 | search 時為何選中該 node |
 | **score**（帳面） | 活躍分 | 有結算的 dream 才增減；存 `score.yaml`；**非**未來視 hot |
@@ -264,7 +265,7 @@ Seek（0.18+）：Search scope `future` 掃兩區；Ask 預設可讀 `hot.md`，
 | `dreams/patches.jsonl` | （考古）舊 patch log | 0.16 不再作為入夢驅動；可留檔 |
 | `dreams/draft/{run_id}/` | pending draft | 待審草稿 |
 | `dreams/reports/{run_id}.md` | human report | 人類可讀報告 |
-| `memories/nodes/{id}/understand/what.md` | L2 semantic understanding | L2 語意理解 |
+| `memories/nodes/{id}/{id}.md` | L2 semantic understanding | L2 語意理解 |
 | `memories/chain/days/{YYYY-MM}/*.md` | chain ledger (day) | 日鏈增量紀錄（0.5.0 語義；0.11.0 起按月分組） |
 | `memories/chain/days/{YYYY-MM}/*.summary.md` | chain summary (day) | 日鏈融合摘要（0.5.0；0.11.0 起按月分組） |
 | `memories/future-sight/hot.md`／`later.md` | future-sight zones | 近程前瞻雙區 |

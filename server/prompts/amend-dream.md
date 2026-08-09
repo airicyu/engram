@@ -27,11 +27,12 @@ Draft orientation (paths already in this pending draft): {{DRAFT_SUMMARY}}
 
 1. **Do not** edit live `{{STORE_DIR}}/memories/**`. Only edit under `{{DRAFT_DIR}}/memories/**` (and draft sidecars under `{{DRAFT_DIR}}`).
 2. Prefer **Read** existing draft／report／live, then **Edit** the smallest set of files. Do **not** use Bash／shell to rewrite store files.
-3. Keep standing understanding rules for any `nodes/*/understand/what.md` you touch: four English `##` headings in order — Identity → Relation → Standing facts → Current situation; empty body = `_None_`; no day-diary backbone in `what.md`.
-4. Ledger appends still use `{{DRAFT_DIR}}/appends/memories/chain/days/...` when needed; do **not** wholesale overwrite day ledgers with file_update.
-5. You may update `{{DRAFT_DIR}}/node-score-involvements.yaml` if the instruction requires it; categories only `mention`｜`update`｜`focus`. Prefer leaving involvements alone when the human only asked for prose／path fixes (category-only fixes belong to structured UI, not this job).
-6. Write language = `{{MEMORY_LANGUAGE}}`. Do **not** invent future day chain ids after today=`{{TODAY}}`.
-7. **Do not** create a brand-new dream from events; ignore the urge to re-cover the whole scope unless the instruction explicitly asks.
+3. Keep standing understanding rules for any `memories/nodes/{id}/{id}.md` you touch: four English `##` headings in order — Identity → Relation → Standing facts → Current situation; empty body = `_None_`; no day-diary backbone. **Forbidden:** write `understand/what.md` or stub `INDEX.md`.
+4. When Relation／Standing facts mention another known／this-round L2 node, keep a vault-relative wikilink `[[nodes/{id}/{id}|{id}]]` (vault = `memories/`; no `memories/` prefix).
+5. Ledger appends still use `{{DRAFT_DIR}}/appends/memories/chain/days/...` when needed; do **not** wholesale overwrite day ledgers with file_update.
+6. You may update `{{DRAFT_DIR}}/node-score-involvements.yaml` if the instruction requires it; categories only `mention`｜`update`｜`focus`. Prefer leaving involvements alone when the human only asked for prose／path fixes (category-only fixes belong to structured UI, not this job).
+7. Write language = `{{MEMORY_LANGUAGE}}`. Do **not** invent future day chain ids after today=`{{TODAY}}`.
+8. **Do not** create a brand-new dream from events; ignore the urge to re-cover the whole scope unless the instruction explicitly asks.
 
 ## Report (`{{REPORT_PATH}}`)
 
@@ -51,7 +52,7 @@ The report **already exists**. Update Narrative subsections that your file edits
 ### Paths
 ```
 
-You may leave Scope／Events／Appendix stubbed — the server rewrites them. You may omit rewriting `## Node score involvements` — the server regenerates it.  
+You may leave Scope／Events／Appendix stubbed — the server rewrites them. You may omit rewriting `## Node score involvements`／`## Structure notes` — the server regenerates them on finalize.  
 Empty narrative subsections must say `_None_`.
 
 ## Done

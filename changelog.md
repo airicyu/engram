@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.28.0 — Node 主檔 `{id}.md`＋結構生長圍護 (2026-08-09)
+
+L2 node 認知主檔從 `understand/what.md` 遷到 **`memories/nodes/{id}/{id}.md`**；Obsidian vault＝**`memories/`**。Dream／amend 以 P1 wikilink 互指；finalize report 加軟校驗 **`## Structure notes`**。**有** store migrate（離線清 pending）＋boot 最低結構 **≥ 0.28**。
+
+### Changed
+
+- Node 主檔路徑／seed：`{id}.md` 四段骨架；廢 stub `INDEX.md`／`understand/`
+- Write-policy／draft：拒絕再寫 `understand/what.md` 與 stub `INDEX.md`
+- `dream-files.md`／`amend-dream.md`：路徑、vault 相對 wikilink `[[nodes/{id}/{id}|{id}]]`、Relation 須互指
+- Finalize：掃 draft node → report `## Structure notes`（警告；`_None_` 若無問題）；approve **不**因缺小標／死連失敗；finalize／commit **略過並刪除** draft 內 legacy `understand/what.md`／stub INDEX
+- Boot gate：`REQUIRED_STORE_STRUCTURE` → **0.28**；拒啟文案含離線 migration skill（無需先 start server）
+- 預設 `dream_committed_report_retention_days`：**7**（原 30；INDEX #25）
+- **Committed report TTL 預設：** `dream_committed_report_retention_days`／`DEFAULT_DREAM_COMMITTED_REPORT_RETENTION_DAYS` **30 → 7**（workspace／env 可覆寫；`-1`＝永久）
+
+### Added
+
+- `.claude/skills/engram-migration/migrate-0.19-to-0.28`（script＋md）：rename live what→`{id}.md`；離線 discard pending＋清 `dream.lock`；stamp `0.28.0`
+
+### Migration
+
+- 舊庫（0.19–0.27 結構）須離線跑 hop；**未批准 dream 會被丟棄**。見 skill 目錄。
+
+---
+
 ## 0.27.0 — Amend-dream（pending 同稿自由句小修）(2026-08-09)
 
 Pending review 時除 **re-dream**（`POST /dreams/retry`）外，新增 **amend-dream**：同一 `dream_run_id` 依自由句小修 draft／report。Consolidate **Revise** 二選一觸發。**無** store migrate。

@@ -97,7 +97,7 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 | **short-term memory** | Short-term pool (`memories/short-term-memory/pool.jsonl`); cleared by event-id scope S on approve. HTTP wire still uses `l1`／`l1_empty` etc. |
 | **dream staging intent** | Patches + report (`dreams/patches.jsonl`, `dreams/reports/`) — short-term→L2 intermediate |
 | **dream staging draft** | Staged L2 projection (`dreams/draft/{run_id}/`) — not live until approve |
-| **L2** | Long-term node understanding — whole `memories/nodes/{id}/understand/what.md` as standing understanding（API field `understanding`） |
+| **L2** | Long-term node understanding — whole `memories/nodes/{id}/{id}.md` as standing understanding（API field `understanding`）；Obsidian vault＝`memories/` |
 | **chain** | World timeline (`memories/chain/days|weeks|months|years/`) — day dual-track; higher summary-only |
 | **future-sight** | Near-horizon anchors (`memories/future-sight/hot.md`＋`later.md`) — not memory-chain; not in `/memories/search` |
 | **candidates** | Low-confidence attribution (`dreams/candidates/`) — not the primary create-node path |

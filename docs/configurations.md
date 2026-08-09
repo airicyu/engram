@@ -89,7 +89,7 @@ Engram 設定分兩層：**進程／本機**（`server/.env` 或環境變數）�
 | workspace 鍵 | env | 預設 | 說明 |
 |--------------|-----|------|------|
 | `dream_staging_retention_days` | `ENGRAM_DREAM_STAGING_RETENTION_DAYS` | `3` | staging TTL；`0`＝僅 recovery |
-| `dream_committed_report_retention_days` | `ENGRAM_DREAM_COMMITTED_REPORT_RETENTION_DAYS` | `30` | committed report TTL；`-1`＝永久 |
+| `dream_committed_report_retention_days` | `ENGRAM_DREAM_COMMITTED_REPORT_RETENTION_DAYS` | `7` | committed report TTL；`-1`＝永久 |
 | `dream_cleanup_min_age_days` | `ENGRAM_DREAM_CLEANUP_MIN_AGE_DAYS` | `1` | TTL 刪除最小齡 |
 | `dream_cleanup_cron` | `ENGRAM_DREAM_CLEANUP_CRON` | `0 3 * * *` | in-process cleanup cron |
 | `dream_cleanup_cron_enabled` | `ENGRAM_DREAM_CLEANUP_CRON_ENABLED` | `true` | 註冊 cleanup cron |
@@ -105,7 +105,7 @@ env 布林值：`0`/`1`、`true`/`false`、`yes`/`no`（大小寫不敏感）。
 
 | 鍵 | 型別 | 說明 |
 |----|------|------|
-| `store_version` | semver `X.Y.Z` | **結構世代**標記；boot gate 讀取。migrate 見 [store-version](./roadmap/0.16.0/docs/store-version.md) |
+| `store_version` | semver `X.Y.Z` | **結構世代**標記；**0.28+ boot** 要求 major.minor ≥ **0.28**，否則拒啟。migrate 離線跑 `.claude/skills/engram-migration/`（hop `migrate-0.19-to-0.28`；**無需先啟動 server**）。見 [store-version](./roadmap/0.16.0/docs/store-version.md) |
 
 `engram.workspace.yaml` **只允許**上表所列鍵（含雙邊表中的 workspace 鍵）；多寫任何其他鍵 → 拒啟。檔案可不存在（全走 env／預設）。
 
@@ -114,7 +114,7 @@ env 布林值：`0`/`1`、`true`/`false`、`yes`/`no`（大小寫不敏感）。
 ```yaml
 timezone: Asia/Hong_Kong
 memory_language: zh-Hant
-store_version: 0.20.0
+store_version: 0.28.0
 agent: cursor
 port: 8787
 # dream_staging_retention_days: 3
@@ -130,7 +130,8 @@ port: 8787
 | 記憶庫在哪個目錄 | **僅** env `ENGRAM_STORE_DIR` |
 | 跟著這份庫走的 agent、時區、語言、cleanup | **優先** workspace yaml |
 | 本機暫覆寫（同一庫多機部署） | env（yaml 未寫該鍵時生效） |
-| 庫結構世代 | workspace `store_version` |
+| 庫結構世代 | workspace `store_version`（0.28+ 最低 **0.28**） |
+| 用 Obsidian 看庫 | 開啟 **`{ENGRAM_STORE_DIR}/memories/`**（不要開 store 根） |
 
 Web UI 另有 `web/.env`（如 `WEB_PORT`、`ENGRAM_URL` proxy），**不**由此檔規範；見 `web/` 與 setup wizard。
 

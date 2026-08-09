@@ -2,6 +2,8 @@
 
 Vite + React + TypeScript workbench for **Activities → Consolidate → Seek → Memory**. Talks only to the HTTP API (never touches `ENGRAM_STORE_DIR`).
 
+若用 Obsidian 閱讀同一記憶庫：開啟 store 內的 **`memories/`** 作為 vault（不要開 store 根）。詳見 server／根 README（0.28+）。
+
 ## Prerequisites
 
 API server on `:8787`:

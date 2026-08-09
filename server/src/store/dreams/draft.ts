@@ -9,6 +9,7 @@ import { listDraftFutureIds } from "../memories/future-sight";
 import { restoreTouchedPaths } from "../git";
 import { daySummaryRel } from "../memories/chain";
 import { higherSummaryRel, type HigherChainLevel } from "../memories/chain-higher";
+import { isForbiddenLegacyNodeRel } from "../../agent/shared/write-policy";
 
 /** Operation represented by a draft manifest entry. */
 export type ManifestOp = "create" | "update";
@@ -96,6 +97,9 @@ export async function commitDraft(dreamRunId: string): Promise<{ committed: stri
       committed.push(rel);
     }
     for (const entry of manifest.entries) {
+      if (isForbiddenLegacyNodeRel(entry.path)) {
+        throw new Error(`legacy node path rejected at commit: ${entry.path}`);
+      }
       const src = draftPath(dreamRunId, ...entry.path.split("/"));
       const dest = livePath(...entry.path.split("/"));
       if (!(await exists(src))) throw new Error(`draft missing file: ${entry.path}`);

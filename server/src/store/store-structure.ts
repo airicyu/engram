@@ -9,7 +9,7 @@ import { peekStoreVersion, config } from "../config";
  * Minimum store structure generation this product binary requires.
  * Bump **only** when a migrate hop changes on-disk shape (not every product release).
  */
-export const REQUIRED_STORE_STRUCTURE = { major: 0, minor: 19 } as const;
+export const REQUIRED_STORE_STRUCTURE = { major: 0, minor: 28 } as const;
 
 /** Human-facing floor string for messages (patch ignored in comparisons). */
 export const REQUIRED_STORE_STRUCTURE_LABEL = `${REQUIRED_STORE_STRUCTURE.major}.${REQUIRED_STORE_STRUCTURE.minor}.0`;
@@ -41,7 +41,7 @@ export function checkStoreStructure(storeVersion: string | null = peekStoreVersi
   const need = REQUIRED_STORE_STRUCTURE;
   const needLabel = REQUIRED_STORE_STRUCTURE_LABEL;
   const migrateHint =
-    "Migrate with the engram-migration skill (hop migrate-0.17-to-0.19). See .claude/skills/engram-migration/";
+    "Migrate offline with the engram-migration skill (hop migrate-0.19-to-0.28) — server need not be running first. See .claude/skills/engram-migration/. Unapproved pending dreams will be discarded.";
 
   if (storeVersion == null) {
     return {

@@ -18,6 +18,7 @@ import {
   cursorWritableAddDirs,
   dreamWritePolicy,
   guardedWriteFile,
+  isForbiddenLegacyNodePath,
   isPathInsideRoot,
   isWritablePath,
   liveMemoriesRoot,
@@ -54,16 +55,16 @@ describe("write-policy", () => {
     const ctx = fakeDreamCtx(storeDir, "dream-test-1");
     await mkdir(ctx.draft_dir, { recursive: true });
     await mkdir(join(storeDir, "dreams", "reports"), { recursive: true });
-    await mkdir(join(liveMemoriesRoot(storeDir), "nodes", "acme", "understand"), {
+    await mkdir(join(liveMemoriesRoot(storeDir), "nodes", "acme"), {
       recursive: true,
     });
-    const liveWhat = join(liveMemoriesRoot(storeDir), "nodes", "acme", "understand", "what.md");
+    const liveWhat = join(liveMemoriesRoot(storeDir), "nodes", "acme", "acme.md");
     await writeFile(liveWhat, "ORIGINAL LIVE\n", "utf8");
 
     const policy = dreamWritePolicy(ctx);
-    expect(isWritablePath(policy, join(ctx.draft_dir, "memories", "nodes", "x", "what.md"))).toBe(
-      true,
-    );
+    expect(
+      isWritablePath(policy, join(ctx.draft_dir, "memories", "nodes", "x", "x.md")),
+    ).toBe(true);
     expect(isWritablePath(policy, ctx.report_path)).toBe(true);
     expect(isWritablePath(policy, liveWhat)).toBe(false);
     expect(isWritablePath(policy, join(storeDir, "engram.workspace.yaml"))).toBe(false);
@@ -83,6 +84,30 @@ describe("write-policy", () => {
     const addDirs = cursorWritableAddDirs(policy);
     expect(addDirs).toContain(ctx.draft_dir);
     expect(addDirs.some((d) => d === storeDir)).toBe(false);
+  });
+
+  test("0.28 forbids legacy understand/what.md and stub INDEX under draft", () => {
+    const storeDir = "/tmp/engram-store-fake-028";
+    const ctx = fakeDreamCtx(storeDir, "dream-legacy-1");
+    const policy = dreamWritePolicy(ctx);
+    const draftWhat = join(
+      ctx.draft_dir,
+      "memories",
+      "nodes",
+      "acme",
+      "understand",
+      "what.md",
+    );
+    const draftIndex = join(ctx.draft_dir, "memories", "nodes", "acme", "INDEX.md");
+    const draftMain = join(ctx.draft_dir, "memories", "nodes", "acme", "acme.md");
+
+    expect(isForbiddenLegacyNodePath(draftWhat)).toBe(true);
+    expect(isForbiddenLegacyNodePath(draftIndex)).toBe(true);
+    expect(isForbiddenLegacyNodePath(draftMain)).toBe(false);
+    expect(isWritablePath(policy, draftWhat)).toBe(false);
+    expect(isWritablePath(policy, draftIndex)).toBe(false);
+    expect(isWritablePath(policy, draftMain)).toBe(true);
+    expect(() => assertWritablePath(policy, draftWhat)).toThrow(/legacy node path/);
   });
 
   test("codex dream cd is store/dreams not store root", async () => {
@@ -127,8 +152,8 @@ describe("write-policy", () => {
     const ctx = fakeDreamCtx(storeDir, runId);
     await mkdir(join(ctx.draft_dir, "memories"), { recursive: true });
     await mkdir(join(storeDir, "dreams", "reports"), { recursive: true });
-    const liveWhat = join(liveMemoriesRoot(storeDir), "nodes", "acme", "understand", "what.md");
-    await mkdir(join(liveMemoriesRoot(storeDir), "nodes", "acme", "understand"), {
+    const liveWhat = join(liveMemoriesRoot(storeDir), "nodes", "acme", "acme.md");
+    await mkdir(join(liveMemoriesRoot(storeDir), "nodes", "acme"), {
       recursive: true,
     });
     await writeFile(liveWhat, "ORIGINAL LIVE\n", "utf8");
@@ -145,10 +170,10 @@ describe("write-policy", () => {
     await mkdir(join(ctx.draft_dir, "memories"), { recursive: true });
     await mkdir(join(storeDir, "dreams", "reports"), { recursive: true });
     const policy = dreamWritePolicy(ctx);
-    const draftWhat = join(ctx.draft_dir, "memories", "nodes", "acme", "understand", "what.md");
-    await guardedWriteFile(policy, draftWhat, "draft ok\n");
+    const draftMain = join(ctx.draft_dir, "memories", "nodes", "acme", "acme.md");
+    await guardedWriteFile(policy, draftMain, "draft ok\n");
     await guardedWriteFile(policy, ctx.report_path, "# Dream report — ok\n");
-    expect(await readFile(draftWhat, "utf8")).toContain("draft ok");
+    expect(await readFile(draftMain, "utf8")).toContain("draft ok");
     expect(await readFile(ctx.report_path, "utf8")).toContain("Dream report");
   });
 
@@ -167,8 +192,8 @@ describe("write-policy", () => {
       today: "2026-08-02",
       include_later: false,
     };
-    const liveWhat = join(liveMemoriesRoot(storeDir), "nodes", "acme", "understand", "what.md");
-    await mkdir(join(liveMemoriesRoot(storeDir), "nodes", "acme", "understand"), {
+    const liveWhat = join(liveMemoriesRoot(storeDir), "nodes", "acme", "acme.md");
+    await mkdir(join(liveMemoriesRoot(storeDir), "nodes", "acme"), {
       recursive: true,
     });
     await writeFile(liveWhat, "ASK LIVE\n", "utf8");
@@ -191,7 +216,7 @@ describe("write-policy", () => {
 
     const withDraft = rollupWritePolicy({ storeDir, workDir, draftDir });
     expect(isWritablePath(withDraft, join(draftDir, "memories", "chain", "x.md"))).toBe(true);
-    expect(isWritablePath(withDraft, join(storeDir, "memories", "nodes", "a", "what.md"))).toBe(
+    expect(isWritablePath(withDraft, join(storeDir, "memories", "nodes", "a", "a.md"))).toBe(
       false,
     );
     expect(cursorWritableAddDirs(withDraft).includes(storeDir)).toBe(false);

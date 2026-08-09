@@ -1,6 +1,6 @@
 /**
  * Finalize dream report: keep AI narrative; server fills Scope／Events／
- * Node score involvements／Appendix from frozen scope + draft manifest／deletes.
+ * Node score involvements／Structure notes／Appendix from frozen scope + draft.
  */
 
 import { access, readFile, writeFile } from "node:fs/promises";
@@ -14,6 +14,7 @@ import {
   formatInvolvementsSection,
   readInvolvementsForPending,
 } from "../score/involvements";
+import { buildStructureNotesSection } from "./structure-notes";
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -39,11 +40,11 @@ const REQUIRED_HEADINGS = [
 
 /**
  * Extract narrative block between ## Narrative and the next server-owned section.
- * Truncates at ## Node score involvements or ## Appendix (whichever first).
+ * Truncates at ## Node score involvements, ## Structure notes, or ## Appendix.
  */
 function extractNarrative(md: string): string {
   const m = md.match(
-    /## Narrative\s*\n([\s\S]*?)(?=\n## Node score involvements\b|\n## Appendix — pending deploy\b|$)/,
+    /## Narrative\s*\n([\s\S]*?)(?=\n## Node score involvements\b|\n## Structure notes\b|\n## Appendix — pending deploy\b|$)/,
   );
   if (m) return m[1].trim();
   // Fallback: build minimal narrative skeleton
@@ -78,7 +79,7 @@ function extractAmendFeedback(md: string): string {
 
 function extractRollupSection(md: string): string {
   const m = md.match(
-    /## Higher chain rollup \(week／month／year\)\s*\n([\s\S]*?)(?=\n## Appendix — pending deploy\b|$)/,
+    /## Higher chain rollup \(week／month／year\)\s*\n([\s\S]*?)(?=\n## Structure notes\b|\n## Appendix — pending deploy\b|$)/,
   );
   return m ? `## Higher chain rollup (week／month／year)\n\n${m[1].trim()}` : "";
 }
@@ -225,6 +226,9 @@ export async function finalizeDreamReport(opts: {
     const preserved = extractRollupSection(raw);
     if (preserved) lines.push(preserved, "");
   }
+
+  // Server-owned soft structure lint (warnings only; empty → _None_).
+  lines.push(await buildStructureNotesSection(opts.dream_run_id), "");
 
   lines.push("## Appendix — pending deploy", "### Paths", "", ...pathLines, "");
 

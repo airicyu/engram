@@ -17,10 +17,10 @@ async function assert(cond: unknown, msg: string): Promise<void> {
 
 async function main() {
   await rm(TEST_DIR, { recursive: true, force: true });
-  await mkdir(join(TEST_DIR, "memories", "nodes", "acme", "understand"), { recursive: true });
-  await mkdir(join(TEST_DIR, "memories", "nodes", "alice", "understand"), { recursive: true });
-  await writeFile(join(TEST_DIR, "memories", "nodes", "acme", "understand", "what.md"), "acme\n");
-  await writeFile(join(TEST_DIR, "memories", "nodes", "alice", "understand", "what.md"), "alice\n");
+  await mkdir(join(TEST_DIR, "memories", "nodes", "acme"), { recursive: true });
+  await mkdir(join(TEST_DIR, "memories", "nodes", "alice"), { recursive: true });
+  await writeFile(join(TEST_DIR, "memories", "nodes", "acme", "acme.md"), "acme\n");
+  await writeFile(join(TEST_DIR, "memories", "nodes", "alice", "alice.md"), "alice\n");
 
   // Dynamic import after env is set so config.storeDir picks TEST_DIR
   const {
