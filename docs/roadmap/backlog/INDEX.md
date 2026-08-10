@@ -7,8 +7,8 @@
 |------|------|
 | [Node network 互動圖](./node-network-graph.md) | Obsidian 式 graph GUI |
 | [Vector／語意搜尋](./vector-semantic-search.md) | embedding＋近鄰；與 keyword 混合 |
-| [AI 反思與認知補問](./reflective-cognition-prompts.md) | 系統反思 nodes／事件，向人提問或建議以補完認知 |
+| [AI 反思與認知補問](./reflective-cognition-prompts.md) | **已排程 [0.30.0](../0.30.0/INDEX.md)**（釐清／補問／順帶補充）；史料見本條 |
 | Seek／network 依 node 活躍分 | **延後**：現行 Seek／Ask 以 AI 解讀為主，硬排／弱先驗效益低、複雜度不划算；等檢索／上下文組合更複雜再做（分仍可供 Memory／graph 展示） |
 | 前後端 shared Zod／contract package | 完整 monorepo schema |
 
-← [0.28.0](../0.28.0/INDEX.md)（shipped） · [GUIDELINES](../GUIDELINES.md)
+← [0.30.0](../0.30.0/INDEX.md)（planned） · [0.29.0](../0.29.0/INDEX.md)（shipped） · [GUIDELINES](../GUIDELINES.md)

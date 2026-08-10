@@ -51,12 +51,83 @@
 | **實作審查** | **新** agent | `docs/implementation-review.md`（對 INDEX 驗收／已定案 vs diff） | 順便加功能 |
 | **實作收斂** | 回實作 agent | 修 HIGH／同意的 MEDIUM；複審；再 `test:phases` | 未寫進審查追蹤就宣稱 shipped |
 
-審查報告應標：**對照基準＝本版 INDEX**；結論區分「建議定案（尚未寫入）」vs「已併入」。
+審查報告應標：**對照基準＝本版 INDEX**（已定案＋驗收）；設計審查結論區分「建議定案（尚未寫入）」vs「已併入」。
 
 參考實例：
 
 - 設計審查：`docs/roadmap/0.29.0/docs/design-review.md`
-- 實作審查：`docs/roadmap/0.28.0/docs/implementation-review.md`
+- 實作審查（完整四輪）：`docs/roadmap/0.29.0/docs/implementation-review.md`
+- 實作審查（簡版兩輪）：`docs/roadmap/0.28.0/docs/implementation-review.md`
+
+---
+
+## Implementation review（實作審查）
+
+中改以上 **碼大致完成後**，用 **新 agent** 寫 `docs/roadmap/X.Y.Z/docs/implementation-review.md`，再回 **實作 agent** 依追蹤表修洞。細節寫法見本節；**各版具體 H1／M3 內容留在該版報告**，workflow 只規範可複製的節奏。
+
+### 輪次與職責
+
+| 輪 | 誰 | 做什麼 |
+|----|-----|--------|
+| **初審** | **新** agent | 只讀 INDEX＋docs＋diff；對照已定案／驗收開 findings；跑 `test:phases` 並記錄 |
+| **修復** | 回 **實作** agent | 只修審查追蹤項；每修一項更新同一份報告的狀態欄 |
+| **複審** | 實作 agent 自核，或再開 **新** agent | 核對已關項；重跑 `test:phases`；留意 **迴歸**（修 A 壞 B） |
+| **獨立核實**（中改以上建議） | **新** agent | 不延續實作對話；對碼＋phases 再驗一輪；可出貨結論寫在報告頂部 |
+
+小改可縮成：初審 → 修復 → 複審（兩輪）。勿為每輪另開新檔——**同一 `implementation-review.md` 累加輪次與歷審摘要**。
+
+審查 agent **不改程式**（與 design-review 對稱）。**Do not commit unless the user asks**（與 HANDOFF 一致）。
+
+### Findings 分級
+
+| 級 | 含義 | 出貨 |
+|----|------|------|
+| **HIGH** | 違反 INDEX 已定案／驗收、契約錯誤、資料／lock 安全、主路徑不可用 | **必須關閉** |
+| **MEDIUM** | 文件／skill／測試漏網、邊界未覆蓋、與定案不一致的次要路徑 | **預設修**；可標「可選／非阻擋」並在結論說明 |
+| **LOW** | 字串、命名、文件一句、觀測性 | 記錄即可；標 **可留** 不擋 shipped |
+
+每項給 **穩定 ID**（`H1`、`M3`、`L2`），修復輪只改「狀態」與「證據」，勿重編號。
+
+### 報告最低章節
+
+檔頭元資料：
+
+- 各輪日期（初審／複審／…）
+- **對照基準**＝本版 INDEX 已定案／驗收
+- **一兩句結論**（可否出貨、是否待使用者 commit）
+
+正文建議順序：
+
+1. **總評** — 按 Track 或面向；可表格式對照各輪（初審 vs 複審 vs 終審）
+2. **Findings** — HIGH → MEDIUM → LOW；欄位：**ID｜題｜狀態｜證據／說明**
+3. **驗收對照** — 逐條複製 INDEX 驗收 checklist，標通過／碼有／未過
+4. **測試** — `bun run test:phases` 實際輸出或摘要；若曾紅必記
+5. **修復追蹤** — checkbox 列表（H／M 必勾；L 可選）
+6. **歷審摘要** — 每輪一句（防長對話污染；例：複審發現 H3 迴歸 → phases 紅）
+7. **建議後續**（可選）— 非阻擋項、出貨後才做的文件補句
+
+狀態用語建議：**待修**｜**已修**｜**可留**｜**非缺陷／已定案**（scope 爭議已併入 INDEX 時）。
+
+### 出貨門檻
+
+同時滿足才可標 INDEX `shipped`、改 `version.md`／`changelog`：
+
+- [ ] 無未關閉 **HIGH**
+- [ ] 同意的 **MEDIUM** 已修或明確標非阻擋
+- [ ] INDEX **驗收** 全勾（或報告逐條對照通過）
+- [ ] **`bun run test:phases` 全綠**（終審／獨立核實輪必跑）
+- [ ] backlog 該列已清（若 INDEX 要求）
+- [ ] 使用者同意後再 **git commit**（審查報告本身可一併 commit）
+
+### 審查 agent 貼用 prompt（可選）
+
+```text
+你是實作審查 agent。只認檔案，不認 chat history。
+先讀 AGENTS.md → docs/roadmap/X.Y.Z/INDEX.md（已定案＋驗收）→ HANDOFF → 相關 docs。
+對照 working tree／diff 寫 docs/implementation-review.md（分 H/M/L、穩定 ID、含 test:phases 結果）。
+不要改程式、不要加功能、不要 commit。
+對照基準＝INDEX；做什麼以 INDEX 為準，報告只追實作落差。
+```
 
 ---
 
@@ -100,7 +171,7 @@ Starter prompt 最低要素：
 | 檔 | 回答 |
 |----|------|
 | **GUIDELINES.md** | Roadmap 怎麼寫才自足？INDEX 要有哪些欄？何時要 reasoning？ |
-| **本檔 `agent-workflow.md`** | 哪個 agent 做設計審查／實作／實作審查？HANDOFF 何時寫？Track 之間測什麼？ |
+| **本檔 `agent-workflow.md`** | 哪個 agent 做設計審查／實作／實作審查？HANDOFF 何時寫？implementation-review 怎麼輪？Track 之間測什麼？ |
 
 寫作自足仍是硬門檻：審查與 HANDOFF **不能取代**「已定案寫進檔案」。
 
@@ -113,8 +184,8 @@ Starter prompt 最低要素：
 | 還在談產品 | 規劃 agent；更新 INDEX，勿開實作 |
 | INDEX 自足但怕有洞 | **新** agent → design-review → 回規劃併入 |
 | 待拍板已空 | 寫 HANDOFF → **新** agent 實作 |
-| 碼大致完成 | **新** agent → implementation-review → 回實作修 |
-| 驗收全勾、phases 過 | shipped 文件；使用者同意再 commit |
+| 碼大致完成 | **新** agent → implementation-review（初審）→ 回實作修 → 複審／獨立核實 |
+| 驗收全勾、phases 過、無未關 HIGH | shipped 文件；使用者同意再 commit |
 
 ---
 
