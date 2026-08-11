@@ -141,6 +141,7 @@ export async function draftSummary(dreamRunId: string): Promise<{
   chain_months: string[];
   chain_years: string[];
   future_ids: string[];
+  clarify_distilled_node_ids: string[];
 } | null> {
   const manifest = await readManifest(dreamRunId);
   if (!manifest) return null;
@@ -155,6 +156,7 @@ export async function draftSummary(dreamRunId: string): Promise<{
     chain_months: [...new Set(ids(/^memories\/chain\/months\/\d{4}\/(\d{4}-\d{2})\.summary\.md$/))],
     chain_years: [...new Set(ids(/^memories\/chain\/years\/(\d{4})\.summary\.md$/))],
     future_ids: touchedFuture ? await listDraftFutureIds(draftDir(dreamRunId)) : [],
+    clarify_distilled_node_ids: [],
   };
 }
 

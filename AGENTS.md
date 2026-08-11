@@ -23,10 +23,11 @@
 | └ **nodes** | `memories/nodes/{id}/{id}.md`（整檔＝**standing understanding**；期望四段 Identity／Relation／Standing facts／Current situation；API 回 `understanding`）。Obsidian vault＝**`memories/`** |
 | └ **chain** | `memories/chain/days|weeks|months|years/`（day summary＝整檔敘事；ledger＝append-only） |
 | **future-sight** | 近程前瞻錨點（`memories/future-sight/hot.md`＋`later.md`）；入夢前 script 過期／重桶並 git commit；GET 懶清過期 |
+| **clarify** | 釐清 queue（`memories/clarify/{asking,pending,history}/`）；非 activity；入夢末段 distill→generate；approve 歸檔 pending→history |
 | **store git** | `ENGRAM_STORE_DIR` 必為 local git；追蹤 `memories/**`＋`engram.workspace.yaml`；**不**追 `dreams/`、store `tmp/` |
 | **runtime temp** | `ENGRAM_TEMP_DIR`（預設 `/tmp`）：ask jobs＋dream agent disposable workdirs；不在記憶庫內 |
 
-產品循環對齊 UI：**Activities → Consolidate → Seek → Memory**（場景 id：`activities`／`consolidate`／`seek`／`memory`）。
+產品循環對齊 UI：**Activities → Consolidate → Clarify → Seek → Memory**（場景 id：`activities`／`consolidate`／`clarify`／`seek`／`memory`）。
 
 時區由 **有效 timezone** 決定：記憶庫內 `engram.workspace.yaml` → 環境變數 `ENGRAM_TZ` → 預設 **`Asia/Hong_Kong`**。  
 記憶寫入語言：workspace config `memory_language` → 環境變數 `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。  
@@ -81,7 +82,7 @@ cd web && bun run dev             # 同 dev:ui
 | `POST /activities` 寫入 | 把 fixture seed 當試用資料 |
 | `POST /dreams/run` extract／file pipeline → pending（pending 時 409） | 未經同意就 `reset` |
 | `POST /dreams/approve`／`discard`／`retry`／`amend` | 手改 short-term／L2／draft「幫忙改對」 |
-| `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
+| `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET /memories/clarify/asking` / `POST /memories/clarify/aside` / `POST|DELETE /memories/clarify/asking/...` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 | `POST /attachments/uploads` 上傳附件圖檔（multipart `file`） | 手動放檔案到 `_attachments/uploads/` |
 | `DELETE /attachments/uploads/tmp?day=&filename=` 刪暫存 | 手刪 tmp 目錄 |
 
@@ -92,7 +93,8 @@ API 欄位提醒：
 - memory ask body 用 **`q`**；可選 **`include_later`**（boolean，預設 false＝可讀 hot、不可讀 later）
 - dream **retry** body 用 **`reason`**（必填）；對同一凍結 scope 重跑，注入上一輪摘要
 - dream **amend** body 用 **`instruction`**（必填）；**同一** `dream_run_id` 小修 draft；失敗仍保留 pending
-- dream **lock**（入夢／deploy）時 activities → `409 dream_locked`；**`pending_review` 可寫 activities**
+- dream **lock**（入夢／deploy）時 activities／clarify 寫入 → `409 dream_locked`；**`pending_review` 可寫 activities／clarify**
+- clarify：aside body 用 **`raw`**；submit body 用 **`answer`**；**不**寫 L0／STM／day ledger
 - **`pending_review` 時不可**再 `POST /dreams/run`（改 approve／discard／retry／amend）
 - **空 pool 仍可入夢（0.24）：** short-term 空但存在已結束、缺 higher 的 week／month／year → `POST /dreams/run` 走 **rollup-only**（跳過 day extract，只跑 cascade）→ 202；若無此類 catch-up 才 409 `nothing_to_dream`
 - **虛擬時鐘：** `PUT /clock` 需 `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`；`DELETE /clock` 恆可；見 `/status.clock`
@@ -121,12 +123,13 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.29.0` — Activity 附圖（media attachments）；**本版只做這一項** — 見 `docs/roadmap/0.29.0/`（**shipped**；**無** store migrate）
-- **上一版：** `0.28.0` — Node 主檔 `{id}.md`＋Obsidian vault＝`memories/`＋Structure notes — 見 `docs/roadmap/0.28.0/`（**shipped**；**有** store migrate）
+- **已出貨：** `0.30.0` — 釐清（Clarify）：補問＋順帶補充 → 入夢蒸餾進 nodes；**本版只做這一項** — 見 `docs/roadmap/0.30.0/`（**shipped**；**無** store migrate）
+- **上一版：** `0.29.0` — Activity 附圖（media attachments）— 見 `docs/roadmap/0.29.0/`（**shipped**；**無** store migrate）
+- **更早：** `0.28.0` — Node 主檔 `{id}.md`＋Obsidian vault＝`memories/`＋Structure notes — 見 `docs/roadmap/0.28.0/`（**shipped**；**有** store migrate）
 - **更早：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
 - **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
 - **Backlog：** 見 `docs/roadmap/backlog/`（含 Seek／network 依分等）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28** store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29 無 migrate hop**
+- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28** store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30 無 migrate hop**
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

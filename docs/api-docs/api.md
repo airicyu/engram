@@ -55,6 +55,10 @@ Service discovery.
     "GET /memories/chain/{day_id}",
     "GET /memories/nodes",
     "GET /memories/nodes/{node_id}",
+    "GET /memories/clarify/asking",
+    "POST /memories/clarify/asking/{id}/submit",
+    "DELETE /memories/clarify/asking/{id}",
+    "POST /memories/clarify/aside",
     "POST /memories/ask",
     "GET /memories/ask/{job_id}",
     "POST /memories/ask/{job_id}/cancel",
@@ -496,17 +500,63 @@ Always **200**. No pending → empty shape (not 404).
   "chain_weeks": [],
   "chain_months": [],
   "chain_years": [],
-  "future_ids": ["fs-2026-07-31-deadline"]
+  "future_ids": ["fs-2026-07-31-deadline"],
+  "clarify_distilled_node_ids": ["acme"]
 }
 ```
 
 `chain_days` = ledger files (`days/{id}.md`); `chain_summary_days` = summary files (`days/{id}.summary.md`).
 
+**`clarify_distilled_node_ids`** (0.30+): node ids touched by clarify distill this run（from `DreamRunState`, not report-only）. Always an array when `present: true`（no change → `[]`）. When `present: true`, `draft_summary` is always an object（may have `entry_count: 0`).
+
 **`node_score_involvements`** (0.19+): collapsed list from draft `node-score-involvements.yaml` — `{ id, category, reason? }` with `category` ∈ `mention`｜`update`｜`focus`. Missing／empty artifact → `[]`.
+
+**Report `## Clarify distill`** (0.30+): between involvements／rollup and Structure notes. Empty → `_None_`.
 
 **Report `## Structure notes`** (0.28+): server soft-lint of draft node mains (`memories/nodes/{id}/{id}.md`) — missing standing headings、Relation mentioning a known node without wikilink、broken `[[nodes/…]]`. Empty → `_None_`. Warnings **do not** fail the job or block `POST /dreams/approve`.
 
 Node standing understanding path (0.28+): `memories/nodes/{id}/{id}.md`（API field still `understanding`）. Obsidian vault root＝`{ENGRAM_STORE_DIR}/memories/`.
+
+---
+
+## `GET /memories/clarify/asking`
+
+List open follow-ups（`asking/` only）, oldest → newest by `created_at`. Empty → `{ "items": [] }`（not 404）.
+
+```json
+{
+  "items": [
+    {
+      "id": "…",
+      "kind": "prompt",
+      "created_at": "…",
+      "source_dream_run_id": "…",
+      "related_nodes": ["acme"],
+      "question": "…"
+    }
+  ]
+}
+```
+
+---
+
+## `POST /memories/clarify/asking/{id}/submit`
+
+Body: `{ "answer": "…" }`（trim 後非空；UTF-8 ≤16KiB）. Moves asking → pending with `## Answer`. Success **200** `{ "id", "queue": "pending" }`. Missing asking → **404**. Dream lock → **409** `dream_locked`. `pending_review` **allows** writes.
+
+---
+
+## `DELETE /memories/clarify/asking/{id}`
+
+Dismiss＝true-delete asking file. Missing → **200** idempotent. Does **not** enter history. Dream lock → **409**.
+
+---
+
+## `POST /memories/clarify/aside`
+
+Body: `{ "raw": "…" }`（trim 後非空；≤16KiB）. Creates pending `kind: aside`（**not** L0／STM／ledger）. Success **201** `{ "id", "queue": "pending" }`. Dream lock → **409**；`pending_review` allows.
+
+Clarify queues live under `memories/clarify/{asking,pending,history}/`. Dream pipeline ends with `clarify_distill` → `clarify_generate` before `pending_review`. Approve archives `clarify_pending_snapshot_ids` ∩ pending → `history/`（even when `empty_patches`）.
 
 ---
 

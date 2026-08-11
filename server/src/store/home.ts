@@ -6,6 +6,7 @@ import { ensureFutureSightFiles } from "./memories/future-sight";
 import { ensureDreamDirs } from "./dreams/dream-runs";
 import { ensureStoreGit } from "./git";
 import { ensureAttachmentsDir } from "./memories/attachments";
+import { ensureClarifyDirs } from "./memories/clarify";
 import { join } from "node:path";
 import { stringify } from "../yaml";
 import { config } from "../config";
@@ -69,6 +70,7 @@ export async function ensureEngramHome(): Promise<void> {
   await ensureFutureSightFiles();
   await ensureDreamDirs();
   await ensureAttachmentsDir();
+  await ensureClarifyDirs();
   await ensureWorkspaceFile();
   // 0.16: store must be a local git repo (no git binary / ensure failure → refuse start).
   await ensureStoreGit();

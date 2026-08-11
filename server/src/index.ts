@@ -42,6 +42,12 @@ import {
 } from "./api/memory/chain";
 import { handleNodesIndex, handleNodeDetail } from "./api/memory/nodes";
 import { handleFutureSight } from "./api/memory/future-sight";
+import {
+  handleClarifyAside,
+  handleClarifyDismiss,
+  handleClarifyListAsking,
+  handleClarifySubmit,
+} from "./api/clarify";
 import { logError, logInfo, logMemory, withRequestLog } from "./log";
 import { killAllTrackedAgentProcesses } from "./store/agent-process";
 import { sweepDreamArtifacts } from "./store/dreams/cleanup";
@@ -106,6 +112,10 @@ try {
             "GET /memories/chain/{day_id}",
             "GET /memories/nodes",
             "GET /memories/nodes/{node_id}",
+            "GET /memories/clarify/asking",
+            "POST /memories/clarify/asking/{id}/submit",
+            "DELETE /memories/clarify/asking/{id}",
+            "POST /memories/clarify/aside",
             "POST /memories/ask",
             "GET /memories/ask/{job_id}",
             "POST /memories/ask/{job_id}/cancel",
@@ -364,6 +374,22 @@ try {
         return handleMemoryAskPost(body);
       }),
     },
+
+    "/memories/clarify/asking": {
+      GET: withRequestLog(async () => handleClarifyListAsking()),
+    },
+
+    "/memories/clarify/aside": {
+      POST: withRequestLog(async (req) => {
+        let body: unknown = {};
+        try {
+          body = await req.json();
+        } catch {
+          return Response.json({ error: "invalid JSON body" }, { status: 400 });
+        }
+        return handleClarifyAside(body);
+      }),
+    },
   },
 
   fetch: withRequestLog(async (req) => {
@@ -437,6 +463,26 @@ try {
       }
       logMemory("browse nodes detail", { node: out.node, present: out.present });
       return Response.json(out);
+    }
+
+    const clarifySubmitMatch = url.pathname.match(
+      /^\/memories\/clarify\/asking\/([^/]+)\/submit$/,
+    );
+    if (clarifySubmitMatch && req.method === "POST") {
+      const id = decodeURIComponent(clarifySubmitMatch[1]!);
+      let body: unknown = {};
+      try {
+        body = await req.json();
+      } catch {
+        return Response.json({ error: "invalid JSON body" }, { status: 400 });
+      }
+      return handleClarifySubmit(id, body);
+    }
+
+    const clarifyDismissMatch = url.pathname.match(/^\/memories\/clarify\/asking\/([^/]+)$/);
+    if (clarifyDismissMatch && req.method === "DELETE") {
+      const id = decodeURIComponent(clarifyDismissMatch[1]!);
+      return handleClarifyDismiss(id);
     }
 
     const match = url.pathname.match(/^\/memories\/ask\/([^/]+)(\/cancel)?$/);

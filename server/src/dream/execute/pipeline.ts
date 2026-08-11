@@ -45,6 +45,9 @@ import { formatRollupReportSection, runRollupCascade } from "../rollup/cascade";
 import { hasRollupCatchupWork } from "../rollup/candidates";
 import { config } from "../../config";
 import { calendarDate, nowIso } from "../../store/memories/activities";
+import { listPendingIds, deleteAskingBySourceRunIds, commitClarifyPaths, deleteAskingFile } from "../../store/memories/clarify";
+import { runClarifyDistill } from "../clarify/distill";
+import { runClarifyGenerate } from "../clarify/generate";
 
 /** Result returned after a dream reaches pending review. */
 export interface DreamRunResult {
@@ -118,6 +121,13 @@ export async function retryDream(opts: {
       retried_from: pending.id,
     };
     const scope = [...pending.scope];
+    // 0.30: before re-generate, delete asking sourced from discarded／superseded run ids.
+    const clearIds = new Set<string>([pending.id]);
+    if (pending.retried_from) clearIds.add(pending.retried_from);
+    const deleted = await deleteAskingBySourceRunIds(clearIds);
+    if (deleted.length > 0) {
+      await commitClarifyPaths(`engram: clarify retry clear asking`).catch(() => {});
+    }
     await discardPending(pending.id);
     return await executeDreamPipeline({ dreamRunId, scope, runner: opts.runner, reviewFeedback });
   } catch (e) {
@@ -360,11 +370,58 @@ export async function executeDreamPipeline(opts: {
     emitDreamEvent(dreamRunId, { phase: "materialize", level: "error", event: "involvements_invalid", message: msg });
     throw new DreamIncompleteError(dreamRunId, msg, "materialize");
   }
-  await finalizeDreamReport({ dream_run_id: dreamRunId, scope, events: poolEntries, review_feedback: reviewFeedback, rollup_section: rollupSection });
+
+  // 0.30: clarify_distill → finalizeDraft → clarify_generate → report → pending_review
+  let clarifySnapshotIds: string[] = [];
+  let clarifyDistilledNodeIds: string[] = [];
+  let clarifyDistillNarrative = "_None_";
+  let clarifyGeneratedIds: string[] = [];
+  try {
+    throwIfDreamCancelled(dreamRunId);
+    clarifySnapshotIds = await listPendingIds();
+    const distill = await runClarifyDistill({
+      dreamRunId,
+      snapshotIds: clarifySnapshotIds,
+    });
+    clarifyDistilledNodeIds = distill.distilled_node_ids;
+    clarifyDistillNarrative = distill.narrative;
+    await finalizeDraftFromDisk(dreamRunId);
+    const gen = await runClarifyGenerate({ dreamRunId });
+    clarifyGeneratedIds = gen.written_ids;
+    await finalizeDreamReport({
+      dream_run_id: dreamRunId,
+      scope,
+      events: poolEntries,
+      review_feedback: reviewFeedback,
+      rollup_section: rollupSection,
+      clarify_distill_section: clarifyDistillNarrative,
+    });
+  } catch (e) {
+    // INDEX #34: best-effort delete asking written this job if dream fails after land
+    if (clarifyGeneratedIds.length > 0) {
+      for (const id of clarifyGeneratedIds) {
+        await deleteAskingFile(id).catch(() => {});
+      }
+      await commitClarifyPaths(`engram: clarify generate rollback ${dreamRunId}`).catch(() => {});
+    }
+    await removeDraft(dreamRunId).catch(() => {});
+    if (isDreamCancelled(dreamRunId)) throw new DreamCancelledError(dreamRunId);
+    const msg = e instanceof Error ? e.message : String(e);
+    emitDreamEvent(dreamRunId, {
+      phase: "materialize",
+      level: "error",
+      event: "clarify_failed",
+      message: msg,
+    });
+    throw new DreamIncompleteError(dreamRunId, msg, "materialize");
+  }
+
   const entryCount = (await draftSummary(dreamRunId))?.entry_count ?? 0;
   await writeDreamRun(newPendingRun({
     id: dreamRunId, scope, patch_count: entryCount,
     retried_from: reviewFeedback?.retried_from, retry_reason: reviewFeedback?.reason,
+    clarify_pending_snapshot_ids: clarifySnapshotIds,
+    clarify_distilled_node_ids: clarifyDistilledNodeIds,
   }));
   await writeExtractState({ status: "ok", dream_run_id: dreamRunId });
   emitDreamEvent(dreamRunId, {

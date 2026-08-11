@@ -38,6 +38,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /dreams/run` → pending → `approve`／`discard`／`retry`／`amend`／`cancel` | Hand-edit short-term／L2／draft during review |
 | `GET /memories/short-term-memory` / `GET /memories/search` / `POST /memories/ask` | Assemble context by reading markdown files |
 | `GET /memories/future-sight` for near-horizon anchors | Hand-edit `future-sight/` |
+| Clarify: list／submit／dismiss／aside | Hand-edit `memories/clarify/` |
 | Report `dream_status` from `/status` | Hand-edit dream state files |
 
 ### Not exposed by API (prototype)
@@ -59,6 +60,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain,future`; default all four; `future`＝hot＋later) |
 | **Ask** | `POST /memories/ask` `{ q, include_later? }` — async AI Q&A（預設可讀 hot；`include_later:true` 才讀 later）；poll `GET /memories/ask/{job_id}` |
 | **Future-sight** | `GET /memories/future-sight` — `hot`／`later` 錨點（GET 只清過期並可 git commit；重桶在入夢前） |
+| **Clarify** | `GET /memories/clarify/asking`；`POST .../submit` `{ answer }`；`DELETE .../{id}`；`POST /memories/clarify/aside` `{ raw }` — 非 activity；dream lock → 409；pending_review 可寫 |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `never_dreamed` |
 | **store_git** | `GET /status.store_git` — 記憶庫是否為可用 local git（0.16+；否則 server 拒啟） |
 | **store_version** | `GET /status.store_version` — 記憶庫結構世代。**0.28+ boot** 要求 major.minor ≥ 0.28，否則拒啟並須**離線**跑 engram-migration（`migrate-0.19-to-0.28`；無需先 start server；會丟棄未批准 dream）；對照 `product_version`（不必字串相等） |
@@ -88,6 +90,10 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `GET /memories/nodes`／`{id}` | — | browse L2；含 `score`／`display_score`（無分 → null） |
 | `POST /memories/ask` | `q`; optional `include_later` (boolean) | `202` + `job_id` + `include_later` |
 | `GET /memories/future-sight` | none | `anchors`（含 `zone`）、`swept_expired` |
+| `GET /memories/clarify/asking` | none | `{ items: [...] }`（舊→新）；空＝`[]` |
+| `POST /memories/clarify/asking/{id}/submit` | `{ answer }` | asking→pending；缺檔 404；lock → 409 |
+| `DELETE /memories/clarify/asking/{id}` | none | dismiss；缺檔 200 冪等 |
+| `POST /memories/clarify/aside` | `{ raw }` | **201** pending aside；非 L0 |
 | `GET /clock` | none | `mode`, `now`, `today`, `allow_set` |
 | `PUT /clock` | `now` **or** `day` (+ optional `time`) | needs `ENGRAM_ALLOW_VIRTUAL_CLOCK=1` |
 | `DELETE /clock` | none | back to system clock |

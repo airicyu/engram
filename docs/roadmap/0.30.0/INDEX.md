@@ -1,23 +1,24 @@
 # 0.30.0 — 釐清（Clarify）：補問＋順帶補充 → 入夢蒸餾進 nodes
 
-← [changelog](../../../changelog.md) · 上游：[0.29.0](../0.29.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md) · 來源：[backlog reflective-cognition-prompts](../backlog/reflective-cognition-prompts.md)
+← [changelog](../../../changelog.md) · 上游：[0.29.0](../0.29.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫法：[GUIDELINES.md](../GUIDELINES.md) · 節奏：[agent-workflow.md](../agent-workflow.md) · 來源：backlog「反思補問」（已刪；產品真相以本版為準）
 
-> **狀態：** **planned**（構想已大量收斂；**開工前仍須拍板**未清空前不可當「讀完即可開工」）  
-> **本版只做這一項：** 第五場景 **釐清**＋store 三 queue（`asking`／`pending`／`history`）＋入夢末段兩獨立 job（`clarify_distill` → `clarify_generate`）；distill 結果進**同一輪 dream draft 的 node 主檔**，**approve 與 L2 一併生效**並將已處理 pending 歸檔。**不做**其他 backlog（graph、vector、Seek 活躍分、shared Zod 等）。
+> **狀態：** **shipped**（2026-08-11；`test:phases` 綠；實作審查 HIGH／同意 MEDIUM 已關）  
+> **本版只做這一項：** 第五場景 **釐清**＋store 三 queue（`asking`／`pending`／`history`）＋入夢末段兩獨立 job（`clarify_distill` → `clarify_generate`）；distill 結果進**同一輪 dream draft 的 node 主檔**，**approve 與 L2 一併生效**並將本輪快照內 pending 歸檔。**不做**其他 backlog（graph、vector、Seek 活躍分、shared Zod 等）。
 
 ## 產品句
 
-> 每次入夢末段，系統以有好奇心的智能體從本輪夢內容（不足則從熱門 nodes）產出 **3–5 則補問**，累積於釐清場景；人在 **釐清** tab 回答補問或寫 **順帶補充**（皆非 activity、不進 day ledger）。已答內容進 `pending`；下次入夢先 **一次讀整包 pending** 蒸餾進 draft **nodes only**，再生成新補問；人在 Consolidate 審這輪（含釐清沉澱）後 **approve** 才寫入 live L2，並把本輪處理過的 pending 移到 `history`。
+> 每次入夢末段，系統以有好奇心的智能體從本輪夢內容（不足則從高活躍分 nodes）產出 **3–5 則補問**，累積於釐清場景；人在 **釐清** tab 回答補問或寫 **順帶補充**（皆非 activity、不進 day ledger）。已答內容進 `pending`；下次入夢先 **一次讀整包 pending** 蒸餾進 draft **nodes only**，再生成新補問；人在 Consolidate 審這輪（含釐清沉澱）後 **approve** 才寫入 live L2，並把本輪 distill 快照內的 pending 移到 `history`。
 
 ## 文件地圖
 
 | # | 文件 | 內容 |
 |---|------|------|
-| 1 | **本檔 INDEX** | 範圍、定案、非目標、待拍板、軌道草圖、驗收草圖 |
-| 2 | [docs/reasoning.md](./docs/reasoning.md) | 為何獨立 clarify 層、為何經人審、為何只改 nodes、否決方案 |
-| 3 | [../backlog/reflective-cognition-prompts.md](../backlog/reflective-cognition-prompts.md) | 早期構想；**產品真相以本版為準** |
-
-（開工前應再補：`docs/queues-and-pipeline.md`（路徑／檔案固定結構／dream 階段順序）、API 契約摘要或併入 api-docs 草稿。）
+| 0 | [HANDOFF.md](./HANDOFF.md) | 給實作 agent 的開工交接（讀序／禁區／貼上用 prompt） |
+| 1 | **本檔 INDEX** | 範圍、定案、非目標、軌道、驗收 |
+| 2 | [docs/queues-and-pipeline.md](./docs/queues-and-pipeline.md) | 路徑、frontmatter、HTTP、dream 掛點、approve 歸檔 |
+| 3 | [docs/reasoning.md](./docs/reasoning.md) | 為何獨立 clarify 層、經人審、只改 nodes、否決方案 |
+| 4 | [docs/design-review.md](./docs/design-review.md) | 設計審查；**D／F 已併入本檔已定案**（2026-08-11） |
+| 5 | [docs/implementation-review.md](./docs/implementation-review.md) | 實作審查（對 INDEX 驗收） |
 
 ---
 
@@ -35,70 +36,96 @@
 
 | # | 題 | 決定 |
 |---|-----|------|
-| 1 | 場景 tab | 中文 **釐清**；英文 domain **Clarify**；場景 id 建議 `clarify`（實作可再確認與 Topbar 一致） |
-| 2 | 卡片區小標 | **補問**＝系統產生、等人回答的問題 cards |
-| 3 | Freestyle 區 | **順帶補充**＝人自發寫的任意內容（textarea）；與補問分區；**本版不做**附圖（可列未來） |
-| 4 | Card 操作 | 每則補問：問題正文 + textarea + **submit** + **dismiss**；dismiss＝**真刪**該則 asking 檔 |
-| 5 | 與 Seek | Seek 仍＝人問系統；釐清＝系統補問人＋人順帶補充；**不**共用輸入框 |
-| 6 | 術語 | Store／程式／path 用 **clarify**；**不用** wonder／FAQ 當正式 domain 名 |
+| 1 | 場景 tab | 中文 **釐清**；英文 domain **Clarify**；場景 id **`clarify`** |
+| 2 | Topbar 順序 | `activities` → `consolidate` → `clarify` → `seek` → `memory` |
+| 3 | Badge | **本版不做** open 補問數 badge |
+| 4 | 卡片區小標 | **補問**＝系統產生、等人回答的問題 cards |
+| 5 | Freestyle 區 | **順帶補充**＝人自發寫的任意內容（textarea）；與補問分區；**本版不做**附圖 |
+| 6 | Card 操作 | 每則補問：問題正文 + textarea + **submit** + **dismiss**；dismiss＝**真刪**該則 asking 檔 |
+| 7 | 與 Seek | Seek 仍＝人問系統；釐清＝系統補問人＋人順帶補充；**不**共用輸入框 |
+| 8 | 術語 | Store／程式／path 用 **clarify**；**不用** wonder／FAQ 當正式 domain 名 |
 
 ### Store：三 queue
 
 | # | 題 | 決定 |
 |---|-----|------|
-| 7 | 根路徑 | **`memories/clarify/`**（進 store git，與 nodes 同級追蹤） |
-| 8 | `asking/` | 一則一檔 markdown；**固定結構**；**只有問題**（無答案） |
-| 9 | `pending/` | 一則一檔；**固定結構**；**問題＋答案**（補問 submit：從 asking **move** 過來並寫入答案）；順帶補充可直接以 `kind: aside`（或等價）進 pending |
-| 10 | `history/` | 從 pending **move** 過來；**僅備份、不再讀** |
-| 11 | 非 activity | 補問答覆與順帶補充 **不**寫 L0、**不**寫 short-term pool、**不**進 day ledger／chain |
-| 12 | asking 上限 | 進行中補問最多 **10**；每次 generate 新產 **3–5** 則 |
-| 13 | 超過 10 | 由 AI **存留／改寫／刪除**至 ≤10；**pruned＝真刪、不進 history、不留審計／retry 追蹤**；日後可再問同類題 |
-| 14 | 檔案結構 | asking／pending 皆須 **固定 structure**（frontmatter＋標題段）；精確 schema 見待拍板／後續 docs |
+| 9 | 根路徑 | **`memories/clarify/`**（進 store git，與 nodes 同級追蹤） |
+| 10 | `asking/` | 一則一檔 markdown；**固定結構**；**只有問題**（無答案） |
+| 11 | `pending/` | 一則一檔；**固定結構**；**問題＋答案**（補問 submit：從 asking **move** 過來並寫入答案）；順帶補充以 `kind: aside` 進 pending |
+| 12 | `history/` | 從 pending **move** 過來；**僅備份、產品不再讀**；本版 **flat**（不分年月桶）、**無**上限／GC |
+| 13 | 非 activity | 補問答覆與順帶補充 **不**寫 L0、**不**寫 short-term pool、**不**進 day ledger／chain |
+| 14 | asking 上限 | 進行中補問最多 **10**；每次 generate 新產 **3–5** 則 |
+| 15 | 超過 10 | 由 AI **存留／改寫／刪除**至 ≤10；**pruned＝真刪、不進 history、不留審計／retry 追蹤** |
+| 16 | 檔案結構 | frontmatter：`id`、`kind`（`prompt`｜`aside`）、`created_at`、`answered_at`（pending+）、`source_dream_run_id`、`related_nodes`；body：`## Question`／`## Answer`（aside 省略 Question）。精確字面見 [queues-and-pipeline](./docs/queues-and-pipeline.md) |
+| 17 | `store_version` | **無** migrate hop；**不**抬 boot gate（仍 ≥0.28）；`ensureClarifyDirs()`；舊庫無目錄合法（仿 0.29 attachments） |
+
+### HTTP
+
+| # | 題 | 決定 |
+|---|-----|------|
+| 18 | 前綴 | **`/memories/clarify`** |
+| 19 | List asking | `GET /memories/clarify/asking` → `{ items: [...] }`；空＝`[]`；舊→新 |
+| 20 | Submit | `POST /memories/clarify/asking/{id}/submit` body `{ answer }`；asking→pending |
+| 21 | Dismiss | `DELETE /memories/clarify/asking/{id}`；缺檔 **200** 冪等 |
+| 22 | Aside | `POST /memories/clarify/aside` body `{ raw }`；**201**；進 pending |
+| 23 | List pending／history | **本版不暴露** HTTP |
+| 24 | Lock | dream lock → **409** `dream_locked`；**`pending_review` 仍可**寫 clarify（同 activities） |
 
 ### 入夢 pipeline（末段兩 job）
 
 | # | 題 | 決定 |
 |---|-----|------|
-| 15 | 順序 | 既有 extract → materialize → rollup **之後**，進入 `pending_review` **之前**：先 **`clarify_distill`**，再 **`clarify_generate`** |
-| 16 | Distill | 獨立 job／prompt：讀 **整包** `clarify/pending/*`（一次集合，**不**逐檔串行以免互相覆寫）→ 寫入**本輪** dream draft 的 **node 主檔 only** |
-| 17 | Distill 白名單 | **只准**改 draft 下 `memories/nodes/{id}/{id}.md`；**不准**改 chain、ledger、future-sight |
-| 18 | Generate | 獨立 job：依**本輪夢內容**發掘相關補問；夢內容不足則從**熱門 nodes**（既有 score／`display_score`）出發；寫入 `asking/`（並在 >10 時 prune） |
-| 19 | Rollup-only | short-term pool 空、僅 rollup catch-up 的入夢：**仍跑** `clarify_distill` + `clarify_generate` |
-| 20 | Pending 為空 | distill **skip**（或 no-op）；generate 仍可跑 |
-| 21 | Distill 時檔案位置 | distill **只讀寫 draft nodes**；`pending/` 檔案在 distill 完成後 **仍留在 pending**（不提前搬 history） |
-| 22 | Report／UI | 本輪因釐清產生的 draft node 改動須在 Consolidate **可見**（report 建議獨立段如 `## 釐清沉澱`，或等價清楚呈現；精確標題待拍板） |
+| 25 | 順序 | extract → materialize → rollup **之後**，進入 `pending_review` **之前**：先 **`clarify_distill`**，再 **`clarify_generate`**（細節掛點見 queues-and-pipeline） |
+| 26 | Distill | 獨立 job：讀 **整包** `clarify/pending/*` → 寫入**本輪** dream draft 的 **node 主檔 only** |
+| 27 | Distill 白名單 | **只准**改 draft 下 `memories/nodes/{id}/{id}.md`；**不准**改 chain、ledger、future-sight |
+| 28 | Distill 時檔案 | pending 檔在 distill 後 **仍留 pending** |
+| 29 | Distill 快照 | 開始時 listing → 寫入本輪 **`DreamRunState.clarify_pending_snapshot_ids`**（空／no-op→`[]`）；approve **只**讀此欄，不以 report 為唯一真相 |
+| 30 | Distill create | **允許**在 draft 新建尚不存在的 `nodes/{id}/{id}.md`（id 規則同既有 dream create）；仍禁 chain／future-sight／ledger |
+| 31 | Distill 白名單違規 | **剔除**違規寫入＋log；不因單次違規整夢失敗；剔除後無合法變更＝no-op |
+| 32 | Generate | 獨立 job：依本輪夢內容；不足則 live nodes 按 **`score` 降序 top 8**，並優先避開本輪 involvements 的 `update`｜`focus`；>10 時 prune |
+| 33 | Generate 落盤 | agent **只**出結構化結果（或 temp）；**server** 校驗後寫 live `asking/`；**禁止**把 live `memories/clarify`（或更廣 live `memories/**`）加進 dream agent `writableRoots`；結束後 **`stageAndCommitPaths`**（`engram: clarify generate {dream_run_id}`） |
+| 34 | Generate 原子性 | 組批校驗後一次寫入；若逐則寫入後整夢失敗 → best-effort 刪本 job 已寫 id |
+| 35 | Rollup-only | **仍跑**兩 job；夢內容不足 → **必須**走 score top 8；store **無任何 node** → generate **no-op**（不報錯） |
+| 36 | Pending 空 | distill **no-op**；generate 仍跑（選材同上） |
+| 37 | Job 硬失敗 | distill／generate runner 崩／逾時／無法落盤 → **整夢失敗**、清 draft、**不** `pending_review`；asking／pending **不**因失敗而回滾既有檔（本 job 部分寫入見 #34） |
+| 38 | Job phase | **不**新增 UI `DreamJobPhase`；`DreamIncompleteError.phase` 仍用 **`materialize`**；events／log 標 `clarify_distill`／`clarify_generate` |
+| 39 | Report | 段名 **`## Clarify distill`**（空＝`_None_`）；段序：involvements →（rollup）→ **Clarify distill** → Structure notes → Appendix；截斷正則一律含此邊界 |
+| 40 | Pending API | `present: true` 時 **`draft_summary` 必為物件**（可 `entry_count: 0`），且必有 `clarify_distilled_node_ids: string[]`（真相＝distill job／server 記錄，非只 parse report；無變更→`[]`） |
 
-### Approve／Discard
+### Approve／Discard／Retry／Amend
 
 | # | 題 | 決定 |
 |---|-----|------|
-| 23 | Approve | 既有 deploy draft→live L2（含釐清蒸餾的 node 變更）＋清 short-term scope；**並**將本輪有被 distill 處理的 `clarify/pending/*` **move → `history/`** |
-| 24 | Discard | 只丟 dream draft（照舊）；**`asking/` 留著**；**`pending/` 原地不動**（不進 history） |
-| 25 | 不 silent 寫 L2 | 釐清內容**不得**在 approve 前寫入 live nodes；須經 `pending_review` 人審 |
+| 41 | Approve 歸檔 | 將 `clarify_pending_snapshot_ids`∩仍在 pending 的檔 **move → history/**；快照後新進 pending 留待下輪 |
+| 42 | Approve 與 empty_patches | **無論** `empty_patches`，只要快照非空就做歸檔並納入該次 dream git（deploy 失敗則 **不** move）；`l1_clear_pending` 重試路徑 **不再**做 clarify 歸檔 |
+| 43 | Approve 順序 | deploy 成功（或確認無需 deploy）→ 歸檔 → 清 STM／去 draft；歸檔第二步失敗 → log＋可重試，不得假裝已歸檔 |
+| 44 | Discard | 只丟 dream draft；**asking／pending 不動**；**不得**刪 asking |
+| 45 | Retry 清 asking | 重跑 generate **前**，server **真刪** `source_dream_run_id` ∈｛將 discard 的 pending `dream_run_id`｝∪｛retry 鏈上被取代的 run_id｝的 asking 檔（不進 history）；再跑 distill＋generate；`pending/` 仍不動 |
+| 46 | Retry | 整段 pipeline → 清本輪來源 asking 後 **重跑**兩 clarify job |
+| 47 | Amend | **不**重跑 clarify；**不**重拍快照；**不得**刪 asking；接受「amend 改稿後仍按舊快照歸檔」 |
+| 48 | 不 silent 寫 L2 | 釐清內容**不得**在 approve 前寫入 live nodes |
+
+### 寫入競態／校驗
+
+| # | 題 | 決定 |
+|---|-----|------|
+| 49 | Clarify 寫互斥 | submit／dismiss／aside 短互斥（capture lock 或 `clarify_write`）；同 id 二度 submit → **404**（已不在 asking） |
+| 50 | 字串上限 | `answer`／`raw`／Question UTF-8 **≤ 16KiB** → 超限 **400** |
+| 51 | `related_nodes` | 非空 string、去重、**不**要求 live 存在；單則最多 **16**；超限 400／generate 不落盤 |
 
 ### 產品邊界
 
 | # | 題 | 決定 |
 |---|-----|------|
-| 26 | 修錯 activity | **不**用順帶補充當 activity 編輯器；寫錯事件仍靠 **Activities 再寫更正**。釐清只承諾更新 **nodes 理解** |
-| 27 | 來源構想 | 取代 backlog「反思補問」粗構想中「走 activities + source」的閉環；改為 clarify 三 queue |
+| 52 | 修錯 activity | **不**用順帶補充當 activity 編輯器；寫錯事件仍靠 **Activities 再寫更正** |
+| 53 | 來源構想 | 取代 backlog「反思補問」粗構想中「走 activities + source」的閉環 |
+| 54 | Housekeep | asking **無** TTL；僅上限 10＋prune＋dismiss |
 
 ---
 
 ## 開工前仍須拍板
 
-| # | 題 | 備註 |
-|---|-----|------|
-| A | Markdown 固定結構 | frontmatter 欄位（`kind`／`id`／timestamps／`related_nodes`／`source_dream_run_id`…）；`## Question`／`## Answer` 是否強制；aside 是否省略 Question |
-| B | HTTP API | list asking／submit answer／dismiss／submit aside；錯誤碼；與 dream lock 互斥 |
-| C | `store_version` | 是否 bump＋migrate hop（新建 `clarify/` 空目錄？舊庫 ensure？） |
-| D | Generate 細節 | 「熱門」取 top-N 多少；是否避開本輪剛 heavy-update 的 nodes；prompt 位置 |
-| E | Report 段名與 pending API | Consolidate 如何暴露釐清變更清單；是否進 `GET /dreams/pending` |
-| F | Retry／amend | re-dream／amend 是否重跑 clarify jobs；與凍結 scope 的關係 |
-| G | Housekeep | history 是否按年月分桶／上限；久未答的 asking 是否另設 TTL（目前僅靠上限 10＋AI prune） |
-| H | Topbar／i18n | 五場景順序；badge（open 補問數）是否本版做 |
-
-**未清空本表前，狀態維持 `planned`，不可開實作 agent 當自足開工。**
+（空 — 2026-08-11 規劃收斂＋design-review 併入。原 A–H 與審查 D1–D9／F1–F7 建議定案已寫入上表。）
 
 ---
 
@@ -110,47 +137,57 @@
 - Seek 場景內嵌系統提問；Activities 旁常駐補問打擾 capture
 - 獨立第六種「待辦 inbox」產品名（釐清即唯一場景）
 - 順帶補充附圖（未來可接 0.29 attachment 模式）
+- Topbar open 計數 badge
+- history 年月分桶／上限 GC；asking 日曆 TTL
+- `GET` list pending／history
+- 新增 UI `DreamJobPhase`；擴 dream agent live `writableRoots` 含 clarify／nodes／chain
+- Discard／Amend 時「好心」清 asking
+- Amend 後重跑 distill／重拍快照
 - Node network graph、vector search、Seek 依活躍分、shared Zod package
 - 系統未經 approve 自動改 live L2
 - 通用 chatbot 式無限追問
 
 ---
 
-## 實作軌道（草圖；拍板後再細化驗收）
+## 實作軌道
 
 ### Track A — Store＋契約＋dream 兩 job
 
-- **做：** `memories/clarify/{asking,pending,history}/`；檔案校驗；pipeline 末段 `clarify_distill`／`clarify_generate`；approve 歸檔 pending；discard 不動 clarify queues；rollup-only 仍跑兩 job；distill 白名單僅 node 主檔
-- **不要：** silent live 寫入；distill 改 chain／future-sight
-- **驗收：** 見下方 checklist（拍板後補 API 名）
+- **做：** `ensureClarifyDirs`；檔案校驗＋16KiB／related_nodes；clarify HTTP＋寫互斥；pipeline 末段兩 job；`DreamRunState` 快照；approve 含 empty_patches 歸檔；retry 前清本輪來源 asking；generate＝server 落盤＋commit；discard／amend 不刪 asking；report 段＋固定 `draft_summary.clarify_distilled_node_ids`
+- **不要：** silent live nodes；擴 agent live writable；migrate hop／抬 boot gate
+- **驗收（Track 結束前窄測必含）：** 快照歸檔、discard 不動 queue、retry 後 asking ≤10 且不疊同 run 來源、dream_locked 409、pending_review 可 aside／submit、白名單剔除、empty_patches 仍歸檔；curl 主路徑 aside／submit → run → approve → history
+- **Mock：** distill／generate **不**依賴外網；generate 由 server fixture 寫 asking
 
 ### Track B — Web 釐清場景＋Consolidate 呈現
 
-- **做：** 第五 tab **釐清**；補問 cards（submit／dismiss）；順帶補充區；Consolidate 顯示釐清所致 node draft 變更
-- **不要：** 與 Seek 共用輸入；把釐清做成 admin badge 牆
-- **驗收：** 心智模型可演示：答補問 → 入夢 → 審夢見變更 → approve → pending 進 history
+- **做：** 第五 tab；補問 cards；順帶補充；Consolidate 可見 report 釐清段（可選高亮 node ids）
+- **不要：** Seek 共用輸入；badge 牆；admin dashboard 感；discard 時清 asking
+- **驗收：** 心智模型可演示：答補問 → 入夢 → 審夢見變更 → approve → history
 
 ### Track C — 文件與出貨
 
-- **做：** api-docs、AGENTS、domain-language、workbench skill、version／changelog；backlog 反思補問條改指本版或出貨後刪除
-- **驗收：** 詞彙統一（釐清／補問／順帶補充／clarify queues）；`test:phases` 含主路徑
+- **做：** api-docs、AGENTS、domain-language、workbench skill、version／changelog；backlog 反思補問出貨後刪列
+- **驗收：** 詞彙統一；`test:phases` 至少串 aside→run→approve→history，並覆蓋 retry 不膨脹、empty_patches 歸檔、lock 409
 
 ---
 
-## 驗收（草圖）
+## 驗收
 
-- [ ] 入夢末段順序：… → `clarify_distill` → `clarify_generate` → `pending_review`
-- [ ] Rollup-only 仍執行兩 clarify job
-- [ ] Distill 一次讀整包 pending；只改 draft node 主檔
-- [ ] Generate 每輪 3–5 則；asking ≤10；超出由 AI prune（真刪）
-- [ ] Submit 補問：asking → pending（含答案）；dismiss：刪 asking
-- [ ] 順帶補充進 pending；不進 L0／ledger
-- [ ] Approve：L2 含釐清 node 變更；處理過的 pending → history
-- [ ] Discard：asking 與 pending 皆保留
-- [ ] Consolidate UI 可見釐清所致 draft 變更
-- [ ] 文件／domain-language 齊；backlog 連結正確
-- [ ] （拍板後）`store_version`／migrate 行為符合定案
-- [ ] `bun run test:phases` 通過
+- [x] 入夢末段順序：… → `clarify_distill` → `clarify_generate` → `pending_review`
+- [x] Rollup-only 仍執行兩 job；無 node 時 generate no-op
+- [x] Distill 一次讀整包 pending；只改／可建 draft node 主檔；白名單違規剔除；pending 檔留待 approve
+- [x] 快照在 `DreamRunState.clarify_pending_snapshot_ids`；approve 只認此欄
+- [x] Generate：server 落盤＋commit；agent writable 不含 live memories；每輪 3–5；asking ≤10；組批／部分失敗回滾本批
+- [x] Clarify API＋16KiB／互斥；dream_locked＝409；pending_review 可寫
+- [x] Submit／dismiss／aside 行為正確；不進 L0／ledger
+- [x] Approve：無論 empty_patches，快照∩pending → history；deploy 失敗不 move；`l1_clear_pending` 不再歸檔
+- [x] Discard／Amend：asking 與 pending 皆保留
+- [x] Retry：先清本輪來源 asking，再重跑兩 job；之後 asking ≤10
+- [x] Report `## Clarify distill` 段序正確；`draft_summary` 在 pending 時必為物件且含 `clarify_distilled_node_ids`
+- [x] Web：五場景順序；釐清可答／dismiss／順帶補充；Consolidate 可見釐清段
+- [x] 無 migrate hop；ensure 空目錄；boot gate 仍 ≥0.28
+- [x] 文件／domain-language／AGENTS／skill 齊；backlog 出貨後刪列
+- [x] `bun run test:phases` 通過
 
 ---
 
@@ -159,9 +196,12 @@
 | 路徑 | 用途 |
 |------|------|
 | `server/src/dream/execute/pipeline.ts` | 入夢階段順序；末段掛 clarify jobs |
-| `server/src/store/dreams/file-pipeline.ts` | Draft 白名單／finalize |
-| `server/src/api/`（dreams／memories） | 新 clarify API 掛載點 |
-| `web/src/App.tsx`／`Topbar.tsx` | 場景切換 |
+| `server/src/store/dreams/file-pipeline.ts` | Draft finalize／manifest |
+| `server/src/dream/review/approve.ts` | Deploy＋歸檔 pending 掛點 |
+| `server/src/dream/report/finalize.ts` | Report 段序與 narrative 截斷 |
+| `server/src/agent/shared/write-policy.ts` | Generate 不可只靠 draft fence |
+| `server/src/api/` + `server/src/index.ts` | 新 clarify routes |
+| `web/src/App.tsx`／`Topbar.tsx`／`lib/types.ts` | 場景切換 |
 | `web/src/scenes/ConsolidateScene.tsx` | 審夢呈現 |
 | `docs/domain-language.md` | 補 Clarify／補問／順帶補充 |
 | `docs/api-docs/api.md` | 契約 |
@@ -176,6 +216,7 @@
 | 焦點 | Activity 附圖 | 釐清補問管線 |
 | 場景 | 四場景 | **＋釐清** |
 | 入夢 | extract＋rollup | 末段 **＋distill pending clarify＋generate 補問** |
+| Store 結構 gate | ≥0.28；attachments ensure | 仍 ≥0.28；**clarify ensure、無 hop** |
 | 進 L2 的新路徑 | 附圖經 activity／dream | 釐清經 draft nodes＋approve |
 
-← [0.29.0](../0.29.0/INDEX.md) · [backlog](../backlog/INDEX.md) · [GUIDELINES](../GUIDELINES.md)
+← [0.29.0](../0.29.0/INDEX.md) · [backlog](../backlog/INDEX.md) · [GUIDELINES](../GUIDELINES.md) · [agent-workflow](../agent-workflow.md)

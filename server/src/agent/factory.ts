@@ -19,6 +19,18 @@ import { CodexInvoker } from "./providers/codex";
 import { CursorInvoker } from "./providers/cursor";
 import { CliRollupAgent, MockRollupAgent } from "./rollup/agent";
 import type { RollupAgent } from "../dream/rollup/cascade";
+import {
+  CliClarifyDistillAgent,
+  CliClarifyGenerateAgent,
+} from "./clarify/cli";
+import {
+  MockClarifyDistillAgent,
+  MockClarifyGenerateAgent,
+} from "./clarify/mock";
+import type {
+  ClarifyDistillAgent,
+  ClarifyGenerateAgent,
+} from "./clarify/types";
 
 export type { AgentMode } from "../config";
 
@@ -88,5 +100,27 @@ export function createRollupAgent(): RollupAgent {
       return new CliRollupAgent(createAgentInvoker());
     default:
       return new MockRollupAgent();
+  }
+}
+
+export function createClarifyDistillAgent(): ClarifyDistillAgent {
+  switch (resolveAgentMode()) {
+    case "cursor":
+    case "codex":
+    case "claude":
+      return new CliClarifyDistillAgent(createAgentInvoker());
+    default:
+      return new MockClarifyDistillAgent();
+  }
+}
+
+export function createClarifyGenerateAgent(): ClarifyGenerateAgent {
+  switch (resolveAgentMode()) {
+    case "cursor":
+    case "codex":
+    case "claude":
+      return new CliClarifyGenerateAgent(createAgentInvoker());
+    default:
+      return new MockClarifyGenerateAgent();
   }
 }

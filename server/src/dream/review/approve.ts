@@ -21,6 +21,9 @@ import { logError } from "../../log";
 import { addInitializedIds, type HigherChainLevel } from "../../store/memories/chain-higher";
 import { readInvolvementsForPending, settleNodeScoresOnApprove } from "../score/involvements";
 import {
+  archivePendingToHistory,
+} from "../../store/memories/clarify";
+import {
   FutureChainIdError,
   NoPendingError,
   StaleFutureAnchorError,
@@ -44,18 +47,40 @@ export async function getPendingPayload(): Promise<{
   dream_run_id: string | null;
   scope: string[];
   report: string | null;
-  draft_summary: Awaited<ReturnType<typeof draftSummary>>;
+  draft_summary: {
+    entry_count: number;
+    chain_days: string[];
+    chain_summary_days: string[];
+    chain_weeks: string[];
+    chain_months: string[];
+    chain_years: string[];
+    future_ids: string[];
+    clarify_distilled_node_ids: string[];
+  } | null;
   node_score_involvements: Array<{ id: string; category: string; reason?: string }>;
 }> {
   const pending = await getPendingRun();
   if (!pending) {
     return { present: false, dream_run_id: null, scope: [], report: null, draft_summary: null, node_score_involvements: [] };
   }
-  const [report, draft_summary, involvements] = await Promise.all([
+  const [report, draft, involvements] = await Promise.all([
     readReport(pending.id),
     draftSummary(pending.id),
     readInvolvementsForPending(pending.id),
   ]);
+  const clarifyIds = pending.clarify_distilled_node_ids ?? [];
+  const draft_summary = draft
+    ? { ...draft, clarify_distilled_node_ids: clarifyIds }
+    : {
+        entry_count: 0,
+        chain_days: [],
+        chain_summary_days: [],
+        chain_weeks: [],
+        chain_months: [],
+        chain_years: [],
+        future_ids: [],
+        clarify_distilled_node_ids: clarifyIds,
+      };
   return {
     present: true, dream_run_id: pending.id, scope: pending.scope, report, draft_summary,
     node_score_involvements: involvements.map((r) => ({
@@ -122,6 +147,20 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
       logError("node-score settle after commit failed", e, { dream_run_id: pending.id });
     }
   }
+
+  // 0.30: archive clarify snapshot ∩ pending → history (even when empty_patches).
+  // Deploy failure above throws before here → no move. l1_clear_pending shortcut never reaches here.
+  let clarifyArchivePaths: string[] = [];
+  const snapshot = pending.clarify_pending_snapshot_ids ?? [];
+  if (snapshot.length > 0) {
+    try {
+      clarifyArchivePaths = await archivePendingToHistory(snapshot);
+    } catch (e) {
+      logError("clarify archive to history failed", e, { dream_run_id: pending.id });
+      throw e;
+    }
+  }
+
   pending.status = "committed";
   pending.committed_at = nowIso();
   pending.l1_clear_pending = true;
@@ -133,8 +172,9 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   } catch (e) {
     logError("l1 clear after commit failed", e, { dream_run_id: pending.id });
   }
-  const gitPaths = [...committed, ...scorePaths];
+  const gitPaths = [...committed, ...scorePaths, ...clarifyArchivePaths];
   if (!pending.l1_clear_pending) gitPaths.push("memories/short-term-memory");
+  if (clarifyArchivePaths.length > 0) gitPaths.push("memories/clarify");
   if (gitPaths.length > 0) {
     await stageAndCommitPaths([...new Set(gitPaths)], `engram: dream ${pending.id}`)
       .catch((e) => logError("git commit after dream deploy failed", e, { dream_run_id: pending.id }));

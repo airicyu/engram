@@ -25,7 +25,7 @@ async function json(method: string, path: string, body?: unknown) {
   return { status: res.status, data };
 }
 
-function startServer(agent: string): Promise<ChildProcess> {
+function startServer(agent: string, extraEnv: Record<string, string> = {}): Promise<ChildProcess> {
   const server = spawn("bun", ["run", "src/index.ts"], {
     cwd: join(ROOT, "server"),
     env: {
@@ -35,6 +35,7 @@ function startServer(agent: string): Promise<ChildProcess> {
       ENGRAM_AGENT: agent,
       ENGRAM_ALLOW_VIRTUAL_CLOCK: "1",
       ENGRAM_MEMORY_LANGUAGE: "en",
+      ...extraEnv,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -1579,7 +1580,210 @@ Unique later keyword xylophone-launch window for search.
       ).catch(() => {});
     }
 
-    console.log("\n✅ All self-checks passed (through 0.29)");
+    // ── 0.30 Clarify ──────────────────────────────────────────────
+    console.log("\nPhase 0.30: Clarify aside → dream → approve → history");
+    await stopServer(server);
+    server = await startServer("mock-ok");
+
+    // Ensure at least one live node so generate is not no-op
+    const nodesBefore = await json("GET", "/memories/nodes");
+    if (!(nodesBefore.data.nodes as unknown[])?.length) {
+      await mkdir(join(TEST_HOME, "memories/nodes/acme"), { recursive: true });
+      await Bun.write(
+        join(TEST_HOME, "memories/nodes/acme/acme.md"),
+        "## Identity\n\nAcme Corp.\n\n## Relation\n\n_None_\n\n## Standing facts\n\n_None_\n\n## Current situation\n\n_None_\n",
+      );
+      await Bun.write(join(TEST_HOME, "memories/nodes/acme/node.meta.yaml"), "id: acme\nkind: org\naliases: []\n");
+      await Bun.write(join(TEST_HOME, "memories/nodes/acme/score.yaml"), "score: 100\nscore_timestamp: \"2026-01-01T00:00:00.000Z\"\n");
+    }
+
+    const aside = await json("POST", "/memories/clarify/aside", { raw: "Acme contract is two years not one." });
+    assert(aside.status === 201 && aside.data.id, "clarify aside 201");
+    const asideId = aside.data.id as string;
+
+    // Seed an asking for submit／dismiss path (write into TEST_HOME; server already ensure'd dirs)
+    const askingDir = join(TEST_HOME, "memories/clarify/asking");
+    await mkdir(askingDir, { recursive: true });
+    await Bun.write(
+      join(askingDir, "phase30-ask-1.md"),
+      [
+        "---",
+        'id: "phase30-ask-1"',
+        "kind: prompt",
+        'created_at: "2026-08-11T10:00:00.000+08:00"',
+        'source_dream_run_id: "seed-run"',
+        'related_nodes: ["acme"]',
+        "---",
+        "",
+        "## Question",
+        "",
+        "Is Acme GA or beta?",
+        "",
+      ].join("\n"),
+    );
+    const askList0 = await json("GET", "/memories/clarify/asking");
+    assert(
+      (askList0.data.items as Array<{ id: string }>).some((x) => x.id === "phase30-ask-1"),
+      "seeded asking present",
+    );
+    const submit = await json("POST", "/memories/clarify/asking/phase30-ask-1/submit", {
+      answer: "Internal beta first.",
+    });
+    assert(submit.status === 200 && submit.data.queue === "pending", "clarify submit 200");
+    await Bun.write(
+      join(askingDir, "phase30-ask-dismiss.md"),
+      [
+        "---",
+        'id: "phase30-ask-dismiss"',
+        "kind: prompt",
+        'created_at: "2026-08-11T10:01:00.000+08:00"',
+        'source_dream_run_id: "seed-run"',
+        "related_nodes: []",
+        "---",
+        "",
+        "## Question",
+        "",
+        "Dismiss me",
+        "",
+      ].join("\n"),
+    );
+    const dismiss = await json("DELETE", "/memories/clarify/asking/phase30-ask-dismiss");
+    assert(dismiss.status === 200, "clarify dismiss 200");
+    const askAfterDismiss = await json("GET", "/memories/clarify/asking");
+    assert(
+      !(askAfterDismiss.data.items as Array<{ id: string }>).some((x) => x.id === "phase30-ask-dismiss"),
+      "dismissed asking gone",
+    );
+
+    // dream_locked → 409
+    const lockPath30 = join(TEST_HOME, "dreams", "dream.lock");
+    await Bun.write(lockPath30, JSON.stringify({
+      holder: "test-lock",
+      token: "tok-30",
+      acquired_at: new Date().toISOString(),
+    }));
+    const lockedAside = await json("POST", "/memories/clarify/aside", { raw: "should fail" });
+    assert(lockedAside.status === 409 && lockedAside.data.error === "dream_locked", "clarify aside locked 409");
+    await rm(lockPath30);
+
+    const i30 = await json("POST", "/activities", { raw: "clarify pipeline activity", source: "api" });
+    assert(i30.status === 201, "clarify activity");
+    const d30 = await json("POST", "/dreams/run");
+    assert(d30.status === 202 && d30.data.job_id, "clarify dream 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === d30.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+      30000,
+    );
+
+    // pending_review allows clarify writes
+    const asideDuring = await json("POST", "/memories/clarify/aside", {
+      raw: "Note while pending_review — stays for next cycle",
+    });
+    assert(asideDuring.status === 201, "aside during pending_review");
+
+    const pend30 = await json("GET", "/dreams/pending");
+    assert(pend30.data.present === true, "pending present");
+    assert(pend30.data.draft_summary && typeof pend30.data.draft_summary === "object", "draft_summary object");
+    assert(
+      Array.isArray(pend30.data.draft_summary.clarify_distilled_node_ids),
+      "clarify_distilled_node_ids array",
+    );
+    assert(
+      typeof pend30.data.report === "string" && pend30.data.report.includes("## Clarify distill"),
+      "report has Clarify distill",
+    );
+
+    const askingAfterGen = await json("GET", "/memories/clarify/asking");
+    assert(askingAfterGen.status === 200, "list asking 200");
+    assert(Array.isArray(askingAfterGen.data.items), "asking items array");
+    const askingCount1 = (askingAfterGen.data.items as unknown[]).length;
+    assert(askingCount1 >= 1 && askingCount1 <= 10, `asking 1..10 got ${askingCount1}`);
+
+    // Discard must not clear asking
+    const disc30 = await json("POST", "/dreams/discard", {});
+    assert(disc30.status === 200, "discard");
+    const askingAfterDisc = await json("GET", "/memories/clarify/asking");
+    assert(
+      (askingAfterDisc.data.items as unknown[]).length === askingCount1,
+      "discard keeps asking",
+    );
+    // pending queue (asideDuring + possibly leftover) still on disk — re-aside path uses API only
+    // Re-run dream after discard (need activity again)
+    const i30b = await json("POST", "/activities", { raw: "clarify after discard", source: "api" });
+    assert(i30b.status === 201, "activity after discard");
+    // Re-add snapshot pending via aside if needed
+    const aside2 = await json("POST", "/memories/clarify/aside", { raw: "Second aside for archive" });
+    assert(aside2.status === 201, "aside2");
+    const aside2Id = aside2.data.id as string;
+
+    const d30b = await json("POST", "/dreams/run");
+    assert(d30b.status === 202, "dream after discard");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === d30b.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+      30000,
+    );
+    const runId30b = d30b.data.job_id as string;
+    const askingBeforeRetry = ((await json("GET", "/memories/clarify/asking")).data.items as Array<{ id: string; source_dream_run_id: string | null }>);
+    const fromThisRun = askingBeforeRetry.filter((x) => x.source_dream_run_id === runId30b).length;
+
+    // Retry clears asking from superseded run then regenerates ≤10
+    const retry30 = await json("POST", "/dreams/retry", { reason: "clarify retry check" });
+    assert(retry30.status === 202, "retry 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === retry30.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+      30000,
+    );
+    const askingAfterRetry = ((await json("GET", "/memories/clarify/asking")).data.items as Array<{ source_dream_run_id: string | null }>);
+    assert(askingAfterRetry.length <= 10, `asking ≤10 after retry got ${askingAfterRetry.length}`);
+    assert(
+      !askingAfterRetry.some((x) => x.source_dream_run_id === runId30b),
+      "retry cleared asking from superseded run",
+    );
+    void fromThisRun;
+    void asideId;
+
+    const ap30 = await json("POST", "/dreams/approve", {});
+    assert(ap30.status === 200, "clarify approve");
+    // Snapshot pending should be in history; asideDuring (after first snapshot) may still be pending
+    const histPath = join(TEST_HOME, "memories/clarify/history", `${aside2Id}.md`);
+    const histExists = await access(histPath).then(() => true).catch(() => false);
+    assert(histExists, `history has archived aside2 ${aside2Id}`);
+
+    // empty_patches still archives clarify snapshot
+    await stopServer(server);
+    server = await startServer("mock-empty-patches", { ENGRAM_CLARIFY_DISTILL_NOOP: "1" });
+    const asideEmpty = await json("POST", "/memories/clarify/aside", { raw: "empty-patches archive me" });
+    assert(asideEmpty.status === 201, "aside for empty_patches");
+    const emptyAsideId = asideEmpty.data.id as string;
+    const iEmptyClar = await json("POST", "/activities", { raw: "empty with clarify", source: "api" });
+    assert(iEmptyClar.status === 201, "empty clarify activity");
+    const dEmptyClar = await json("POST", "/dreams/run");
+    assert(dEmptyClar.status === 202, "empty clarify dream");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dEmptyClar.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+      30000,
+    );
+    const apEmptyClar = await json("POST", "/dreams/approve", {});
+    assert(apEmptyClar.status === 200 && apEmptyClar.data.empty_patches === true, "empty_patches approve");
+    const emptyHist = join(TEST_HOME, "memories/clarify/history", `${emptyAsideId}.md`);
+    assert(
+      await access(emptyHist).then(() => true).catch(() => false),
+      "empty_patches still archives clarify pending",
+    );
+
+    console.log("\n✅ All self-checks passed (through 0.30)");
   } finally {
     await stopServer(server);
   }

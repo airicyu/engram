@@ -100,6 +100,15 @@ export type NodeDetail = {
   error?: string;
 };
 
+export type ClarifyAskingItem = {
+  id: string;
+  kind: "prompt";
+  created_at: string;
+  source_dream_run_id: string | null;
+  related_nodes: string[];
+  question: string;
+};
+
 function encoded(id: string): string {
   return encodeURIComponent(id);
 }
@@ -217,6 +226,28 @@ export const engramApi = {
       index: (options?: ApiOptions) => api<{ present?: boolean; nodes?: NodeIndex[] }>("/memories/nodes", options),
       detail: (id: string, options?: ApiOptions) =>
         api<NodeDetail>(`/memories/nodes/${encoded(id)}`, options),
+    },
+    clarify: {
+      listAsking: (options?: ApiOptions) =>
+        api<{ items?: ClarifyAskingItem[]; error?: string; message?: string }>(
+          "/memories/clarify/asking",
+          options,
+        ),
+      submit: (id: string, body: { answer: string }, options?: ApiOptions) =>
+        api<{ id?: string; queue?: string; error?: string; message?: string }>(
+          `/memories/clarify/asking/${encoded(id)}/submit`,
+          { ...options, method: "POST", body: JSON.stringify(body) },
+        ),
+      dismiss: (id: string, options?: ApiOptions) =>
+        api<{ ok?: boolean; error?: string; message?: string }>(
+          `/memories/clarify/asking/${encoded(id)}`,
+          { ...options, method: "DELETE" },
+        ),
+      aside: (body: { raw: string }, options?: ApiOptions) =>
+        api<{ id?: string; queue?: string; error?: string; message?: string }>(
+          "/memories/clarify/aside",
+          { ...options, method: "POST", body: JSON.stringify(body) },
+        ),
     },
   },
   status: (options?: ApiOptions) => api<Status & { error?: string }>("/status", options),

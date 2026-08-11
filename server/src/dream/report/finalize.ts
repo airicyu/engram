@@ -40,11 +40,11 @@ const REQUIRED_HEADINGS = [
 
 /**
  * Extract narrative block between ## Narrative and the next server-owned section.
- * Truncates at ## Node score involvements, ## Structure notes, or ## Appendix.
+ * Truncates at involvements, Clarify distill, Structure notes, or Appendix.
  */
 function extractNarrative(md: string): string {
   const m = md.match(
-    /## Narrative\s*\n([\s\S]*?)(?=\n## Node score involvements\b|\n## Structure notes\b|\n## Appendix — pending deploy\b|$)/,
+    /## Narrative\s*\n([\s\S]*?)(?=\n## Node score involvements\b|\n## Clarify distill\b|\n## Structure notes\b|\n## Appendix — pending deploy\b|$)/,
   );
   if (m) return m[1].trim();
   // Fallback: build minimal narrative skeleton
@@ -79,9 +79,21 @@ function extractAmendFeedback(md: string): string {
 
 function extractRollupSection(md: string): string {
   const m = md.match(
-    /## Higher chain rollup \(week／month／year\)\s*\n([\s\S]*?)(?=\n## Structure notes\b|\n## Appendix — pending deploy\b|$)/,
+    /## Higher chain rollup \(week／month／year\)\s*\n([\s\S]*?)(?=\n## Clarify distill\b|\n## Structure notes\b|\n## Appendix — pending deploy\b|$)/,
   );
   return m ? `## Higher chain rollup (week／month／year)\n\n${m[1].trim()}` : "";
+}
+
+function extractClarifyDistillSection(md: string): string {
+  const m = md.match(
+    /## Clarify distill\s*\n([\s\S]*?)(?=\n## Structure notes\b|\n## Appendix — pending deploy\b|$)/,
+  );
+  return m ? m[1].trim() : "";
+}
+
+function formatClarifyDistillSection(body: string): string {
+  const t = body.trim() || "_None_";
+  return `## Clarify distill\n\n${t}`;
 }
 
 /** Validate agent report has required structure (soft: warn via throw if missing title). */
@@ -113,6 +125,8 @@ export async function finalizeDreamReport(opts: {
     instruction: string;
   };
   rollup_section?: string;
+  /** Body under ## Clarify distill (without heading); empty → _None_. */
+  clarify_distill_section?: string;
 }): Promise<string> {
   const path = reportPath(opts.dream_run_id);
   let raw = "";
@@ -225,6 +239,14 @@ export async function finalizeDreamReport(opts: {
   } else {
     const preserved = extractRollupSection(raw);
     if (preserved) lines.push(preserved, "");
+  }
+
+  // 0.30: Clarify distill (after rollup, before Structure notes)
+  if (opts.clarify_distill_section !== undefined) {
+    lines.push(formatClarifyDistillSection(opts.clarify_distill_section), "");
+  } else {
+    const preservedClarify = extractClarifyDistillSection(raw);
+    lines.push(formatClarifyDistillSection(preservedClarify || "_None_"), "");
   }
 
   // Server-owned soft structure lint (warnings only; empty → _None_).

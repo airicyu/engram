@@ -28,6 +28,10 @@ curl -s 'http://localhost:8787/memories/short-term-memory'
 curl -s 'http://localhost:8787/memories/search?q=keyword&scope=nodes,chain'
 curl -s 'http://localhost:8787/memories/chain'
 curl -s 'http://localhost:8787/memories/nodes'
+# optional (0.30+): clarify aside / list asking
+curl -s -X POST http://localhost:8787/memories/clarify/aside \
+  -H 'content-type: application/json' -d '{"raw":"補充：合約其實兩年"}'
+curl -s http://localhost:8787/memories/clarify/asking
 ```
 
 ## Web UI
@@ -90,7 +94,11 @@ No authentication in the prototype. Timestamps use effective timezone (workspace
 | `GET` | `/memories/chain` | Day chain index (browse) |
 | `GET` | `/memories/chain/{day_id}` | Day chain detail |
 | `GET` | `/memories/nodes` | L2 node index (browse) |
-| `GET` | `/memories/nodes/{node_id}` | L2 node detail (what Current) |
+| `GET` | `/memories/nodes/{node_id}` | L2 node detail (understanding) |
+| `GET` | `/memories/clarify/asking` | List open clarify follow-ups (0.30+) |
+| `POST` | `/memories/clarify/asking/{id}/submit` | Answer → pending (0.30+) |
+| `DELETE` | `/memories/clarify/asking/{id}` | Dismiss asking (0.30+) |
+| `POST` | `/memories/clarify/aside` | Freestyle aside → pending (0.30+；非 L0) |
 | `POST` | `/memories/ask` | Start async AI ask |
 | `GET` | `/memories/ask/{job_id}` | Poll ask job |
 | `POST` | `/memories/ask/{job_id}/cancel` | Cancel running ask |

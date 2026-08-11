@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.30.0 — 釐清（Clarify）：補問＋順帶補充 → 入夢蒸餾進 nodes (2026-08-11)
+
+第五場景 **釐清**＋store 三 queue（`asking`／`pending`／`history`）＋入夢末段 `clarify_distill` → `clarify_generate`。Distill 只改 draft node 主檔；approve 才進 live L2 並將快照 pending 歸檔。**無** store migrate。
+
+### Added
+
+- Store：`memories/clarify/{asking,pending,history}/`；`ensureClarifyDirs()`（無 migrate hop；boot gate 仍 ≥0.28）
+- HTTP：`GET /memories/clarify/asking`、`POST .../submit`、`DELETE .../{id}`、`POST /memories/clarify/aside`
+- Dream 末段兩 job：`clarify_distill`（draft nodes only）→ `clarify_generate`（server 落盤 asking＋git）
+- `DreamRunState.clarify_pending_snapshot_ids`／`clarify_distilled_node_ids`；pending `draft_summary.clarify_distilled_node_ids`
+- Report 段 `## Clarify distill`；Approve 無論 `empty_patches` 皆歸檔快照∩pending → history
+- Retry 清本輪來源 asking 後重跑兩 job；Discard／Amend 不動 asking／pending
+- Web：場景 id `clarify`（Topbar：activities → consolidate → **clarify** → seek → memory）；ClarifyScene；Consolidate 高亮 distill node ids
+
+### Changed
+
+- 產品循環：Activities → Consolidate → **Clarify** → Seek → Memory
+- api-docs／AGENTS／domain-language／workbench skill／changelog／version
+
+### Non-goals
+
+- Badge、list pending／history HTTP、asking TTL／history GC、silent live L2、migrate hop、Seek 共用輸入、graph／vector
+
+---
+
 ## 0.29.0 — Activity 附圖（media attachments）(2026-08-10)
 
 Activities 捕捉附圖：tmp 上傳、拖放／貼上、media attachments UI、submit 搬檔＋server 組 appendix、對稱校驗、tmp housekeep、dream prompt 教讀寫 embed。**無** store migrate。

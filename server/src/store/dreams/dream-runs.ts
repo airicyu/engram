@@ -25,6 +25,13 @@ export interface DreamRunState {
   l1_clear_pending?: boolean;
   patch_count: number;
   report_path: string;
+  /**
+   * Pending clarify ids listed at distill start (0.30).
+   * Approve archives snapshot ∩ still-in-pending → history.
+   */
+  clarify_pending_snapshot_ids?: string[];
+  /** Node ids distill actually touched in draft (0.30); feeds draft_summary. */
+  clarify_distilled_node_ids?: string[];
 }
 
 function runsDir(): string {
@@ -159,6 +166,8 @@ export function newPendingRun(opts: {
   patch_count: number;
   retried_from?: string;
   retry_reason?: string;
+  clarify_pending_snapshot_ids?: string[];
+  clarify_distilled_node_ids?: string[];
 }): DreamRunState {
   return {
     id: opts.id,
@@ -169,5 +178,7 @@ export function newPendingRun(opts: {
     report_path: `dreams/reports/${opts.id}.md`,
     ...(opts.retried_from ? { retried_from: opts.retried_from } : {}),
     ...(opts.retry_reason ? { retry_reason: opts.retry_reason } : {}),
+    clarify_pending_snapshot_ids: opts.clarify_pending_snapshot_ids ?? [],
+    clarify_distilled_node_ids: opts.clarify_distilled_node_ids ?? [],
   };
 }

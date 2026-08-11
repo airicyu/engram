@@ -34,8 +34,9 @@
 
 | EN | 中文 | 說明 | API／動作 | 備註 |
 |----|------|------|-----------|------|
-| **Activities** | 活動 | 把「此刻要記住的事」寫進系統（L0 + short-term memory） | `POST /activities` | UI 場景 id：`activities`；body 用 **`raw`** |
+| **Activities** | 事件 | 把「此刻要記住的事」寫進系統（L0 + short-term memory） | `POST /activities` | UI 場景 id：`activities`；UI 中文 tab＝**事件**；body 用 **`raw`** |
 | **Consolidate** | 沉澱 | 整理短時記憶：AI 出報告，人審後寫入長期 | `POST /dreams/run` → Approve／Discard | 核心是人審關卡 |
+| **Clarify** | 釐清 | 系統補問人＋人順帶補充；入夢蒸餾進 draft nodes，approve 才進 L2 | `/memories/clarify/*` | 非 activity；場景 id：`clarify`（0.30） |
 | **Seek** | 尋找 | 用關鍵字或 AI 提問找記憶 | `GET /memories/search`、`POST /memories/ask` | 0.8.0 自 Memory 場景拆出 |
 | **Memory** | 記憶 | 沿時間軸或節點列表翻閱已寫入記憶 | `GET /memories/chain`、`GET /memories/nodes` | 0.8.0 browse；不含 Search／Ask |
 | **Dream** | 入夢 | 對 short-term memory 跑 AI 提取，產出待審報告 | `POST /dreams/run` | 產品語；技術上含 extract |
@@ -121,7 +122,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 | **store git** | 記憶庫 git | approve 後 `git commit`（含 `dream_run_id`） | local only；不追 `dreams/`／`tmp/` |
 | **pending** / **pending_review** | 待審 | 有一份待審入夢結果（系統內唯一） | `GET /dreams/pending`（report＋`draft_summary`） |
 | **scope S** | 範圍 S | 本次入夢凍結的 L0 event id 集合 | Approve 後只清 S；可跨日 |
-| **lock** / **dream lock** | 入夢鎖 | 入夢／deploy 期間互斥 | 鎖住時 Activities → 409；pending 可寫 activities |
+| **lock** / **dream lock** | 入夢鎖 | 入夢／deploy 期間互斥 | 鎖住時 Activities／Clarify → 409；pending 可寫 activities／clarify |
 | **dream_run_id** | 入夢執行 ID | 一次入夢的唯一識別碼 | Approve／Discard 可選帶入 |
 | **report** | 報告 | 固定結構 narrative＋Appendix 路徑 | pending 介面閱讀 |
 | **draft** | 草稿工作樹 | approve 前的暫存目錄 | `dreams/draft/{id}/` |
@@ -223,15 +224,24 @@ Seek（0.18+）：Search scope `future` 掃兩區；Ask 預設可讀 `hot.md`，
 
 ## Workbench（工作台）
 
-個人記憶**工作台**——走 Activities → Consolidate → Seek → Memory；**不是** admin dashboard、不是多使用者後台。
+### Clarify（0.30.0）
+
+| 英文 | 中文 | 說明 |
+|------|------|------|
+| **Follow-up / prompt** | **補問** | 系統產生、等人回答的問題（`asking/`） |
+| **Aside** | **順帶補充** | 人自發寫入 pending（`kind: aside`）；不進 L0／ledger |
+| **Distill** | **蒸餾** | 入夢末段把 pending 折進 draft node 主檔 |
+| **Generate** | **生成補問** | 入夢末段 server 寫入新的 asking |
+
+個人記憶**工作台**——走 Activities → Consolidate → Clarify → Seek → Memory；**不是** admin dashboard、不是多使用者後台。
 
 | EN | 中文 | 說明 | 路徑／備註 |
 |----|------|------|------------|
 | **workbench** | 工作台 | 產品操作面總稱（人 + agent 透過 API 操作記憶） | 舊稱 **operator**（0.5.0 前） |
-| **workbench UI** | 工作台介面 | 瀏覽器四場景 UI | `web/`（`:8788`） |
+| **workbench UI** | 工作台介面 | 瀏覽器五場景 UI | `web/`（`:8788`） |
 | **engram-workbench** | 工作台 skill | Agent 用 HTTP 打 API；禁止手改記憶庫 | `.claude/skills/engram-workbench/` |
 | **status light** | 狀態燈 | 頂欄連線／入夢狀態指示 | workbench UI |
-| **scene** | 場景 | Activities／Consolidate／Seek／Memory 四主畫面（id：`activities`…） | workbench UI |
+| **scene** | 場景 | Activities／Consolidate／Clarify／Seek／Memory 五主畫面（id：`activities`…） | workbench UI |
 
 **Workbench UI i18n（0.5.0）：** 僅介面殼層；**English** + **繁體中文**；不翻譯 short-term／L2／chain／report 等記憶內容。
 

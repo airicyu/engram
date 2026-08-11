@@ -364,6 +364,20 @@ export function ConsolidateScene() {
             text={pending.report?.trim() || t("pending.no_report")}
             empty={!pending.report?.trim()}
           />
+          {pendingReview ? (
+            <div className="clarify-distill-panel">
+              <h3>{t("consolidate.clarify_distill_title")}</h3>
+              {(pending.draft_summary?.clarify_distilled_node_ids?.length ?? 0) > 0 ? (
+                <p className="clarify-distill-nodes">
+                  {t("consolidate.clarify_distill_nodes", {
+                    ids: pending.draft_summary!.clarify_distilled_node_ids!.join(", "),
+                  })}
+                </p>
+              ) : (
+                <p className="clarify-distill-nodes muted">{t("consolidate.clarify_distill_none")}</p>
+              )}
+            </div>
+          ) : null}
           {pendingReview && (pending.node_score_involvements?.length ?? 0) > 0 ? (
             <div className="involvements-panel">
               <h3>{t("consolidate.involvements_title")}</h3>

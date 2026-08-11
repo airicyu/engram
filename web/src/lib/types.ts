@@ -1,4 +1,4 @@
-export type SceneId = "activities" | "consolidate" | "seek" | "memory";
+export type SceneId = "activities" | "consolidate" | "clarify" | "seek" | "memory";
 
 export type Status = {
   store_dir?: string;
@@ -52,6 +52,7 @@ export type Pending = {
     future_ids?: string[];
     chain_days?: string[];
     chain_summary_days?: string[];
+    clarify_distilled_node_ids?: string[];
   } | null;
   node_score_involvements?: Array<{
     id: string;

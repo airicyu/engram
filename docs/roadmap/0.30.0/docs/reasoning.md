@@ -94,3 +94,59 @@ Engram 契約：L2 變更經 dream staging＋人審。若 pending 答覆直接�
 | Prompt／Gap | 太工程或與舊 activation `gap` 混淆 |
 
 採用：**釐清**（場景）／**補問**（系統問題）／**順帶補充**（freestyle）。
+
+---
+
+## 為何無 migrate／不抬 boot gate（定案 #17）
+
+`clarify/` 三空目錄是 **additive**，與 0.29 `_attachments` 同型：舊庫缺目錄不算壞，`ensure` 即可。沒有「舊檔必須轉形」就不必 hop，也不必把 `REQUIRED_STORE_STRUCTURE` 抬到 0.30——結構世代仍是 0.28 形狀＋可選新樹。
+
+---
+
+## 為何 approve 用 distill 快照歸檔（定案 #35）
+
+若 approve 當下「清空整個 pending」：審夢期間新答的補問／順帶補充會被誤搬 history，卻**沒有**進本輪 draft（distill 早已跑完）→ 認知丟失。
+
+快照＝distill 開始時的 pending id 集合；只歸檔「本輪真正喂給 distill 的那批」。之後新進的留待下輪夢。
+
+---
+
+## 為何 Retry 重跑、Amend 不重跑 clarify（定案 #37–38）
+
+與既有對稱：retry＝新 `dream_run_id`＋整段 pipeline；amend＝同稿小修、不重跑 rollup。Clarify 是末段責任：retry 應重新蒸餾／發問；amend 不應因改一句 Narrative 就再 prune asking。
+
+---
+
+## 為何 Generate 由 server 寫 live asking（定案 #29）
+
+Dream write-policy 只准寫 draft＋reports。Asking 是 **live 產品 queue**（人在釐清 tab 讀寫），不是待審 draft。若走 draft→approve 才出現補問，人要等 approve 才能看到系統提問，閉環倒置。故 generate 結束即落 live `asking/`（可立刻答）；與「nodes 須人審」不衝突。
+
+---
+
+## 為何 Topbar 不做 badge（定案 #3）
+
+工作台避免 stats／徽章牆；第五 tab 本身已是入口。計數可列未來，不擋本版心智模型。
+
+---
+
+## 為何場景序在 Consolidate 之後（定案 #2）
+
+補問主要由入夢 generate 產生；典型節奏是審夢 → 去釐清回答 → 下次再夢。故 `consolidate` → `clarify` → `seek`。
+
+---
+
+## 為何 Retry 先清本輪來源 asking（定案 #45）
+
+Discard 不動 asking（產品態）＋Retry 再 generate，若不先清，會疊加近重複補問，再靠 prune 真刪未答舊問 → 高代價抖動。清 `source_dream_run_id` 屬「同一審夢循環被取代的提問」，與「人已累積、跨輪仍有效的舊 asking」分開。
+
+---
+
+## 為何快照在 DreamRunState、不在 report（定案 #29）
+
+`dreams/` 不進 git，但 run 狀態是 approve 的權威輸入；report 是人讀的敘事。歸檔若 parse markdown，易脆且與 discard 清 draft 糾纏。pending 快照與 `clarify_distilled_node_ids`（改過哪些 node）必須分欄。
+
+---
+
+## 為何 empty_patches 仍要歸檔（定案 #42）
+
+Rollup-only＋distill no-op 時可能無 draft 路徑可 deploy，但快照內 pending 仍已「喂過」本輪；若不歸檔，下輪會重複蒸餾同一批答覆。

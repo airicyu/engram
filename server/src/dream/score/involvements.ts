@@ -156,9 +156,11 @@ export async function rewriteReportInvolvementsSection(dreamRunId: string): Prom
 
   if (/\n## Node score involvements\b/.test(md)) {
     md = md.replace(
-      /\n## Node score involvements\b[\s\S]*?(?=\n## Higher chain rollup\b|\n## Structure notes\b|\n## Appendix — pending deploy\b|\n## [^\n]+|$)/,
+      /\n## Node score involvements\b[\s\S]*?(?=\n## Higher chain rollup\b|\n## Clarify distill\b|\n## Structure notes\b|\n## Appendix — pending deploy\b|\n## [^\n]+|$)/,
       `\n${section}\n`,
     );
+  } else if (/\n## Clarify distill\b/.test(md)) {
+    md = md.replace(/\n## Clarify distill\b/, `\n${section}\n\n## Clarify distill`);
   } else if (/\n## Structure notes\b/.test(md)) {
     md = md.replace(/\n## Structure notes\b/, `\n${section}\n\n## Structure notes`);
   } else if (/\n## Appendix — pending deploy\b/.test(md)) {

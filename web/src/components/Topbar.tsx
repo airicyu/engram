@@ -3,7 +3,7 @@ import { useStatus } from "../context/StatusContext";
 import { lightLabel, lightState } from "../lib/types";
 import type { SceneId } from "../lib/types";
 
-const SCENES: SceneId[] = ["activities", "consolidate", "seek", "memory"];
+const SCENES: SceneId[] = ["activities", "consolidate", "clarify", "seek", "memory"];
 
 export function Topbar({
   scene,
