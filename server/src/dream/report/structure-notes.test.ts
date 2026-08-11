@@ -108,4 +108,55 @@ describe("structure-notes", () => {
     const warnings = runLintInStore(storeDir, runId);
     expect(warnings).toEqual([]);
   });
+
+  test("summary mentions peer without [[ → warning", async () => {
+    const storeDir = await mkdtemp(join(tmpdir(), "engram-struct-sum-"));
+    await writeFile(
+      join(storeDir, "engram.workspace.yaml"),
+      "timezone: Asia/Hong_Kong\nstore_version: 0.28.0\n",
+      "utf8",
+    );
+    const runId = "dream-struct-sum";
+    await mkdir(join(storeDir, "memories", "nodes", "mak"), { recursive: true });
+    await writeFile(
+      join(storeDir, "memories", "nodes", "mak", "mak.md"),
+      standingUnderstandingMarkdown({ identity: "Mak" }),
+      "utf8",
+    );
+    const sumDir = join(
+      storeDir,
+      "dreams",
+      "draft",
+      runId,
+      "memories",
+      "chain",
+      "days",
+      "2026-07",
+    );
+    await mkdir(sumDir, { recursive: true });
+    await writeFile(
+      join(sumDir, "2026-07-23.summary.md"),
+      "Talked with mak about the wedding.\n",
+      "utf8",
+    );
+
+    const script = `
+      import { lintDraftChainSummaries } from "./src/dream/report/structure-notes.ts";
+      const warnings = await lintDraftChainSummaries(${JSON.stringify(runId)});
+      console.log(JSON.stringify(warnings));
+    `;
+    const { spawnSync } = await import("node:child_process");
+    const proc = spawnSync("bun", ["-e", script], {
+      cwd: serverRoot,
+      env: { ...process.env, ENGRAM_STORE_DIR: storeDir },
+      encoding: "utf8",
+    });
+    if (proc.status !== 0) {
+      throw new Error(proc.stderr || proc.stdout || `exit ${proc.status}`);
+    }
+    const warnings = JSON.parse(proc.stdout.trim()) as string[];
+    expect(
+      warnings.some((w) => w.includes("mentions mak without wikilink")),
+    ).toBe(true);
+  });
 });

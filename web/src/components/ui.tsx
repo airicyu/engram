@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { preprocessNodeWikilinks } from "../lib/preprocessNodeWikilinks";
 
 export function Msg({
   text,
@@ -22,13 +23,16 @@ export function MdBlock({
   text,
   empty,
   className = "",
+  knownNodeIds,
 }: {
   text: string;
   empty?: boolean;
   className?: string;
+  knownNodeIds?: ReadonlySet<string> | readonly string[];
 }) {
-  const body = text ?? "";
-  const isEmpty = Boolean(empty) || !body.trim();
+  const raw = text ?? "";
+  const isEmpty = Boolean(empty) || !raw.trim();
+  const body = isEmpty ? raw : preprocessNodeWikilinks(raw, knownNodeIds);
   return (
     <div className={`md-block ${isEmpty ? "is-empty" : ""} ${className}`.trim()}>
       {isEmpty ? (

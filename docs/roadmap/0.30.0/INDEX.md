@@ -1,6 +1,6 @@
 # 0.30.0 — 釐清（Clarify）：補問＋順帶補充 → 入夢蒸餾進 nodes
 
-← [changelog](../../../changelog.md) · 上游：[0.29.0](../0.29.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫法：[GUIDELINES.md](../GUIDELINES.md) · 節奏：[agent-workflow.md](../agent-workflow.md) · 來源：backlog「反思補問」（已刪；產品真相以本版為準）
+← [changelog](../../../changelog.md) · 上游：[0.29.0](../0.29.0/INDEX.md)（shipped）· 下游：[0.31.0](../0.31.0/INDEX.md)（planned）· current: [version](../../../version.md) · 寫法：[GUIDELINES.md](../GUIDELINES.md) · 節奏：[agent-workflow.md](../agent-workflow.md) · 來源：backlog「反思補問」（已刪；產品真相以本版為準）
 
 > **狀態：** **shipped**（2026-08-11；`test:phases` 綠；實作審查 HIGH／同意 MEDIUM 已關）  
 > **本版只做這一項：** 第五場景 **釐清**＋store 三 queue（`asking`／`pending`／`history`）＋入夢末段兩獨立 job（`clarify_distill` → `clarify_generate`）；distill 結果進**同一輪 dream draft 的 node 主檔**，**approve 與 L2 一併生效**並將本輪快照內 pending 歸檔。**不做**其他 backlog（graph、vector、Seek 活躍分、shared Zod 等）。

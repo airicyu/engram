@@ -1,10 +1,10 @@
 /**
- * Soft structure lint for draft node main files (0.28).
+ * Soft structure lint for draft node main files (0.28) and chain summaries (0.31).
  * Warnings only — never fails the dream job or blocks approve.
  */
 
 import { access, readFile, readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { draftDir } from "../../store/dreams/dream-runs";
 import { listNodeIds } from "../../store/memories/nodes";
 import { hasStandingHeadings } from "../../store/memories/nodes";
@@ -57,6 +57,32 @@ async function listDraftNodeMains(
     const abs = join(draftDir(dreamRunId), ...rel.split("/"));
     if (await exists(abs)) out.push({ id, abs, rel });
   }
+  return out;
+}
+
+/** Draft chain `*.summary.md` under days／weeks／months／years. */
+async function listDraftSummaries(
+  dreamRunId: string,
+): Promise<Array<{ abs: string; rel: string }>> {
+  const chainRoot = join(draftDir(dreamRunId), "memories", "chain");
+  if (!(await exists(chainRoot))) return [];
+  const out: Array<{ abs: string; rel: string }> = [];
+
+  async function walk(dir: string): Promise<void> {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const e of entries) {
+      const abs = join(dir, e.name);
+      if (e.isDirectory()) {
+        await walk(abs);
+        continue;
+      }
+      if (!e.isFile() || !e.name.endsWith(".summary.md")) continue;
+      const rel = relative(draftDir(dreamRunId), abs).replace(/\\/g, "/");
+      out.push({ abs, rel });
+    }
+  }
+
+  await walk(chainRoot);
   return out;
 }
 
@@ -150,6 +176,33 @@ export async function lintDraftNodeStructure(dreamRunId: string): Promise<string
   return warnings;
 }
 
+/**
+ * Soft-lint draft chain summaries: known peer id mentioned with no `[[` at all.
+ * Does not scan ledger blocks (0.31).
+ */
+export async function lintDraftChainSummaries(dreamRunId: string): Promise<string[]> {
+  const summaries = await listDraftSummaries(dreamRunId);
+  if (summaries.length === 0) return [];
+
+  const known = await knownNodeIds(dreamRunId);
+  const warnings: string[] = [];
+
+  for (const { abs, rel } of summaries) {
+    const md = await readFile(abs, "utf8");
+    if (!md.trim()) continue;
+    // Heuristic: any wikilink syntax present → skip file-level "no [[" check.
+    if (md.includes("[[")) continue;
+
+    for (const peer of known) {
+      const word = new RegExp(`\\b${escapeRegExp(peer)}\\b`, "i");
+      if (!word.test(md)) continue;
+      warnings.push(`summary ${rel}: mentions ${peer} without wikilink`);
+    }
+  }
+
+  return warnings;
+}
+
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -165,7 +218,10 @@ export function formatStructureNotesSection(warnings: string[]): string {
 
 /** Scan draft and build the Structure notes markdown section. */
 export async function buildStructureNotesSection(dreamRunId: string): Promise<string> {
-  const warnings = await lintDraftNodeStructure(dreamRunId);
+  const warnings = [
+    ...(await lintDraftNodeStructure(dreamRunId)),
+    ...(await lintDraftChainSummaries(dreamRunId)),
+  ];
   return formatStructureNotesSection(warnings);
 }
 

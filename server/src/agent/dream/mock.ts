@@ -324,11 +324,20 @@ export class MockOkRunner implements AgentRunner {
 
     const ledgerRel = dayLedgerRel(chainDay);
     await copyLiveIntoDraft(ctx.dream_run_id, ledgerRel);
+    const chainPeer =
+      (creatingId && primaryExisting && primaryExisting !== creatingId
+        ? primaryExisting
+        : null) ??
+      ctx.existing_nodes.find((id) => id !== node) ??
+      (creatingId && creatingId !== node ? creatingId : null) ??
+      (ctx.existing_nodes.includes(node) ? node : null) ??
+      node;
+    const chainPeerLink = nodeWikilink(chainPeer);
     const ledgerBlock = [
       `<!-- patch:${patchId} -->`,
       `### patch:${patchId} · events:[${eventIds.join(", ")}]`,
       "",
-      `Day ledger (mock): ${ctx.events.map((e) => e.raw).join(" | ").slice(0, 300)}`,
+      `Day ledger (mock): noted ${chainPeerLink}; ${ctx.events.map((e) => e.raw).join(" | ").slice(0, 300)}`,
       "",
     ].join("\n");
     let ledgerBase = "";
@@ -343,8 +352,8 @@ export class MockOkRunner implements AgentRunner {
       (ctx.chain_summaries_current ?? []).find((d) => d.day === chainDay)?.current.trim() ?? "";
     const increment = ctx.events.map((e) => e.raw.trim()).join(" ").slice(0, 200);
     const summary = priorSummary
-      ? `${priorSummary} ${increment}`.trim()
-      : `Day summary (mock): ${increment}`;
+      ? `${priorSummary} ${increment} (also ${chainPeerLink})`.trim()
+      : `Day summary (mock): work with ${chainPeerLink}; ${increment}`;
     await writeDraftFile(ctx.dream_run_id, daySummaryRel(chainDay), `${summary}\n`);
 
     const wantsFuture =

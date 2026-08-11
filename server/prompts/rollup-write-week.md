@@ -62,3 +62,10 @@ Paragraph…
 - No meta about being a model／writer.
 - No process narration in the output file（“Reading the write context…”, “Writing the summary…”, “已寫入 …”）. **First line must be a `##` title.**
 - No deictic time with no anchor（「這天」「今日」「那天」without saying which day／weekday）.
+
+## Node wikilinks (when fusing)
+
+- If you mention an L2 node that still exists in live／this-round context → use P1 `[[nodes/{id}/{id}|{id}]]` (vault = `memories/`; never prefix `memories/`).
+- Preserve any `[[nodes/…]]` already present in `lower[]`.
+- If a lower day only used plain prose for a person／project but that node **now** exists → this rollup **may** introduce P1 (you are writing a **new** higher summary, not backfilling historical day files).
+- Do **not** invent links for one-off names that are not nodes.

@@ -384,6 +384,14 @@ async function main() {
     assert(!/^##\s*History\b/m.test(summaryBody), "summary has no History");
     assert(summaryBody.includes("Day summary (mock)") || summaryBody.includes("Day ledger"), "summary content");
     assert(
+      summaryBody.includes("[[nodes/"),
+      "day summary includes P1 node wikilink",
+    );
+    assert(
+      ledgerBody.includes("[[nodes/"),
+      "day ledger includes P1 node wikilink",
+    );
+    assert(
       !/^##\s*Current\s*$/m.test(whatNewco) && !/^##\s*History\b/m.test(whatNewco),
       "{id}.md has no Current/History wrappers",
     );
@@ -885,6 +893,10 @@ Unique later keyword xylophone-launch window for search.
     assert(/^##\s+\S+/m.test(monthText), "month summary has ## section title");
     assert(!/^[-*]\s*\d{4}/m.test(monthText), "month summary is not an id-bullet dump");
     assert(!/summary\s*\(mock\)\s*for/i.test(monthText), "month summary has no mock dump label");
+    assert(
+      monthText.includes("[[nodes/"),
+      "month summary includes P1 node wikilink",
+    );
 
     await json("DELETE", "/clock");
 
@@ -1783,7 +1795,7 @@ Unique later keyword xylophone-launch window for search.
       "empty_patches still archives clarify pending",
     );
 
-    console.log("\n✅ All self-checks passed (through 0.30)");
+    console.log("\n✅ All self-checks passed (through 0.31)");
   } finally {
     await stopServer(server);
   }

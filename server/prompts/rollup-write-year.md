@@ -66,4 +66,11 @@ Paragraph…
 - No process narration in the output file（“Reading the write context…”, “Writing…”, “已寫入 …”）. **First line must be a `##` title.**
 - No deictic time with no anchor（「這天」「今日」「那天」without saying which day／month／season）.
 
+## Node wikilinks (when fusing)
+
+- If you mention an L2 node that still exists in live／this-round context → use P1 `[[nodes/{id}/{id}|{id}]]` (vault = `memories/`; never prefix `memories/`).
+- Preserve any `[[nodes/…]]` already present in `lower[]`.
+- If a lower month only used plain prose for a person／project but that node **now** exists → this rollup **may** introduce P1 (new higher summary, not historical day backfill).
+- Do **not** invent links for one-off names that are not nodes.
+
 Ground only in `lower[]` (+ `prior_current` on revise). Complete replacement body on revise.

@@ -29,10 +29,11 @@ Draft orientation (paths already in this pending draft): {{DRAFT_SUMMARY}}
 2. Prefer **Read** existing draft／report／live, then **Edit** the smallest set of files. Do **not** use Bash／shell to rewrite store files.
 3. Keep standing understanding rules for any `memories/nodes/{id}/{id}.md` you touch: four English `##` headings in order — Identity → Relation → Standing facts → Current situation; empty body = `_None_`; no day-diary backbone. **Forbidden:** write `understand/what.md` or stub `INDEX.md`.
 4. When Relation／Standing facts mention another known／this-round L2 node, keep a vault-relative wikilink `[[nodes/{id}/{id}|{id}]]` (vault = `memories/`; no `memories/` prefix).
-5. Ledger appends still use `{{DRAFT_DIR}}/appends/memories/chain/days/...` when needed; do **not** wholesale overwrite day ledgers with file_update.
-6. You may update `{{DRAFT_DIR}}/node-score-involvements.yaml` if the instruction requires it; categories only `mention`｜`update`｜`focus`. Prefer leaving involvements alone when the human only asked for prose／path fixes (category-only fixes belong to structured UI, not this job).
-7. Write language = `{{MEMORY_LANGUAGE}}`. Do **not** invent future day chain ids after today=`{{TODAY}}`.
-8. **Do not** create a brand-new dream from events; ignore the urge to re-cover the whole scope unless the instruction explicitly asks.
+5. If the instruction leads you to edit **chain** prose (day／week／month／year summary or a ledger block): when you mention an L2 node that exists live or in this draft／this round, use the same P1 form. Do **not** expand edits to unrelated historical days just to add links.
+6. Ledger appends still use `{{DRAFT_DIR}}/appends/memories/chain/days/...` when needed; do **not** wholesale overwrite day ledgers with file_update.
+7. You may update `{{DRAFT_DIR}}/node-score-involvements.yaml` if the instruction requires it; categories only `mention`｜`update`｜`focus`. Prefer leaving involvements alone when the human only asked for prose／path fixes (category-only fixes belong to structured UI, not this job).
+8. Write language = `{{MEMORY_LANGUAGE}}`. Do **not** invent future day chain ids after today=`{{TODAY}}`.
+9. **Do not** create a brand-new dream from events; ignore the urge to re-cover the whole scope unless the instruction explicitly asks.
 
 ## Report (`{{REPORT_PATH}}`)
 

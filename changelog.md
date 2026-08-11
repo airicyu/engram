@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.31.0 — Hash 深鏈＋wikilink 可點＋chain 寫入時 node 互指 (2026-08-12)
+
+Workbench 可用 `#/…` 深鏈場景與 Memory 選中項；`MdBlock` 把 node P1 wikilink 渲成可點連結；入夢／rollup 寫 day／higher chain 時對當時已存在的 L2 node 寫入 P1。**不做**歷史 chain backfill；**無** store migrate。
+
+### Added
+
+- Web hash 路由：`#/activities`｜`consolidate`｜`clarify`｜`seek`｜`memory`；`#/memory/nodes/{id}`、`#/memory/chain/{level}/{id}`；場景 tab **push**、Memory 列表換選 **replace**；空 hash 懶寫（不自動正規化）
+- `preprocessNodeWikilinks`＋`MdBlock` 可選 `knownNodeIds`；P1 必轉、短連僅 known
+- Dream／rollup／amend prompts：chain 正文對存在中的 node 寫 P1；mock day summary／ledger 含 P1；summary soft lint 進 Structure notes（不擋 approve）
+
+### Changed
+
+- domain-language／AGENTS／changelog／version；Structure notes 掃描 draft `*.summary.md`
+
+### Non-goals
+
+- Path router、graph GUI、vector、歷史 backfill、`@` activity mentions、刪 `node_refs`、store migrate／boot gate bump
+
+---
+
 ## 0.30.0 — 釐清（Clarify）：補問＋順帶補充 → 入夢蒸餾進 nodes (2026-08-11)
 
 第五場景 **釐清**＋store 三 queue（`asking`／`pending`／`history`）＋入夢末段 `clarify_distill` → `clarify_generate`。Distill 只改 draft node 主檔；approve 才進 live L2 並將快照 pending 歸檔。**無** store migrate。

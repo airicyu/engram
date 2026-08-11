@@ -158,7 +158,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 |----|------|------|
 | **node** | 節點 | L2 主題軸實體：人、組織、專案、主題等 |
 | **node_refs** | 節點參照 | Activities 可選標註「跟哪些 node 有關」 |
-| **`{id}.md`**／**standing understanding** | 長期理解檔 | 該 node **現在是什麼** 的可維護模型；固定四段 `## Identity` → `## Relation` → `## Standing facts` → `## Current situation`（空段 `_None_`）。提及其他 L2 node 時 Relation 用 wikilink `[[nodes/{id}/{id}|{id}]]`（vault＝`memories/`）。**事件流水在 chain**，不在此檔主幹。整檔＝最新理解；無 `## Current`／`## History` |
+| **`{id}.md`**／**standing understanding** | 長期理解檔 | 該 node **現在是什麼** 的可維護模型；固定四段 `## Identity` → `## Relation` → `## Standing facts` → `## Current situation`（空段 `_None_`）。提及其他 L2 node 時 Relation 用 wikilink `[[nodes/{id}/{id}|{id}]]`（vault＝`memories/`）。**事件流水在 chain**，不在此檔主幹；chain 敘事亦可含同形 P1（0.31，寫入時存在才 link）。整檔＝最新理解；無 `## Current`／`## History` |
 | **understanding** | API 欄位 | `GET`／search／dream `l2_current` 回傳的 **整檔** `{id}.md` 字串（standing understanding）；**不是**「僅 Current situation 段」。0.26 起取代舊鍵 `what_current` |
 | **Structure notes** | Dream report 節 | Finalize 後軟校驗警告（缺小標／疑似無 link／死連）；無問題＝`_None_`；**不**擋 approve |
 | **facet** | 理解面向 | 舊設計 who／why／open 等多檔；現行 file pipeline **只**寫 what；多 facet **未**接線 |
@@ -219,10 +219,19 @@ Seek（0.18+）：Search scope `future` 掃兩區；Ask 預設可讀 `hot.md`，
 
 - 一筆 `chain` patch 同時寫 ledger block 與 summary（`summary_operation`: `init` \| `revise`）。
 - 既有 `days/*.md` 視為 ledger；summary 由下一輪 dream 產生。
+- **0.31：** 寫入 day／week／month／year 敘事時，若提及**當時已存在**（live 或本輪新建）的 L2 node，機器寫入 P1 `[[nodes/{id}/{id}|{id}]]`。之後才建立的 node **不**回頭改舊 chain（無歷史 backfill）。Workbench `MdBlock` 將此類 wikilink 渲成 `#/memory/nodes/{id}` 可點連結。
 
 ---
 
 ## Workbench（工作台）
+
+### Hash 深鏈（0.31.0）
+
+| 英文 | 中文 | 說明 |
+|------|------|------|
+| **Hash route** | **Hash 深鏈** | `location.hash` 書籤／分享場景與 Memory 選中項（`#/clarify`、`#/memory/nodes/{id}` 等） |
+| **Lazy hash write** | **懶寫 hash** | 空 hash 顯示 activities，進站不自動改成 `#/activities` |
+| **Push vs replace** | **推進／取代歷史** | 場景 tab → push；Memory 同 mode 換選中項 → replace |
 
 ### Clarify（0.30.0）
 

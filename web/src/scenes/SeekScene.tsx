@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { engramApi, type AskJob, type MemorySearch } from "../lib/api";
 import { formatElapsed } from "../lib/types";
 import { useI18n } from "../i18n/I18nProvider";
@@ -20,6 +20,11 @@ export function SeekScene() {
   const [searchMsg, setSearchMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [askMsg, setAskMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [searchData, setSearchData] = useState<MemorySearch | null>(null);
+
+  const knownNodeIds = useMemo(
+    () => new Set((searchData?.nodes ?? []).map((n) => n.node)),
+    [searchData],
+  );
 
   useEffect(() => {
     if (askAnswer?.status === "completed") {
@@ -212,6 +217,7 @@ export function SeekScene() {
                   text={(searchData.chain ?? [])
                     .map((c) => `# ${c.day_id || c.id}\n\n${c.content.trim()}`)
                     .join("\n\n---\n\n")}
+                  knownNodeIds={knownNodeIds}
                 />
               ) : (
                 <MdBlock text={t("empty.no_chain")} empty />
@@ -232,6 +238,7 @@ export function SeekScene() {
                     <MdBlock
                       text={(n.understanding || "").trim() || t("empty.no_what")}
                       empty={!(n.understanding || "").trim()}
+                      knownNodeIds={knownNodeIds}
                     />
                   </div>
                 ))

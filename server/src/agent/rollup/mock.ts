@@ -42,14 +42,28 @@ export class MockRollupAgent implements RollupAgent {
 export function fuseMockNarrative(ctx: RollupWriteContext): string {
   const unique = collectGrains(ctx.lower);
 
+  let body: string;
   if (unique.length === 0) {
-    const body = ctx.prior_current.trim()
+    const note = ctx.prior_current.trim()
       ? `Earlier themes still held; lower layers added little new.`
       : `Little was recorded in lower memory layers.`;
-    return `## Note\n\n${body}`;
+    body = `## Note\n\n${note}`;
+  } else {
+    body = fuseByLifeDimensions(
+      unique,
+      ctx.level === "year" ? "year" : ctx.level === "month" ? "month" : "week",
+    );
   }
 
-  return fuseByLifeDimensions(unique, ctx.level === "year" ? "year" : ctx.level === "month" ? "month" : "week");
+  // 0.31: higher summaries must carry at least one P1 when lower already had links
+  // (or fall back to a stable mock peer so phases can lock the contract).
+  if (!body.includes("[[nodes/")) {
+    const blob = [...ctx.lower.map((x) => x.current), ctx.prior_current].join("\n");
+    const m = /\[\[nodes\/([^/\]]+)\/\1(?:\|[^\]]*)?\]\]/.exec(blob);
+    const link = m ? m[0]! : "[[nodes/acme/acme|acme]]";
+    body = `${body}\n\nAlso ${link}.`;
+  }
+  return body;
 }
 
 /** Prefer ## sections or full paragraphs from lower summaries; fall back to first sentences. */

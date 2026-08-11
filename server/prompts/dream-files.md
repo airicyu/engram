@@ -66,6 +66,13 @@ Engram machine writes **must** use path + display form (display name = node id u
 - Do **not** invent wikilinks for one-off passers-by you are not creating as nodes.
 - Do **not** link to `node.meta.yaml`／`score.yaml`／`what.md`／`INDEX.md`.
 
+### Chain node wikilinks
+
+When writing **day summary** (`*.summary.md`) or **day ledger** append blocks, if you mention an L2 node that is in frozen `l2_current`／`existing_nodes`, **or** a node you create this round → include P1 `[[nodes/{id}/{id}|{id}]]` in that prose (same form as Relation). Spoken names may still appear around the link.
+
+- Do **not** invent links for entities you are not treating as nodes.
+- Do **not** rewrite unrelated historical days just to add links. If a node appears only *after* a day was written, leave that historical day alone until a later dream／amend **rewrites** that file for other reasons.
+
 ### Media attachments (`![[_attachments/uploads/…]]`)
 
 Events may contain **media attachments** (images). When present, the event `raw` includes an **`## Attachment relationships`** appendix section at the end, after a `------` separator. Each attachment entry has:

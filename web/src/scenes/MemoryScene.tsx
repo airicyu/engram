@@ -2,19 +2,32 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { engramApi, type ChainLevel, type NodeIndex } from "../lib/api";
 import { useI18n } from "../i18n/I18nProvider";
 import { MdBlock } from "../components/ui";
+import type { MemoryHash } from "../lib/hashRoute";
 
 type MemoryMode = "chain" | "nodes";
 
 type ChainItem = { id: string; preview?: string; range?: string };
 
-export function MemoryScene() {
+export function MemoryScene({
+  route,
+  onRouteChange,
+}: {
+  route: MemoryHash;
+  onRouteChange: (route: MemoryHash, history: "push" | "replace") => void;
+}) {
   const { t } = useI18n();
-  const [mode, setMode] = useState<MemoryMode>("chain");
-  const [chainLevel, setChainLevel] = useState<ChainLevel>("day");
+  const [mode, setMode] = useState<MemoryMode>(route.mode);
+  const [chainLevel, setChainLevel] = useState<ChainLevel>(
+    route.mode === "chain" && route.level ? route.level : "day",
+  );
   const [chainItems, setChainItems] = useState<ChainItem[] | null>(null);
   const [nodes, setNodes] = useState<NodeIndex[] | null>(null);
-  const [selectedChainId, setSelectedChainId] = useState<string | null>(null);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedChainId, setSelectedChainId] = useState<string | null>(
+    route.mode === "chain" && route.id ? route.id : null,
+  );
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
+    route.mode === "nodes" && route.id ? route.id : null,
+  );
   const [chainMeta, setChainMeta] = useState("");
   const [chainBody, setChainBody] = useState("");
   const [chainEmpty, setChainEmpty] = useState(false);
@@ -23,11 +36,33 @@ export function MemoryScene() {
   const [nodeScoreMeta, setNodeScoreMeta] = useState("");
   const [filter, setFilter] = useState("");
   const [indexEmpty, setIndexEmpty] = useState("");
-  const selectedChainIdRef = useRef<string | null>(null);
+  const selectedChainIdRef = useRef<string | null>(selectedChainId);
+  const selectedNodeIdRef = useRef<string | null>(selectedNodeId);
+  const applyingRouteRef = useRef(false);
 
   useEffect(() => {
     selectedChainIdRef.current = selectedChainId;
   }, [selectedChainId]);
+
+  useEffect(() => {
+    selectedNodeIdRef.current = selectedNodeId;
+  }, [selectedNodeId]);
+
+  // Apply deep-link / back-forward route into local state.
+  useEffect(() => {
+    applyingRouteRef.current = true;
+    if (route.mode === "chain") {
+      setMode("chain");
+      if (route.level) setChainLevel(route.level);
+      if (route.id !== undefined) setSelectedChainId(route.id);
+    } else {
+      setMode("nodes");
+      if (route.id !== undefined) setSelectedNodeId(route.id);
+    }
+    queueMicrotask(() => {
+      applyingRouteRef.current = false;
+    });
+  }, [route]);
 
   useEffect(() => {
     if (mode !== "chain") return;
@@ -73,7 +108,16 @@ export function MemoryScene() {
         }
         setChainItems(items);
         const previous = selectedChainIdRef.current;
-        setSelectedChainId(previous && items.some((item) => item.id === previous) ? previous : items[0]!.id);
+        if (previous) {
+          // Keep deep-linked id even if missing from index (detail shows empty／fail).
+          setSelectedChainId(previous);
+        } else {
+          const first = items[0]!.id;
+          setSelectedChainId(first);
+          if (!applyingRouteRef.current) {
+            onRouteChange({ mode: "chain", level: chainLevel, id: first }, "replace");
+          }
+        }
       } catch (error) {
         if (cancelled || (error as DOMException).name === "AbortError") return;
         setChainItems([]);
@@ -87,7 +131,7 @@ export function MemoryScene() {
       cancelled = true;
       controller.abort();
     };
-  }, [chainLevel, mode, t]);
+  }, [chainLevel, mode, onRouteChange, t]);
 
   useEffect(() => {
     if (mode !== "chain" || !selectedChainId) return;
@@ -147,7 +191,6 @@ export function MemoryScene() {
     let cancelled = false;
     setIndexEmpty("");
     setNodes(null);
-    setSelectedNodeId(null);
     setNodeBody(t("memory.browse_loading"));
     setNodeEmpty(false);
 
@@ -195,14 +238,30 @@ export function MemoryScene() {
     );
   }, [nodes, filter]);
 
+  const knownNodeIds = useMemo(
+    () => new Set((nodes ?? []).map((n) => n.node)),
+    [nodes],
+  );
+
   useEffect(() => {
     if (mode !== "nodes" || !nodes?.length) return;
-    const next =
-      selectedNodeId && filteredNodes.some((n) => n.node === selectedNodeId)
-        ? selectedNodeId
-        : filteredNodes[0]?.node ?? nodes[0].node;
-    if (next !== selectedNodeId) setSelectedNodeId(next);
-  }, [filteredNodes, mode, nodes, selectedNodeId]);
+    const current = selectedNodeIdRef.current;
+    if (current) {
+      const inIndex = nodes.some((n) => n.node === current);
+      const inFilter = filteredNodes.some((n) => n.node === current);
+      // Keep deep-linked unknown ids; if filtered out of visible list, pick first visible.
+      if (!inIndex || inFilter) return;
+      if (filteredNodes[0]) {
+        setSelectedNodeId(filteredNodes[0].node);
+      }
+      return;
+    }
+    const first = filteredNodes[0]?.node ?? nodes[0]!.node;
+    setSelectedNodeId(first);
+    if (!applyingRouteRef.current) {
+      onRouteChange({ mode: "nodes", id: first }, "replace");
+    }
+  }, [filteredNodes, mode, nodes, onRouteChange]);
 
   useEffect(() => {
     if (mode !== "nodes" || !selectedNodeId) return;
@@ -264,7 +323,17 @@ export function MemoryScene() {
           className={`mode-btn${mode === "chain" ? " is-active" : ""}`}
           role="tab"
           aria-selected={mode === "chain"}
-          onClick={() => setMode("chain")}
+          onClick={() => {
+            setMode("chain");
+            onRouteChange(
+              {
+                mode: "chain",
+                level: chainLevel,
+                id: selectedChainId ?? undefined,
+              },
+              "push",
+            );
+          }}
         >
           {t("memory.mode_chain")}
         </button>
@@ -273,7 +342,13 @@ export function MemoryScene() {
           className={`mode-btn${mode === "nodes" ? " is-active" : ""}`}
           role="tab"
           aria-selected={mode === "nodes"}
-          onClick={() => setMode("nodes")}
+          onClick={() => {
+            setMode("nodes");
+            onRouteChange(
+              { mode: "nodes", id: selectedNodeId ?? undefined },
+              "push",
+            );
+          }}
         >
           {t("memory.mode_nodes")}
         </button>
@@ -292,6 +367,7 @@ export function MemoryScene() {
                 onClick={() => {
                   setSelectedChainId(null);
                   setChainLevel(level);
+                  onRouteChange({ mode: "chain", level }, "push");
                 }}
               >
                 {levelLabel(level)}
@@ -310,7 +386,13 @@ export function MemoryScene() {
                     className={`browse-item${item.id === selectedChainId ? " is-selected" : ""}`}
                     role="option"
                     aria-current={item.id === selectedChainId ? "true" : undefined}
-                    onClick={() => setSelectedChainId(item.id)}
+                    onClick={() => {
+                      setSelectedChainId(item.id);
+                      onRouteChange(
+                        { mode: "chain", level: chainLevel, id: item.id },
+                        "replace",
+                      );
+                    }}
                   >
                     <span className="browse-item-id">{item.id}</span>
                     {item.range ? (
@@ -326,7 +408,7 @@ export function MemoryScene() {
             <article className="browse-detail packet-block">
               <h2>{selectedChainId ?? "—"}</h2>
               <p className="browse-meta">{chainMeta}</p>
-              <MdBlock text={chainBody} empty={chainEmpty} />
+              <MdBlock text={chainBody} empty={chainEmpty} knownNodeIds={knownNodeIds} />
             </article>
           </div>
         </>
@@ -357,7 +439,10 @@ export function MemoryScene() {
                     className={`browse-item${n.node === selectedNodeId ? " is-selected" : ""}`}
                     role="option"
                     aria-current={n.node === selectedNodeId ? "true" : undefined}
-                    onClick={() => setSelectedNodeId(n.node)}
+                    onClick={() => {
+                      setSelectedNodeId(n.node);
+                      onRouteChange({ mode: "nodes", id: n.node }, "replace");
+                    }}
                   >
                     <span className="browse-item-id">
                       {n.node}
@@ -378,7 +463,7 @@ export function MemoryScene() {
           <article className="browse-detail packet-block">
             <h2>{selectedNodeId ?? "—"}</h2>
             {nodeScoreMeta ? <p className="browse-meta">{nodeScoreMeta}</p> : null}
-            <MdBlock text={nodeBody} empty={nodeEmpty} />
+            <MdBlock text={nodeBody} empty={nodeEmpty} knownNodeIds={knownNodeIds} />
           </article>
         </div>
       )}
