@@ -222,17 +222,28 @@ export class MockOkRunner implements AgentRunner {
       ctx.l1.summary.toLowerCase().includes("brandnew") ||
       ctx.events.some((e) => /brandnew/i.test(e.raw));
 
-    let node =
-      wantsNewco && !ctx.existing_nodes.includes("newco")
-        ? "newco"
-        : wantsBrandnew && !ctx.existing_nodes.includes("brandnew")
-          ? "brandnew"
-          : (ctx.existing_nodes[0] ?? "acme");
+    // 0.32: seed every activity node-create mention (plus legacy newco／brandnew heuristics).
+    const mentionCreates = [
+      ...new Set(
+        ctx.events.flatMap((e) =>
+          (e.mentions ?? []).filter((m) => m.mode === "create").map((m) => m.id),
+        ),
+      ),
+    ].filter((id) => !ctx.existing_nodes.includes(id));
+    const heuristicCreates: string[] = [];
+    if (wantsNewco && !ctx.existing_nodes.includes("newco")) heuristicCreates.push("newco");
+    if (wantsBrandnew && !ctx.existing_nodes.includes("brandnew")) heuristicCreates.push("brandnew");
+    const toCreate = [...new Set([...mentionCreates, ...heuristicCreates])];
 
-    const creatingId =
-      (wantsNewco && !ctx.existing_nodes.includes("newco") && "newco") ||
-      (wantsBrandnew && !ctx.existing_nodes.includes("brandnew") && "brandnew") ||
-      null;
+    let node =
+      toCreate[0] ??
+      (ctx.events
+        .flatMap((e) => (e.mentions ?? []).filter((m) => m.mode === "ref").map((m) => m.id))
+        .find((id) => ctx.existing_nodes.includes(id)) ??
+        ctx.existing_nodes[0] ??
+        "acme");
+
+    const creatingId = toCreate[0] ?? null;
 
     const mockNote = (prefix = "Mock extract note from short-term") =>
       `${prefix}: ${ctx.l1.summary.slice(0, 120)}${
@@ -255,29 +266,31 @@ export class MockOkRunner implements AgentRunner {
       return `Related to ${nodeWikilink(peer)}.`;
     }
 
-    if (creatingId) {
-      const metaRel = `memories/nodes/${creatingId}/node.meta.yaml`;
-      await writeDraftFile(
-        ctx.dream_run_id,
-        metaRel,
-        stringify({
-          id: creatingId,
-          kind: "org",
-          aliases: [],
-          created_at: ts,
-        }),
-      );
-      await writeDraftFile(
-        ctx.dream_run_id,
-        understandingRel(creatingId),
-        standingUnderstandingMarkdown({
-          identity: "Organization mentioned in ingest",
-          relation: sampleRelation(creatingId, primaryExisting),
-          standingFacts: "_None_",
-          currentSituation: mockNote(),
-        }),
-      );
-      node = creatingId;
+    if (toCreate.length > 0) {
+      for (const createId of toCreate) {
+        const metaRel = `memories/nodes/${createId}/node.meta.yaml`;
+        await writeDraftFile(
+          ctx.dream_run_id,
+          metaRel,
+          stringify({
+            id: createId,
+            kind: "org",
+            aliases: [],
+            created_at: ts,
+          }),
+        );
+        await writeDraftFile(
+          ctx.dream_run_id,
+          understandingRel(createId),
+          standingUnderstandingMarkdown({
+            identity: "Organization mentioned in ingest",
+            relation: sampleRelation(createId, primaryExisting),
+            standingFacts: "_None_",
+            currentSituation: mockNote(),
+          }),
+        );
+      }
+      node = creatingId!;
     }
 
     /** Whole-file rewrite to standing skeleton — never diary-append. */

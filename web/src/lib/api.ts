@@ -116,7 +116,7 @@ function encoded(id: string): string {
 export const engramApi = {
   activities: {
     create: (
-      body: { raw: string; source?: string; node_refs?: string[]; attachments?: { path: string; relationship: string }[] },
+      body: { raw: string; source?: string; attachments?: { path: string; relationship: string }[] },
       options?: ApiOptions,
     ) => api<{ event_id?: string; error?: string; message?: string }>("/activities", {
       ...options,

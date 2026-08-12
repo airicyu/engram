@@ -159,4 +159,30 @@ describe("structure-notes", () => {
       warnings.some((w) => w.includes("mentions mak without wikilink")),
     ).toBe(true);
   });
+
+  test("lintMentionCreates warns when create missing from draft", async () => {
+    const storeDir = await mkdtemp(join(tmpdir(), "engram-mention-create-"));
+    const runId = "dream-test-mention-create";
+    await mkdir(join(storeDir, "dreams", "draft", runId, "memories", "nodes"), {
+      recursive: true,
+    });
+    // no draft node for tommy
+    const script = `
+      import { lintMentionCreates } from "./src/dream/report/structure-notes.ts";
+      const warnings = await lintMentionCreates(${JSON.stringify(runId)}, [
+        { raw: "hi [@tommy](node-create:tommy)" },
+      ]);
+      console.log(JSON.stringify(warnings));
+    `;
+    const proc = spawnSync("bun", ["-e", script], {
+      cwd: serverRoot,
+      env: { ...process.env, ENGRAM_STORE_DIR: storeDir },
+      encoding: "utf8",
+    });
+    if (proc.status !== 0) {
+      throw new Error(proc.stderr || proc.stdout || `exit ${proc.status}`);
+    }
+    const warnings = JSON.parse(proc.stdout.trim()) as string[];
+    expect(warnings).toContain("mention create tommy missing from draft nodes");
+  });
 });

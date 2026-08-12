@@ -32,7 +32,7 @@ function usage(): never {
   console.error(`Usage: bun run replay -- --fixture=<path.jsonl> [options]
 
 Options:
-  --fixture=PATH       JSONL of { "ts", "raw", "source?", "node_refs?" }
+  --fixture=PATH       JSONL of { "ts", "raw", "source?" } (legacy node_refs ignored)
   --base-url=URL       Engram API (default http://127.0.0.1:8787)
   --dream-at=HH:mm:ss  Dream time on the event day (default 23:30:00)
   --dream-next-day     Dream at next calendar day 00:30:00 instead
@@ -132,9 +132,7 @@ async function parseFixture(path: string): Promise<FixtureEvent[]> {
       ts: rec.ts.trim(),
       raw: rec.raw,
       source: typeof rec.source === "string" ? rec.source : undefined,
-      node_refs: Array.isArray(rec.node_refs)
-        ? rec.node_refs.filter((x): x is string => typeof x === "string")
-        : undefined,
+      // legacy node_refs ignored (0.32)
     });
   }
   if (events.length === 0) throw new Error("fixture has no events");
@@ -223,7 +221,6 @@ async function main() {
       const cap = await api(opts.baseUrl, "POST", "/activities", {
         raw: ev.raw,
         source: ev.source ?? "replay",
-        node_refs: ev.node_refs,
       });
       if (cap.status !== 201) {
         throw new Error(`POST /activities failed: ${JSON.stringify(cap.data)}`);

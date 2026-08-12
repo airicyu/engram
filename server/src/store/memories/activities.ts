@@ -15,6 +15,10 @@ export interface Event {
   ts: string;
   source: string;
   raw: string;
+  /**
+   * Legacy (pre-0.32). New writes omit this field.
+   * Readers must ignore if present — do not migrate／rewrite old JSONL.
+   */
   node_refs?: string[];
   ingest_meta?: Record<string, unknown>;
   idempotency_key?: string;

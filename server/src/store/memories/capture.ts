@@ -30,7 +30,6 @@ export function withCaptureLock<T>(fn: () => Promise<T>): Promise<T> {
 export type CaptureInput = {
   raw: string;
   source?: string;
-  node_refs?: string[];
   idempotency_key?: string;
   ingest_meta?: Record<string, unknown>;
   /** Override timestamp (tests／system); default nowIso(). */
@@ -68,14 +67,12 @@ export async function captureActivity(input: CaptureInput): Promise<CaptureResul
     const ts = input.ts ?? nowIso();
     const source = input.source ?? "api";
     const raw = input.raw;
-    const node_refs = input.node_refs;
 
     const event: Event = {
       id: event_id,
       ts,
       source,
       raw,
-      node_refs,
       idempotency_key: input.idempotency_key,
       ingest_meta: input.ingest_meta,
       attachments: input.attachments,
@@ -87,7 +84,6 @@ export async function captureActivity(input: CaptureInput): Promise<CaptureResul
       id: event_id,
       ts,
       raw: raw.trim(),
-      node_refs,
     };
 
     try {

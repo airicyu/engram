@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.32.0 — Activities `@` mention composer（廢 `node_refs`）(2026-08-13)
+
+Activities 改為 `@` mention composer；關聯真相寫入 `raw` 內嵌 token；**廢除** `node_refs`（新請求帶該鍵 → 400）。Dream 依 mentions 消歧／create；漏建僅 Structure notes 軟警告。**無** store migrate；boot gate 仍 ≥0.28。Clarify／Seek 輸入不變。
+
+### Added
+
+- Token：`[@label](node:{id})`（ref）／`[@label](node-create:{id})`（create）；server 解析＋校驗
+- Dream context `events[].mentions`；mock 依 create seed node 主檔；漏建 → Structure notes 警告
+- Web Activities：`@` popover、ref／create pill、與附件並存
+
+### Changed / Breaking
+
+- `POST /activities`：出現 `node_refs` 鍵 → **400** `node_refs_removed`；`mention_create_exists`／`invalid_mention_id`
+- Short-term node notes 改由 raw mentions 衍生；舊 JSONL `node_refs` 讀取忽略
+- api-docs／domain-language／AGENTS／activities-integration skill
+
+### Non-goals
+
+- Clarify／Seek composer、node rename／merge、vector mention search、歷史 migrate、graph GUI、抬 boot gate
+
+---
+
 ## 0.31.0 — Hash 深鏈＋wikilink 可點＋chain 寫入時 node 互指 (2026-08-12)
 
 Workbench 可用 `#/…` 深鏈場景與 Memory 選中項；`MdBlock` 把 node P1 wikilink 渲成可點連結；入夢／rollup 寫 day／higher chain 時對當時已存在的 L2 node 寫入 P1。**不做**歷史 chain backfill；**無** store migrate。

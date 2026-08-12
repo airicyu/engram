@@ -25,7 +25,13 @@ export interface DreamContext {
   scope: string[];
   /** Frozen short-term pool view. JSON key `l1` is frozen (agent context wire). */
   l1: { summary: string; node_notes: Record<string, string> };
-  events: Array<{ id: string; ts: string; raw: string; node_refs?: string[] }>;
+  events: Array<{
+    id: string;
+    ts: string;
+    raw: string;
+    /** Parsed from raw mention tokens (0.32). */
+    mentions: Array<{ id: string; mode: "ref" | "create" }>;
+  }>;
   /** Live node understandings: `understanding` = whole `{id}.md` (standing understanding). */
   l2_current: Array<{ node: string; understanding: string }>;
   existing_nodes: string[];

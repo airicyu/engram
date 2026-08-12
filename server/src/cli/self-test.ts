@@ -127,15 +127,13 @@ async function main() {
     assert(emptyDream.status === 409 && emptyDream.data.error === "nothing_to_dream", "empty pool 409");
 
     const i1 = await json("POST", "/activities", {
-      raw: "Talked to Alice about Acme API rate limits",
+      raw: "Talked to [@alice](node:alice) about [@acme](node:acme) API rate limits",
       source: "api",
-      node_refs: ["acme", "alice"],
     });
     assert(i1.status === 201 && i1.data.event_id === "e0000000001", "first ingest");
 
     const i2 = await json("POST", "/activities", {
-      raw: "NewCo might partner with us on aurora",
-      node_refs: ["aurora"],
+      raw: "NewCo might partner with us on [@aurora](node:aurora)",
     });
     assert(i2.data.event_id === "e0000000002", "second ingest");
 
@@ -1286,20 +1284,71 @@ Unique later keyword xylophone-launch window for search.
     assert(mm27 && mm28 && !structureAtLeast(mm27, mm28), "structureAtLeast 0.27 < 0.28");
     assert(mm28 && structureAtLeast(mm28, { major: 0, minor: 28 }), "structureAtLeast 0.28 >=");
 
-    console.log("\nPhase 9: capture concurrency + node_refs (0.20)");
+    console.log("\nPhase 9: capture concurrency + mentions (0.32)");
+    await stopServer(server);
+    server = await startServer("mock-ok");
     const badRefs = await json("POST", "/activities", {
-      raw: "bad node_refs shape",
+      raw: "legacy node_refs rejected",
       node_refs: "acme",
     });
-    assert(badRefs.status === 400, "node_refs string → 400");
-    assert(badRefs.data.error === "invalid_node_refs", "invalid_node_refs error");
+    assert(badRefs.status === 400, "node_refs key → 400");
+    assert(badRefs.data.error === "node_refs_removed", "node_refs_removed error");
 
-    const goodRefs = await json("POST", "/activities", {
-      raw: "good node_refs shape",
+    const badRefsArr = await json("POST", "/activities", {
+      raw: "legacy node_refs array rejected",
       node_refs: ["acme"],
     });
-    assert(goodRefs.status === 201, "node_refs string[] → 201");
-    assert(typeof goodRefs.data.event_id === "string", "good refs event id");
+    assert(badRefsArr.status === 400, "node_refs array → 400");
+    assert(badRefsArr.data.error === "node_refs_removed", "node_refs_removed for array");
+
+    const plainOk = await json("POST", "/activities", {
+      raw: "plain text capture still works",
+    });
+    assert(plainOk.status === 201, "plain raw → 201");
+
+    const mentionOk = await json("POST", "/activities", {
+      raw: "met [@ken](node:ken) at lunch",
+    });
+    assert(mentionOk.status === 201, "mention ref → 201");
+    assert(typeof mentionOk.data.event_id === "string", "mention event id");
+
+    const createExists = await json("POST", "/activities", {
+      raw: "try create existing [@acme](node-create:acme)",
+    });
+    assert(createExists.status === 400, "create existing → 400");
+    assert(createExists.data.error === "mention_create_exists", "mention_create_exists");
+
+    const createNew = await json("POST", "/activities", {
+      raw: "introducing [@brandnew32](node-create:brandnew32)",
+    });
+    assert(createNew.status === 201, "node-create brandnew32 → 201");
+    const createEvtId = String(createNew.data.event_id);
+
+    console.log("\nPhase 9c: mention create → node main (0.32)");
+    const dreamMentions = await json("POST", "/dreams/run");
+    assert(dreamMentions.status === 202, `mention dream 202 got ${dreamMentions.status} ${JSON.stringify(dreamMentions.data)}`);
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dreamMentions.data.job_id &&
+        (job?.status === "completed" || job?.status === "failed") &&
+        (st2.dream_status === "pending_review" || st2.dream_status === "dream_incomplete"),
+      60000,
+    );
+    const stAfterMention = await json("GET", "/status");
+    assert(
+      stAfterMention.data.dream_status === "pending_review",
+      `mention dream pending_review got ${stAfterMention.data.dream_status} job=${JSON.stringify(stAfterMention.data.dream_job)}`,
+    );
+    const apMentions = await json("POST", "/dreams/approve", {});
+    assert(apMentions.status === 200, "mention dream approve");
+    const brandnew32Main = join(
+      TEST_HOME,
+      "memories/nodes/brandnew32/brandnew32.md",
+    );
+    assert(await Bun.file(brandnew32Main).exists(), "brandnew32 node main after approve");
+    const brandnew32Body = await readFile(brandnew32Main, "utf8");
+    assert(brandnew32Body.includes("## Identity"), "brandnew32 standing headings");
+    void createEvtId;
 
     const serialIds: string[] = [];
     for (let i = 0; i < 20; i++) {
@@ -1802,7 +1851,7 @@ Unique later keyword xylophone-launch window for search.
       "empty_patches still archives clarify pending",
     );
 
-    console.log("\n✅ All self-checks passed (through 0.31)");
+    console.log("\n✅ All self-checks passed (through 0.32)");
   } finally {
     await stopServer(server);
   }

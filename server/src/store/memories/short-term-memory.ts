@@ -4,6 +4,7 @@ import { mkdir, readFile, rm, writeFile, access, rename } from "node:fs/promises
 import { $ } from "bun";
 import { homePath } from "../home";
 import { readAllEvents } from "./activities";
+import { mentionNodeIds } from "./mentions";
 
 const SUMMARY_FILE = "summary.md";
 const LEGACY_SUMMARY_FILE = "today-summary.md";
@@ -14,6 +15,10 @@ export interface PoolEntry {
   id: string;
   ts: string;
   raw: string;
+  /**
+   * Legacy (pre-0.32). New writes omit this field.
+   * Readers ignore — node notes are derived from raw mention tokens.
+   */
   node_refs?: string[];
 }
 
@@ -86,7 +91,6 @@ async function migrateSummaryToPool(): Promise<void> {
         id: ev.id,
         ts: ev.ts,
         raw: ev.raw,
-        node_refs: ev.node_refs,
       });
     }
   }
@@ -109,6 +113,11 @@ function formatLine(entry: PoolEntry): string {
   return `- [${entry.ts}] (${entry.id}) ${entry.raw.trim()}`;
 }
 
+/** Node ids for grouping notes: parse raw mentions (ignore legacy node_refs). */
+function entryMentionIds(entry: PoolEntry): string[] {
+  return mentionNodeIds(entry.raw);
+}
+
 async function renderPresentation(entries: PoolEntry[]): Promise<void> {
   await mkdir(homePath("memories", "short-term-memory"), { recursive: true });
   const summary = entries.map(formatLine).join("\n");
@@ -122,7 +131,7 @@ async function renderPresentation(entries: PoolEntry[]): Promise<void> {
 
   const byNode = new Map<string, PoolEntry[]>();
   for (const e of entries) {
-    for (const nodeId of e.node_refs ?? []) {
+    for (const nodeId of entryMentionIds(e)) {
       const list = byNode.get(nodeId) ?? [];
       list.push(e);
       byNode.set(nodeId, list);
@@ -145,7 +154,11 @@ export async function readPoolEntries(): Promise<PoolEntry[]> {
     .trim()
     .split("\n")
     .filter(Boolean)
-    .map((line) => JSON.parse(line) as PoolEntry);
+    .map((line) => {
+      const parsed = JSON.parse(line) as PoolEntry;
+      // Ignore legacy node_refs key on read
+      return { id: parsed.id, ts: parsed.ts, raw: parsed.raw };
+    });
 }
 
 /** List event identifiers currently retained in short-term memory. */
@@ -165,7 +178,9 @@ export async function appendPoolEntry(entry: PoolEntry): Promise<void> {
   await ensureShortTermMemorySummaryFile();
   const entries = await readPoolEntries();
   if (entries.some((e) => e.id === entry.id)) return;
-  entries.push(entry);
+  // Never persist node_refs on new writes
+  const clean: PoolEntry = { id: entry.id, ts: entry.ts, raw: entry.raw };
+  entries.push(clean);
   await writeFile(poolPath(), entries.map((e) => JSON.stringify(e)).join("\n") + "\n", "utf8");
   await renderPresentation(entries);
 }
@@ -187,9 +202,9 @@ export async function appendSummary(line: string): Promise<void> {
 /** @deprecated Use appendSummary */
 export const appendTodaySummary = appendSummary;
 
-/** Legacy no-op; node notes are derived from pool entry references. */
+/** Legacy no-op; node notes are derived from pool entry mentions on render. */
 export async function appendNodeNotes(_nodeId: string, _line: string): Promise<void> {
-  // Node notes are derived from pool entries' node_refs on render.
+  // Node notes are derived from raw mention tokens on render.
 }
 
 /** Render the current short-term memory pool as a markdown summary. */
@@ -202,12 +217,12 @@ export async function readSummary(): Promise<string> {
 /** @deprecated Use readSummary */
 export const readTodaySummary = readSummary;
 
-/** Render short-term memory notes grouped by referenced node. */
+/** Render short-term memory notes grouped by mentioned node. */
 export async function readAllNodeNotes(): Promise<Record<string, string>> {
   const entries = await readPoolEntries();
   const byNode = new Map<string, PoolEntry[]>();
   for (const e of entries) {
-    for (const nodeId of e.node_refs ?? []) {
+    for (const nodeId of entryMentionIds(e)) {
       const list = byNode.get(nodeId) ?? [];
       list.push(e);
       byNode.set(nodeId, list);

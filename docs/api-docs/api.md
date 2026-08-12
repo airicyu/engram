@@ -225,7 +225,7 @@ cd server && bun run replay -- --fixture=fixtures/replay-sample.jsonl
 # optional: --pause  --dream-at=22:00:00  --dream-next-day  --base-url=http://127.0.0.1:8787
 ```
 
-Fixture JSONL lines: `{ "ts", "raw", "source?", "node_refs?" }` — `ts` is encoding time. Orchestrator: set clock → capture → dream at night → approve → next day.
+Fixture JSONL lines: `{ "ts", "raw", "source?" }` — `ts` is encoding time. Legacy `node_refs` in fixtures is ignored. Orchestrator: set clock → capture → dream at night → approve → next day.
 
 **Do not** pass client `ts` on `POST /activities`; set the clock first.
 
@@ -281,9 +281,8 @@ Append one event to L0 and the short-term memory pool (indexed by event id).
 
 ```json
 {
-  "raw": "required — free-text memory input",
+  "raw": "Talked to [@alice](node:alice) about [@acme](node:acme) — optional mention tokens",
   "source": "api",
-  "node_refs": ["optional-node-id"],
   "idempotency_key": "optional",
   "attachments": [
     {
@@ -296,9 +295,11 @@ Append one event to L0 and the short-term memory pool (indexed by event id).
 
 **Response `201`:** `{ "event_id": "e0000000001" }`
 
-**Errors:** `400` missing `raw`; `400` `invalid_node_refs`（`node_refs` 出現但不是 `string[]`）；`400` `embed_without_attachment`／`attachment_not_in_embeds`／`empty_relationship`／`duplicate_attachment_path`／`invalid_attachment_path`／`attachment_file_missing`／`double_appendix`；`409` `dream_locked`.
+**Errors:** `400` missing `raw`；`400` `node_refs_removed`（請求體出現已廢除的 `node_refs` 鍵）；`400` `invalid_mention_id`／`mention_create_exists`（`raw` 內 mention token）；`400` `embed_without_attachment`／`attachment_not_in_embeds`／`empty_relationship`／`duplicate_attachment_path`／`invalid_attachment_path`／`attachment_file_missing`／`double_appendix`；`409` `dream_locked`.
 
-`node_refs` 若提供必須是字串陣列（禁止傳字串，以免被逐字元當成 node id）。單次成功回應時 L0 與 short-term pool 一致反映該事件（0.20 capture 原子路徑）。
+**0.32+ mentions：** 關聯真相寫在 `raw` 內嵌 token——`[@label](node:{id})`（既有）／`[@label](node-create:{id})`（本輪應新建）。**禁止**再傳 `node_refs`（鍵存在即 400）。`node-create` 若 live 已有該 id → 400 `mention_create_exists`（不自動改成 ref）。舊 JSONL 若仍含 `node_refs`：讀取忽略，不做 migrate。Dream context 對每則 event 附解析後的 `mentions: [{ id, mode }]`；漏建 create → Structure notes 軟警告（不擋 approve）。
+
+單次成功回應時 L0 與 short-term pool 一致反映該事件（0.20 capture 原子路徑）。
 
 **0.29+ 附件：** `attachments` 可選；若有則需與 `raw` 內 `![[_attachments/uploads/…]]` embed 精確對稱（集合相等），不可含 `|alias` 變體。Server 會將 tmp 檔搬至正式目錄，並在 `raw` 末尾追加 `## Attachment relationships` appendix。Event 記錄含結構化 `attachments` 欄位與含 appendix 的最終 `raw`。
 

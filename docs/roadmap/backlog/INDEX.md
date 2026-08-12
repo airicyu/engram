@@ -5,11 +5,10 @@
 
 | 項目 | 備註 |
 |------|------|
-| [Activities `@` node mention composer](./activity-node-mentions.md) | 捕捉時 @ pill／新建意圖；**同時廢除**不自然的 `node_refs` |
 | [Node network 互動圖](./node-network-graph.md) | Obsidian 式 graph GUI；邊可消費 0.28 Relation＋**0.31 chain** 內 P1 wikilink |
 | [Vector／語意搜尋](./vector-semantic-search.md) | embedding＋近鄰；與 keyword 混合；mention dropdown 量大時可接 |
 | Seek／network 依 node 活躍分 | **延後**：現行 Seek／Ask 以 AI 解讀為主，硬排／弱先驗效益低、複雜度不划算；等檢索／上下文組合更複雜再做（分仍可供 Memory／graph 展示） |
 | 前後端 shared Zod／contract package | 完整 monorepo schema |
 | 歷史 chain wikilink backfill | **不做／延後**：見 [0.31 reasoning](../0.31.0/docs/reasoning.md)；寫入時互指已排進 [0.31.0](../0.31.0/INDEX.md) |
 
-← [0.31.0](../0.31.0/INDEX.md)（shipped） · [0.30.0](../0.30.0/INDEX.md)（shipped） · [0.29.0](../0.29.0/INDEX.md)（shipped） · [GUIDELINES](../GUIDELINES.md)
+← [0.32.0](../0.32.0/INDEX.md)（shipped） · [0.31.0](../0.31.0/INDEX.md)（shipped） · [0.30.0](../0.30.0/INDEX.md)（shipped） · [GUIDELINES](../GUIDELINES.md)

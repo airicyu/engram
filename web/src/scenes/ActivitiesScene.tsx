@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type DragEvent, type ClipboardEvent } from "react";
-import { api, engramApi } from "../lib/api";
-import { formatL1, parseNodeRefs } from "../lib/types";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type DragEvent } from "react";
+import { api, engramApi, type NodeIndex } from "../lib/api";
+import { formatL1 } from "../lib/types";
 import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
 import { MdBlock, Msg } from "../components/ui";
+import {
+  MentionComposer,
+  type MentionComposerHandle,
+} from "../components/MentionComposer";
 
 interface AttachmentItem {
   path: string;
@@ -16,7 +20,6 @@ export function ActivitiesScene() {
   const { t } = useI18n();
   const { status, dreaming, refreshStatus } = useStatus();
   const [raw, setRaw] = useState("");
-  const [refs, setRefs] = useState("");
   const [msg, setMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [l1Text, setL1Text] = useState(t("activities.loading"));
   const [l1Empty, setL1Empty] = useState(false);
@@ -24,8 +27,9 @@ export function ActivitiesScene() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [nodeIds, setNodeIds] = useState<string[]>([]);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<MentionComposerHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
@@ -49,43 +53,23 @@ export function ActivitiesScene() {
     setL1Empty(empty);
   }, [t]);
 
+  const refreshNodes = useCallback(async () => {
+    const { ok, data } = await engramApi.memories.nodes.index();
+    if (!ok || !data?.nodes) {
+      setNodeIds([]);
+      return;
+    }
+    setNodeIds(data.nodes.map((n: NodeIndex) => n.node).filter(Boolean));
+  }, []);
+
   useEffect(() => {
     void refreshL1();
-  }, [refreshL1]);
+    void refreshNodes();
+  }, [refreshL1, refreshNodes]);
 
-  /** Insert text at cursor position in textarea, with blank lines before/after. */
+  /** Insert text at cursor via composer. */
   function insertAtCursor(text: string) {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const before = raw.slice(0, start);
-    const after = raw.slice(end);
-
-    // Ensure blank lines before and after
-    let prefix = "";
-    let suffix = "";
-    if (before.length > 0 && !before.endsWith("\n\n") && !before.endsWith("\n")) {
-      prefix = "\n\n";
-    } else if (before.length > 0 && !before.endsWith("\n\n")) {
-      prefix = "\n";
-    }
-    if (after.length > 0 && !after.startsWith("\n\n") && !after.startsWith("\n")) {
-      suffix = "\n\n";
-    } else if (after.length > 0 && !after.startsWith("\n\n")) {
-      suffix = "\n";
-    }
-
-    const newRaw = before + prefix + text + suffix + after;
-    setRaw(newRaw);
-
-    // Restore cursor position after the inserted text
-    setTimeout(() => {
-      const newPos = start + prefix.length + text.length;
-      ta.selectionStart = newPos;
-      ta.selectionEnd = newPos;
-      ta.focus();
-    }, 0);
+    composerRef.current?.insertText(text, { blankLines: true });
   }
 
   /** Upload a file to tmp and insert embed at cursor. */
@@ -120,18 +104,15 @@ export function ActivitiesScene() {
     setUploading(false);
   }
 
-  /** Handle file input change (paperclip/+ button). */
   async function onFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     for (const file of files) {
       await uploadFile(file);
     }
-    // Reset so the same file can be picked again
     e.target.value = "";
   }
 
-  /** Handle drag events. */
   function onDragOver(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -158,44 +139,27 @@ export function ActivitiesScene() {
     }
   }
 
-  /** Handle paste events for clipboard images. */
-  async function onPaste(e: ClipboardEvent<HTMLTextAreaElement>) {
-    const items = e.clipboardData.items;
-    for (const item of items) {
-      if (item.type.startsWith("image/")) {
-        e.preventDefault();
-        const file = item.getAsFile();
-        if (file) {
-          await uploadFile(file);
-        }
-      }
-    }
-  }
-
-  /** Remove an attachment: delete tmp file + remove from state + remove embed from textarea. */
   async function removeAttachment(index: number) {
     const item = attachments[index];
     if (!item) return;
 
-    // Remove embed from raw text
     const embedPattern = `![[${item.path}]]`;
-    const newRaw = raw.replace(embedPattern, "").replace(/\n{3,}/g, "\n\n").trim();
-    setRaw(newRaw ? newRaw + "\n" : "");
+    const current = composerRef.current?.getSerialized() ?? raw;
+    const newRaw = current.replace(embedPattern, "").replace(/\n{3,}/g, "\n\n").trim();
+    composerRef.current?.setSerialized(newRaw ? `${newRaw}\n` : "");
+    setRaw(newRaw ? `${newRaw}\n` : "");
 
-    // Delete tmp file (best-effort)
     await engramApi.attachments.deleteTmp(item.day, item.filename).catch(() => {});
-
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
-  /** Update relationship for an attachment. */
   function updateRelationship(index: number, value: string) {
     setAttachments((prev) => prev.map((a, i) => (i === index ? { ...a, relationship: value } : a)));
   }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const trimmed = raw.trim();
+    const trimmed = (composerRef.current?.getSerialized() ?? raw).trim();
     if (!trimmed) {
       setMsg({ text: t("activities.empty_input"), kind: "error" });
       return;
@@ -205,7 +169,6 @@ export function ActivitiesScene() {
       return;
     }
 
-    // Validate relationships are filled
     for (const a of attachments) {
       if (!a.relationship.trim()) {
         setMsg({ text: t("activities.attachment_empty_relationship"), kind: "error" });
@@ -214,11 +177,11 @@ export function ActivitiesScene() {
     }
 
     const body: Record<string, unknown> = { raw: trimmed, source: "web" };
-    const nodeRefs = parseNodeRefs(refs);
-    if (nodeRefs.length) body.node_refs = nodeRefs;
-
     if (attachments.length > 0) {
-      body.attachments = attachments.map((a) => ({ path: a.path, relationship: a.relationship.trim() }));
+      body.attachments = attachments.map((a) => ({
+        path: a.path,
+        relationship: a.relationship.trim(),
+      }));
     }
 
     setMsg({ text: t("activities.writing"), kind: "" });
@@ -241,10 +204,10 @@ export function ActivitiesScene() {
       return;
     }
     setMsg({ text: t("activities.ok", { id: data.event_id ?? "" }), kind: "ok" });
+    composerRef.current?.clear();
     setRaw("");
-    setRefs("");
     setAttachments([]);
-    await Promise.all([refreshStatus(), refreshL1()]);
+    await Promise.all([refreshStatus(), refreshL1(), refreshNodes()]);
   }
 
   return (
@@ -261,37 +224,26 @@ export function ActivitiesScene() {
           onDragLeave={onDragLeave}
           onDrop={onDrop}
         >
-          <textarea
+          <MentionComposer
+            ref={composerRef}
             id="activities-raw"
-            ref={textareaRef}
-            rows={8}
-            placeholder={t("activities.placeholder")}
-            required
             disabled={locked}
-            value={raw}
-            onChange={(e) => setRaw(e.target.value)}
-            onPaste={onPaste}
+            placeholder={t("activities.placeholder")}
+            nodeIds={nodeIds}
+            onChange={setRaw}
+            onPasteImage={(file) => void uploadFile(file)}
+            labels={{
+              create: t("activities.mention_create"),
+              createExists: t("activities.mention_create_exists"),
+              emptyCreate: t("activities.mention_empty"),
+            }}
           />
           {dragOver && (
             <div className="drop-overlay">{t("activities.attachment_drop_hint")}</div>
           )}
         </div>
+        <p className="form-hint">{t("activities.mention_hint")}</p>
 
-        <div className="form-row">
-          <label className="field-inline">
-            <span>{t("activities.node_refs")}</span>
-            <input
-              type="text"
-              placeholder={t("activities.refs_placeholder")}
-              autoComplete="off"
-              disabled={locked}
-              value={refs}
-              onChange={(e) => setRefs(e.target.value)}
-            />
-          </label>
-        </div>
-
-        {/* Media attachments section */}
         <div className="attachments-section">
           <div className="attachments-header">
             <span className="attachments-title">{t("activities.media_attachments")}</span>
@@ -314,12 +266,8 @@ export function ActivitiesScene() {
             />
           </div>
 
-          {uploading && (
-            <p className="form-hint">{t("activities.attachment_uploading")}</p>
-          )}
-          {uploadError && (
-            <p className="form-hint error">{uploadError}</p>
-          )}
+          {uploading && <p className="form-hint">{t("activities.attachment_uploading")}</p>}
+          {uploadError && <p className="form-hint error">{uploadError}</p>}
 
           {attachments.map((a, i) => (
             <div key={`${a.path}-${i}`} className="attachment-item">
@@ -328,7 +276,6 @@ export function ActivitiesScene() {
                   src={`/api/attachments/file?path=${encodeURIComponent(a.path)}`}
                   alt={a.filename}
                   onError={(e) => {
-                    // Fallback: show filename if image can't load
                     (e.target as HTMLImageElement).style.display = "none";
                   }}
                 />

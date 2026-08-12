@@ -154,7 +154,7 @@ try {
         const body = (await req.json()) as {
           raw: string;
           source?: string;
-          node_refs?: string[];
+          node_refs?: unknown;
           idempotency_key?: string;
           attachments?: { path: string; relationship: string }[];
         };
@@ -163,7 +163,6 @@ try {
         logInfo("capture ok", {
           event_id: result.event_id,
           source: body.source ?? "api",
-          node_refs: body.node_refs ?? [],
           raw_len: body.raw?.length ?? 0,
         });
         return Response.json(result, { status: 201 });

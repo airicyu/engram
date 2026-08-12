@@ -9,6 +9,7 @@ import { draftDir } from "../../store/dreams/dream-runs";
 import { listNodeIds } from "../../store/memories/nodes";
 import { hasStandingHeadings } from "../../store/memories/nodes";
 import { homePath } from "../../store/home";
+import { mentionCreateIds } from "../../store/memories/mentions";
 
 const STANDING_HEADINGS = [
   "## Identity",
@@ -216,11 +217,38 @@ export function formatStructureNotesSection(warnings: string[]): string {
   return `## Structure notes\n\n${body}`;
 }
 
+/**
+ * Soft-lint: activity `node-create:` mentions whose draft node main is missing.
+ * Does not fail the job or block approve.
+ */
+export async function lintMentionCreates(
+  dreamRunId: string,
+  events: Array<{ raw: string }>,
+): Promise<string[]> {
+  const creates = new Set<string>();
+  for (const e of events) {
+    for (const id of mentionCreateIds(e.raw)) creates.add(id);
+  }
+  if (creates.size === 0) return [];
+
+  const draftIds = new Set((await listDraftNodeMains(dreamRunId)).map((n) => n.id));
+  const warnings: string[] = [];
+  for (const id of [...creates].sort()) {
+    if (draftIds.has(id)) continue;
+    warnings.push(`mention create ${id} missing from draft nodes`);
+  }
+  return warnings;
+}
+
 /** Scan draft and build the Structure notes markdown section. */
-export async function buildStructureNotesSection(dreamRunId: string): Promise<string> {
+export async function buildStructureNotesSection(
+  dreamRunId: string,
+  events: Array<{ raw: string }> = [],
+): Promise<string> {
   const warnings = [
     ...(await lintDraftNodeStructure(dreamRunId)),
     ...(await lintDraftChainSummaries(dreamRunId)),
+    ...(await lintMentionCreates(dreamRunId, events)),
   ];
   return formatStructureNotesSection(warnings);
 }

@@ -59,7 +59,7 @@ Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；�
 
 | Method | Path | |
 |--------|------|--|
-| `POST` | `/activities` | `{ "raw", "source?", "node_refs?" }` → `{ event_id }` |
+| `POST` | `/activities` | `{ "raw", "source?", "attachments?" }`（`raw` 可含 mention token；**勿**傳 `node_refs`）→ `{ event_id }` |
 | `POST` | `/dreams/run` | AI edits draft＋report → pending_review（pending 時 409） |
 | `POST` | `/dreams/retry` | discard pending → same scope + reason → new pending |
 | `POST` | `/dreams/cancel` | cancel running dream |

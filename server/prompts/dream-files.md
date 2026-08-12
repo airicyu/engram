@@ -53,6 +53,10 @@ Every node main file you write or update **must** be a **whole-file rewrite** at
 - **Forbidden content shape:** using `YYYY-MM-DD：做了什麼` lists (or equivalent day-by-day logs) as the backbone of the node main file — that belongs in chain.
 - **Update:** rewrite the full four-section file; **do not** append another day’s log to the end of an old diary-shaped file.
 - **Create node:** seed `{id}.md` with the four-section skeleton from the start (most sections may be `_None_`; Identity should preferably have at least one non-`_None_` definition line). Do not seed a single raw line with no headings. Do **not** create stub `INDEX.md`.
+- **Activity mentions (0.32):** each frozen event may include `mentions: [{ id, mode: "ref"|"create" }]` parsed from `raw` tokens `[@label](node:id)`／`[@label](node-create:id)`.
+  - `mode: create` → this round **must** seed `memories/nodes/{id}/{id}.md` (standing skeleton) for that id unless it already exists in `existing_nodes` (should not happen for create).
+  - `mode: ref` → when mentioning that entity, use that exact id; write Relation／chain with P1 wikilinks.
+  - Passers-by with no mention token → do **not** invent nodes.
 - **Kind hints** (same file; unused sections still get `_None_`): `person` → Identity＋Relation usually filled; `project`／`theme`／`org` → Identity＋Standing facts primary, Relation often `_None_` unless linked to other nodes.
 
 ### Wikilinks (Obsidian vault = `memories/`)

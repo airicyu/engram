@@ -103,13 +103,6 @@ export function formatElapsed(startedAt?: string): string {
   return `${Math.floor(sec / 60)}m ${sec % 60}s`;
 }
 
-export function parseNodeRefs(raw: string): string[] {
-  return raw
-    .split(/[,，\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 export function formatL1(
   packet: { present?: boolean; summary?: string; node_notes?: Record<string, string> } | null,
   t: (k: string) => string,

@@ -250,7 +250,7 @@ export async function finalizeDreamReport(opts: {
   }
 
   // Server-owned soft structure lint (warnings only; empty → _None_).
-  lines.push(await buildStructureNotesSection(opts.dream_run_id), "");
+  lines.push(await buildStructureNotesSection(opts.dream_run_id, opts.events), "");
 
   lines.push("## Appendix — pending deploy", "### Paths", "", ...pathLines, "");
 

@@ -41,7 +41,7 @@ const ENGRAM_URL = process.env.ENGRAM_URL ?? "http://localhost:8787";
 
 export async function captureActivity(
   raw: string,
-  opts?: { source?: string; node_refs?: string[] },
+  opts?: { source?: string },
 ): Promise<{ event_id: string }> {
   const maxAttempts = 5;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -51,7 +51,6 @@ export async function captureActivity(
       body: JSON.stringify({
         raw,
         source: opts?.source ?? "integration",
-        ...(opts?.node_refs ? { node_refs: opts.node_refs } : {}),
       }),
     });
     if (res.status === 201) return res.json();

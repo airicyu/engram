@@ -9,6 +9,7 @@ import { calendarDate, nowIso } from "../../store/memories/activities";
 import { readAllUnderstandings, listNodeIds } from "../../store/memories/nodes";
 import { readDay, readDaySummary } from "../../store/memories/chain";
 import { makeRunId } from "../../store/run-id";
+import { parseMentions, mentionNodeIds } from "../../store/memories/mentions";
 
 /** Compact one-line descriptions of draft changes for retry context. */
 export function compactChangeLines(draft: Awaited<ReturnType<typeof draftSummary>>): string[] {
@@ -56,12 +57,12 @@ export async function buildDreamContext(
     id: e.id,
     ts: e.ts,
     raw: e.raw,
-    node_refs: e.node_refs,
+    mentions: parseMentions(e.raw).map((m) => ({ id: m.id, mode: m.mode })),
   }));
   const summary = scopeEntries.map((e) => `- [${e.ts}] (${e.id}) ${e.raw.trim()}`).join("\n");
   const node_notes: Record<string, string> = {};
   for (const e of scopeEntries) {
-    for (const nodeId of e.node_refs ?? []) {
+    for (const nodeId of mentionNodeIds(e.raw)) {
       const line = `- [${e.ts}] (${e.id}) ${e.raw.trim()}`;
       node_notes[nodeId] = node_notes[nodeId] ? `${node_notes[nodeId].trimEnd()}\n${line}` : line;
     }

@@ -20,15 +20,45 @@ import {
   type Event,
 } from "../store/memories/activities";
 import { appendPoolEntry, type PoolEntry } from "../store/memories/short-term-memory";
+import { validateMentionsInRaw } from "../store/memories/mentions";
+import { nodeExists } from "../store/memories/nodes";
 import { logInfo } from "../log";
 
 /** Request payload accepted by POST /activities. */
 export interface ActivitiesBody {
   raw: string;
   source?: string;
-  node_refs?: string[];
+  /** Removed in 0.32 — key presence → 400 `node_refs_removed`. */
+  node_refs?: unknown;
   idempotency_key?: string;
   attachments?: AttachmentMeta[];
+}
+
+/** Validate mention tokens; reject create when live node already exists. */
+async function validateActivityMentions(raw: string): Promise<Response | null> {
+  const parsed = validateMentionsInRaw(raw);
+  if (!parsed.ok) {
+    return Response.json(
+      {
+        error: "invalid_mention_id",
+        message: `Invalid mention id: ${JSON.stringify(parsed.bad_id)}`,
+      },
+      { status: 400 },
+    );
+  }
+  for (const m of parsed.mentions) {
+    if (m.mode !== "create") continue;
+    if (await nodeExists(m.id)) {
+      return Response.json(
+        {
+          error: "mention_create_exists",
+          message: `Cannot create node "${m.id}": already exists; use node: ref instead`,
+        },
+        { status: 400 },
+      );
+    }
+  }
+  return null;
 }
 
 /** Validate and persist a captured memory event. */
@@ -40,25 +70,24 @@ export async function handleActivities(body: ActivitiesBody): Promise<{ event_id
     );
   }
 
+  // 0.32: node_refs removed — key present (any value) → 400
+  if (Object.prototype.hasOwnProperty.call(body, "node_refs")) {
+    return Response.json(
+      {
+        error: "node_refs_removed",
+        message:
+          "`node_refs` was removed in 0.32; embed mentions in `raw` as [@id](node:id) or [@id](node-create:id)",
+      },
+      { status: 400 },
+    );
+  }
+
   if (!body.raw || typeof body.raw !== "string" || !body.raw.trim()) {
     return Response.json({ error: "raw is required" }, { status: 400 });
   }
 
-  // 0.20: node_refs must be string[] when present (string would be for…of'd as chars).
-  if (body.node_refs !== undefined) {
-    if (
-      !Array.isArray(body.node_refs) ||
-      body.node_refs.some((x) => typeof x !== "string")
-    ) {
-      return Response.json(
-        {
-          error: "invalid_node_refs",
-          message: "`node_refs` must be an array of strings when provided",
-        },
-        { status: 400 },
-      );
-    }
-  }
+  const mentionErr = await validateActivityMentions(body.raw);
+  if (mentionErr) return mentionErr;
 
   // 0.29: attachments
   const attachments = body.attachments;
@@ -110,7 +139,6 @@ export async function handleActivities(body: ActivitiesBody): Promise<{ event_id
           ts,
           source,
           raw: finalRaw,
-          node_refs: body.node_refs,
           idempotency_key: body.idempotency_key,
           attachments,
         };
@@ -121,7 +149,6 @@ export async function handleActivities(body: ActivitiesBody): Promise<{ event_id
           id: event_id,
           ts,
           raw: finalRaw.trim(),
-          node_refs: body.node_refs,
         };
 
         try {
@@ -162,7 +189,6 @@ export async function handleActivities(body: ActivitiesBody): Promise<{ event_id
   const result = await captureActivity({
     raw: body.raw,
     source: body.source,
-    node_refs: body.node_refs,
     idempotency_key: body.idempotency_key,
   });
 
