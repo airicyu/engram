@@ -5,11 +5,18 @@ import { rm, mkdir, readFile, readdir, access } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 import { checkStoreStructure, structureAtLeast, parseMajorMinor } from "../store/store-structure";
+import { resolveAgentSkillDir } from "../paths/agent-skills";
 
 const ROOT = resolve(import.meta.dir, "../../..");
 const TEST_HOME = join(ROOT, "data-test");
 const PORT = 18000 + Math.floor(Math.random() * 1000);
 const BASE = `http://127.0.0.1:${PORT}`;
+
+function migrationScript(name: string): string {
+  const skill = resolveAgentSkillDir(ROOT, "engram-migration");
+  assert(skill, "engram-migration skill directory not found under agent skills root");
+  return join(skill, "scripts", name);
+}
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`ASSERT: ${msg}`);
@@ -1181,7 +1188,7 @@ Unique later keyword xylophone-launch window for search.
     await Bun.write(wsPath, wsText);
     const mig = Bun.spawnSync([
       "bun",
-      join(ROOT, ".claude/skills/engram-migration/scripts/migrate-0.17-to-0.19.ts"),
+      migrationScript("migrate-0.17-to-0.19.ts"),
       TEST_HOME,
     ]);
     assert(mig.exitCode === 0, `migrate 0.17→0.19 exit 0: ${mig.stderr.toString()}`);
@@ -1222,7 +1229,7 @@ Unique later keyword xylophone-launch window for search.
     );
     const mig28 = Bun.spawnSync([
       "bun",
-      join(ROOT, ".claude/skills/engram-migration/scripts/migrate-0.19-to-0.28.ts"),
+      migrationScript("migrate-0.19-to-0.28.ts"),
       TEST_HOME,
     ]);
     assert(mig28.exitCode === 0, `migrate 0.19→0.28 exit 0: ${mig28.stderr.toString()}\n${mig28.stdout.toString()}`);

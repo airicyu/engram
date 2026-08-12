@@ -2,7 +2,7 @@
 
 ← [INDEX](../INDEX.md) · 佈局細節：[node-layout.md](./node-layout.md)
 
-> **執行真相**出貨時落在 `.claude/skills/engram-migration/migrate-0.19-to-0.28.md`＋script。本檔是 roadmap 契約／WHY 對照；兩邊必須一致。
+> **執行真相**出貨時落在 **engram-migration** skill 的 `migrate-0.19-to-0.28.md`＋`scripts/`。本檔是 roadmap 契約／WHY 對照；兩邊必須一致。
 
 ## 產品句
 
@@ -14,7 +14,7 @@
 |------|------|
 | **不經 HTTP** | Hop＝對 `ENGRAM_STORE_DIR` 跑 bun script／skill；**不需要** Engram server 已 listen |
 | **Pending＝直接清空** | 不要求先 API discard／approve（避免與 boot 拒啟死結）；也不改寫舊 draft path（結構代已變，未審稿價值低） |
-| **Boot 文案** | 拒啟時須提示：跑 `.claude/skills/engram-migration/`（本 hop 檔名），**無需先啟動 server**；並可知「未批准 dream 會被丟棄」 |
+| **Boot 文案** | 拒啟時須提示：跑 **engram-migration** skill（本 hop 檔名／`scripts/`），**無需先啟動 server**；並可知「未批准 dream 會被丟棄」 |
 | **Escape** | `ENGRAM_ALLOW_STALE_STORE=1` 可警告後仍啟（除錯／救急）；**不是** migrate 的正常前置 |
 
 ## 准入

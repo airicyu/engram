@@ -2,7 +2,8 @@
  * Mechanical Engram store migrate: 0.16 future-sight active/* → 0.17 hot.md／later.md.
  *
  * Usage:
- *   bun .claude/skills/engram-migration/scripts/migrate-0.16-to-0.17.ts /abs/path/to/store
+ *   # from this skill directory:
+ *   bun ./scripts/migrate-0.16-to-0.17.ts /abs/path/to/store
  *
  * Does NOT backup (caller／skill must backup first).
  * Does NOT replay dreams.

@@ -2,7 +2,8 @@
  * Mechanical Engram store migrate: node main `understand/what.md` → `{id}.md` (→ 0.28.0).
  *
  * Usage (offline — server need not be running):
- *   bun .claude/skills/engram-migration/scripts/migrate-0.19-to-0.28.ts /abs/path/to/store
+ *   # from this skill directory:
+ *   bun ./scripts/migrate-0.19-to-0.28.ts /abs/path/to/store
  *
  * Admits store_version major.minor in 0.19–0.27 (same pre-0.28 node layout).
  * Clears pending dreams offline (equiv. discard). Does NOT backup (caller／skill must).

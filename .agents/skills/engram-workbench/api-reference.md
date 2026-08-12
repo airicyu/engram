@@ -11,10 +11,13 @@ Canonical spec: [../../../docs/api-docs/api.md](../../../docs/api-docs/api.md)
 ## Helper script
 
 ```bash
-.claude/skills/engram-workbench/scripts/engram-api.sh <command> [args]
+# from this skill directory
+./scripts/engram-api.sh <command> [args]
 ```
 
-Commands: `status` | `capture` | `attachment-upload` | `attachment-delete-tmp` | `attachment-file` | `attachment-housekeep` | `dream` | `dream-retry` | `dream-amend` | `dream-cancel` | `pending` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `root`
+Commands: `status` | `capture` | `attachment-upload` | `attachment-delete-tmp` | `attachment-file` | `attachment-housekeep` | `dream` | `dream-retry` | `dream-amend` | `dream-cancel` | `pending` | `pending-involvement` | `dream-events` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `clarify-asking` | `clarify-submit` | `clarify-dismiss` | `clarify-aside` | `chain` | `chain-detail` | `nodes` | `node` | `clock` | `clock-set` | `clock-clear` | `root`
+
+`memory-l1` = `GET /memories/short-term-memory`（產品語意＝short-term；wire 仍用 `l1`／`l1_empty`）。
 
 ## curl catalog
 
@@ -30,15 +33,38 @@ curl -s "$ENGRAM_URL/attachments/file?path=_attachments/uploads/2026-08-09/photo
 curl -s -X DELETE "$ENGRAM_URL/attachments/uploads/tmp?day=2026-08-09&filename=photo.png"
 curl -s -X POST "$ENGRAM_URL/attachments/housekeep"
 curl -s -X POST "$ENGRAM_URL/dreams/run"
+# 202 job_id | 409 pending_review | 409 nothing_to_dream | rollup-only 202 when pool empty + catch-up
 # poll until dream_status=pending_review
 curl -s "$ENGRAM_URL/dreams/pending"
+curl -s "$ENGRAM_URL/dreams/events"
+curl -s -X PATCH "$ENGRAM_URL/dreams/pending/node-score-involvements" \
+  -H 'content-type: application/json' -d '{"id":"acme","category":"focus"}'
+curl -s -X POST "$ENGRAM_URL/dreams/retry" \
+  -H 'content-type: application/json' -d '{"reason":"merge timeline better"}'
+curl -s -X POST "$ENGRAM_URL/dreams/amend" \
+  -H 'content-type: application/json' -d '{"instruction":"Fix the day summary typo"}'
 curl -s -X POST "$ENGRAM_URL/dreams/approve" -H 'content-type: application/json' -d '{}'
 curl -s "$ENGRAM_URL/memories/short-term-memory"
-curl -s "$ENGRAM_URL/memories/search?q=alice&scope=nodes,chain"
+curl -s "$ENGRAM_URL/memories/search?q=alice&scope=nodes,chain,future"
+curl -s "$ENGRAM_URL/memories/chain"
+curl -s "$ENGRAM_URL/memories/chain/2026-07-23"
+curl -s "$ENGRAM_URL/memories/chain/weeks"
+curl -s "$ENGRAM_URL/memories/nodes"
+curl -s "$ENGRAM_URL/memories/nodes/acme"
 curl -s -X POST "$ENGRAM_URL/memories/ask" \
   -H 'content-type: application/json' \
   -d '{"q":"What about Alice?"}'
 curl -s "$ENGRAM_URL/memories/future-sight"
+curl -s "$ENGRAM_URL/memories/clarify/asking"
+curl -s -X POST "$ENGRAM_URL/memories/clarify/aside" \
+  -H 'content-type: application/json' -d '{"raw":"補充：合約其實兩年"}'
+curl -s -X POST "$ENGRAM_URL/memories/clarify/asking/ask-xxx/submit" \
+  -H 'content-type: application/json' -d '{"answer":"兩年"}'
+curl -s -X DELETE "$ENGRAM_URL/memories/clarify/asking/ask-xxx"
+curl -s "$ENGRAM_URL/clock"
+curl -s -X PUT "$ENGRAM_URL/clock" \
+  -H 'content-type: application/json' -d '{"now":"2026-07-23T12:00:00+08:00"}'
+curl -s -X DELETE "$ENGRAM_URL/clock"
 ```
 
 ## Attachments (0.29+)
@@ -50,11 +76,26 @@ curl -s "$ENGRAM_URL/memories/future-sight"
 5. Compose cancel: `DELETE /attachments/uploads/tmp?day=&filename=` (idempotent).
 6. Manual tmp cleanup: `POST /attachments/housekeep`
 
+## Clarify (0.30+)
+
+| Call | Body／notes |
+|------|-------------|
+| `GET /memories/clarify/asking` | `{ items: [...] }`；空＝`{ "items": [] }` |
+| `POST …/asking/{id}/submit` | `{ answer }` |
+| `DELETE …/asking/{id}` | dismiss；缺檔 200 |
+| `POST /memories/clarify/aside` | `{ raw }` → **201**；非 L0 |
+
+Dream lock → `409 dream_locked`. `pending_review` may still write.
+
+## Empty pool / rollup-only (0.24+)
+
+`POST /dreams/run`: pool empty + closed higher catch-up → **202** rollup-only；else **409** `nothing_to_dream`. Pending → **409** `pending_review`.
+
 ## Response cheat sheet
 
 ### `GET /status`
 
-Includes `dream_status`, `dream_pending`, `l1_clear_pending`, `future_sight_active_count`, `future_sight_hot_count`, `future_sight_later_count`, `future_sight_window_days`, `future_sight_hot_days`, `dream_job`, `ask_job`.
+Includes `dream_status`, `dream_pending`, `l1_clear_pending`, `future_sight_*`, `dream_job`, **`ask_job`**, `clock`, `store_version`／`product_version`.
 
 ### `GET /dreams/pending`
 
@@ -82,8 +123,8 @@ Always 200. Expire-only maintain（過期 → L0+short-term + 從 `hot.md`／`la
 |-------|---------|
 | `never_dreamed` | No successful extract yet |
 | `pending_review` | Awaiting approve／discard／retry／amend |
-| `l1_clear_pending` | Retry approve to clear S only |
-| `dream_incomplete` | Extract／materialize failed; L1 kept |
+| `l1_clear_pending` | Retry approve to clear S only（short-term） |
+| `dream_incomplete` | Extract／materialize failed; short-term kept |
 | `ok` | Steady |
 
 ## Strict fields
@@ -95,3 +136,7 @@ Always 200. Expire-only maintain（過期 → L0+short-term + 從 `hot.md`／`la
 | attachment upload | multipart `file` | `image`, `upload` |
 | memory search | `q`, `scope` | `query`, `search` (as param name) |
 | memory ask | `q`, `include_later` (boolean) | `question`, `query`; string `"true"` for include_later |
+| dream retry | `reason` | empty body |
+| dream amend | `instruction` | empty body |
+| clarify aside | `raw` | `content`, `text` |
+| clarify submit | `answer` | `raw`, `text` |

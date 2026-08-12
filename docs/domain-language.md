@@ -248,7 +248,7 @@ Seek（0.18+）：Search scope `future` 掃兩區；Ask 預設可讀 `hot.md`，
 |----|------|------|------------|
 | **workbench** | 工作台 | 產品操作面總稱（人 + agent 透過 API 操作記憶） | 舊稱 **operator**（0.5.0 前） |
 | **workbench UI** | 工作台介面 | 瀏覽器五場景 UI | `web/`（`:8788`） |
-| **engram-workbench** | 工作台 skill | Agent 用 HTTP 打 API；禁止手改記憶庫 | `.claude/skills/engram-workbench/` |
+| **engram-workbench** | 工作台 skill | Agent 用 HTTP 打 API；禁止手改記憶庫 | agent skills 樹下的 `engram-workbench/` |
 | **status light** | 狀態燈 | 頂欄連線／入夢狀態指示 | workbench UI |
 | **scene** | 場景 | Activities／Consolidate／Clarify／Seek／Memory 五主畫面（id：`activities`…） | workbench UI |
 
@@ -289,7 +289,7 @@ Seek（0.18+）：Search scope `future` 掃兩區；Ask 預設可讀 `hot.md`，
 | `memories/chain/days/{YYYY-MM}/*.summary.md` | chain summary (day) | 日鏈融合摘要（0.5.0；0.11.0 起按月分組） |
 | `memories/future-sight/hot.md`／`later.md` | future-sight zones | 近程前瞻雙區 |
 | `web/` | workbench UI | 工作台介面 |
-| `.claude/skills/engram-workbench/` | engram-workbench skill | 工作台 HTTP skill |
+| `engram-workbench/`（agent skills 樹） | engram-workbench skill | 工作台 HTTP skill |
 
 ---
 

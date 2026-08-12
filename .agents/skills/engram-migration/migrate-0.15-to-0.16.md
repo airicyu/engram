@@ -35,7 +35,7 @@
 在 **engram 產品 repo 根**（不是 store）執行機械腳本（會改 store 內檔；**須已備份**）：
 
 ```bash
-bun .claude/skills/engram-migration/scripts/migrate-0.15-to-0.16.ts "$ENGRAM_STORE_DIR"
+bun ./scripts/migrate-0.15-to-0.16.ts "$ENGRAM_STORE_DIR"
 ```
 
 腳本完成：summary／what 整形、ledger 去日期標題、**legacy week id rename**（`YYYY-Www`→`YYYY-Www-MMDD`）、**stamp `store_version: 0.16.0`**、`.gitignore`、`git init`（若無）＋初始／migrate commit。  

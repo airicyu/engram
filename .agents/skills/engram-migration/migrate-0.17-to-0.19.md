@@ -28,10 +28,10 @@
 
 ## 步驟（優先 script）
 
-在 **engram 產品 repo 根**執行（會改 store；**須已備份**）：
+在 **本 skill 目錄**執行（會改 store；**須已備份**）：
 
 ```bash
-bun .claude/skills/engram-migration/scripts/migrate-0.17-to-0.19.ts "$ENGRAM_STORE_DIR"
+bun ./scripts/migrate-0.17-to-0.19.ts "$ENGRAM_STORE_DIR"
 ```
 
 腳本完成：

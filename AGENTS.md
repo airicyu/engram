@@ -31,7 +31,7 @@
 
 時區由 **有效 timezone** 決定：記憶庫內 `engram.workspace.yaml` → 環境變數 `ENGRAM_TZ` → 預設 **`Asia/Hong_Kong`**。  
 記憶寫入語言：workspace config `memory_language` → 環境變數 `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。  
-記憶庫結構世代：workspace **`store_version`**（semver）。**0.28+**：啟動時 major.minor 須 **≥ 0.28**，缺鍵或過舊 → **拒啟**並提示離線跑 `.claude/skills/engram-migration/`（hop `migrate-0.19-to-0.28`；**無需先啟動 server**；未批准 dream 會被丟棄；勿手改當 migrate）；`ENGRAM_ALLOW_STALE_STORE=1` 可警告後仍啟。migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`docs/roadmap/0.19.0/docs/store-boot-gate.md`、`.claude/skills/engram-migration/SKILL.md`。
+記憶庫結構世代：workspace **`store_version`**（semver）。**0.28+**：啟動時 major.minor 須 **≥ 0.28**，缺鍵或過舊 → **拒啟**並提示離線跑 **engram-migration** skill（hop `migrate-0.19-to-0.28`；在該 skill 目錄執行 `bun ./scripts/migrate-0.19-to-0.28.ts`；**無需先啟動 server**；未批准 dream 會被丟棄；勿手改當 migrate）；`ENGRAM_ALLOW_STALE_STORE=1` 可警告後仍啟。migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`docs/roadmap/0.19.0/docs/store-boot-gate.md`、**engram-migration** `SKILL.md`。
 
 
 ## 倉庫結構
@@ -44,7 +44,7 @@
 | `docs/api-docs/` | API 說明；契約細節見 `docs/api-docs/api.md` |
 | `data/` | 預設記憶庫路徑（由環境變數 `ENGRAM_STORE_DIR` 指定；勿當原始碼改） |
 | `docs/roadmap/` | 版本計畫；寫法見 [`docs/roadmap/GUIDELINES.md`](./docs/roadmap/GUIDELINES.md)；多 agent／審查／HANDOFF 節奏見 [`docs/roadmap/agent-workflow.md`](./docs/roadmap/agent-workflow.md)；大功能先寫 plan、同意後再實作 |
-| `.claude/skills/` | Workbench / kill-port 等技能 |
+| Agent skills | 真相：`.agents/skills/engram-*`；`.claude/skills/engram-*` 可為指向該處的 stub（Cursor／Claude 發現用） |
 
 版本真相：`version.md`、`changelog.md`。
 
@@ -101,8 +101,7 @@ API 欄位提醒：
 - **無資料不用 404**：讀取型「目前沒有內容」回 **200**，在 body 用 `null`／`[]`／`present: false` 等表達；404 留給路徑／方法真正不存在
 - **未來視窗：** 有效 `future_sight_window_days`＝workspace → env → 預設 **365**；`hot_days` 預設仍 **30**
 
-操作技能：`.claude/skills/engram-workbench/SKILL.md`  
-埠被占用：`.claude/skills/kill-port/SKILL.md`
+操作技能：**engram-workbench**（`.agents/skills/engram-workbench/`）
 
 ## API 未暴露（原型）
 
@@ -130,7 +129,7 @@ API 欄位提醒：
 - **更早：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
 - **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
 - **Backlog：** 見 `docs/roadmap/backlog/`（含 Seek／network 依分等）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28** store 見 `.claude/skills/engram-migration/`（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31 無 migrate hop**
+- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31 無 migrate hop**
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

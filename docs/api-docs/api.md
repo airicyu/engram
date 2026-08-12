@@ -6,7 +6,7 @@ All timestamps and calendar dates use the **effective** IANA timezone: `{ENGRAM_
 
 **Memory write language** (`memory_language`): workspace yaml → `ENGRAM_MEMORY_LANGUAGE` → **`en`**. Allowed values only: `zh-Hant`｜`zh-Hans`｜`en`. Controls language of **new** dream／rollup／ask prose (not L0 `raw`, not workbench UI i18n).  
 
-**Store structure version** (`store_version`): semver in the same workspace yaml（例 `0.28.0`）. **Boot gate (0.28+):** after `ensureEngramHome`, disk `store_version` major.minor must be **≥ 0.28**; missing key or older structure → **server refuses to start** with an **offline** migrate hint（`.claude/skills/engram-migration/`, hop `migrate-0.19-to-0.28` — **server need not be running first**; unapproved pending dreams are discarded）. Does **not** require `store_version === product_version`（same structure generation may stamp newer product strings）. Escape hatch: `ENGRAM_ALLOW_STALE_STORE=1`（warns, still starts）. Present but not `X.Y.Z` → **server refuses to start**（workspace parse）. Server never auto-rewrites an existing／missing value to the product version on boot（except creating a brand-new workspace file）.
+**Store structure version** (`store_version`): semver in the same workspace yaml（例 `0.28.0`）. **Boot gate (0.28+):** after `ensureEngramHome`, disk `store_version` major.minor must be **≥ 0.28**; missing key or older structure → **server refuses to start** with an **offline** migrate hint（**engram-migration** skill, hop `migrate-0.19-to-0.28` — from that skill directory run `bun ./scripts/migrate-0.19-to-0.28.ts`; **server need not be running first**; unapproved pending dreams are discarded）. Does **not** require `store_version === product_version`（same structure generation may stamp newer product strings）. Escape hatch: `ENGRAM_ALLOW_STALE_STORE=1`（warns, still starts）. Present but not `X.Y.Z` → **server refuses to start**（workspace parse）. Server never auto-rewrites an existing／missing value to the product version on boot（except creating a brand-new workspace file）.
 
 
 Invalid workspace yaml／unknown keys／illegal values → **server refuses to start**.
@@ -110,6 +110,7 @@ Snapshot of store health, dream state, and async job status.
   },
   "l1_clear_pending": null,
   "dream_job": null,
+  "ask_job": null,
   "dream_cleanup": null,
   "dream_scheduler": {
     "cleanup_cron": "0 3 * * *",
@@ -148,6 +149,7 @@ Snapshot of store health, dream state, and async job status.
 | `dream_pending` | object? | Active pending summary, or `null` |
 | `l1_clear_pending` | object? | Commit succeeded but scope clear failed — retry approve |
 | `dream_job` | object? | Last／current async extract job |
+| `ask_job` | object? | Last／current async memory-ask job（`null` when none） |
 
 **`dream_job` object:**
 

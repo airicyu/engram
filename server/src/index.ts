@@ -509,7 +509,7 @@ try {
 } catch (e) {
   const code = e && typeof e === "object" && "code" in e ? String(e.code) : "";
   if (code === "EADDRINUSE") {
-    logError(`port ${config.port} already in use — stop other bun dev or: kill-port ${config.port}`);
+    logError(`port ${config.port} already in use — stop other bun dev (lsof -t -iTCP:${config.port} -sTCP:LISTEN)`);
     process.exit(1);
   }
   throw e;

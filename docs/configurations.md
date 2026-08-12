@@ -115,7 +115,7 @@ env 布林值：`0`/`1`、`true`/`false`、`yes`/`no`（大小寫不敏感）。
 
 | 鍵 | 型別 | 說明 |
 |----|------|------|
-| `store_version` | semver `X.Y.Z` | **結構世代**標記；**0.28+ boot** 要求 major.minor ≥ **0.28**，否則拒啟。migrate 離線跑 `.claude/skills/engram-migration/`（hop `migrate-0.19-to-0.28`；**無需先啟動 server**）。見 [store-version](./roadmap/0.16.0/docs/store-version.md) |
+| `store_version` | semver `X.Y.Z` | **結構世代**標記；**0.28+ boot** 要求 major.minor ≥ **0.28**，否則拒啟。migrate 離線跑 **engram-migration** skill（hop `migrate-0.19-to-0.28`；在該 skill 目錄 `bun ./scripts/…`；**無需先啟動 server**）。見 [store-version](./roadmap/0.16.0/docs/store-version.md) |
 
 `engram.workspace.yaml` **只允許**上表所列鍵（含雙邊表中的 workspace 鍵）；多寫任何其他鍵 → 拒啟。檔案可不存在（全走 env／預設）。
 

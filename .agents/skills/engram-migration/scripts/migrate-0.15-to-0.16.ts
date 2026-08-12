@@ -2,7 +2,8 @@
  * Mechanical Engram store migrate: 0.15 disk shape → 0.16.
  *
  * Usage:
- *   bun .claude/skills/engram-migration/scripts/migrate-0.15-to-0.16.ts /abs/path/to/store
+ *   # from this skill directory:
+ *   bun ./scripts/migrate-0.15-to-0.16.ts /abs/path/to/store
  *
  * Does NOT backup (caller／skill must backup first).
  * Does NOT replay dreams or rewrite patches.jsonl history.

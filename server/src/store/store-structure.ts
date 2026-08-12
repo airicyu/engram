@@ -41,7 +41,7 @@ export function checkStoreStructure(storeVersion: string | null = peekStoreVersi
   const need = REQUIRED_STORE_STRUCTURE;
   const needLabel = REQUIRED_STORE_STRUCTURE_LABEL;
   const migrateHint =
-    "Migrate offline with the engram-migration skill (hop migrate-0.19-to-0.28) — server need not be running first. See .claude/skills/engram-migration/. Unapproved pending dreams will be discarded.";
+    "Migrate offline with the engram-migration skill (hop migrate-0.19-to-0.28 under that skill’s `scripts/`) — server need not be running first. Unapproved pending dreams will be discarded.";
 
   if (storeVersion == null) {
     return {

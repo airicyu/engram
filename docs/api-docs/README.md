@@ -83,6 +83,8 @@ No authentication in the prototype. Timestamps use effective timezone (workspace
 | `POST` | `/attachments/housekeep` | Clean expired tmp upload dirs |
 | `POST` | `/dreams/run` | Extract→draft→pending（async 202）；空 pool 且有 closed higher catch-up → **rollup-only** 202；空且無事可做 → **409** `nothing_to_dream`；已有 pending → **409** `pending_review` |
 | `GET` | `/dreams/pending` | Active pending report + patches (`present: false` if none) |
+| `PATCH` | `/dreams/pending/node-score-involvements` | Edit pending node-score involvement category |
+| `GET` | `/dreams/events` | Recent dream job log events (debug) |
 | `POST` | `/dreams/approve` | `commitDraft` → L2, clear scope S |
 | `POST` | `/dreams/discard` | Drop pending + draft; short-term／L2 unchanged |
 | `POST` | `/dreams/retry` | Discard pending → re-extract same scope with reason (async 202) |
@@ -93,6 +95,8 @@ No authentication in the prototype. Timestamps use effective timezone (workspace
 | `GET` | `/memories/search` | Keyword search (`q` required; optional `scope=l1,nodes,chain,future`) |
 | `GET` | `/memories/chain` | Day chain index (browse) |
 | `GET` | `/memories/chain/{day_id}` | Day chain detail |
+| `GET` | `/memories/chain/weeks` · `/months` · `/years` | Higher-chain index |
+| `GET` | `/memories/chain/weeks/{id}` · `/months/{id}` · `/years/{id}` | Higher-chain detail |
 | `GET` | `/memories/nodes` | L2 node index (browse) |
 | `GET` | `/memories/nodes/{node_id}` | L2 node detail (understanding) |
 | `GET` | `/memories/clarify/asking` | List open clarify follow-ups (0.30+) |
@@ -118,7 +122,7 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 | **dream staging draft** | Staged L2 projection (`dreams/draft/{run_id}/`) — not live until approve |
 | **L2** | Long-term node understanding — whole `memories/nodes/{id}/{id}.md` as standing understanding（API field `understanding`）；Obsidian vault＝`memories/` |
 | **chain** | World timeline (`memories/chain/days|weeks|months|years/`) — day dual-track; higher summary-only |
-| **future-sight** | Near-horizon anchors (`memories/future-sight/hot.md`＋`later.md`) — not memory-chain; not in `/memories/search` |
+| **future-sight** | Near-horizon anchors (`memories/future-sight/hot.md`＋`later.md`) — not memory-chain; searchable via `/memories/search?scope=…,future`（default includes `future`） |
 | **candidates** | Low-confidence attribution (`dreams/candidates/`) — not the primary create-node path |
 
 **Lock rule:** capture is blocked only while extract/materialize/commit holds the dream lock. **`pending_review` allows capture** (new events ∉ frozen S).

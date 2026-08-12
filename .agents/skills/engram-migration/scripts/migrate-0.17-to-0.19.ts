@@ -2,7 +2,8 @@
  * Mechanical Engram store migrate: add node score.yaml + registry (→ 0.19.0).
  *
  * Usage:
- *   bun .claude/skills/engram-migration/scripts/migrate-0.17-to-0.19.ts /abs/path/to/store
+ *   # from this skill directory:
+ *   bun ./scripts/migrate-0.17-to-0.19.ts /abs/path/to/store
  *
  * Admits store_version in 0.17.x–0.18.x (same structure gen: no node scores).
  * Does NOT backup (caller／skill must backup first).
