@@ -26,13 +26,16 @@ type StatusContextValue = {
 
 const StatusContext = createContext<StatusContextValue | null>(null);
 
+/** Only while extract／commit lock or local dreaming flag — not idle browsing. */
+const ACTIVE_DREAM_POLL_MS = 3000;
+
 export function StatusProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [dreaming, setDreaming] = useState(false);
   const [askPolling, setAskPolling] = useState(false);
   const [askJobId, setAskJobId] = useState<string | null>(null);
-  const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dreamPollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dreamingRef = useRef(dreaming);
   dreamingRef.current = dreaming;
 
@@ -64,30 +67,40 @@ export function StatusProvider({ children }: { children: ReactNode }) {
     return true;
   }, [refreshPending]);
 
-  const schedulePoll = useCallback(() => {
-    if (pollTimer.current) clearTimeout(pollTimer.current);
-    const locked = !!(status?.lock || dreaming);
-    const pendingReview = status?.dream_status === "pending_review";
-    const asking = !!status?.ask_job || askPolling;
-    const ms = locked || asking ? 3000 : pendingReview ? 20000 : 60000;
-    pollTimer.current = setTimeout(() => {
-      void refreshStatus();
-    }, ms);
-  }, [status, dreaming, askPolling, refreshStatus]);
-
+  // One-shot on mount (and if refreshStatus identity changes — rare).
   useEffect(() => {
     void refreshStatus();
-    return () => {
-      if (pollTimer.current) clearTimeout(pollTimer.current);
-    };
   }, [refreshStatus]);
 
+  // Poll /status only while a dream is actively running — not on idle／pending_review.
+  const dreamActive = !!(dreaming || status?.lock || status?.dream_job?.status === "running");
   useEffect(() => {
-    schedulePoll();
-    return () => {
-      if (pollTimer.current) clearTimeout(pollTimer.current);
+    if (dreamPollTimer.current) {
+      clearTimeout(dreamPollTimer.current);
+      dreamPollTimer.current = null;
+    }
+    if (!dreamActive) return;
+
+    let cancelled = false;
+    const tick = () => {
+      dreamPollTimer.current = setTimeout(() => {
+        void (async () => {
+          if (cancelled) return;
+          await refreshStatus();
+          if (!cancelled) tick();
+        })();
+      }, ACTIVE_DREAM_POLL_MS);
     };
-  }, [schedulePoll]);
+    tick();
+
+    return () => {
+      cancelled = true;
+      if (dreamPollTimer.current) {
+        clearTimeout(dreamPollTimer.current);
+        dreamPollTimer.current = null;
+      }
+    };
+  }, [dreamActive, refreshStatus]);
 
   const value = useMemo(
     () => ({
