@@ -374,8 +374,12 @@ export function MemoryScene({
               </button>
             ))}
           </div>
-          <div className="browse-layout">
-            <div className="browse-index" role="listbox" aria-label={levelLabel(chainLevel)}>
+          <div className="browse-layout browse-layout-chain">
+            <div
+              className="browse-index browse-index-card"
+              role="listbox"
+              aria-label={levelLabel(chainLevel)}
+            >
               {indexEmpty ? (
                 <p className="browse-empty">{indexEmpty}</p>
               ) : (
@@ -383,7 +387,7 @@ export function MemoryScene({
                   <button
                     key={item.id}
                     type="button"
-                    className={`browse-item${item.id === selectedChainId ? " is-selected" : ""}`}
+                    className={`browse-item browse-item-chain${item.id === selectedChainId ? " is-selected" : ""}`}
                     role="option"
                     aria-current={item.id === selectedChainId ? "true" : undefined}
                     onClick={() => {
@@ -413,50 +417,74 @@ export function MemoryScene({
           </div>
         </>
       ) : (
-        <div className="browse-layout">
-          <div className="browse-sidebar">
+        <div className="browse-layout browse-layout-nodes">
+          <div className="browse-sidebar node-user-sidebar">
             <label className="sr-only" htmlFor="memory-nodes-filter">
               {t("memory.nodes_filter")}
             </label>
             <input
               id="memory-nodes-filter"
-              className="browse-filter"
+              className="browse-filter node-user-filter"
               type="search"
               placeholder={t("memory.nodes_filter")}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
-            <div className="browse-index" role="listbox" aria-label={t("memory.mode_nodes")}>
+            <div
+              className="browse-index node-user-list"
+              role="listbox"
+              aria-label={t("memory.mode_nodes")}
+            >
               {indexEmpty ? (
                 <p className="browse-empty">{indexEmpty}</p>
               ) : filteredNodes.length === 0 ? (
                 <p className="browse-empty">{t("memory.nodes_empty")}</p>
               ) : (
-                filteredNodes.map((n) => (
-                  <button
-                    key={n.node}
-                    type="button"
-                    className={`browse-item${n.node === selectedNodeId ? " is-selected" : ""}`}
-                    role="option"
-                    aria-current={n.node === selectedNodeId ? "true" : undefined}
-                    onClick={() => {
-                      setSelectedNodeId(n.node);
-                      onRouteChange({ mode: "nodes", id: n.node }, "replace");
-                    }}
-                  >
-                    <span className="browse-item-id">
-                      {n.node}
-                      <span className="browse-item-score">
-                        {n.display_score == null
-                          ? t("memory.score_none")
-                          : t("memory.score_badge", { score: n.display_score })}
+                filteredNodes.map((n) => {
+                  const selected = n.node === selectedNodeId;
+                  const initial = (n.node.trim().charAt(0) || "?").toUpperCase();
+                  const scoreLabel =
+                    n.display_score == null
+                      ? t("memory.score_none")
+                      : t("memory.score_badge", { score: n.display_score });
+                  return (
+                    <button
+                      key={n.node}
+                      type="button"
+                      className={`node-user-row${selected ? " is-selected" : ""}`}
+                      role="option"
+                      aria-current={selected ? "true" : undefined}
+                      aria-label={n.preview ? `${n.node} · ${n.preview}` : n.node}
+                      onClick={() => {
+                        setSelectedNodeId(n.node);
+                        onRouteChange({ mode: "nodes", id: n.node }, "replace");
+                      }}
+                    >
+                      <span className="node-user-avatar" aria-hidden="true">
+                        {initial}
                       </span>
-                    </span>
-                    {n.preview ? (
-                      <div className="browse-item-preview">{n.preview}</div>
-                    ) : null}
-                  </button>
-                ))
+                      <span className="node-user-main">
+                        <span className="node-user-head">
+                          <span className="node-user-name">{n.node}</span>
+                          <span className="node-user-handle">@{n.node}</span>
+                        </span>
+                        {n.preview ? (
+                          <span className="node-user-bio">{n.preview}</span>
+                        ) : null}
+                      </span>
+                      <span
+                        className="node-user-meta"
+                        title={
+                          n.display_score == null
+                            ? undefined
+                            : t("memory.score_display", { score: n.display_score })
+                        }
+                      >
+                        {scoreLabel}
+                      </span>
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>

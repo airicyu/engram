@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.33.0 — Workbench UI：釐清貼文串＋記憶鏈／節點瀏覽重排 (2026-08-13)
+
+純 **Web UI／版面**重構：釐清改貼文＋留言展開作答；記憶鏈左欄外卡＋每列三內卡、右欄整塊 detail 卡；節點左欄「搜尋使用者」列；全站加寬與統一細捲軸（無箭頭）。**不**改 API／store／dream；**無** store migrate；boot gate 仍 ≥0.28。見 `docs/roadmap/0.33.0/`。
+
+### Changed
+
+- ClarifyScene：asking＝貼文列；留言圖示展開回覆；`clarify.lead` 含「釐清」；aside 對齊發文框
+- Memory 記憶鏈：左欄加寬／外卡／flex 每列 3 內卡／多行 preview；右欄外卡包住標題＋meta＋正文（`md-block` 去內卡殼、紙灰底）
+- Memory 節點：people-search 列（頭像、`@handle`、bio、活躍分）＋列間距；篩選框覆寫瀏覽器預設邊框
+- `.app` 最大寬 `80rem` → `100rem`；全域自訂捲軸（無上下箭頭）
+- Topbar 場景序**不變**（activities → consolidate → clarify → seek → memory）
+
+### Non-goals
+
+- API／store／dream／prompt、migrate／boot gate、Seek 提前、Activities／Seek composer、graph／vector
+
+---
+
 ## 0.32.0 — Activities `@` mention composer（廢 `node_refs`）(2026-08-13)
 
 Activities 改為 `@` mention composer；關聯真相寫入 `raw` 內嵌 token；**廢除** `node_refs`（新請求帶該鍵 → 400）。Dream 依 mentions 消歧／create；漏建僅 Structure notes 軟警告。**無** store migrate；boot gate 仍 ≥0.28。Clarify／Seek 輸入不變。
