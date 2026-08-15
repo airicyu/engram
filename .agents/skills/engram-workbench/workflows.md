@@ -18,7 +18,7 @@
 6. If OK → `POST /dreams/approve`
 7. `GET /memories/search?q=…` — verify hits（預設含 future-sight）
 8. `GET /memories/future-sight` — list active near-horizon anchors (optional)
-9. `POST /memories/ask` with optional `include_later` — natural-language Q&A
+9. `POST /memories/ask` `{ q }` — natural-language Q&A（always may read hot＋later）
 
 ## Empty pool / rollup-only (0.24+)
 
@@ -83,4 +83,4 @@ Commit succeeded but clearing S failed. Call approve again — only retries clea
 
 ## Memory ask
 
-`POST /memories/ask` `{ q, include_later? }` → poll `GET /memories/ask/{job_id}` until `completed` | `failed` | `cancelled`. One running ask at a time (`409 ask_busy`). Cancel via `POST /memories/ask/{job_id}/cancel`. Default reads hot future-sight only; set `include_later: true` to allow `later.md`. `/status.ask_job` mirrors the running／last ask job.
+`POST /memories/ask` `{ q }` → poll `GET /memories/ask/{job_id}` until `completed` | `failed` | `cancelled`. One running ask at a time (`409 ask_busy`). Cancel via `POST /memories/ask/{job_id}/cancel`. Agent may read both `hot.md` and `later.md`. Do **not** send `include_later` (`400 include_later_removed`). `/status.ask_job` mirrors the running／last ask job.

@@ -29,8 +29,6 @@ export interface AskInput {
   now: string;
   /** Memory-timeline calendar day YYYY-MM-DD. */
   today: string;
-  /** When true, agent may read later.md; default false = hot only. */
-  include_later: boolean;
 }
 
 /** Runner capable of answering a natural-language question from the store. */

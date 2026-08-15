@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.34.0 — Ask 廢 `include_later`：恆可讀 later (2026-08-15)
+
+Seek Ask 不再讓人勾選「含較遠未來視（later）」：從 **API／job／prompt／UI** 拿掉 `include_later`。每次提問 agent 都可讀 `hot.md` 與 `later.md`，自行判斷要不要用。**無** store migrate；boot gate 仍 ≥0.28。見 `docs/roadmap/0.34.0/`。
+
+### Changed
+
+- `POST /memories/ask` body **僅** `q`；出現 `include_later` 鍵 → **400** `include_later_removed`
+- 202／GET job **不再** echo `include_later`；prompt 兩檔都在 store map
+- Seek Ask 移除 later 勾選；導語不再提須另行勾選
+- mock／phases：預設 job 可引用 later zone
+
+### Non-goals
+
+- Search scope、hot／later 分桶與 window、dream、migrate／boot gate、兩段式 Ask
+
+---
+
 ## 0.33.0 — Workbench UI：釐清貼文串＋記憶鏈／節點瀏覽重排 (2026-08-13)
 
 純 **Web UI／版面**重構：釐清改貼文＋留言展開作答；記憶鏈左欄外卡＋每列三內卡、右欄整塊 detail 卡；節點左欄「搜尋使用者」列；全站加寬與統一細捲軸（無箭頭）。**不**改 API／store／dream；**無** store migrate；boot gate 仍 ≥0.28。見 `docs/roadmap/0.33.0/`。

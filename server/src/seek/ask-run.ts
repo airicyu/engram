@@ -36,13 +36,8 @@ export class AskCancelledError extends Error {
 
 const cancelledJobs = new Set<string>();
 
-export type StartAskJobOpts = {
-  include_later?: boolean;
-};
-
 /** Start a new ask job (async). Returns job id immediately after persisting running state. */
-export async function startAskJob(q: string, opts: StartAskJobOpts = {}): Promise<string> {
-  const include_later = opts.include_later === true;
+export async function startAskJob(q: string): Promise<string> {
   const running = await getRunningAskJob();
   if (running) throw new AskBusyError();
 
@@ -55,7 +50,6 @@ export async function startAskJob(q: string, opts: StartAskJobOpts = {}): Promis
     job_id: jobId,
     status: "running",
     q,
-    include_later,
     started_at: startedAt,
     phase: "prepare",
     agent_pid: null,
@@ -69,20 +63,15 @@ export async function startAskJob(q: string, opts: StartAskJobOpts = {}): Promis
     level: "info",
     event: "ask_start",
     message: "Ask job started",
-    detail: { q, include_later },
+    detail: { q },
   });
 
-  void runAskJob(jobId, q, startedAt, include_later).catch(() => {});
+  void runAskJob(jobId, q, startedAt).catch(() => {});
 
   return jobId;
 }
 
-async function runAskJob(
-  jobId: string,
-  q: string,
-  startedAt: string,
-  include_later: boolean,
-): Promise<void> {
+async function runAskJob(jobId: string, q: string, startedAt: string): Promise<void> {
   const dream_status = await computeDreamStatus();
 
   emitAskEvent(jobId, {
@@ -90,7 +79,7 @@ async function runAskJob(
     level: "info",
     event: "store_map_ready",
     message: "Store map ready for agent",
-    detail: { store_dir: config.storeDir, dream_status, include_later },
+    detail: { store_dir: config.storeDir, dream_status },
   });
 
   if (cancelledJobs.has(jobId)) {
@@ -116,7 +105,6 @@ async function runAskJob(
       dream_status,
       now: nowIso(),
       today: calendarDate(),
-      include_later,
     });
 
     if (cancelledJobs.has(jobId)) {
@@ -136,7 +124,6 @@ async function runAskJob(
       job_id: jobId,
       status: "completed",
       q,
-      include_later,
       started_at: startedAt,
       completed_at: nowIso(),
       phase: "parse",
@@ -154,7 +141,7 @@ async function runAskJob(
     });
   } catch (e) {
     if (e instanceof AskCancelledError || cancelledJobs.has(jobId)) {
-      await finalizeCancelled(jobId, q, startedAt, include_later);
+      await finalizeCancelled(jobId, q, startedAt);
       return;
     }
     const msg = e instanceof Error ? e.message : String(e);
@@ -168,7 +155,6 @@ async function runAskJob(
       job_id: jobId,
       status: "failed",
       q,
-      include_later,
       started_at: startedAt,
       completed_at: nowIso(),
       phase: "parse",
@@ -181,12 +167,7 @@ async function runAskJob(
   }
 }
 
-async function finalizeCancelled(
-  jobId: string,
-  q: string,
-  startedAt: string,
-  include_later: boolean,
-): Promise<void> {
+async function finalizeCancelled(jobId: string, q: string, startedAt: string): Promise<void> {
   const existing = await readAskJob(jobId);
   emitAskEvent(jobId, {
     phase: "parse",
@@ -198,7 +179,6 @@ async function finalizeCancelled(
     job_id: jobId,
     status: "cancelled",
     q,
-    include_later: existing?.include_later ?? include_later,
     started_at: startedAt,
     completed_at: nowIso(),
     phase: existing?.phase ?? "agent",
@@ -218,7 +198,7 @@ export async function cancelAskJob(jobId: string): Promise<AskJobState | null> {
   cancelledJobs.add(jobId);
   killAskAgent(jobId, job.agent_pid);
 
-  await finalizeCancelled(jobId, job.q, job.started_at, job.include_later === true);
+  await finalizeCancelled(jobId, job.q, job.started_at);
   cancelledJobs.delete(jobId);
   return readAskJob(jobId);
 }
@@ -229,7 +209,7 @@ export async function getAskJobPayload(jobId: string): Promise<object> {
   if (!job) return { present: false };
 
   const payload: Record<string, unknown> = { ...job, present: true };
-  if (job.include_later == null) payload.include_later = false;
+  delete payload.include_later;
   if (job.status === "running") {
     const { tailAskEvents } = await import("../store/tmp/ask-events");
     payload.log_tail = await tailAskEvents(jobId, 20);

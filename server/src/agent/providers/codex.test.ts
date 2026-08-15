@@ -71,7 +71,6 @@ describe("buildCodexCmd", () => {
       dream_status: "idle",
       now: "2026-08-02T12:00:00+08:00",
       today: "2026-08-02",
-      include_later: false,
     };
     const policy = askWritePolicy(input);
     const jobDir = policy.writableRoots[0]!;

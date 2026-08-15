@@ -6,37 +6,29 @@ import { parseAskOutput } from "./parse";
 import { askResultPath } from "../../store/tmp/ask-job";
 import { logMemoryDebug, previewText } from "../../log";
 
-/** Future-sight rows + rules for the ask prompt (hot always; later only when flagged). */
-export function buildFutureSightPromptParts(includeLater: boolean): {
+/** Future-sight rows + rules for the ask prompt (hot and later always in scope). */
+export function buildFutureSightPromptParts(): {
   map_rows: string;
   rules: string;
 } {
-  if (includeLater) {
-    return {
-      map_rows: [
-        "| Future-sight (hot) | `memories/future-sight/hot.md` — near-horizon anchors |",
-        "| Future-sight (later) | `memories/future-sight/later.md` — farther anchors within the admission window |",
-      ].join("\n"),
-      rules: [
-        "You **may and should** read both `memories/future-sight/hot.md` and `memories/future-sight/later.md` when the question involves deadlines, launches, schedules, or other near／mid-horizon plans.",
-        "Synthesize future-sight with short-term／L2／chain — do **not** answer schedule questions from guesswork alone.",
-      ].join(" "),
-    };
-  }
   return {
-    map_rows:
+    map_rows: [
       "| Future-sight (hot) | `memories/future-sight/hot.md` — near-horizon anchors |",
+      "| Future-sight (later) | `memories/future-sight/later.md` — farther anchors within the admission window |",
+    ].join("\n"),
     rules: [
-      "You **may** read `memories/future-sight/hot.md` when the question involves near-horizon deadlines／schedules.",
-      "Do **not** read `memories/future-sight/later.md` for this job (`include_later` is false).",
-      "Synthesize allowed future-sight with short-term／L2／chain — do **not** answer schedule questions from guesswork alone.",
+      "You **may** read both `memories/future-sight/hot.md` and `memories/future-sight/later.md`.",
+      "Decide from the question whether later is relevant: open `later.md` when the question could involve farther plans, deadlines, launches, or schedules — not only the near hot window.",
+      "Skip later when the question clearly has no future-plan aspect.",
+      "Do **not** dump every later item into the answer; cite only what you used.",
+      "Synthesize future-sight with short-term／L2／chain — do **not** answer schedule questions from guesswork alone.",
     ].join(" "),
   };
 }
 
 /** Build the memory-ask prompt with job-specific paths. */
 export function buildAskPrompt(template: string, input: AskInput): string {
-  const fsParts = buildFutureSightPromptParts(input.include_later);
+  const fsParts = buildFutureSightPromptParts();
   return template
     .replaceAll("{{ENGRAM_STORE_DIR}}", input.store_dir)
     .replaceAll("{{RESULT_PATH}}", askResultPath(input.job_id))
@@ -47,7 +39,6 @@ export function buildAskPrompt(template: string, input: AskInput): string {
     .replaceAll("{{DREAM_STATUS}}", input.dream_status)
     .replaceAll("{{TODAY}}", input.today)
     .replaceAll("{{NOW}}", input.now)
-    .replaceAll("{{INCLUDE_LATER}}", input.include_later ? "true" : "false")
     .replaceAll("{{FUTURE_SIGHT_MAP_ROWS}}", fsParts.map_rows)
     .replaceAll("{{FUTURE_SIGHT_RULES}}", fsParts.rules);
 }

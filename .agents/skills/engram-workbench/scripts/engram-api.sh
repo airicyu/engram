@@ -26,7 +26,7 @@ Commands:
   discard             POST /dreams/discard
   memory-l1           GET /memories/short-term-memory (short-term; wire alias l1)
   memory-search <q> [scope]  GET /memories/search (scope: l1,nodes,chain,future)
-  memory-ask <q> [include_later]  POST /memories/ask (include_later: true|false, default false)
+  memory-ask <q>          POST /memories/ask
   memory-ask-get <id> GET /memories/ask/{job_id}
   memory-ask-cancel <id> POST /memories/ask/{job_id}/cancel
   future-sight        GET /memories/future-sight (active anchors; sweeps expired)
@@ -129,13 +129,8 @@ case "$cmd" in
     fi
     ;;
   memory-ask)
-    q="${1:?usage: engram-api.sh memory-ask <question> [include_later]}"
-    later="${2:-false}"
-    if [[ "$later" != "true" && "$later" != "false" ]]; then
-      echo "include_later must be true or false" >&2
-      exit 1
-    fi
-    python3 -c 'import json,sys; print(json.dumps({"q":sys.argv[1],"include_later":sys.argv[2]=="true"}))' "$q" "$later" \
+    q="${1:?usage: engram-api.sh memory-ask <question>}"
+    python3 -c 'import json,sys; print(json.dumps({"q":sys.argv[1]}))' "$q" \
       | curl -sS -X POST "$BASE/memories/ask" -H 'content-type: application/json' -d @-
     ;;
   memory-ask-get)

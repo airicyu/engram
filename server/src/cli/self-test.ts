@@ -545,18 +545,34 @@ async function main() {
     await stopServer(server);
     server = await startServer("mock-ask-ok");
 
-    const askBadFlag = await json("POST", "/memories/ask", {
+    const askRemovedFlag = await json("POST", "/memories/ask", {
       q: "What about Acme?",
       include_later: "true",
     });
     assert(
-      askBadFlag.status === 400 && askBadFlag.data.error === "invalid_include_later",
-      "ask reject non-boolean include_later",
+      askRemovedFlag.status === 400 && askRemovedFlag.data.error === "include_later_removed",
+      "ask reject include_later string",
+    );
+    const askRemovedFalse = await json("POST", "/memories/ask", {
+      q: "What about Acme?",
+      include_later: false,
+    });
+    assert(
+      askRemovedFalse.status === 400 && askRemovedFalse.data.error === "include_later_removed",
+      "ask reject include_later false",
+    );
+    const askRemovedTrue = await json("POST", "/memories/ask", {
+      q: "What about Acme?",
+      include_later: true,
+    });
+    assert(
+      askRemovedTrue.status === 400 && askRemovedTrue.data.error === "include_later_removed",
+      "ask reject include_later true",
     );
 
     const askStart = await json("POST", "/memories/ask", { q: "What about Acme?" });
     assert(askStart.status === 202 && askStart.data.job_id, "ask 202");
-    assert(askStart.data.include_later === false, "ask default include_later false");
+    assert(!("include_later" in askStart.data), "ask 202 has no include_later");
     const jobId = askStart.data.job_id as string;
     let askDone = false;
     for (let i = 0; i < 40; i++) {
@@ -564,39 +580,19 @@ async function main() {
       assert(poll.status === 200 && poll.data.present === true, "ask poll");
       if (poll.data.status === "completed") {
         assert(String(poll.data.answer).includes("Mock answer"), "ask answer");
-        assert(String(poll.data.answer).includes("include_later=false"), "ask default forbids later");
-        assert(poll.data.include_later === false, "poll echoes include_later false");
+        assert(String(poll.data.answer).includes("hot+later allowed"), "ask always allows later");
+        assert(!("include_later" in poll.data), "poll has no include_later");
+        const srcs = poll.data.sources as { kind?: string; zone?: string }[];
+        assert(
+          Array.isArray(srcs) && srcs.some((s) => s.kind === "future_sight" && s.zone === "later"),
+          "ask later source zone",
+        );
         askDone = true;
         break;
       }
       await new Promise((r) => setTimeout(r, 150));
     }
     assert(askDone, "ask completed");
-
-    const askLater = await json("POST", "/memories/ask", {
-      q: "What is later?",
-      include_later: true,
-    });
-    assert(askLater.status === 202 && askLater.data.include_later === true, "ask include_later true");
-    const laterJobId = askLater.data.job_id as string;
-    let askLaterDone = false;
-    for (let i = 0; i < 40; i++) {
-      const poll = await json("GET", `/memories/ask/${encodeURIComponent(laterJobId)}`);
-      assert(poll.status === 200 && poll.data.present === true, "ask later poll");
-      if (poll.data.status === "completed") {
-        assert(String(poll.data.answer).includes("include_later=true"), "ask later allowed");
-        assert(poll.data.include_later === true, "poll echoes include_later true");
-        const srcs = poll.data.sources as { kind?: string; zone?: string }[];
-        assert(
-          Array.isArray(srcs) && srcs.some((s) => s.kind === "future_sight" && s.zone === "later"),
-          "ask later source zone",
-        );
-        askLaterDone = true;
-        break;
-      }
-      await new Promise((r) => setTimeout(r, 150));
-    }
-    assert(askLaterDone, "ask include_later completed");
 
     console.log("Phase 4c: browse chain + nodes");
     const chainIdx = await json("GET", "/memories/chain");
@@ -1851,7 +1847,7 @@ Unique later keyword xylophone-launch window for search.
       "empty_patches still archives clarify pending",
     );
 
-    console.log("\n✅ All self-checks passed (through 0.32)");
+    console.log("\n✅ All self-checks passed (through 0.34)");
   } finally {
     await stopServer(server);
   }

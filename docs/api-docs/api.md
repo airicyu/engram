@@ -831,15 +831,14 @@ Start async AI ask. Agent reads `ENGRAM_STORE_DIR` directly (read-only).
 | Field | Required | Type | Default | Meaning |
 |-------|----------|------|---------|---------|
 | `q` | yes | string | — | Natural-language question |
-| `include_later` | no | **boolean** | `false` | `true` → agent may／should read `later.md`; `false` → may read `hot.md`, **must not** read `later.md` |
 
-**Response `202`:** `{ job_id, status: "started", include_later }`  
-**Errors:** `400 missing_q`, `400 invalid_include_later` (non-boolean), `409 ask_busy`
+**Response `202`:** `{ job_id, status: "started" }`  
+**Errors:** `400 missing_q`；`400 include_later_removed`（body 出現已廢除的 `include_later` 鍵；Ask 恆可讀 `hot.md`＋`later.md`）；`409 ask_busy`
 
-Poll **`GET /memories/ask/{job_id}`** until `status` is `completed` | `failed` | `cancelled`（payload echoes `include_later`）.  
+Poll **`GET /memories/ask/{job_id}`** until `status` is `completed` | `failed` | `cancelled`.  
 Cancel running job: **`POST /memories/ask/{job_id}/cancel`**.
 
-Agent may cite `sources[].kind` = `L1`｜`L2`｜`chain`｜**`future_sight`**（建議帶 `id`＋`zone`）。
+Agent may cite `sources[].kind` = `L1`｜`L2`｜`chain`｜**`future_sight`**（建議帶 `id`＋`zone`）。Every job may read both `hot.md` and `later.md`; the agent decides what to open.
 
 `job_id` shape: `ask-YYYYMMDD-HHmmss-{rand6}` (ENGRAM_TZ local time; URL-safe, no encoding).
 
@@ -900,7 +899,7 @@ POST /dreams/approve   OR   POST /dreams/discard   OR   POST /dreams/retry   OR 
 GET  /memories/search?q=…&scope=l1,nodes,chain,future
 GET  /memories/chain  →  GET /memories/chain/{day_id}
 GET  /memories/nodes  →  GET /memories/nodes/{node_id}
-POST /memories/ask { "q": "…", "include_later": false }  →  GET /memories/ask/{job_id}
+POST /memories/ask { "q": "…" }  →  GET /memories/ask/{job_id}
 ```
 
 ---

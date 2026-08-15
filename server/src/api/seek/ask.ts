@@ -8,32 +8,29 @@ export async function handleMemoryAskPost(body: {
   q?: string;
   include_later?: unknown;
 }): Promise<Response> {
+  if (Object.prototype.hasOwnProperty.call(body, "include_later")) {
+    return Response.json(
+      {
+        error: "include_later_removed",
+        message:
+          "`include_later` was removed in 0.34; Ask always may read future-sight hot.md and later.md — send only `q`",
+      },
+      { status: 400 },
+    );
+  }
+
   const q = body.q?.trim();
   if (!q) {
     return Response.json({ error: "missing_q", message: "Field q is required" }, { status: 400 });
   }
 
-  if ("include_later" in body && body.include_later !== undefined) {
-    if (typeof body.include_later !== "boolean") {
-      return Response.json(
-        {
-          error: "invalid_include_later",
-          message: "Field include_later must be a boolean (true or false)",
-        },
-        { status: 400 },
-      );
-    }
-  }
-  const include_later = body.include_later === true;
-
   try {
-    const job_id = await startAskJob(q, { include_later });
-    logInfo("memory ask started", { job_id, include_later });
+    const job_id = await startAskJob(q);
+    logInfo("memory ask started", { job_id });
     return Response.json(
       {
         job_id,
         status: "started",
-        include_later,
         message: "Poll GET /memories/ask/{job_id} for progress and answer.",
       },
       { status: 202 },

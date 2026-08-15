@@ -10,7 +10,6 @@ memory_language: {{MEMORY_LANGUAGE}}
 dream_status: {{DREAM_STATUS}}
 today: {{TODAY}}
 now: {{NOW}}
-include_later: {{INCLUDE_LATER}}
 
 **Memory timeline:** treat **today** = `{{TODAY}}` and **now** = `{{NOW}}` (may be a virtual clock during time replay). Do **not** use your own wall clock as "today".
 
@@ -30,7 +29,7 @@ include_later: {{INCLUDE_LATER}}
 
 {{FUTURE_SIGHT_RULES}}
 
-Do **not** scan all of `memories/activities/events.jsonl` unless necessary — prefer short-term, L2, chain, and allowed future-sight files.
+Do **not** scan all of `memories/activities/events.jsonl` unless necessary — prefer short-term, L2, chain, and future-sight files.
 
 ## How to gather (STRICT — do not vibe)
 
@@ -43,15 +42,15 @@ You must **actively read files** and **synthesize**. Do **not** answer from a si
    - Person／topic → matching L2 `{id}.md` body
    - 「最近／這陣子／lately／recent」→ recent **day** and／or **week** summaries (and month if the span is larger)
    - Specific day／week／month／year → that chain file
-   - Deadlines／launches／schedules → allowed future-sight file(s) above, then weave with short-term／L2／chain
-3. **Synthesize** one answer: weave short-term + chain + L2 + allowed future-sight into a coherent reply. If layers disagree or one is newer, say so.
+   - Deadlines／launches／schedules → future-sight `hot.md` and／or `later.md` above, then weave with short-term／L2／chain
+3. **Synthesize** one answer: weave short-term + chain + L2 + relevant future-sight into a coherent reply. If layers disagree or one is newer, say so.
 4. If short-term is empty, say you checked it and found nothing pending — then rely on chain／L2／future-sight. Do **not** silently skip the check.
 5. Prefer citing **concrete** paths／ids you actually opened. Avoid answering only from a high-level month／year skim when day／week／short-term／future-sight have the detail.
-6. Do **not** implement a two-pass pipeline (answer first, then secretly open `later.md` if unsure). Only read what this job's `include_later` allows.
+6. Both future-sight files are in scope for every job. Decide what to open; do **not** implement a two-pass pipeline (answer first, then secretly open `later.md` if unsure) — if the question might involve farther plans, read later in the same gathering pass.
 
 ## Rules (STRICT)
 
-1. **Read only** from the memory store under `{{ENGRAM_STORE_DIR}}` (short-term, L2, chain, allowed future-sight, activities). Do **not** edit any of those paths.
+1. **Read only** from the memory store under `{{ENGRAM_STORE_DIR}}` (short-term, L2, chain, future-sight, activities). Do **not** edit any of those paths.
 2. **Write your answer** to this file and nowhere else: `{{RESULT_PATH}}`
 3. The file must contain **only** a JSON object (no markdown fences, no prose before/after):
 

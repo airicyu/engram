@@ -111,7 +111,7 @@ May return `409` with `future_chain_id` + `rejected_chain_ids`, or `stale_future
 
 ### `POST /memories/ask`
 
-Body: `q` required; optional boolean `include_later` (default false). Non-boolean → `400 invalid_include_later`. Default: agent may read `hot.md`, not `later.md`. `include_later:true` allows later. Job／202 echo `include_later`.
+Body: `q` required. **Do not** send `include_later`（0.34 removed → `400 include_later_removed`）. Agent may read `hot.md` and `later.md`; it decides what to cite. `202` `{ job_id, status }` — no `include_later` echo.
 
 ### `GET /memories/future-sight`
 
@@ -135,7 +135,7 @@ Always 200. Expire-only maintain（過期 → L0+short-term + 從 `hot.md`／`la
 | capture with images | `raw` + `attachments[]` (`path`, `relationship`) | client-rendered appendix; `![[path\|alias]]` |
 | attachment upload | multipart `file` | `image`, `upload` |
 | memory search | `q`, `scope` | `query`, `search` (as param name) |
-| memory ask | `q`, `include_later` (boolean) | `question`, `query`; string `"true"` for include_later |
+| memory ask | `q` | `question`, `query`, `include_later` |
 | dream retry | `reason` | empty body |
 | dream amend | `instruction` | empty body |
 | clarify aside | `raw` | `content`, `text` |

@@ -16,7 +16,6 @@ export function SeekScene() {
   const [q, setQ] = useState("");
   const [askQ, setAskQ] = useState("");
   const [scopes, setScopes] = useState({ l1: true, nodes: true, chain: true, future: true });
-  const [includeLater, setIncludeLater] = useState(false);
   const [searchMsg, setSearchMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [askMsg, setAskMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [searchData, setSearchData] = useState<MemorySearch | null>(null);
@@ -93,7 +92,7 @@ export function SeekScene() {
       return;
     }
     setAskMsg({ text: t("memory.ask_running"), kind: "" });
-    const { ok, status: http, data } = await start(trimmed, includeLater);
+    const { ok, status: http, data } = await start(trimmed);
     if (http === 409 && data?.error === "ask_busy") {
       setAskMsg({ text: t("memory.ask_busy"), kind: "error" });
       return;
@@ -288,15 +287,6 @@ export function SeekScene() {
               value={askQ}
               onChange={(e) => setAskQ(e.target.value)}
             />
-            <label className="search-scope-option ask-include-later">
-              <input
-                type="checkbox"
-                checked={includeLater}
-                onChange={(e) => setIncludeLater(e.target.checked)}
-                disabled={askActive}
-              />
-              <span>{t("memory.ask_include_later")}</span>
-            </label>
             <div className="form-row">
               <button type="submit" className="btn primary" disabled={askActive}>
                 {t("memory.ask_submit")}

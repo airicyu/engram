@@ -136,7 +136,6 @@ describe("write-policy", () => {
       dream_status: "idle",
       now: "2026-08-02T12:00:00+08:00",
       today: "2026-08-02",
-      include_later: false,
     };
     const policy = askWritePolicy(input);
     const cd = codexCdRoot(policy);
@@ -190,7 +189,6 @@ describe("write-policy", () => {
       dream_status: "idle",
       now: "2026-08-02T12:00:00+08:00",
       today: "2026-08-02",
-      include_later: false,
     };
     const liveWhat = join(liveMemoriesRoot(storeDir), "nodes", "acme", "acme.md");
     await mkdir(join(liveMemoriesRoot(storeDir), "nodes", "acme"), {

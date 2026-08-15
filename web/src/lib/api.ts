@@ -190,10 +190,7 @@ export const engramApi = {
       if (scope?.length) params.set("scope", scope.join(","));
       return api<MemorySearch>(`/memories/search?${params}`, options);
     },
-    ask: (
-      body: { q: string; include_later?: boolean },
-      options?: ApiOptions,
-    ) => api<AskJob>("/memories/ask", {
+    ask: (body: { q: string }, options?: ApiOptions) => api<AskJob>("/memories/ask", {
       ...options,
       method: "POST",
       body: JSON.stringify(body),

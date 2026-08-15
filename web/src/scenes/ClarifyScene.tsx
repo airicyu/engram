@@ -184,6 +184,31 @@ export function ClarifyScene() {
       {locked ? <p className="lock-hint">{t("clarify.lock_hint")}</p> : null}
       <Msg text={msg.text} kind={msg.kind} />
 
+      <form className="clarify-aside" onSubmit={(e) => void onAside(e)}>
+        <div className="clarify-avatar-col" aria-hidden="true">
+          <span className="clarify-avatar is-you">{t("clarify.you").slice(0, 1)}</span>
+        </div>
+        <div className="clarify-aside-main">
+          <h2 className="clarify-aside-title">{t("clarify.aside_title")}</h2>
+          <p className="clarify-aside-lead">{t("clarify.aside_lead")}</p>
+          <label className="sr-only" htmlFor="clarify-aside-input">
+            {t("clarify.aside_label")}
+          </label>
+          <textarea
+            id="clarify-aside-input"
+            className="clarify-aside-input"
+            rows={4}
+            value={aside}
+            disabled={locked || asideBusy}
+            onChange={(e) => setAside(e.target.value)}
+            placeholder={t("clarify.aside_placeholder")}
+          />
+          <button type="submit" className="btn" disabled={locked || asideBusy}>
+            {t("clarify.aside_submit")}
+          </button>
+        </div>
+      </form>
+
       <div className="clarify-feed-wrap">
         <h2 className="sr-only">{t("clarify.prompts_title")}</h2>
         {loading ? (
@@ -300,31 +325,6 @@ export function ClarifyScene() {
           </ul>
         )}
       </div>
-
-      <form className="clarify-aside" onSubmit={(e) => void onAside(e)}>
-        <div className="clarify-avatar-col" aria-hidden="true">
-          <span className="clarify-avatar is-you">{t("clarify.you").slice(0, 1)}</span>
-        </div>
-        <div className="clarify-aside-main">
-          <h2 className="clarify-aside-title">{t("clarify.aside_title")}</h2>
-          <p className="clarify-aside-lead">{t("clarify.aside_lead")}</p>
-          <label className="sr-only" htmlFor="clarify-aside-input">
-            {t("clarify.aside_label")}
-          </label>
-          <textarea
-            id="clarify-aside-input"
-            className="clarify-aside-input"
-            rows={4}
-            value={aside}
-            disabled={locked || asideBusy}
-            onChange={(e) => setAside(e.target.value)}
-            placeholder={t("clarify.aside_placeholder")}
-          />
-          <button type="submit" className="btn" disabled={locked || asideBusy}>
-            {t("clarify.aside_submit")}
-          </button>
-        </div>
-      </form>
     </section>
   );
 }

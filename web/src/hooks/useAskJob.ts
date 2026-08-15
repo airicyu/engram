@@ -85,13 +85,13 @@ export function useAskJob() {
   );
 
   const start = useCallback(
-    async (q: string, includeLater: boolean): Promise<ApiResult<AskStart>> => {
+    async (q: string): Promise<ApiResult<AskStart>> => {
       stopPolling();
       setIsStarting(true);
       setAnswer(null);
       setFailure(null);
       try {
-        const result = await engramApi.memories.ask({ q, include_later: includeLater });
+        const result = await engramApi.memories.ask({ q });
         if (mounted.current && result.ok && result.data.job_id) {
           beginPolling(result.data.job_id);
         }

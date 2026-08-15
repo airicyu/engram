@@ -46,7 +46,7 @@
 | EN | 中文 | 說明 | API | 備註 |
 |----|------|------|-----|------|
 | **Search** | 搜尋 | keyword 命中 short-term／chain／nodes／**future-sight** | `GET /memories/search?q=&scope=` | `q` 必填；`scope` 可選（`l1,nodes,chain,future`；預設四者）；`future`＝掃 hot＋later |
-| **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memories/ask`、`GET /memories/ask/{job_id}` | 同時只允許一個 running job；可選 `include_later`（預設 false＝可讀 hot、不可讀 later） |
+| **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memories/ask`、`GET /memories/ask/{job_id}` | 同時只允許一個 running job；恆可讀 hot＋later（0.34 廢 `include_later`） |
 
 ### Memory browse（0.8.0）
 
@@ -205,7 +205,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 | **swept_expired** | 本次清掉清單 | 剛移除的過期 anchor id |
 
 過期／出窗：寫 L0 + short-term system event（`source: system/future_sight_expired`，`reason` 區分），再從兩檔移除。無過期瀏覽 API。  
-Seek（0.18+）：Search scope `future` 掃兩區；Ask 預設可讀 `hot.md`，`include_later:true` 才讀 `later.md`。准入窗預設 **365** 日（workspace／env 可覆寫）。
+Seek（0.18+）：Search scope `future` 掃兩區。Ask（0.34+）恆可讀 `hot.md` 與 `later.md`，由 agent 判斷是否引用；請求帶 `include_later` → 400。准入窗預設 **365** 日（workspace／env 可覆寫）。
 
 ---
 

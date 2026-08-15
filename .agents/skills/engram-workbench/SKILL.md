@@ -58,7 +58,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Amend** | `POST /dreams/amend` `{ instruction }` — same `dream_run_id` minimal draft edit; failure keeps pending |
 | **Dream cancel** | `POST /dreams/cancel` — stop running dream；revert draft |
 | **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain,future`; default all four; `future`＝hot＋later) |
-| **Ask** | `POST /memories/ask` `{ q, include_later? }` — async AI Q&A（預設可讀 hot；`include_later:true` 才讀 later）；poll `GET /memories/ask/{job_id}` |
+| **Ask** | `POST /memories/ask` `{ q }` — async AI Q&A（恆可讀 hot＋later）；poll `GET /memories/ask/{job_id}` |
 | **Future-sight** | `GET /memories/future-sight` — `hot`／`later` 錨點（GET 只清過期並可 git commit；重桶在入夢前） |
 | **Clarify** | `GET /memories/clarify/asking`；`POST .../submit` `{ answer }`；`DELETE .../{id}`；`POST /memories/clarify/aside` `{ raw }` — 非 activity；dream lock → 409；pending_review 可寫 |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `never_dreamed` |
@@ -90,7 +90,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `GET /memories/search` | `q` (required); `scope` optional (`l1,nodes,chain,future`) | keyword hits per scope（`future`＝hot＋later） |
 | `GET /memories/chain`／`weeks`／`months`／`years`（及 `/{id}`） | — | browse timeline |
 | `GET /memories/nodes`／`{id}` | — | browse L2；含 `score`／`display_score`（無分 → null）；detail 回 `understanding` |
-| `POST /memories/ask` | `q`; optional `include_later` (boolean) | `202` + `job_id` + `include_later` |
+| `POST /memories/ask` | `q` | `202` + `job_id`；勿傳 `include_later`（400） |
 | `GET /memories/future-sight` | none | `anchors`（含 `zone`）、`swept_expired` |
 | `GET /memories/clarify/asking` | none | `{ items: [...] }`（舊→新）；空＝`{ "items": [] }` |
 | `POST /memories/clarify/asking/{id}/submit` | `{ answer }` | asking→pending；缺檔 404；lock → 409 |
@@ -140,7 +140,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "取消入夢" | `POST /dreams/cancel` (running only) |
 | "搜尋記憶" | `GET /memories/search?q=…&scope=…`（預設含 `future`） |
 | "翻時間軸／節點" | `GET /memories/chain`／`nodes`（及 higher／detail） |
-| "問記憶庫" | `POST /memories/ask`（可選 `include_later`）；poll job |
+| "問記憶庫" | `POST /memories/ask` `{ q }`；poll job |
 | "近期前瞻／未來視" | `GET /memories/future-sight`；Seek Search／Ask 亦可讀（`scope=future`） |
 | "釐清／補問／順帶補充" | `GET …/clarify/asking`；`POST …/submit` `{ answer }`；`DELETE …/{id}`；`POST …/aside` `{ raw }` |
 | "丟掉這次夢" | `POST /dreams/discard` |
