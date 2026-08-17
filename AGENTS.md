@@ -27,11 +27,11 @@
 | **store git** | `ENGRAM_STORE_DIR` 必為 local git；追蹤 `memories/**`＋`engram.workspace.yaml`；**不**追 `dreams/`、store `tmp/` |
 | **runtime temp** | `ENGRAM_TEMP_DIR`（預設 `/tmp`）：ask jobs＋dream agent disposable workdirs；不在記憶庫內 |
 
-產品循環對齊 UI：**Activities → Consolidate → Clarify → Seek → Memory**（場景 id：`activities`／`consolidate`／`clarify`／`seek`／`memory`）。
+產品循環對齊 UI 左欄：**事件／搜索／提問郵箱／記憶**（場景 id 仍為 `activities`＋`consolidate`、`seek`、`clarify`、`memory`；沉澱在事件頁內 tab，hash `#/consolidate`）。
 
 時區由 **有效 timezone** 決定：記憶庫內 `engram.workspace.yaml` → 環境變數 `ENGRAM_TZ` → 預設 **`Asia/Hong_Kong`**。  
 記憶寫入語言：workspace config `memory_language` → 環境變數 `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。  
-記憶庫結構世代：workspace **`store_version`**（semver）。**0.28+**：啟動時 major.minor 須 **≥ 0.28**，缺鍵或過舊 → **拒啟**並提示離線跑 **engram-migration** skill（hop `migrate-0.19-to-0.28`；在該 skill 目錄執行 `bun ./scripts/migrate-0.19-to-0.28.ts`；**無需先啟動 server**；未批准 dream 會被丟棄；勿手改當 migrate）；`ENGRAM_ALLOW_STALE_STORE=1` 可警告後仍啟。migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`docs/roadmap/0.19.0/docs/store-boot-gate.md`、**engram-migration** `SKILL.md`。
+記憶庫結構世代：workspace **`store_version`**（semver）。**0.36+**：啟動時 major.minor 須 **≥ 0.36**，缺鍵或過舊 → **拒啟**並提示離線跑 **engram-migration** skill（結構代鏈：`migrate-0.19-to-0.28` 再 `migrate-0.28-to-0.36`；在該 skill 目錄執行對應 `bun ./scripts/…ts`；**無需先啟動 server**；0.19→0.28 **會丟棄未批准 dream**；0.28→0.36 只刪殘留索引／STM 衍生檔；勿手改當 migrate）；`ENGRAM_ALLOW_STALE_STORE=1` 可警告後仍啟。migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`docs/roadmap/0.19.0/docs/store-boot-gate.md`、**engram-migration** `SKILL.md`。
 
 
 ## 倉庫結構
@@ -122,8 +122,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.35.0` — MdBlock 附件圖＋短期記憶只留 `pool.jsonl`／GET `entries[]`；見 `docs/roadmap/0.35.0/`（**shipped**；**無** store migrate）
-- **上一版：** `0.34.0` — Ask 廢 `include_later`：每次提問可讀 hot＋later，由 AI 判斷；見 `docs/roadmap/0.34.0/`（**shipped**；**無** store migrate）
+- **已出貨：** `0.36.0` — Workbench 左欄四項＋事件 Twitter 式＋釐清 DM；補 store hop `0.28→0.36`；見 `docs/roadmap/0.36.0/`（**shipped**；**有** store migrate；boot ≥0.36）
+- **上一版：** `0.35.0` — MdBlock 附件圖＋短期記憶只留 `pool.jsonl`／GET `entries[]`；見 `docs/roadmap/0.35.0/`（**shipped**；**無** store migrate）
+- **更早：** `0.34.0` — Ask 廢 `include_later`：每次提問可讀 hot＋later，由 AI 判斷；見 `docs/roadmap/0.34.0/`（**shipped**；**無** store migrate）
 - **更早：** `0.33.0` — Workbench UI：釐清貼文串＋記憶鏈／節點瀏覽重排；見 `docs/roadmap/0.33.0/`（**shipped**；**無** store migrate）
 - **更早：** `0.32.0` — Activities `@` mention composer＋raw token 真相＋廢 `node_refs`；見 `docs/roadmap/0.32.0/`（**shipped**；**無** store migrate）
 - **更早：** `0.31.0` — Hash 深鏈＋MdBlock wikilink 可點＋chain 寫入時 node 互指（**不**回填歷史）；見 `docs/roadmap/0.31.0/`（**shipped**；**無** store migrate）
@@ -133,7 +134,7 @@ API 欄位提醒：
 - **更早：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
 - **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
 - **Backlog：** 見 `docs/roadmap/backlog/`（含 Seek／network 依分等）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31／0.31→0.32／0.32→0.33／0.33→0.34／0.34→0.35 無 migrate hop**
+- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28**／**0.28–0.35→0.36** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream；**0.36 hop** 刪 `initialized_*.yaml` 與 STM `nodes/`／summary，不丟 pending）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31／0.31→0.32／0.32→0.33／0.33→0.34／0.34→0.35 無 migrate hop**
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

@@ -34,11 +34,11 @@
 
 | EN | 中文 | 說明 | API／動作 | 備註 |
 |----|------|------|-----------|------|
-| **Activities** | 事件 | 把「此刻要記住的事」寫進系統（L0 + short-term memory） | `POST /activities` | UI 場景 id：`activities`；UI 中文 tab＝**事件**；body 用 **`raw`** |
-| **Consolidate** | 沉澱 | 整理短時記憶：AI 出報告，人審後寫入長期 | `POST /dreams/run` → Approve／Discard | 核心是人審關卡 |
-| **Clarify** | 釐清 | 系統補問人＋人順帶補充；入夢蒸餾進 draft nodes，approve 才進 L2 | `/memories/clarify/*` | 非 activity；場景 id：`clarify`（0.30） |
-| **Seek** | 尋找 | 用關鍵字或 AI 提問找記憶 | `GET /memories/search`、`POST /memories/ask` | 0.8.0 自 Memory 場景拆出 |
-| **Memory** | 記憶 | 沿時間軸或節點列表翻閱已寫入記憶 | `GET /memories/chain`、`GET /memories/nodes` | 0.8.0 browse；不含 Search／Ask |
+| **Activities** | 事件 | 把「此刻要記住的事」寫進系統（L0 + short-term memory） | `POST /activities` | UI 場景 id：`activities`；左欄 **事件**；body 用 **`raw`** |
+| **Consolidate** | 沉澱 | 整理短時記憶：AI 出報告，人審後寫入長期 | `POST /dreams/run` → Approve／Discard | 事件頁內 tab（hash `#/consolidate`）；不佔左欄 |
+| **Clarify** | 釐清 | 系統補問人＋人順帶補充；入夢蒸餾進 draft nodes，approve 才進 L2 | `/memories/clarify/*` | 非 activity；場景 id：`clarify`；左欄 **提問郵箱**／Inbox |
+| **Seek** | 搜索 | 用關鍵字或 AI 提問找記憶 | `GET /memories/search`、`POST /memories/ask` | 左欄名 **搜索**／Search（不再用「尋找」）；場景 id 仍 `seek` |
+| **Memory** | 記憶 | 沿時間軸或節點列表翻閱已寫入記憶 | `GET /memories/chain`、`GET /memories/nodes` | 左欄 **記憶**；0.8.0 browse；不含 Search／Ask |
 | **Dream** | 入夢 | 對 short-term memory 跑 AI 提取，產出待審報告 | `POST /dreams/run` | 產品語；技術上含 extract |
 
 ### Seek（0.8.0）
@@ -243,15 +243,15 @@ Seek（0.18+）：Search scope `future` 掃兩區。Ask（0.34+）恆可讀 `hot
 | **Distill** | **蒸餾** | 入夢末段把 pending 折進 draft node 主檔 |
 | **Generate** | **生成補問** | 入夢末段 server 寫入新的 asking |
 
-個人記憶**工作台**——走 Activities → Consolidate → Clarify → Seek → Memory；**不是** admin dashboard、不是多使用者後台。
+個人記憶**工作台**——左欄走 事件 → 搜索 → 提問郵箱 → 記憶（沉澱掛在事件頁）；**不是** admin dashboard、不是多使用者後台。
 
 | EN | 中文 | 說明 | 路徑／備註 |
 |----|------|------|------------|
 | **workbench** | 工作台 | 產品操作面總稱（人 + agent 透過 API 操作記憶） | 舊稱 **operator**（0.5.0 前） |
-| **workbench UI** | 工作台介面 | 瀏覽器五場景 UI | `web/`（`:8788`） |
+| **workbench UI** | 工作台介面 | 瀏覽器左欄四項＋右欄（場景 id 仍五個） | `web/`（`:8788`） |
 | **engram-workbench** | 工作台 skill | Agent 用 HTTP 打 API；禁止手改記憶庫 | agent skills 樹下的 `engram-workbench/` |
-| **status light** | 狀態燈 | 頂欄連線／入夢狀態指示 | workbench UI |
-| **scene** | 場景 | Activities／Consolidate／Clarify／Seek／Memory 五主畫面（id：`activities`…） | workbench UI |
+| **status light** | 狀態燈 | 左欄連線／入夢狀態指示 | workbench UI |
+| **scene** | 場景 | hash 場景 id 仍為 `activities`／`consolidate`／`clarify`／`seek`／`memory`；左欄合併事件＋沉澱 | workbench UI |
 
 **Workbench UI i18n（0.5.0）：** 僅介面殼層；**English** + **繁體中文**；不翻譯 short-term／L2／chain／report 等記憶內容。
 

@@ -3,6 +3,25 @@ import remarkGfm from "remark-gfm";
 import { preprocessAttachmentEmbeds } from "../lib/preprocessAttachmentEmbeds";
 import { preprocessNodeWikilinks } from "../lib/preprocessNodeWikilinks";
 
+export function RefreshIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 12a8 8 0 1 1-2.2-5.5" />
+      <path d="M20 4v6h-6" />
+    </svg>
+  );
+}
+
 export function Msg({
   text,
   kind,

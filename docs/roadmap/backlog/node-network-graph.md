@@ -1,6 +1,6 @@
 # Backlog — Node network 互動圖（Obsidian 式）
 
-← [backlog INDEX](./INDEX.md) · 資料模型草稿：[0.1 nodes-graph](../../0.1.0/docs/nodes-graph.md) · 相關：[Seek／network 依活躍分](./INDEX.md)（檢索偏置，非本項）
+← [backlog INDEX](./INDEX.md) · **未排程**（0.36 後再決定）· 討論草稿：[0.37.0 parked](../0.37.0/INDEX.md) · 資料模型草稿：[0.1 nodes-graph](../../0.1.0/docs/nodes-graph.md)
 
 ## 題目
 

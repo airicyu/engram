@@ -5,11 +5,11 @@
 它不是筆記 app，也不是聊天備份。核心是一條有人在迴路裡的記憶管線：
 
 ```
-Activities → Consolidate → Seek → Memory
-   寫入         沉澱／入夢      尋找         翻閱
+事件 → 搜索 → 提問郵箱 → 記憶
+寫入／沉澱    搜尋／提問     釐清 DM        翻閱
 ```
 
-**目前版本：** [0.29.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
+**目前版本：** [0.36.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
 
 > **讀文件時：** 這份 README 是給人看的專案說明。給 AI coding agent 的操作邊界與開發脈絡在 [AGENTS.md](./AGENTS.md)（Cursor／Claude Code 會自動讀取），請勿把兩者當成同一份文件。
 

@@ -63,7 +63,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Clarify** | `GET /memories/clarify/asking`；`POST .../submit` `{ answer }`；`DELETE .../{id}`；`POST /memories/clarify/aside` `{ raw }` — 非 activity；dream lock → 409；pending_review 可寫 |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `never_dreamed` |
 | **store_git** | `GET /status.store_git` — 記憶庫是否為可用 local git（0.16+；否則 server 拒啟） |
-| **store_version** | `GET /status.store_version` — 記憶庫結構世代。**0.28+ boot** 要求 major.minor ≥ 0.28，否則拒啟並須**離線**跑 engram-migration（`migrate-0.19-to-0.28`；無需先 start server；會丟棄未批准 dream）；對照 `product_version`（不必字串相等） |
+| **store_version** | `GET /status.store_version` — 記憶庫結構世代。**0.36+ boot** 要求 major.minor ≥ 0.36，否則拒啟並須**離線**跑 engram-migration（`0.28–0.35` → `migrate-0.28-to-0.36`；更舊先 `migrate-0.19-to-0.28`，該 hop 會丟棄未批准 dream）；對照 `product_version`（不必字串相等） |
 | **Obsidian** | 人應開啟 `{ENGRAM_STORE_DIR}/memories/` 作為 vault（不是 store 根）。Node 主檔＝`nodes/{id}/{id}.md` |
 
 ## ⚠️ Before any API call

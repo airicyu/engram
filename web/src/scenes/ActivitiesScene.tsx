@@ -2,11 +2,14 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type DragEven
 import { api, engramApi, type NodeIndex } from "../lib/api";
 import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
-import { MdBlock, Msg } from "../components/ui";
+import { MdBlock, Msg, RefreshIcon } from "../components/ui";
 import {
   MentionComposer,
   type MentionComposerHandle,
 } from "../components/MentionComposer";
+import { ConsolidateScene } from "./ConsolidateScene";
+
+export type EventsFeed = "recent" | "consolidate";
 
 interface AttachmentItem {
   path: string;
@@ -15,7 +18,33 @@ interface AttachmentItem {
   relationship: string;
 }
 
-export function ActivitiesScene() {
+function MediaIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+      <circle cx="8.5" cy="10" r="1.25" />
+      <path d="m21 15.5-4.2-4.2a1.2 1.2 0 0 0-1.7 0L8 18.5" />
+    </svg>
+  );
+}
+
+export function ActivitiesScene({
+  feed,
+  onFeedChange,
+}: {
+  feed: EventsFeed;
+  onFeedChange: (feed: EventsFeed) => void;
+}) {
   const { t } = useI18n();
   const { status, dreaming, refreshStatus } = useStatus();
   const [raw, setRaw] = useState("");
@@ -212,9 +241,9 @@ export function ActivitiesScene() {
   }
 
   return (
-    <section className="scene is-active" role="tabpanel">
+    <section className="scene is-active" aria-label={t("nav.events")}>
       <p className="scene-lead">{t("activities.lead")}</p>
-      <form className="activities-form" onSubmit={onSubmit}>
+      <form className="activities-form compose-card" onSubmit={onSubmit}>
         <label className="sr-only" htmlFor="activities-raw">
           {t("activities.label_raw")}
         </label>
@@ -243,19 +272,63 @@ export function ActivitiesScene() {
             <div className="drop-overlay">{t("activities.attachment_drop_hint")}</div>
           )}
         </div>
-        <p className="form-hint">{t("activities.mention_hint")}</p>
 
-        <div className="attachments-section">
-          <div className="attachments-header">
-            <span className="attachments-title">{t("activities.media_attachments")}</span>
+        {uploading ? <p className="form-hint">{t("activities.attachment_uploading")}</p> : null}
+        {uploadError ? <p className="form-hint error">{uploadError}</p> : null}
+
+        {attachments.length > 0 ? (
+          <div className="attachments-list">
+            {attachments.map((a, i) => (
+              <div key={`${a.path}-${i}`} className="attachment-item">
+                <div className="attachment-preview">
+                  <img
+                    src={`/api/attachments/file?path=${encodeURIComponent(a.path)}`}
+                    alt={a.filename}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </div>
+                <div className="attachment-meta">
+                  <code className="attachment-path">{a.path}</code>
+                  <label className="sr-only" htmlFor={`attachment-rel-${i}`}>
+                    {t("activities.attachment_relationship_label")}
+                  </label>
+                  <textarea
+                    id={`attachment-rel-${i}`}
+                    className="attachment-relationship"
+                    rows={1}
+                    placeholder={t("activities.attachment_relationship_placeholder")}
+                    value={a.relationship}
+                    onChange={(e) => updateRelationship(i, e.target.value)}
+                    disabled={locked}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn ghost attachment-remove-btn"
+                  disabled={locked}
+                  onClick={() => removeAttachment(i)}
+                  title={t("activities.attachment_remove")}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="compose-toolbar">
+          <div className="compose-toolbar-tools">
             <button
               type="button"
-              className="btn ghost attachment-add-btn"
+              className="compose-tool-btn"
               disabled={locked}
               onClick={() => fileInputRef.current?.click()}
-              title={t("activities.attachment_add")}
+              data-tooltip={t("activities.attachment_add")}
+              aria-label={t("activities.attachment_add")}
             >
-              +
+              <MediaIcon />
             </button>
             <input
               ref={fileInputRef}
@@ -266,79 +339,71 @@ export function ActivitiesScene() {
               multiple
             />
           </div>
-
-          {uploading && <p className="form-hint">{t("activities.attachment_uploading")}</p>}
-          {uploadError && <p className="form-hint error">{uploadError}</p>}
-
-          {attachments.map((a, i) => (
-            <div key={`${a.path}-${i}`} className="attachment-item">
-              <div className="attachment-preview">
-                <img
-                  src={`/api/attachments/file?path=${encodeURIComponent(a.path)}`}
-                  alt={a.filename}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
-                />
-              </div>
-              <div className="attachment-meta">
-                <code className="attachment-path">{a.path}</code>
-                <label className="sr-only" htmlFor={`attachment-rel-${i}`}>
-                  {t("activities.attachment_relationship_label")}
-                </label>
-                <textarea
-                  id={`attachment-rel-${i}`}
-                  className="attachment-relationship"
-                  rows={2}
-                  placeholder={t("activities.attachment_relationship_placeholder")}
-                  value={a.relationship}
-                  onChange={(e) => updateRelationship(i, e.target.value)}
-                  disabled={locked}
-                />
-              </div>
-              <button
-                type="button"
-                className="btn ghost attachment-remove-btn"
-                disabled={locked}
-                onClick={() => removeAttachment(i)}
-                title={t("activities.attachment_remove")}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <div className="form-actions">
-          <button type="submit" className="btn primary" disabled={locked}>
+          <button type="submit" className="btn primary compose-post-btn" disabled={locked}>
             {t("activities.submit")}
           </button>
         </div>
         {locked ? <p className="form-hint">{t("activities.lock_hint")}</p> : null}
         <Msg text={msg.text} kind={msg.kind} />
       </form>
-      <div className="l1-panel">
-        <div className="panel-head">
-          <h2>{t("activities.l1_title")}</h2>
-          <button type="button" className="btn ghost" onClick={() => void refreshL1()}>
-            {t("activities.refresh")}
-          </button>
-        </div>
-        {l1Empty ? (
-          <MdBlock text={l1Status || t("empty.l1_cleared")} empty />
-        ) : (
-          <div className="stm-feed">
-            {l1Entries.map((e) => (
-              <article key={e.id} className="stm-entry">
-                <header className="stm-entry-meta">
-                  <time dateTime={e.ts}>{e.ts}</time>
-                  <span className="stm-entry-id">{e.id}</span>
-                </header>
-                <MdBlock text={e.raw} />
-              </article>
-            ))}
+
+      <div className="events-col">
+      <div className="events-tabs" role="tablist" aria-label={t("nav.events")}>
+        <button
+          type="button"
+          role="tab"
+          className={`events-tab${feed === "recent" ? " is-active" : ""}`}
+          aria-selected={feed === "recent"}
+          onClick={() => onFeedChange("recent")}
+        >
+          {t("events.tab_recent")}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`events-tab${feed === "consolidate" ? " is-active" : ""}`}
+          aria-selected={feed === "consolidate"}
+          onClick={() => onFeedChange("consolidate")}
+        >
+          {t("events.tab_consolidate")}
+        </button>
+      </div>
+
+      {feed === "recent" ? (
+        <div className="l1-panel" role="tabpanel">
+          <div className="panel-head">
+            <h2>{t("activities.l1_title")}</h2>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => void refreshL1()}
+              data-tooltip={t("activities.refresh")}
+              aria-label={t("activities.refresh")}
+            >
+              <RefreshIcon />
+            </button>
           </div>
-        )}
+          {l1Empty ? (
+            <MdBlock text={l1Status || t("empty.l1_cleared")} empty />
+          ) : (
+            <div className="stm-feed">
+              {l1Entries.map((e) => (
+                <article key={e.id} className="stm-entry">
+                  <header className="stm-entry-meta">
+                    <time dateTime={e.ts}>{e.ts}</time>
+                    <span className="stm-entry-id">{e.id}</span>
+                  </header>
+                  <MdBlock text={e.raw} />
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="events-consolidate" role="tabpanel">
+          <ConsolidateScene />
+        </div>
+      )}
       </div>
     </section>
   );

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Topbar } from "./components/Topbar";
+import { Sidebar } from "./components/Sidebar";
 import { ActivitiesScene } from "./scenes/ActivitiesScene";
-import { ConsolidateScene } from "./scenes/ConsolidateScene";
 import { ClarifyScene } from "./scenes/ClarifyScene";
 import { SeekScene } from "./scenes/SeekScene";
 import { MemoryScene } from "./scenes/MemoryScene";
@@ -62,14 +61,22 @@ export function App() {
     [],
   );
 
+  const eventsOpen = scene === "activities" || scene === "consolidate";
+
   return (
     <>
       <div className="atmosphere" aria-hidden="true" />
       <div className="app">
-        <Topbar scene={scene} onScene={onScene} />
+        <Sidebar scene={scene} onScene={onScene} />
         <main className={`stage${scene === "memory" ? " stage-locked" : ""}`}>
-          {scene === "activities" ? <ActivitiesScene /> : null}
-          {scene === "consolidate" ? <ConsolidateScene /> : null}
+          {eventsOpen ? (
+            <ActivitiesScene
+              feed={scene === "consolidate" ? "consolidate" : "recent"}
+              onFeedChange={(feed) =>
+                onScene(feed === "consolidate" ? "consolidate" : "activities")
+              }
+            />
+          ) : null}
           {scene === "clarify" ? <ClarifyScene /> : null}
           {scene === "seek" ? <SeekScene /> : null}
           {scene === "memory" ? (

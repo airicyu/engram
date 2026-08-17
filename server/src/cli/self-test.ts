@@ -1274,22 +1274,60 @@ Unique later keyword xylophone-launch window for search.
     wsAfter = await readFile(wsPath, "utf8");
     assert(wsAfter.includes("store_version: 0.28.0"), "store_version 0.28.0");
 
+    // T1c: migrate 0.28→0.36 (drop initialized yaml + STM derived)
+    await mkdir(join(TEST_HOME, "memories/chain"), { recursive: true });
+    await Bun.write(join(TEST_HOME, "memories/chain/initialized_weeks.yaml"), "ids: []\n");
+    await Bun.write(join(TEST_HOME, "memories/chain/initialized_months.yaml"), "ids: []\n");
+    await mkdir(join(TEST_HOME, "memories/short-term-memory/nodes/acme"), { recursive: true });
+    await Bun.write(
+      join(TEST_HOME, "memories/short-term-memory/nodes/acme/notes.md"),
+      "legacy note\n",
+    );
+    await Bun.write(join(TEST_HOME, "memories/short-term-memory/summary.md"), "- leftover\n");
+    const mig36 = Bun.spawnSync([
+      "bun",
+      migrationScript("migrate-0.28-to-0.36.ts"),
+      TEST_HOME,
+    ]);
+    assert(mig36.exitCode === 0, `migrate 0.28→0.36 exit 0: ${mig36.stderr.toString()}\n${mig36.stdout.toString()}`);
+    assert(
+      !(await Bun.file(join(TEST_HOME, "memories/chain/initialized_weeks.yaml")).exists()),
+      "initialized_weeks.yaml dropped",
+    );
+    assert(
+      !(await Bun.file(join(TEST_HOME, "memories/chain/initialized_months.yaml")).exists()),
+      "initialized_months.yaml dropped",
+    );
+    assert(
+      !(await Bun.file(join(TEST_HOME, "memories/short-term-memory/nodes")).exists()),
+      "STM nodes/ dropped",
+    );
+    assert(
+      !(await Bun.file(join(TEST_HOME, "memories/short-term-memory/summary.md")).exists()),
+      "STM summary.md dropped",
+    );
+    wsAfter = await readFile(wsPath, "utf8");
+    assert(wsAfter.includes("store_version: 0.36.0"), "store_version 0.36.0");
+
     // T11–T13: boot structure gate (pure check; process exit covered by assertStoreStructureOrExit)
     const tooOld = checkStoreStructure("0.27.0");
     assert(tooOld.ok === false && tooOld.reason === "too_old", "T11 0.27 too old");
-    assert(tooOld.message.includes("migrate-0.19-to-0.28"), "T11 migrate hint");
+    assert(tooOld.message.includes("migrate-0.19-to-0.28"), "T11 migrate hint 0.19→0.28");
+    assert(tooOld.message.includes("migrate-0.28-to-0.36"), "T11 migrate hint 0.28→0.36");
     assert(
       tooOld.message.includes("need not be running") || tooOld.message.includes("offline"),
       "T11 hint says offline／no server required",
     );
     const missing = checkStoreStructure(null);
     assert(missing.ok === false && missing.reason === "missing", "T12 missing store_version");
-    assert(checkStoreStructure("0.28.0").ok === true, "T13 0.28 ok");
-    assert(checkStoreStructure("0.29.1").ok === true, "T13 newer stamp ok");
+    assert(checkStoreStructure("0.28.0").ok === false, "T13 0.28 too old for 0.36 gate");
+    assert(checkStoreStructure("0.35.0").ok === false, "T13 0.35 too old");
+    assert(checkStoreStructure("0.36.0").ok === true, "T13 0.36 ok");
+    assert(checkStoreStructure("0.37.1").ok === true, "T13 newer stamp ok");
     const mm27 = parseMajorMinor("0.27.0");
-    const mm28 = parseMajorMinor("0.28.0");
-    assert(mm27 && mm28 && !structureAtLeast(mm27, mm28), "structureAtLeast 0.27 < 0.28");
-    assert(mm28 && structureAtLeast(mm28, { major: 0, minor: 28 }), "structureAtLeast 0.28 >=");
+    const mm36 = parseMajorMinor("0.36.0");
+    assert(mm27 && mm36 && !structureAtLeast(mm27, mm36), "structureAtLeast 0.27 < 0.36");
+    assert(mm36 && structureAtLeast(mm36, { major: 0, minor: 36 }), "structureAtLeast 0.36 >=");
 
     console.log("\nPhase 9: capture concurrency + mentions (0.32)");
     await stopServer(server);

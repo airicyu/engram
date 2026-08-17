@@ -3,7 +3,7 @@ import { engramApi, type ClarifyAskingItem } from "../lib/api";
 import { serializeHash } from "../lib/hashRoute";
 import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
-import { Msg } from "../components/ui";
+import { Msg, RefreshIcon } from "../components/ui";
 
 function formatPostTime(
   iso: string,
@@ -26,30 +26,12 @@ function formatPostTime(
   });
 }
 
-function CommentIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="18"
-      height="18"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M20.5 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.9-.95L4 21l1.1-4.2A8.5 8.5 0 1 1 20.5 11.5Z" />
-    </svg>
-  );
-}
-
 export function ClarifyScene() {
   const { t, locale } = useI18n();
   const { status, dreaming } = useStatus();
   const [items, setItems] = useState<ClarifyAskingItem[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [aside, setAside] = useState("");
   const [msg, setMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -58,6 +40,7 @@ export function ClarifyScene() {
   const replyRef = useRef<HTMLTextAreaElement>(null);
 
   const locked = !!(status?.lock || dreaming);
+  const selected = items.find((item) => item.id === selectedId) ?? null;
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -68,8 +51,14 @@ export function ClarifyScene() {
         kind: "error",
       });
       setItems([]);
+      setSelectedId(null);
     } else {
-      setItems(data.items ?? []);
+      const next = data.items ?? [];
+      setItems(next);
+      setSelectedId((prev) => {
+        if (prev && next.some((item) => item.id === prev)) return prev;
+        return next[0]?.id ?? null;
+      });
     }
     setLoading(false);
   }, [t]);
@@ -79,8 +68,8 @@ export function ClarifyScene() {
   }, [refresh]);
 
   useEffect(() => {
-    if (openId) replyRef.current?.focus();
-  }, [openId]);
+    if (selectedId) replyRef.current?.focus();
+  }, [selectedId]);
 
   async function onSubmit(id: string) {
     if (locked) {
@@ -108,7 +97,6 @@ export function ClarifyScene() {
       delete next[id];
       return next;
     });
-    setOpenId(null);
     setMsg({ text: t("clarify.submit_ok"), kind: "ok" });
     await refresh();
   }
@@ -129,7 +117,6 @@ export function ClarifyScene() {
       setMsg({ text: data.message || data.error || t("clarify.dismiss_error"), kind: "error" });
       return;
     }
-    if (openId === id) setOpenId(null);
     setMsg({ text: t("clarify.dismiss_ok"), kind: "ok" });
     await refresh();
   }
@@ -164,30 +151,137 @@ export function ClarifyScene() {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
       void onSubmit(id);
-      return;
-    }
-    if (e.key === "Escape") {
-      e.preventDefault();
-      setOpenId(null);
     }
   }
 
+  const busy = selected ? busyId === selected.id : false;
+
   return (
-    <section className="scene is-active" role="tabpanel">
+    <section className="scene is-active inbox-scene" aria-label={t("nav.inbox")}>
       <div className="scene-header">
         <p className="scene-lead">{t("clarify.lead")}</p>
-        <button type="button" className="btn ghost scene-refresh" onClick={() => void refresh()}>
-          {t("clarify.refresh")}
+        <button
+          type="button"
+          className="icon-btn scene-refresh"
+          onClick={() => void refresh()}
+          data-tooltip={t("clarify.refresh")}
+          aria-label={t("clarify.refresh")}
+        >
+          <RefreshIcon />
         </button>
       </div>
 
       {locked ? <p className="lock-hint">{t("clarify.lock_hint")}</p> : null}
       <Msg text={msg.text} kind={msg.kind} />
 
-      <form className="clarify-aside" onSubmit={(e) => void onAside(e)}>
-        <div className="clarify-avatar-col" aria-hidden="true">
-          <span className="clarify-avatar is-you">{t("clarify.you").slice(0, 1)}</span>
+      {loading || items.length === 0 ? (
+        <div className="inbox-layout is-empty">
+          <p className="empty-hint">
+            {loading ? t("clarify.loading") : t("clarify.prompts_empty")}
+          </p>
         </div>
+      ) : (
+      <div className="inbox-layout">
+        <div className="inbox-list">
+          <h2 className="sr-only">{t("clarify.prompts_title")}</h2>
+          <ul className="inbox-threads">
+            {items.map((item) => {
+              const on = item.id === selectedId;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className={`inbox-thread${on ? " is-active" : ""}`}
+                    onClick={() => setSelectedId(item.id)}
+                  >
+                    <span className="inbox-thread-author">{t("clarify.post_author")}</span>
+                    {item.created_at ? (
+                      <time className="inbox-thread-time" dateTime={item.created_at}>
+                        {formatPostTime(item.created_at, t, locale)}
+                      </time>
+                    ) : null}
+                    <span className="inbox-thread-preview">{item.question}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="inbox-pane">
+          {!selected ? (
+            <p className="empty-hint">{t("clarify.thread_empty")}</p>
+          ) : (
+            <>
+              <div className="inbox-message">
+                <div className="inbox-message-head">
+                  <span className="clarify-post-author">{t("clarify.post_author")}</span>
+                  {selected.created_at ? (
+                    <time
+                      className="clarify-post-time"
+                      dateTime={selected.created_at}
+                      title={new Date(selected.created_at).toLocaleString()}
+                    >
+                      {formatPostTime(selected.created_at, t, locale)}
+                    </time>
+                  ) : null}
+                </div>
+                <p className="clarify-post-body">{selected.question}</p>
+                {selected.related_nodes.length > 0 ? (
+                  <div className="clarify-post-tags">
+                    {selected.related_nodes.map((node) => (
+                      <a
+                        key={node}
+                        className="clarify-tag"
+                        href={serializeHash({ scene: "memory", memory: { mode: "nodes", id: node } })}
+                      >
+                        @{node}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <label className="sr-only" htmlFor="inbox-reply">
+                {t("clarify.answer_label")}
+              </label>
+              <textarea
+                id="inbox-reply"
+                ref={replyRef}
+                className="clarify-answer"
+                rows={5}
+                value={answers[selected.id] ?? ""}
+                disabled={locked || busy}
+                onChange={(e) =>
+                  setAnswers((prev) => ({ ...prev, [selected.id]: e.target.value }))
+                }
+                onKeyDown={(e) => onReplyKeyDown(e, selected.id)}
+                placeholder={t("clarify.reply_placeholder")}
+              />
+              <div className="inbox-pane-actions">
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={locked || busy}
+                  onClick={() => void onSubmit(selected.id)}
+                >
+                  {t("clarify.submit")}
+                </button>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={locked || busy}
+                  onClick={() => void onDismiss(selected.id)}
+                >
+                  {t("clarify.dismiss")}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      )}
+
+      <form className="clarify-aside inbox-aside" onSubmit={(e) => void onAside(e)}>
         <div className="clarify-aside-main">
           <h2 className="clarify-aside-title">{t("clarify.aside_title")}</h2>
           <p className="clarify-aside-lead">{t("clarify.aside_lead")}</p>
@@ -197,134 +291,19 @@ export function ClarifyScene() {
           <textarea
             id="clarify-aside-input"
             className="clarify-aside-input"
-            rows={4}
+            rows={3}
             value={aside}
             disabled={locked || asideBusy}
             onChange={(e) => setAside(e.target.value)}
             placeholder={t("clarify.aside_placeholder")}
           />
-          <button type="submit" className="btn" disabled={locked || asideBusy}>
-            {t("clarify.aside_submit")}
-          </button>
+          <div className="inbox-aside-actions">
+            <button type="submit" className="btn primary" disabled={locked || asideBusy}>
+              {t("clarify.aside_submit")}
+            </button>
+          </div>
         </div>
       </form>
-
-      <div className="clarify-feed-wrap">
-        <h2 className="sr-only">{t("clarify.prompts_title")}</h2>
-        {loading ? (
-          <p className="empty-hint">{t("clarify.loading")}</p>
-        ) : items.length === 0 ? (
-          <p className="empty-hint">{t("clarify.prompts_empty")}</p>
-        ) : (
-          <ul className="clarify-feed">
-            {items.map((item) => {
-              const open = openId === item.id;
-              const busy = busyId === item.id;
-              const replyId = `clarify-reply-${item.id}`;
-              return (
-                <li key={item.id} className={`clarify-post${open ? " is-open" : ""}`}>
-                  <div className="clarify-avatar-col" aria-hidden="true">
-                    <span className="clarify-avatar">{t("clarify.post_author").slice(0, 1)}</span>
-                  </div>
-                  <div className="clarify-post-main">
-                    <div className="clarify-post-head">
-                      <span className="clarify-post-author">{t("clarify.post_author")}</span>
-                      {item.created_at ? (
-                        <time
-                          className="clarify-post-time"
-                          dateTime={item.created_at}
-                          title={new Date(item.created_at).toLocaleString()}
-                        >
-                          {formatPostTime(item.created_at, t, locale)}
-                        </time>
-                      ) : null}
-                    </div>
-                    <p className="clarify-post-body">{item.question}</p>
-                    {item.related_nodes.length > 0 ? (
-                      <div className="clarify-post-tags">
-                        {item.related_nodes.map((node) => (
-                          <a
-                            key={node}
-                            className="clarify-tag"
-                            href={serializeHash({ scene: "memory", memory: { mode: "nodes", id: node } })}
-                          >
-                            @{node}
-                          </a>
-                        ))}
-                      </div>
-                    ) : null}
-                    <div className="clarify-post-actions">
-                      <button
-                        type="button"
-                        className={`clarify-icon-btn${open ? " is-open" : ""}`}
-                        aria-expanded={open}
-                        aria-controls={replyId}
-                        aria-label={open ? t("clarify.comment_collapse") : t("clarify.comment_expand")}
-                        disabled={busy}
-                        onClick={() => setOpenId((prev) => (prev === item.id ? null : item.id))}
-                      >
-                        <CommentIcon />
-                        <span>{t("clarify.comment")}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="clarify-icon-btn clarify-icon-btn-quiet"
-                        disabled={locked || busy}
-                        onClick={() => void onDismiss(item.id)}
-                      >
-                        {t("clarify.dismiss")}
-                      </button>
-                    </div>
-                  </div>
-                  {open ? (
-                    <>
-                      <div className="clarify-avatar-col is-reply" aria-hidden="true">
-                        <span className="clarify-avatar is-you">{t("clarify.you").slice(0, 1)}</span>
-                      </div>
-                      <div className="clarify-reply-main" id={replyId}>
-                        <label className="sr-only" htmlFor={`${replyId}-input`}>
-                          {t("clarify.answer_label")}
-                        </label>
-                        <textarea
-                          id={`${replyId}-input`}
-                          ref={replyRef}
-                          className="clarify-answer"
-                          rows={3}
-                          value={answers[item.id] ?? ""}
-                          disabled={locked || busy}
-                          onChange={(e) =>
-                            setAnswers((prev) => ({ ...prev, [item.id]: e.target.value }))
-                          }
-                          onKeyDown={(e) => onReplyKeyDown(e, item.id)}
-                          placeholder={t("clarify.reply_placeholder")}
-                        />
-                        <div className="clarify-reply-actions">
-                          <button
-                            type="button"
-                            className="btn primary"
-                            disabled={locked || busy}
-                            onClick={() => void onSubmit(item.id)}
-                          >
-                            {t("clarify.reply")}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn ghost"
-                            disabled={busy}
-                            onClick={() => setOpenId(null)}
-                          >
-                            {t("clarify.reply_cancel")}
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
     </section>
   );
 }

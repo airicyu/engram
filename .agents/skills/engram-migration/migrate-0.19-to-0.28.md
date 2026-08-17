@@ -53,7 +53,7 @@ bun ./scripts/migrate-0.19-to-0.28.ts "$ENGRAM_STORE_DIR"
 - [ ] 無 `dreams/draft/*`（或僅空目錄）；無 `status: pending` 的 dream run
 - [ ] 抽樣 live：`nodes/{id}/{id}.md` 存在；舊 `understand/what.md` 不存在
 - [ ] `engram.workspace.yaml` → `store_version: 0.28.0`
-- [ ] 0.28+ server 可啟動（boot 最低結構 **≥ 0.28**）；**無需**在 migrate 前先 start server
+- [ ] **接著**跑 `migrate-0.28-to-0.36` 才可開 0.36+ server（boot **≥ 0.36**）；本 hop 結束時**不要**假設 0.36 binary 已可啟動
 - [ ] stdout 曾列出 discarded pending（或 `(none)`）
 
 ## 非目標

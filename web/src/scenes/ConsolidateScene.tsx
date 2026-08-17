@@ -9,7 +9,7 @@ import {
 } from "../lib/types";
 import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
-import { MdBlock, Msg } from "../components/ui";
+import { MdBlock, Msg, RefreshIcon } from "../components/ui";
 
 type ReviseMode = "re_dream" | "amend_dream";
 
@@ -322,8 +322,14 @@ export function ConsolidateScene() {
     <section className="scene is-active" role="tabpanel">
       <div className="scene-header">
         <p className="scene-lead">{t("consolidate.lead")}</p>
-        <button type="button" className="btn ghost scene-refresh" onClick={() => void refreshStatus()}>
-          {t("consolidate.refresh")}
+        <button
+          type="button"
+          className="icon-btn scene-refresh"
+          onClick={() => void refreshStatus()}
+          data-tooltip={t("consolidate.refresh")}
+          aria-label={t("consolidate.refresh")}
+        >
+          <RefreshIcon />
         </button>
       </div>
       <div className="status-panel">

@@ -129,7 +129,7 @@ export function SeekScene() {
   }
 
   return (
-    <section className="scene is-active" role="tabpanel">
+    <section className="scene is-active seek-col" role="tabpanel">
       <div className="memory-modes seek-modes" role="tablist" aria-label="Seek mode">
         <button
           type="button"
@@ -285,15 +285,15 @@ export function SeekScene() {
               value={askQ}
               onChange={(e) => setAskQ(e.target.value)}
             />
-            <div className="form-row">
-              <button type="submit" className="btn primary" disabled={askActive}>
-                {t("memory.ask_submit")}
-              </button>
+            <div className="form-row ask-actions">
               {askActive ? (
                 <button type="button" className="btn ghost" onClick={() => void onAskCancel()}>
                   {t("memory.ask_cancel")}
                 </button>
               ) : null}
+              <button type="submit" className="btn primary" disabled={askActive}>
+                {t("memory.ask_submit")}
+              </button>
             </div>
           </form>
           <Msg text={askMsg.text} kind={askMsg.kind} />

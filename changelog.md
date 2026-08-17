@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.36.0 — Workbench 左欄殼＋事件 timeline＋提問郵箱 DM (2026-08-17)
+
+工作台改為左欄四項＋右欄內容。事件頁為發帖＋近期 STM 帖＋沉澱 tab。釐清改 DM 式收件箱。搜索與記憶內頁不改。**不**改 HTTP／dream。**有** store migrate：`0.28.x–0.35.x` → `0.36.0`（刪 chain `initialized_*.yaml` 與 STM `summary.md`／`nodes/`）；boot gate **≥ 0.36**。見 `docs/roadmap/0.36.0/`。
+
+### Changed
+
+- 廢 Topbar 橫向場景 tab；左欄 **事件／搜索／提問郵箱／記憶**（EN Events／Search／Inbox／Memory）
+- `#/consolidate` 仍可用：開事件頁並選中沉澱 tab；左欄「事件」在 `activities` 與 `consolidate` 皆為選中
+- 發帖卡：插圖 widget 在輸入下，Post 在右下；近期 feed 逐則 `GET /memories/short-term-memory` `entries[]`
+- ClarifyScene：左會話列表＋右作答；aside 留在本頁
+- Boot gate：`REQUIRED_STORE_STRUCTURE` → **0.36**
+- `engram-migration`：`migrate-0.28-to-0.36`（離線；不丟 pending）
+
+### Non-goals
+
+- 記憶鏈橫向／node graph、改 Seek／Memory 內頁、改 dream HTTP
+
+---
+
 ## 0.35.0 — 附件圖＋短期記憶只留 pool records (2026-08-17)
 
 Workbench 把精確的 `![[_attachments/uploads/{day}/{filename}]]` 渲成圖片。短期記憶磁碟只保留 `pool.jsonl`；`GET /memories/short-term-memory` 回 `entries[]`。**無** store migrate；boot gate 仍 ≥0.28。見 `docs/roadmap/0.35.0/`。
