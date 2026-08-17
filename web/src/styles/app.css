@@ -174,6 +174,9 @@ body {
 }
 
 .sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   font: inherit;
   font-size: 0.95rem;
   font-weight: 500;
@@ -185,6 +188,16 @@ body {
   padding: 0.5rem 0.7rem;
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
+}
+
+.sidebar-icon {
+  flex: 0 0 auto;
+  opacity: 0.85;
+}
+
+.sidebar-link.is-active .sidebar-icon {
+  opacity: 1;
+  color: var(--accent);
 }
 
 .sidebar-link:hover {
@@ -649,6 +662,9 @@ body {
 }
 
 .events-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font: inherit;
   font-size: 0.9rem;
   font-weight: 500;
@@ -659,6 +675,16 @@ body {
   margin-bottom: -1px;
   padding: 0.5rem 0.85rem;
   cursor: pointer;
+}
+
+.events-tab-icon {
+  flex: 0 0 auto;
+  opacity: 0.8;
+}
+
+.events-tab.is-active .events-tab-icon {
+  opacity: 1;
+  color: var(--accent);
 }
 
 .events-tab:hover {
@@ -672,6 +698,15 @@ body {
 
 .events-consolidate > .scene {
   padding-top: 0;
+  min-height: min(28rem, calc(100dvh - 12rem));
+  display: flex;
+  flex-direction: column;
+}
+
+.consolidate-dream-row {
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 1.5rem;
 }
 
 .field-inline {
@@ -899,8 +934,8 @@ body {
   letter-spacing: -0.01em;
 }
 
-.panel-head h2 {
-  margin-bottom: 0;
+.panel-head-tools {
+  justify-content: flex-end;
 }
 
 .stm-feed {
@@ -1759,6 +1794,9 @@ body {
 }
 
 .mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font: 500 0.85rem var(--font-ui);
   padding: 0.35rem 0.75rem;
   border: 1px solid var(--line);
@@ -1766,6 +1804,15 @@ body {
   background: var(--surface);
   color: var(--ink-muted);
   cursor: pointer;
+}
+
+.mode-btn-icon {
+  flex: 0 0 auto;
+  opacity: 0.85;
+}
+
+.mode-btn.is-active .mode-btn-icon {
+  opacity: 1;
 }
 
 .mode-btn.is-active {
@@ -1955,7 +2002,7 @@ body {
   }
 
   .browse-layout-nodes {
-    grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(20.8rem, 28.6rem);
     gap: 2rem;
     column-gap: 2.25rem;
   }
@@ -2113,12 +2160,113 @@ body {
   margin: 0;
 }
 
-/* Nodes: social “people search” result rows */
-.node-user-sidebar .node-user-filter {
-  margin-bottom: 0.5rem;
+/* Nodes: force-directed graph + filter */
+.node-graph-sidebar .node-user-filter {
+  margin-bottom: 0.45rem;
   border-radius: 999px;
   padding: 0.6rem 1rem;
   background: color-mix(in srgb, var(--paper-deep) 28%, #fff);
+}
+
+.node-search-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.55rem;
+  min-width: 0;
+}
+
+.node-search-mode-label {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.node-search-mode-widget {
+  display: inline-flex;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.node-search-mode-opt {
+  font: 500 0.75rem var(--font-ui);
+  padding: 0.28rem 0.7rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.node-search-mode-opt + .node-search-mode-opt {
+  border-left: 1px solid var(--line);
+}
+
+.node-search-mode-opt.is-active {
+  color: var(--accent);
+  background: rgba(31, 107, 99, 0.1);
+}
+
+.node-graph-pane {
+  min-height: 22rem;
+  height: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--paper-deep) 40%, #fff);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+}
+
+.node-graph-pane .browse-empty {
+  padding: 1.25rem 1rem;
+}
+
+.node-graph-svg {
+  width: 100%;
+  height: 100%;
+  min-height: 22rem;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+}
+
+.node-graph-svg:active {
+  cursor: grabbing;
+}
+
+.node-graph-edge {
+  pointer-events: none;
+}
+
+.node-graph-node {
+  cursor: pointer;
+}
+
+.node-graph-node circle {
+  fill: color-mix(in srgb, var(--accent) 22%, #fff);
+  stroke: color-mix(in srgb, var(--accent) 55%, var(--line));
+  stroke-width: 1.25;
+}
+
+.node-graph-node text {
+  font-size: 9px;
+  fill: var(--ink);
+  pointer-events: none;
+}
+
+.node-graph-node.is-dim {
+  opacity: 0.22;
+}
+
+.node-graph-node.is-selected circle {
+  fill: color-mix(in srgb, var(--accent) 42%, #fff);
+  stroke: var(--accent);
+  stroke-width: 2;
 }
 
 .node-user-list {

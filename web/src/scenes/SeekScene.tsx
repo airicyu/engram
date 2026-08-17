@@ -8,6 +8,36 @@ import { useAskJob } from "../hooks/useAskJob";
 
 type SeekMode = "search" | "ask";
 
+function SeekModeIcon({ mode }: { mode: SeekMode }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    width: 15,
+    height: 15,
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.75,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true as const,
+    className: "mode-btn-icon",
+  };
+  if (mode === "ask") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="8.25" />
+        <path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 3.1c-.7.4-1 0.7-1 1.6" />
+        <circle cx="12" cy="17.1" r="0.85" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16.2 16.2 4.3 4.3" />
+    </svg>
+  );
+}
+
 export function SeekScene() {
   const { t } = useI18n();
   const { status } = useStatus();
@@ -138,6 +168,7 @@ export function SeekScene() {
           aria-selected={mode === "ask"}
           onClick={() => setMode("ask")}
         >
+          <SeekModeIcon mode="ask" />
           {t("seek.mode_ask")}
         </button>
         <button
@@ -147,6 +178,7 @@ export function SeekScene() {
           aria-selected={mode === "search"}
           onClick={() => setMode("search")}
         >
+          <SeekModeIcon mode="search" />
           {t("seek.mode_search")}
         </button>
       </div>

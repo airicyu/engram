@@ -40,7 +40,7 @@ import {
   handleYearIndex,
   handleYearDetail,
 } from "./api/memory/chain";
-import { handleNodesIndex, handleNodeDetail } from "./api/memory/nodes";
+import { handleNodesIndex, handleNodesGraph, handleNodeDetail } from "./api/memory/nodes";
 import { handleFutureSight } from "./api/memory/future-sight";
 import {
   handleClarifyAside,
@@ -111,6 +111,7 @@ try {
             "GET /memories/chain/years/{year_id}",
             "GET /memories/chain/{day_id}",
             "GET /memories/nodes",
+            "GET /memories/nodes/graph",
             "GET /memories/nodes/{node_id}",
             "GET /memories/clarify/asking",
             "POST /memories/clarify/asking/{id}/submit",
@@ -362,6 +363,18 @@ try {
       }),
     },
 
+    "/memories/nodes/graph": {
+      GET: withRequestLog(async () => {
+        const body = await handleNodesGraph();
+        logMemory("browse nodes graph", {
+          nodes: body.nodes.length,
+          edges: body.edges.length,
+          present: body.present,
+        });
+        return Response.json(body);
+      }),
+    },
+
     "/memories/ask": {
       POST: withRequestLog(async (req) => {
         let body: { q?: string; include_later?: unknown } = {};
@@ -448,6 +461,16 @@ try {
       }
       logMemory("browse chain day", { day_id: out.day_id, present: out.present });
       return Response.json(out);
+    }
+
+    if (url.pathname === "/memories/nodes/graph" && req.method === "GET") {
+      const body = await handleNodesGraph();
+      logMemory("browse nodes graph", {
+        nodes: body.nodes.length,
+        edges: body.edges.length,
+        present: body.present,
+      });
+      return Response.json(body);
     }
 
     const nodesMatch = url.pathname.match(/^\/memories\/nodes\/([^/]+)$/);

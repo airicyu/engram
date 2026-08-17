@@ -37,6 +37,7 @@ Commands:
   chain [level]       GET /memories/chain[/weeks|/months|/years] (default day)
   chain-detail <level> <id>  GET day|week|month|year detail
   nodes               GET /memories/nodes
+  nodes-graph         GET /memories/nodes/graph
   node <id>           GET /memories/nodes/{id}
   clock               GET /clock
   clock-set <now-iso> PUT /clock (needs ENGRAM_ALLOW_VIRTUAL_CLOCK=1)
@@ -193,6 +194,9 @@ case "$cmd" in
     ;;
   nodes)
     curl -sS "$BASE/memories/nodes"
+    ;;
+  nodes-graph)
+    curl -sS "$BASE/memories/nodes/graph"
     ;;
   node)
     id="${1:?usage: engram-api.sh node <id>}"

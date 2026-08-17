@@ -120,6 +120,10 @@ async function main() {
     assert(emptyChain.status === 200 && emptyChain.data.present === false, "empty chain index");
     const emptyNodes = await json("GET", "/memories/nodes");
     assert(emptyNodes.status === 200 && emptyNodes.data.present === false, "empty nodes index");
+    const emptyGraph = await json("GET", "/memories/nodes/graph");
+    assert(emptyGraph.status === 200 && emptyGraph.data.present === false, "empty nodes graph");
+    assert(Array.isArray(emptyGraph.data.nodes) && emptyGraph.data.nodes.length === 0, "empty graph nodes");
+    assert(Array.isArray(emptyGraph.data.edges) && emptyGraph.data.edges.length === 0, "empty graph edges");
     const emptyDay = await json("GET", "/memories/chain/2020-01-01");
     assert(emptyDay.status === 200 && emptyDay.data.present === false, "empty chain detail");
 
@@ -151,6 +155,16 @@ async function main() {
       await Bun.write(join(TEST_HOME, `memories/nodes/${id}/${id}.md`), `${what}\n`);
       await Bun.write(join(TEST_HOME, `memories/nodes/${id}/node.meta.yaml`), `id: ${id}\nkind: org\n`);
     }
+
+    const seededGraph = await json("GET", "/memories/nodes/graph");
+    assert(seededGraph.status === 200 && seededGraph.data.present === true, "seeded graph present");
+    assert(Array.isArray(seededGraph.data.edges) && seededGraph.data.edges.length === 0, "no wikilinks → no edges");
+    const seededIdx = await json("GET", "/memories/nodes");
+    assert(
+      JSON.stringify((seededIdx.data.nodes as { node: string }[]).map((n) => n.node)) ===
+        JSON.stringify((seededGraph.data.nodes as { node: string }[]).map((n) => n.node)),
+      "graph nodes match index after seed",
+    );
 
     console.log("Phase 1: extract → pending_review (no L2 yet)");
     const d1 = await json("POST", "/dreams/run");
@@ -636,6 +650,50 @@ async function main() {
     const acmeDetEarly = await json("GET", "/memories/nodes/acme");
     assert(acmeDetEarly.status === 200 && acmeDetEarly.data.present === true, "node acme detail");
     // acme existed pre-dream but was not involved in first newco-only dream → score may be null
+
+    console.log("Phase 4c2: nodes graph edges");
+    const gPair = ["galpha", "gbeta", "gdelta"] as const;
+    for (const id of gPair) {
+      await mkdir(join(TEST_HOME, `memories/nodes/${id}`), { recursive: true });
+    }
+    await Bun.write(
+      join(TEST_HOME, "memories/nodes/galpha/galpha.md"),
+      [
+        "[[nodes/gbeta/gbeta|B]]",
+        "[[nodes/galpha/galpha|self]]",
+        "[[nodes/ghost/ghost|missing]]",
+        "[[nodes/nope|bad]]",
+        "",
+      ].join("\n"),
+    );
+    await Bun.write(
+      join(TEST_HOME, "memories/nodes/gbeta/gbeta.md"),
+      "[[nodes/galpha/galpha|A]]\n[[nodes/galpha/galpha|A2]]\n",
+    );
+    await Bun.write(
+      join(TEST_HOME, "memories/nodes/gdelta/gdelta.md"),
+      "[[nodes/galpha/galpha|one-way]]\n",
+    );
+    const graphBody = await json("GET", "/memories/nodes/graph");
+    assert(graphBody.status === 200 && graphBody.data.present === true, "graph 200 present");
+    const idxAfter = await json("GET", "/memories/nodes");
+    assert(
+      JSON.stringify((idxAfter.data.nodes as { node: string }[]).map((n) => n.node)) ===
+        JSON.stringify((graphBody.data.nodes as { node: string }[]).map((n) => n.node)),
+      "graph nodes[] matches GET /memories/nodes",
+    );
+    const edges = graphBody.data.edges as Array<{ a: string; b: string; refs: number; level: number }>;
+    const ab = edges.find((e) => e.a === "galpha" && e.b === "gbeta");
+    assert(ab != null && ab.refs === 3 && ab.level === 2, "bidirectional refs 3 → level 2");
+    const ad = edges.find((e) => e.a === "galpha" && e.b === "gdelta");
+    assert(ad != null && ad.refs === 1 && ad.level === 1, "one-way refs 1 → level 1");
+    assert(!edges.some((e) => e.a === "galpha" && e.b === "galpha"), "no self edge");
+    assert(!edges.some((e) => e.a === "ghost" || e.b === "ghost"), "missing id not an endpoint");
+    for (const e of edges) {
+      assert(e.a < e.b, "edge a < b");
+      assert(e.refs >= 1, "refs >= 1");
+      assert(e.level >= 1 && e.level <= 10, "level 1–10");
+    }
 
     const badDay = await json("GET", "/memories/chain/not-a-date");
     assert(badDay.status === 400 && badDay.data.error === "invalid_day_id", "invalid day_id");
@@ -1896,7 +1954,7 @@ Unique later keyword xylophone-launch window for search.
       "empty_patches still archives clarify pending",
     );
 
-    console.log("\n✅ All self-checks passed (through 0.34)");
+    console.log("\n✅ All self-checks passed (through 0.37)");
   } finally {
     await stopServer(server);
   }

@@ -27,7 +27,7 @@
 | **store git** | `ENGRAM_STORE_DIR` 必為 local git；追蹤 `memories/**`＋`engram.workspace.yaml`；**不**追 `dreams/`、store `tmp/` |
 | **runtime temp** | `ENGRAM_TEMP_DIR`（預設 `/tmp`）：ask jobs＋dream agent disposable workdirs；不在記憶庫內 |
 
-產品循環對齊 UI 左欄：**事件／搜索／提問郵箱／記憶**（場景 id 仍為 `activities`＋`consolidate`、`seek`、`clarify`、`memory`；沉澱在事件頁內 tab，hash `#/consolidate`）。
+產品循環對齊 UI 左欄：**事件／尋問／提問郵箱／記憶**（場景 id 仍為 `activities`＋`consolidate`、`seek`、`clarify`、`memory`；沉澱在事件頁內 tab，hash `#/consolidate`）。
 
 時區由 **有效 timezone** 決定：記憶庫內 `engram.workspace.yaml` → 環境變數 `ENGRAM_TZ` → 預設 **`Asia/Hong_Kong`**。  
 記憶寫入語言：workspace config `memory_language` → 環境變數 `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。  
@@ -82,7 +82,7 @@ cd web && bun run dev             # 同 dev:ui
 | `POST /activities` 寫入 | 把 fixture seed 當試用資料 |
 | `POST /dreams/run` extract／file pipeline → pending（pending 時 409） | 未經同意就 `reset` |
 | `POST /dreams/approve`／`discard`／`retry`／`amend` | 手改 short-term／L2／draft「幫忙改對」 |
-| `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET /memories/clarify/asking` / `POST /memories/clarify/aside` / `POST|DELETE /memories/clarify/asking/...` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
+| `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /memories/nodes/graph` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET /memories/clarify/asking` / `POST /memories/clarify/aside` / `POST|DELETE /memories/clarify/asking/...` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 | `POST /attachments/uploads` 上傳附件圖檔（multipart `file`） | 手動放檔案到 `_attachments/uploads/` |
 | `DELETE /attachments/uploads/tmp?day=&filename=` 刪暫存 | 手刪 tmp 目錄 |
 
@@ -122,8 +122,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.36.0` — Workbench 左欄四項＋事件 Twitter 式＋釐清 DM；補 store hop `0.28→0.36`；見 `docs/roadmap/0.36.0/`（**shipped**；**有** store migrate；boot ≥0.36）
-- **上一版：** `0.35.0` — MdBlock 附件圖＋短期記憶只留 `pool.jsonl`／GET `entries[]`；見 `docs/roadmap/0.35.0/`（**shipped**；**無** store migrate）
+- **已出貨：** `0.37.0` — Memory **節點** 2D network graph＋`GET /memories/nodes/graph`；記憶鏈仍為 0.36 列表；見 `docs/roadmap/0.37.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.36）
+- **上一版：** `0.36.0` — Workbench 左欄四項＋事件 Twitter 式＋釐清 DM；補 store hop `0.28→0.36`；見 `docs/roadmap/0.36.0/`（**shipped**；**有** store migrate；boot ≥0.36）
+- **更早：** `0.35.0` — MdBlock 附件圖＋短期記憶只留 `pool.jsonl`／GET `entries[]`；見 `docs/roadmap/0.35.0/`（**shipped**；**無** store migrate）
 - **更早：** `0.34.0` — Ask 廢 `include_later`：每次提問可讀 hot＋later，由 AI 判斷；見 `docs/roadmap/0.34.0/`（**shipped**；**無** store migrate）
 - **更早：** `0.33.0` — Workbench UI：釐清貼文串＋記憶鏈／節點瀏覽重排；見 `docs/roadmap/0.33.0/`（**shipped**；**無** store migrate）
 - **更早：** `0.32.0` — Activities `@` mention composer＋raw token 真相＋廢 `node_refs`；見 `docs/roadmap/0.32.0/`（**shipped**；**無** store migrate）
@@ -133,7 +134,7 @@ API 欄位提醒：
 - **更早：** `0.28.0` — Node 主檔 `{id}.md`＋Obsidian vault＝`memories/`＋Structure notes — 見 `docs/roadmap/0.28.0/`（**shipped**；**有** store migrate）
 - **更早：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
 - **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
-- **Backlog：** 見 `docs/roadmap/backlog/`（含 Seek／network 依分等）
+- **Backlog：** 見 `docs/roadmap/backlog/`（含記憶鏈橫向 strip、Seek／network 依分等）
 - **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28**／**0.28–0.35→0.36** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream；**0.36 hop** 刪 `initialized_*.yaml` 與 STM `nodes/`／summary，不丟 pending）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31／0.31→0.32／0.32→0.33／0.33→0.34／0.34→0.35 無 migrate hop**
 ## 深入閱讀
 

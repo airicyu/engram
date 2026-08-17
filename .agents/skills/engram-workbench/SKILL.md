@@ -89,7 +89,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `GET /memories/short-term-memory` | none | short-term `entries[]`；wire 仍用 `l1`／`l1_empty` 等別名 |
 | `GET /memories/search` | `q` (required); `scope` optional (`l1,nodes,chain,future`) | keyword hits per scope（`future`＝hot＋later） |
 | `GET /memories/chain`／`weeks`／`months`／`years`（及 `/{id}`） | — | browse timeline |
-| `GET /memories/nodes`／`{id}` | — | browse L2；含 `score`／`display_score`（無分 → null）；detail 回 `understanding` |
+| `GET /memories/nodes`／`graph`／`{id}` | — | browse L2；graph 含 `edges[]`（P1 互指）；detail 回 `understanding` |
 | `POST /memories/ask` | `q` | `202` + `job_id`；勿傳 `include_later`（400） |
 | `GET /memories/future-sight` | none | `anchors`（含 `zone`）、`swept_expired` |
 | `GET /memories/clarify/asking` | none | `{ items: [...] }`（舊→新）；空＝`{ "items": [] }` |
@@ -121,6 +121,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 ./scripts/engram-api.sh clarify-aside '補充：合約其實兩年'
 ./scripts/engram-api.sh chain
 ./scripts/engram-api.sh nodes
+./scripts/engram-api.sh nodes-graph
 ```
 
 （在 **本 skill 目錄**下執行；或把 `./scripts/engram-api.sh` 換成該檔的絕對／repo 相對路徑。）
@@ -139,7 +140,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "批准"／寫入長期 | `POST /dreams/approve` |
 | "取消入夢" | `POST /dreams/cancel` (running only) |
 | "搜尋記憶" | `GET /memories/search?q=…&scope=…`（預設含 `future`） |
-| "翻時間軸／節點" | `GET /memories/chain`／`nodes`（及 higher／detail） |
+| "翻時間軸／節點" | `GET /memories/chain`／`nodes`／`nodes/graph`（及 higher／detail） |
 | "問記憶庫" | `POST /memories/ask` `{ q }`；poll job |
 | "近期前瞻／未來視" | `GET /memories/future-sight`；Seek Search／Ask 亦可讀（`scope=future`） |
 | "釐清／補問／順帶補充" | `GET …/clarify/asking`；`POST …/submit` `{ answer }`；`DELETE …/{id}`；`POST …/aside` `{ raw }` |

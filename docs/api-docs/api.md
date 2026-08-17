@@ -54,6 +54,7 @@ Service discovery.
     "GET /memories/chain/years/{year_id}",
     "GET /memories/chain/{day_id}",
     "GET /memories/nodes",
+    "GET /memories/nodes/graph",
     "GET /memories/nodes/{node_id}",
     "GET /memories/clarify/asking",
     "POST /memories/clarify/asking/{id}/submit",
@@ -808,6 +809,32 @@ Empty → `{ "nodes": [], "present": false }`.
 
 ---
 
+## `GET /memories/nodes/graph`
+
+L2 **network** for Memory 節點模式：點＝與 `GET /memories/nodes` 同一集合／欄位；邊＝各 `{id}/{id}.md` 內 P1 wikilink `[[nodes/{other}/{other}|…]]` 的無向引用（**不**掃 chain／STM／activities）。無 query。**不**寫磁碟。
+
+**Response `200`:**
+
+```json
+{
+  "present": true,
+  "nodes": [
+    { "node": "acme", "preview": "…", "score": 180, "display_score": 100 }
+  ],
+  "edges": [
+    { "a": "acme", "b": "engram", "refs": 3, "level": 2 }
+  ]
+}
+```
+
+- `present`：至少一顆 L2 node（與 index 相同）→ `true`；否則 `false`
+- `nodes[]`：與 `GET /memories/nodes` 同一集合、同一欄位；`node` 字串升序
+- `edges[]`：無向；`a < b`（字串）；`refs` ≥ 1；`level = clamp(max(1, ceil(log2(refs))), 1, 10)`。無邊 → `[]`（即使 `present: true`）
+- 忽略：非法 id、自指、指向沒有 live `{other}/{other}.md` 的 id
+- 空庫 → `{ "present": false, "nodes": [], "edges": [] }`（**200**，不是 404）
+
+---
+
 ## `GET /memories/nodes/{node_id}`
 
 Single node **detail** — **`understanding`** is the **whole-file** body of `memories/nodes/{id}/{id}.md`（**not** “Current situation section only”). Obsidian vault root＝`memories/`（開該資料夾，不是 store 根）。
@@ -901,6 +928,7 @@ POST /dreams/approve   OR   POST /dreams/discard   OR   POST /dreams/retry   OR 
 GET  /memories/search?q=…&scope=l1,nodes,chain,future
 GET  /memories/chain  →  GET /memories/chain/{day_id}
 GET  /memories/nodes  →  GET /memories/nodes/{node_id}
+GET  /memories/nodes/graph
 POST /memories/ask { "q": "…" }  →  GET /memories/ask/{job_id}
 ```
 

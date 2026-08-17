@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { engramApi, type ChainLevel, type NodeIndex } from "../lib/api";
+import { engramApi, type ChainLevel, type NodeGraphEdge, type NodeIndex } from "../lib/api";
 import { useI18n } from "../i18n/I18nProvider";
 import { MdBlock } from "../components/ui";
+import { NodeNetworkGraph } from "../components/NodeNetworkGraph";
 import type { MemoryHash } from "../lib/hashRoute";
 
 type MemoryMode = "chain" | "nodes";
@@ -22,6 +23,7 @@ export function MemoryScene({
   );
   const [chainItems, setChainItems] = useState<ChainItem[] | null>(null);
   const [nodes, setNodes] = useState<NodeIndex[] | null>(null);
+  const [graphEdges, setGraphEdges] = useState<NodeGraphEdge[]>([]);
   const [selectedChainId, setSelectedChainId] = useState<string | null>(
     route.mode === "chain" && route.id ? route.id : null,
   );
@@ -35,6 +37,7 @@ export function MemoryScene({
   const [nodeEmpty, setNodeEmpty] = useState(false);
   const [nodeScoreMeta, setNodeScoreMeta] = useState("");
   const [filter, setFilter] = useState("");
+  const [nodeSearchMode, setNodeSearchMode] = useState<"title" | "title_summary">("title");
   const [indexEmpty, setIndexEmpty] = useState("");
   const selectedChainIdRef = useRef<string | null>(selectedChainId);
   const selectedNodeIdRef = useRef<string | null>(selectedNodeId);
@@ -191,15 +194,17 @@ export function MemoryScene({
     let cancelled = false;
     setIndexEmpty("");
     setNodes(null);
+    setGraphEdges([]);
     setNodeBody(t("memory.browse_loading"));
     setNodeEmpty(false);
 
     void (async () => {
       try {
-        const { ok, data } = await engramApi.memories.nodes.index({ signal: controller.signal });
+        const { ok, data } = await engramApi.memories.nodes.graph({ signal: controller.signal });
         if (cancelled) return;
         if (!ok) {
           setNodes([]);
+          setGraphEdges([]);
           setIndexEmpty(t("memory.browse_fail"));
           setNodeBody(t("memory.browse_fail"));
           setNodeEmpty(true);
@@ -207,15 +212,18 @@ export function MemoryScene({
         }
         if (!data.present || !data.nodes?.length) {
           setNodes([]);
+          setGraphEdges([]);
           setIndexEmpty(t("memory.nodes_empty"));
           setNodeBody(t("memory.nodes_empty"));
           setNodeEmpty(true);
           return;
         }
         setNodes(data.nodes);
+        setGraphEdges(data.edges ?? []);
       } catch (error) {
         if (cancelled || (error as DOMException).name === "AbortError") return;
         setNodes([]);
+        setGraphEdges([]);
         setIndexEmpty(t("memory.browse_fail"));
         setNodeBody(t("memory.browse_fail"));
         setNodeEmpty(true);
@@ -228,16 +236,6 @@ export function MemoryScene({
     };
   }, [mode, t]);
 
-  const filteredNodes = useMemo(() => {
-    if (!nodes) return [];
-    const q = filter.trim().toLowerCase();
-    if (!q) return nodes;
-    return nodes.filter(
-      (n) =>
-        n.node.toLowerCase().includes(q) || (n.preview || "").toLowerCase().includes(q),
-    );
-  }, [nodes, filter]);
-
   const knownNodeIds = useMemo(
     () => new Set((nodes ?? []).map((n) => n.node)),
     [nodes],
@@ -246,22 +244,13 @@ export function MemoryScene({
   useEffect(() => {
     if (mode !== "nodes" || !nodes?.length) return;
     const current = selectedNodeIdRef.current;
-    if (current) {
-      const inIndex = nodes.some((n) => n.node === current);
-      const inFilter = filteredNodes.some((n) => n.node === current);
-      // Keep deep-linked unknown ids; if filtered out of visible list, pick first visible.
-      if (!inIndex || inFilter) return;
-      if (filteredNodes[0]) {
-        setSelectedNodeId(filteredNodes[0].node);
-      }
-      return;
-    }
-    const first = filteredNodes[0]?.node ?? nodes[0]!.node;
+    if (current) return;
+    const first = nodes[0]!.node;
     setSelectedNodeId(first);
     if (!applyingRouteRef.current) {
       onRouteChange({ mode: "nodes", id: first }, "replace");
     }
-  }, [filteredNodes, mode, nodes, onRouteChange]);
+  }, [mode, nodes, onRouteChange]);
 
   useEffect(() => {
     if (mode !== "nodes" || !selectedNodeId) return;
@@ -418,7 +407,7 @@ export function MemoryScene({
         </>
       ) : (
         <div className="browse-layout browse-layout-nodes">
-          <div className="browse-sidebar node-user-sidebar">
+          <div className="browse-sidebar node-graph-sidebar">
             <label className="sr-only" htmlFor="memory-nodes-filter">
               {t("memory.nodes_filter")}
             </label>
@@ -430,61 +419,44 @@ export function MemoryScene({
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
-            <div
-              className="browse-index node-user-list"
-              role="listbox"
-              aria-label={t("memory.mode_nodes")}
-            >
+            <div className="node-search-mode" role="group" aria-label={t("memory.nodes_search_mode")}>
+              <span className="node-search-mode-label">{t("memory.nodes_search_mode")}:</span>
+              <div className="node-search-mode-widget">
+                <button
+                  type="button"
+                  className={`node-search-mode-opt${nodeSearchMode === "title" ? " is-active" : ""}`}
+                  aria-pressed={nodeSearchMode === "title"}
+                  onClick={() => setNodeSearchMode("title")}
+                >
+                  {t("memory.nodes_search_title")}
+                </button>
+                <button
+                  type="button"
+                  className={`node-search-mode-opt${nodeSearchMode === "title_summary" ? " is-active" : ""}`}
+                  aria-pressed={nodeSearchMode === "title_summary"}
+                  onClick={() => setNodeSearchMode("title_summary")}
+                >
+                  {t("memory.nodes_search_title_summary")}
+                </button>
+              </div>
+            </div>
+            <div className="node-graph-pane" aria-label={t("memory.mode_nodes")}>
               {indexEmpty ? (
                 <p className="browse-empty">{indexEmpty}</p>
-              ) : filteredNodes.length === 0 ? (
-                <p className="browse-empty">{t("memory.nodes_empty")}</p>
+              ) : nodes && nodes.length > 0 ? (
+                <NodeNetworkGraph
+                  nodes={nodes}
+                  edges={graphEdges}
+                  filter={filter}
+                  searchMode={nodeSearchMode}
+                  selectedId={selectedNodeId}
+                  onSelect={(id) => {
+                    setSelectedNodeId(id);
+                    onRouteChange({ mode: "nodes", id }, "replace");
+                  }}
+                />
               ) : (
-                filteredNodes.map((n) => {
-                  const selected = n.node === selectedNodeId;
-                  const initial = (n.node.trim().charAt(0) || "?").toUpperCase();
-                  const scoreLabel =
-                    n.display_score == null
-                      ? t("memory.score_none")
-                      : t("memory.score_badge", { score: n.display_score });
-                  return (
-                    <button
-                      key={n.node}
-                      type="button"
-                      className={`node-user-row${selected ? " is-selected" : ""}`}
-                      role="option"
-                      aria-current={selected ? "true" : undefined}
-                      aria-label={n.preview ? `${n.node} · ${n.preview}` : n.node}
-                      onClick={() => {
-                        setSelectedNodeId(n.node);
-                        onRouteChange({ mode: "nodes", id: n.node }, "replace");
-                      }}
-                    >
-                      <span className="node-user-avatar" aria-hidden="true">
-                        {initial}
-                      </span>
-                      <span className="node-user-main">
-                        <span className="node-user-head">
-                          <span className="node-user-name">{n.node}</span>
-                          <span className="node-user-handle">@{n.node}</span>
-                        </span>
-                        {n.preview ? (
-                          <span className="node-user-bio">{n.preview}</span>
-                        ) : null}
-                      </span>
-                      <span
-                        className="node-user-meta"
-                        title={
-                          n.display_score == null
-                            ? undefined
-                            : t("memory.score_display", { score: n.display_score })
-                        }
-                      >
-                        {scoreLabel}
-                      </span>
-                    </button>
-                  );
-                })
+                <p className="browse-empty">{t("memory.nodes_empty")}</p>
               )}
             </div>
           </div>

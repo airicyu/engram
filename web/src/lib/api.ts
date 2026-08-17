@@ -90,6 +90,19 @@ export type NodeIndex = {
   score?: number | null;
   display_score?: number | null;
 };
+export type NodeGraphEdge = {
+  a: string;
+  b: string;
+  refs: number;
+  level: number;
+};
+export type NodeGraph = {
+  present?: boolean;
+  nodes?: NodeIndex[];
+  edges?: NodeGraphEdge[];
+  message?: string;
+  error?: string;
+};
 export type NodeDetail = {
   present?: boolean;
   understanding?: string;
@@ -221,6 +234,7 @@ export const engramApi = {
     },
     nodes: {
       index: (options?: ApiOptions) => api<{ present?: boolean; nodes?: NodeIndex[] }>("/memories/nodes", options),
+      graph: (options?: ApiOptions) => api<NodeGraph>("/memories/nodes/graph", options),
       detail: (id: string, options?: ApiOptions) =>
         api<NodeDetail>(`/memories/nodes/${encoded(id)}`, options),
     },

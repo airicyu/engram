@@ -36,10 +36,19 @@
 |----|------|------|-----------|------|
 | **Activities** | 事件 | 把「此刻要記住的事」寫進系統（L0 + short-term memory） | `POST /activities` | UI 場景 id：`activities`；左欄 **事件**；body 用 **`raw`** |
 | **Consolidate** | 沉澱 | 整理短時記憶：AI 出報告，人審後寫入長期 | `POST /dreams/run` → Approve／Discard | 事件頁內 tab（hash `#/consolidate`）；不佔左欄 |
-| **Clarify** | 釐清 | 系統補問人＋人順帶補充；入夢蒸餾進 draft nodes，approve 才進 L2 | `/memories/clarify/*` | 非 activity；場景 id：`clarify`；左欄 **提問郵箱**／Inbox |
-| **Seek** | 搜索 | 用關鍵字或 AI 提問找記憶 | `GET /memories/search`、`POST /memories/ask` | 左欄名 **搜索**／Search（不再用「尋找」）；場景 id 仍 `seek` |
-| **Memory** | 記憶 | 沿時間軸或節點列表翻閱已寫入記憶 | `GET /memories/chain`、`GET /memories/nodes` | 左欄 **記憶**；0.8.0 browse；不含 Search／Ask |
+| **Clarify** | 釐清 | 系統補問人＋人順帶補充；入夢蒸餾進 draft nodes，approve 才進 L2 | `/memories/clarify/*` | 非 activity；場景 id：`clarify`；左欄 **提問郵箱**／Question inbox（不是郵件收件匣） |
+| **Seek** | 尋問 | 用關鍵字或 AI 提問找記憶 | `GET /memories/search`、`POST /memories/ask` | 左欄 **尋問**／Seek（內頁仍分「搜尋／提問」）；場景 id 仍 `seek` |
+| **Memory** | 記憶 | 沿時間軸或節點網絡翻閱已寫入記憶 | `GET /memories/chain`、`GET /memories/nodes`、`GET /memories/nodes/graph` | 左欄 **記憶**；鏈＝列表；節點＝圖＋detail；不含 Seek 的 Search／Ask |
 | **Dream** | 入夢 | 對 short-term memory 跑 AI 提取，產出待審報告 | `POST /dreams/run` | 產品語；技術上含 extract |
+
+**殼層 vs 領域（工作台）：** 左欄／tab 用人話；管線與 API 仍用下表領域詞。不要把兩者當成同義互替。
+
+| 工作台 UI（zh／en） | 領域 EN | 說明 |
+|---------------------|---------|------|
+| 近期輸入內容／Recent input | short-term memory | 事件頁 tab；列表即 `GET /memories/short-term-memory` `entries[]`。**不要**在 tab 教「短期記憶」 |
+| 沉澱入夢 | Consolidate ＋ Dream | 同一事件頁另一 tab |
+| 尋問／Seek | Seek | 左欄；內頁仍分 **搜尋／提問**（Search／Ask） |
+| （不顯示「入夢鎖」） | dream lock | `GET /status.lock`；入夢 extract 與批准 deploy 時為 true；待審為 false。工作台用入夢狀態／進度表達 |
 
 ### Seek（0.8.0）
 
@@ -52,9 +61,9 @@
 
 | EN | 中文 | 說明 | API | 備註 |
 |----|------|------|-----|------|
-| **Day／week／month／year chain browse** | 記憶鏈翻閱 | 各層 index（新→舊）+ detail | `GET /memories/chain`、`/weeks`、`/months`、`/years`（及 `/{id}`） | 0.11.0 四層；與 Search 分工 |
-| **Nodes browse** | 節點翻閱 | L2 index（字母序）+ `{id}.md` 正文 detail | `GET /memories/nodes`、`GET /memories/nodes/{node_id}` | filter 在客戶端 |
-| **Short-term preview** | 短期記憶預覽 | Activities 顯示 pool 各筆 `{ id, ts, raw }` | `GET /memories/short-term-memory` | 僅 short-term；不在 Memory 場景瀏覽 |
+| **Day／week／month／year chain browse** | 記憶鏈翻閱 | 各層 index（新→舊）+ detail | `GET /memories/chain`、`/weeks`、`/months`、`/years`（及 `/{id}`） | 0.11.0 四層；工作台仍為列表（0.37 **不**改鏈） |
+| **Nodes browse** | 節點翻閱 | L2 點＋邊；點選後 `understanding` detail | `GET /memories/nodes/graph`、`GET /memories/nodes/{node_id}` | 0.37 改 2D 圖；index GET 契約仍在。篩選預設比 **Title**（id）；可切 **Title + Summary**（id＋preview） |
+| **Short-term preview** | 近期輸入列表 | Activities 顯示 pool 各筆 `{ id, ts, raw }`（新→舊） | `GET /memories/short-term-memory` | **領域層名仍是 short-term memory**；UI tab／區塊不重複寫「短期記憶」 |
 
 ### Time replay（0.9.0）
 
@@ -122,7 +131,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 | **store git** | 記憶庫 git | approve 後 `git commit`（含 `dream_run_id`） | local only；不追 `dreams/`／`tmp/` |
 | **pending** / **pending_review** | 待審 | 有一份待審入夢結果（系統內唯一） | `GET /dreams/pending`（report＋`draft_summary`） |
 | **scope S** | 範圍 S | 本次入夢凍結的 L0 event id 集合 | Approve 後只清 S；可跨日 |
-| **lock** / **dream lock** | 入夢鎖 | 入夢／deploy 期間互斥 | 鎖住時 Activities／Clarify → 409；pending 可寫 activities／clarify |
+| **lock** / **dream lock** | 入夢鎖 | 入夢／deploy 期間互斥 | 鎖住時 Activities／Clarify → 409；pending 可寫。工作台狀態列**不**再標「入夢鎖：是／否」 |
 | **dream_run_id** | 入夢執行 ID | 一次入夢的唯一識別碼 | Approve／Discard 可選帶入 |
 | **report** | 報告 | 固定結構 narrative＋Appendix 路徑 | pending 介面閱讀 |
 | **draft** | 草稿工作樹 | approve 前的暫存目錄 | `dreams/draft/{id}/` |
@@ -165,7 +174,8 @@ activities → dreams/run → pending_review → approve | discard | retry
 | **facet** | 理解面向 | 舊設計 who／why／open 等多檔；現行 file pipeline **只**寫 what；多 facet **未**接線 |
 | **match_reason** | 命中原因 | search 時為何選中該 node |
 | **score**（帳面） | 活躍分 | 有結算的 dream 才增減；存 `score.yaml`；**非**未來視 hot |
-| **display_score** | 相對活躍分 | `ceil(score/max_score*100)`（1–100）；無 max → null／— |
+| **display_score** | 相對活躍分 | `ceil(score/max_score*100)`（1–100）；無 max → null／—；0.37 圖上節點大小用此值（null＝最小可見點） |
+| **node graph** | 節點網絡 | 無向邊來自各 `{id}.md` 內 P1 wikilink；`refs`／`level` 見 `GET /memories/nodes/graph`。**不**寫 `graph/links.yaml`、**不**掃 chain 當邊 |
 | **category** | 涉入档 | `mention`｜`update`｜`focus`；AI 只判档，script 算分 |
 | **node_score_involvements** | 涉入列表 | pending 時 artifact／API；2a 可改 category |
 
@@ -232,7 +242,7 @@ Seek（0.18+）：Search scope `future` 掃兩區。Ask（0.34+）恆可讀 `hot
 |------|------|------|
 | **Hash route** | **Hash 深鏈** | `location.hash` 書籤／分享場景與 Memory 選中項（`#/clarify`、`#/memory/nodes/{id}` 等） |
 | **Lazy hash write** | **懶寫 hash** | 空 hash 顯示 activities，進站不自動改成 `#/activities` |
-| **Push vs replace** | **推進／取代歷史** | 場景 tab → push；Memory 同 mode 換選中項 → replace |
+| **Push vs replace** | **推進／取代歷史** | 左欄換場景 → push；Memory 同 mode 換選中項 → replace |
 
 ### Clarify（0.30.0）
 
@@ -243,7 +253,7 @@ Seek（0.18+）：Search scope `future` 掃兩區。Ask（0.34+）恆可讀 `hot
 | **Distill** | **蒸餾** | 入夢末段把 pending 折進 draft node 主檔 |
 | **Generate** | **生成補問** | 入夢末段 server 寫入新的 asking |
 
-個人記憶**工作台**——左欄走 事件 → 搜索 → 提問郵箱 → 記憶（沉澱掛在事件頁）；**不是** admin dashboard、不是多使用者後台。
+個人記憶**工作台**——左欄走 事件 → 尋問 → 提問郵箱 → 記憶（沉澱掛在事件頁）；**不是** admin dashboard、不是多使用者後台。
 
 | EN | 中文 | 說明 | 路徑／備註 |
 |----|------|------|------------|
@@ -268,6 +278,8 @@ Seek（0.18+）：Search scope `future` 掃兩區。Ask（0.34+）恆可讀 `hot
 | **L0.5** | **L1.5** → **dream staging**（0.15） | 層級命名：中間態在 short-term 與 L2 之間 |
 | **Activate** | **Recall** → **Memory** | 0.4 Activate→Recall；0.7.0 Recall→Memory（場景／讀取域） |
 | **Recall** | **Seek** + **Memory** | 0.7.0 `GET /recall` → search；0.8.0 UI 拆 **尋找**（search+ask）與 **記憶**（browse） |
+| **尋找**／左欄 **搜索**／Search（0.36） | **尋問**／Seek | 0.36 左欄曾禁用 Seek 當欄名；現行左欄改回 **尋問**／Seek，因該頁同時有提問與搜尋 |
+| **Inbox**（0.36 左欄英名） | **Question inbox** | 對齊中文「提問郵箱」；不是郵件 inbox |
 | **Extract**（UI） | **Dream**（入夢） | Consolidate 主按鈕改名 |
 | **auto-apply** | **pending + approve** | 不再 extract 後直接寫 L2 |
 | **apply**（舊） | **deploy + git commit** | 0.16：draft 部署進 live 再 commit；更早曾稱 materialize＋commit |

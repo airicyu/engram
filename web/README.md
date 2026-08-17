@@ -1,6 +1,6 @@
 # Engram Web (0.10.0)
 
-Vite + React + TypeScript workbench for **Events / Search / Inbox / Memory**. Talks only to the HTTP API (never touches `ENGRAM_STORE_DIR`).
+Vite + React + TypeScript workbench for **Events / Seek / Question inbox / Memory**. Talks only to the HTTP API (never touches `ENGRAM_STORE_DIR`).
 
 若用 Obsidian 閱讀同一記憶庫：開啟 store 內的 **`memories/`** 作為 vault（不要開 store 根）。詳見 server／根 README（0.28+）。
 
@@ -47,10 +47,10 @@ Env: copy [`.env.example`](.env.example) → `.env`（皆可選）。
 
 | Scene | What it does |
 |-------|----------------|
-| **Events** (`activities` + `consolidate`) | Compose `POST /activities` · Recent STM `entries[]` · Consolidate dream review |
-| **Search** (`seek`) | **Search** — `GET /memories/search?q=&scope=` · **Ask** — `POST /memories/ask` |
-| **Inbox** (`clarify`) | Asking list + reply／dismiss · aside |
-| **Memory** | **Day chain** — `GET /memories/chain` + detail · **Nodes** — `GET /memories/nodes` + detail (client filter) |
+| **Events** (`activities` + `consolidate`) | Compose `POST /activities` · Recent input `entries[]` · Consolidate dream review |
+| **Seek** (`seek`) | **Search** — `GET /memories/search?q=&scope=` · **Ask** — `POST /memories/ask` |
+| **Question inbox** (`clarify`) | Asking list + reply／dismiss · aside |
+| **Memory** | **Chain** — `GET /memories/chain` + detail · **Nodes** — `GET /memories/nodes/graph` + `{id}` detail |
 
 Status light polls `/status`: ~3s while lock／dreaming／ask，~20s during `pending_review`，~60s when idle.
 

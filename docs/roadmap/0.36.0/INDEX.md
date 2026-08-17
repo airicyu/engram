@@ -3,7 +3,7 @@
 ← [changelog](../../../changelog.md) · 上游：[0.35.0](../0.35.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫法：[GUIDELINES.md](../GUIDELINES.md) · 節奏：[agent-workflow.md](../agent-workflow.md)
 
 > **狀態：** **shipped**  
-> **本版：** 工作台改為左欄四項＋右欄內容。事件頁改 Twitter 式（輸入＋短期 feed＋沉澱）。提問郵箱改 DM 式。**搜索＝現有 Seek 整頁原樣**，只換掛左欄。記憶頁本版**只搬家、不改內頁**。記憶鏈／節點圖 **不排程**；0.36 出貨後再決定（草稿見 [0.37.0 parked](../0.37.0/INDEX.md)）。**不**改記憶 HTTP 契約（沿用 0.35 `entries[]`）。**有** store migrate：`0.28–0.35 → 0.36`（刪 `initialized_*.yaml`＋STM 衍生檔）；boot gate **≥ 0.36**。
+> **本版：** 工作台改為左欄四項＋右欄內容。事件頁改 Twitter 式（輸入＋短期 feed＋沉澱）。提問郵箱改 DM 式。**搜索＝現有 Seek 整頁原樣**，只換掛左欄。記憶頁本版**只搬家、不改內頁**。下一版 [0.37.0](../0.37.0/INDEX.md) **只做節點 graph**（鏈仍列表）。**不**改記憶 HTTP 契約（沿用 0.35 `entries[]`）。**有** store migrate：`0.28–0.35 → 0.36`（刪 `initialized_*.yaml`＋STM 衍生檔）；boot gate **≥ 0.36**。
 
 ## 產品句
 
@@ -71,7 +71,7 @@
 
 ## 非目標
 
-- 記憶鏈橫向／節點 graph（0.36 後再決定；構想：[backlog](../backlog/INDEX.md)、草稿 [0.37.0](../0.37.0/INDEX.md)）
+- 記憶鏈橫向／節點 graph（本版不做；圖已排 [0.37.0](../0.37.0/INDEX.md)；橫向鏈仍 [backlog](../backlog/memory-chain-strip.md)）
 - Seek Ask／Search 功能改版、廢 `include_later` 以外的契約
 - 改 STM／L0／dream HTTP（殘檔刪除走 hop，不改契約）
 - 事件帖的 like／reply／獨立路由
@@ -111,5 +111,5 @@
 |--|--------|------------|
 | 焦點 | 附件圖＋STM `entries[]` | **殼＋事件帖＋釐清 DM**；補 STM／chain 殘檔 hop |
 | 導航 | Topbar 五 tab | 左欄四項 |
-| 記憶內頁 | 列表 | **不變**（是否改鏈／圖：本版後再拍板） |
+| 記憶內頁 | 列表 | **不變**；圖見 [0.37.0](../0.37.0/INDEX.md) |
 | Store migrate | 無（懶清） | **0.28–0.35 → 0.36**；boot **≥ 0.36** |

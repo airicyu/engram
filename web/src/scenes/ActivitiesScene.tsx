@@ -11,6 +11,38 @@ import { ConsolidateScene } from "./ConsolidateScene";
 
 export type EventsFeed = "recent" | "consolidate";
 
+function EventsTabIcon({ feed }: { feed: EventsFeed }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    width: 16,
+    height: 16,
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.75,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true as const,
+    className: "events-tab-icon",
+  };
+  if (feed === "recent") {
+    return (
+      <svg {...common}>
+        <path d="M8 6h13" />
+        <path d="M8 12h13" />
+        <path d="M8 18h13" />
+        <circle cx="4.2" cy="6" r="1.15" fill="currentColor" stroke="none" />
+        <circle cx="4.2" cy="12" r="1.15" fill="currentColor" stroke="none" />
+        <circle cx="4.2" cy="18" r="1.15" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <path d="M14.5 4.2A7.2 7.2 0 1 0 19.8 14 5.6 5.6 0 0 1 14.5 4.2Z" />
+    </svg>
+  );
+}
+
 interface AttachmentItem {
   path: string;
   day: string;
@@ -78,7 +110,7 @@ export function ActivitiesScene({
       return;
     }
     const entries = data.entries ?? [];
-    setL1Entries(entries);
+    setL1Entries([...entries].reverse());
     setL1Empty(!data.present || entries.length === 0);
     setL1Status(data.present ? "" : t("empty.l1_cleared"));
   }, [t]);
@@ -352,10 +384,12 @@ export function ActivitiesScene({
         <button
           type="button"
           role="tab"
+          id="events-tab-recent"
           className={`events-tab${feed === "recent" ? " is-active" : ""}`}
           aria-selected={feed === "recent"}
           onClick={() => onFeedChange("recent")}
         >
+          <EventsTabIcon feed="recent" />
           {t("events.tab_recent")}
         </button>
         <button
@@ -365,14 +399,14 @@ export function ActivitiesScene({
           aria-selected={feed === "consolidate"}
           onClick={() => onFeedChange("consolidate")}
         >
+          <EventsTabIcon feed="consolidate" />
           {t("events.tab_consolidate")}
         </button>
       </div>
 
       {feed === "recent" ? (
-        <div className="l1-panel" role="tabpanel">
-          <div className="panel-head">
-            <h2>{t("activities.l1_title")}</h2>
+        <div className="l1-panel" role="tabpanel" aria-labelledby="events-tab-recent">
+          <div className="panel-head panel-head-tools">
             <button
               type="button"
               className="icon-btn"

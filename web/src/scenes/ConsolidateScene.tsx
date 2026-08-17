@@ -339,16 +339,6 @@ export function ConsolidateScene() {
             <dd>{status ? translateDreamStatus(status.dream_status, t) : dash}</dd>
           </div>
           <div>
-            <dt>{t("consolidate.label_lock")}</dt>
-            <dd>
-              {status
-                ? status.lock
-                  ? t("status.value.true")
-                  : t("status.value.false")
-                : dash}
-            </dd>
-          </div>
-          <div>
             <dt>{t("memory.l1_title")}</dt>
             <dd>
               {status
@@ -521,18 +511,6 @@ export function ConsolidateScene() {
           )
         : null}
 
-      {!pendingReview && !clearRetry ? (
-        <div className="consolidate-actions">
-          <button
-            type="button"
-            className="btn primary"
-            disabled={dreamDisabled}
-            onClick={() => void onDreamRun()}
-          >
-            {dreamBtnLabel()}
-          </button>
-        </div>
-      ) : null}
       <Msg text={msg.text} kind={msg.kind} />
 
       {progressActive ? (
@@ -564,6 +542,19 @@ export function ConsolidateScene() {
         <div className="dream-result">
           <h2>{t("consolidate.result_title")}</h2>
           <MdBlock text={resultBody} />
+        </div>
+      ) : null}
+
+      {!pendingReview && !clearRetry ? (
+        <div className="consolidate-actions consolidate-dream-row">
+          <button
+            type="button"
+            className="btn primary"
+            disabled={dreamDisabled}
+            onClick={() => void onDreamRun()}
+          >
+            {dreamBtnLabel()}
+          </button>
         </div>
       ) : null}
     </section>

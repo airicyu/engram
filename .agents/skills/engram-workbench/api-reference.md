@@ -50,6 +50,7 @@ curl -s "$ENGRAM_URL/memories/chain"
 curl -s "$ENGRAM_URL/memories/chain/2026-07-23"
 curl -s "$ENGRAM_URL/memories/chain/weeks"
 curl -s "$ENGRAM_URL/memories/nodes"
+curl -s "$ENGRAM_URL/memories/nodes/graph"
 curl -s "$ENGRAM_URL/memories/nodes/acme"
 curl -s -X POST "$ENGRAM_URL/memories/ask" \
   -H 'content-type: application/json' \

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.37.0 — 記憶節點 network graph (2026-08-17)
+
+Memory **節點**模式改為可縮放、可拖的 2D force-directed 圖；新增唯讀 `GET /memories/nodes/graph`。邊來自 L2 `{id}.md` 內 P1 wikilink。**不**改記憶鏈 UI／API。**無** store migrate；boot 仍 ≥0.36。見 `docs/roadmap/0.37.0/`。
+
+### Added
+
+- `GET /memories/nodes/graph`：`nodes[]` 與 index 同形；`edges[]` 含 `refs`／`level` 1–10
+- Workbench 節點模式：圖取代列表；篩選 dim 非命中；點選仍走 `GET /memories/nodes/{id}` 與 `#/memory/nodes/{id}`
+
+### Non-goals
+
+- 記憶鏈橫向 strip、寫 `graph/links.yaml`、掃 chain 當邊、3D、新 migrate hop
+
+---
+
 ## 0.36.0 — Workbench 左欄殼＋事件 timeline＋提問郵箱 DM (2026-08-17)
 
 工作台改為左欄四項＋右欄內容。事件頁為發帖＋近期 STM 帖＋沉澱 tab。釐清改 DM 式收件箱。搜索與記憶內頁不改。**不**改 HTTP／dream。**有** store migrate：`0.28.x–0.35.x` → `0.36.0`（刪 chain `initialized_*.yaml` 與 STM `summary.md`／`nodes/`）；boot gate **≥ 0.36**。見 `docs/roadmap/0.36.0/`。

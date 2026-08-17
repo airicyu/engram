@@ -45,7 +45,7 @@ Not activities. Does **not** write L0／short-term／day ledger.
 
 - Days: `GET /memories/chain` · `GET /memories/chain/{day_id}`
 - Higher: `GET /memories/chain/weeks|months|years` · `…/{id}`
-- Nodes: `GET /memories/nodes` · `GET /memories/nodes/{id}`（body field `understanding`）
+- Nodes: `GET /memories/nodes` · `GET /memories/nodes/graph` · `GET /memories/nodes/{id}`（body field `understanding`）
 
 Empty browse → **200** with `present: false`／empty lists（not 404).
 
