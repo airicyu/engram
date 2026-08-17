@@ -24,7 +24,7 @@ export interface DreamContext {
   /** Frozen short-term event ids for this dream (S). */
   scope: string[];
   /** Frozen short-term pool view. JSON key `l1` is frozen (agent context wire). */
-  l1: { summary: string; node_notes: Record<string, string> };
+  l1: { summary: string };
   events: Array<{
     id: string;
     ts: string;

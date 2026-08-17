@@ -1,10 +1,9 @@
-/** Short-term memory pool persistence and derived presentation files. */
+/** Short-term memory pool persistence. Derived markdown／node notes are not stored. */
 
 import { mkdir, readFile, rm, writeFile, access, rename } from "node:fs/promises";
 import { $ } from "bun";
 import { homePath } from "../home";
 import { readAllEvents } from "./activities";
-import { mentionNodeIds } from "./mentions";
 
 const SUMMARY_FILE = "summary.md";
 const LEGACY_SUMMARY_FILE = "today-summary.md";
@@ -17,7 +16,7 @@ export interface PoolEntry {
   raw: string;
   /**
    * Legacy (pre-0.32). New writes omit this field.
-   * Readers ignore — node notes are derived from raw mention tokens.
+   * Readers ignore.
    */
   node_refs?: string[];
 }
@@ -43,17 +42,16 @@ function poolPath(): string {
   return homePath("memories", "short-term-memory", POOL_FILE);
 }
 
-function nodeNotesPath(nodeId: string): string {
-  return homePath("memories", "short-term-memory", "nodes", nodeId, "notes.md");
+function nodesDir(): string {
+  return homePath("memories", "short-term-memory", "nodes");
 }
 
-/** Rename the legacy short-term summary file when needed. */
-export async function migrateShortTermMemorySummaryFile(): Promise<void> {
-  const legacy = legacySummaryPath();
-  const current = summaryPath();
-  if (await exists(legacy) && !(await exists(current))) {
-    await rename(legacy, current);
+async function removeDerivedPresentation(): Promise<void> {
+  for (const p of [summaryPath(), legacySummaryPath()]) {
+    if (await exists(p)) await rm(p, { force: true });
   }
+  const dir = nodesDir();
+  if (await exists(dir)) await rm(dir, { recursive: true, force: true });
 }
 
 async function ensurePoolFile(): Promise<void> {
@@ -63,13 +61,17 @@ async function ensurePoolFile(): Promise<void> {
   }
 }
 
-/** Migrate legacy summary.md lines into pool.jsonl once. */
+/** One-time: legacy summary.md lines → pool.jsonl when pool is empty. */
 async function migrateSummaryToPool(): Promise<void> {
   await ensurePoolFile();
   const poolText = await readFile(poolPath(), "utf8");
   if (poolText.trim()) return;
 
-  await migrateShortTermMemorySummaryFile();
+  const legacy = legacySummaryPath();
+  const current = summaryPath();
+  if (await exists(legacy) && !(await exists(current))) {
+    await rename(legacy, current);
+  }
   if (!(await exists(summaryPath()))) return;
   const summary = await readFile(summaryPath(), "utf8");
   if (!summary.trim()) return;
@@ -96,53 +98,27 @@ async function migrateSummaryToPool(): Promise<void> {
   }
   if (entries.length === 0) return;
   await writeFile(poolPath(), entries.map((e) => JSON.stringify(e)).join("\n") + "\n", "utf8");
-  await renderPresentation(entries);
 }
 
-/** Initialize short-term memory storage and migrate legacy summary contents. */
+/** Initialize short-term pool; migrate leftover summary once; drop derived files. */
 export async function ensureShortTermMemorySummaryFile(): Promise<void> {
-  await migrateShortTermMemorySummaryFile();
   await ensurePoolFile();
   await migrateSummaryToPool();
-  if (!(await exists(summaryPath()))) {
-    await writeFile(summaryPath(), "", "utf8");
-  }
+  await removeDerivedPresentation();
 }
 
 function formatLine(entry: PoolEntry): string {
   return `- [${entry.ts}] (${entry.id}) ${entry.raw.trim()}`;
 }
 
-/** Node ids for grouping notes: parse raw mentions (ignore legacy node_refs). */
-function entryMentionIds(entry: PoolEntry): string[] {
-  return mentionNodeIds(entry.raw);
-}
-
-async function renderPresentation(entries: PoolEntry[]): Promise<void> {
+async function persistPool(entries: PoolEntry[]): Promise<void> {
   await mkdir(homePath("memories", "short-term-memory"), { recursive: true });
-  const summary = entries.map(formatLine).join("\n");
-  await writeFile(summaryPath(), summary ? summary + "\n" : "", "utf8");
-
-  const nodesDir = homePath("memories", "short-term-memory", "nodes");
-  if (await exists(nodesDir)) {
-    await rm(nodesDir, { recursive: true, force: true });
-  }
-  await mkdir(nodesDir, { recursive: true });
-
-  const byNode = new Map<string, PoolEntry[]>();
-  for (const e of entries) {
-    for (const nodeId of entryMentionIds(e)) {
-      const list = byNode.get(nodeId) ?? [];
-      list.push(e);
-      byNode.set(nodeId, list);
-    }
-  }
-  for (const [nodeId, list] of byNode) {
-    const dir = homePath("memories", "short-term-memory", "nodes", nodeId);
-    await mkdir(dir, { recursive: true });
-    const body = list.map(formatLine).join("\n");
-    await writeFile(nodeNotesPath(nodeId), body ? body + "\n" : "", "utf8");
-  }
+  await writeFile(
+    poolPath(),
+    entries.length ? entries.map((e) => JSON.stringify(e)).join("\n") + "\n" : "",
+    "utf8",
+  );
+  await removeDerivedPresentation();
 }
 
 /** Read the current short-term memory pool entries. */
@@ -156,7 +132,6 @@ export async function readPoolEntries(): Promise<PoolEntry[]> {
     .filter(Boolean)
     .map((line) => {
       const parsed = JSON.parse(line) as PoolEntry;
-      // Ignore legacy node_refs key on read
       return { id: parsed.id, ts: parsed.ts, raw: parsed.raw };
     });
 }
@@ -173,16 +148,14 @@ export async function readPoolEntriesForScope(scope: string[]): Promise<PoolEntr
   return (await readPoolEntries()).filter((e) => set.has(e.id));
 }
 
-/** Add a unique event to short-term memory and refresh derived files. */
+/** Add a unique event to short-term memory. */
 export async function appendPoolEntry(entry: PoolEntry): Promise<void> {
   await ensureShortTermMemorySummaryFile();
   const entries = await readPoolEntries();
   if (entries.some((e) => e.id === entry.id)) return;
-  // Never persist node_refs on new writes
   const clean: PoolEntry = { id: entry.id, ts: entry.ts, raw: entry.raw };
   entries.push(clean);
-  await writeFile(poolPath(), entries.map((e) => JSON.stringify(e)).join("\n") + "\n", "utf8");
-  await renderPresentation(entries);
+  await persistPool(entries);
 }
 
 /** @deprecated Prefer appendPoolEntry — kept for fixtures that only need a visible short-term line. */
@@ -202,12 +175,10 @@ export async function appendSummary(line: string): Promise<void> {
 /** @deprecated Use appendSummary */
 export const appendTodaySummary = appendSummary;
 
-/** Legacy no-op; node notes are derived from pool entry mentions on render. */
-export async function appendNodeNotes(_nodeId: string, _line: string): Promise<void> {
-  // Node notes are derived from raw mention tokens on render.
-}
+/** @deprecated Node notes are no longer stored. */
+export async function appendNodeNotes(_nodeId: string, _line: string): Promise<void> {}
 
-/** Render the current short-term memory pool as a markdown summary. */
+/** In-memory markdown listing of the pool (not written to disk). */
 export async function readSummary(): Promise<string> {
   const entries = await readPoolEntries();
   if (entries.length === 0) return "";
@@ -216,24 +187,6 @@ export async function readSummary(): Promise<string> {
 
 /** @deprecated Use readSummary */
 export const readTodaySummary = readSummary;
-
-/** Render short-term memory notes grouped by mentioned node. */
-export async function readAllNodeNotes(): Promise<Record<string, string>> {
-  const entries = await readPoolEntries();
-  const byNode = new Map<string, PoolEntry[]>();
-  for (const e of entries) {
-    for (const nodeId of entryMentionIds(e)) {
-      const list = byNode.get(nodeId) ?? [];
-      list.push(e);
-      byNode.set(nodeId, list);
-    }
-  }
-  const out: Record<string, string> = {};
-  for (const [nodeId, list] of byNode) {
-    out[nodeId] = list.map(formatLine).join("\n") + "\n";
-  }
-  return out;
-}
 
 /** Return whether the short-term memory pool has no entries. */
 export async function isShortTermMemoryEmpty(): Promise<boolean> {
@@ -249,17 +202,11 @@ export async function isShortTermMemoryEmpty(): Promise<boolean> {
 export async function clearShortTermMemoryScope(scope: string[]): Promise<void> {
   const set = new Set(scope);
   const remaining = (await readPoolEntries()).filter((e) => !set.has(e.id));
-  await writeFile(
-    poolPath(),
-    remaining.length ? remaining.map((e) => JSON.stringify(e)).join("\n") + "\n" : "",
-    "utf8",
-  );
-  await renderPresentation(remaining);
+  await persistPool(remaining);
 }
 
 /** Clear entire short-term memory pool (legacy helper; prefer clearShortTermMemoryScope). */
 export async function clearShortTermMemory(): Promise<void> {
   await ensurePoolFile();
-  await writeFile(poolPath(), "", "utf8");
-  await renderPresentation([]);
+  await persistPool([]);
 }

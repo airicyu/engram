@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type DragEvent } from "react";
 import { api, engramApi, type NodeIndex } from "../lib/api";
-import { formatL1 } from "../lib/types";
 import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
 import { MdBlock, Msg } from "../components/ui";
@@ -21,8 +20,9 @@ export function ActivitiesScene() {
   const { status, dreaming, refreshStatus } = useStatus();
   const [raw, setRaw] = useState("");
   const [msg, setMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
-  const [l1Text, setL1Text] = useState(t("activities.loading"));
+  const [l1Entries, setL1Entries] = useState<Array<{ id: string; ts: string; raw: string }>>([]);
   const [l1Empty, setL1Empty] = useState(false);
+  const [l1Status, setL1Status] = useState(t("activities.loading"));
   const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -38,19 +38,20 @@ export function ActivitiesScene() {
   const refreshL1 = useCallback(async () => {
     const { ok, data } = await api<{
       present?: boolean;
-      summary?: string;
-      node_notes?: Record<string, string>;
+      entries?: Array<{ id: string; ts: string; raw: string }>;
       message?: string;
       error?: string;
     }>("/memories/short-term-memory");
     if (!ok) {
-      setL1Text(data?.message || data?.error || t("empty.l1_load"));
+      setL1Status(data?.message || data?.error || t("empty.l1_load"));
+      setL1Entries([]);
       setL1Empty(true);
       return;
     }
-    const { text, empty } = formatL1(data, t);
-    setL1Text(text);
-    setL1Empty(empty);
+    const entries = data.entries ?? [];
+    setL1Entries(entries);
+    setL1Empty(!data.present || entries.length === 0);
+    setL1Status(data.present ? "" : t("empty.l1_cleared"));
   }, [t]);
 
   const refreshNodes = useCallback(async () => {
@@ -323,7 +324,21 @@ export function ActivitiesScene() {
             {t("activities.refresh")}
           </button>
         </div>
-        <MdBlock text={l1Text} empty={l1Empty} />
+        {l1Empty ? (
+          <MdBlock text={l1Status || t("empty.l1_cleared")} empty />
+        ) : (
+          <div className="stm-feed">
+            {l1Entries.map((e) => (
+              <article key={e.id} className="stm-entry">
+                <header className="stm-entry-meta">
+                  <time dateTime={e.ts}>{e.ts}</time>
+                  <span className="stm-entry-id">{e.id}</span>
+                </header>
+                <MdBlock text={e.raw} />
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

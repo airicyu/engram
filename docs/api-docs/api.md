@@ -590,7 +590,7 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 3. Reject future day ids in draft chain paths → **409** `future_chain_id` + `rejected_chain_ids` (pending／draft／short-term／L2 unchanged)
 4. Full maintain on draft `hot.md`／`later.md` (rebucket／sort；out-of-window dropped from draft). Still-expired items → **409** `stale_future_anchor` + `rejected_future_ids`
 5. Empty draft (no manifest entries and no deletes) → no L2／future-sight write；**no node-score settlement**；still clear S
-6. Else deploy draft → live (deletes then copy)；then **settle node scores** on live（boost listed pre-existing nodes；downscale if any score > S_max with `exclude_node_ids` = this-run creates；init creates at S0）；path-only git rollback on deploy failure；then clear S；`git commit` message contains `dream_run_id`（also stages short-term clear **and** score／registry paths）. **No** post-approve future-sight maintain (pre-dream／GET cover calendar)
+6. Else deploy draft → live (deletes then copy)；then **settle node scores** on live（boost listed pre-existing nodes；downscale if any score > S_max with `exclude_node_ids` = this-run creates；init creates at S0）；path-only git rollback on deploy failure；then clear S；`git commit` message contains `dream_run_id`（also stages short-term clear **and** score／registry paths）. Higher-chain init／revise is **summary file existence only**（no `initialized_*.yaml`）. **No** post-approve future-sight maintain (pre-dream／GET cover calendar)
 7. Clear S failure → run `committed` + `l1_clear_pending`; L2 may already be git-committed; next approve retries clear only (+ scope-clear commit)
 
 **Response `200`**
@@ -649,9 +649,11 @@ Search／Ask 讀側見下節 `GET /memories/search` 與 `POST /memories/ask`（0
 
 ## `GET /memories/short-term-memory`
 
-short-term preview for Activities. **Does not** include chain or nodes.
+short-term preview for Activities. **Does not** include chain or L2 nodes.
 
-**Response `200`:** `{ summary, node_notes, present }`
+**Response `200`:** `{ entries: [{ id, ts, raw }], present }`
+
+`present` is `true` when the pool has at least one entry. **Omits** `summary` and `node_notes`（0.35：衍生 markdown／按 node 分組 notes 已廢）。
 
 ---
 
@@ -697,8 +699,8 @@ Keyword search across short-term memory, memory-chain, L2 nodes, and **future-si
 | Field | Meaning |
 |-------|---------|
 | `scope` | Scopes searched on this request (echo) |
-| `nodes` | Present only when `nodes` in scope; L2 hits (`node_id`｜`what_content`｜`l1_note`) |
-| `l1` | Present only when `l1` in scope; `null` when no short-term hit |
+| `nodes` | Present only when `nodes` in scope; L2 hits (`node_id`｜`what_content`) |
+| `l1` | Present only when `l1` in scope; `null` when no short-term hit. Hit shape `{ entries: [{ id, ts, raw }] }`（match `raw` or `id`） |
 | `chain` | Present only when `chain` in scope; day／week／month／year hits. Each has `id` + `level`; day also keeps `day_id` |
 | `future_sight` | Present only when `future` in scope; hot＋later keyword hits. Each has `id`, `zone` (`hot`\|`later`), `anchor_start`／`anchor_end`, `content`, `match_reason` (`id`\|`content`\|`anchor`). Order: all hot first (near→far), then later |
 

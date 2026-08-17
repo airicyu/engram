@@ -16,7 +16,6 @@ export function logExtractContext(ctx: {
   dream_run_id: string;
   events: number;
   l1_chars: number;
-  node_notes: number;
   existing_nodes: number;
   l2_nodes: number;
 }): void {
@@ -27,7 +26,6 @@ export function logExtractContext(ctx: {
     detail: {
       events: ctx.events,
       l1_chars: ctx.l1_chars,
-      node_notes: ctx.node_notes,
       existing_nodes: ctx.existing_nodes,
       l2_nodes: ctx.l2_nodes,
     },

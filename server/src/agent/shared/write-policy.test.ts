@@ -38,7 +38,7 @@ function fakeDreamCtx(storeDir: string, runId: string): DreamContext {
     now: "2026-08-02T12:00:00+08:00",
     today: "2026-08-02",
     scope: ["e0000000001"],
-    l1: { summary: "test", node_notes: {} },
+    l1: { summary: "test" },
     events: [{ id: "e0000000001", ts: "2026-08-02T12:00:00+08:00", raw: "hello" }],
     l2_current: [],
     existing_nodes: ["acme"],

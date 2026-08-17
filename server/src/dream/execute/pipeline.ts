@@ -471,7 +471,7 @@ async function doDreamFiles(
   const ctx = await buildDreamContext(dreamRunId, scope, reviewFeedback);
   logExtractContext({
     dream_run_id: dreamRunId, events: ctx.events.length, l1_chars: ctx.l1.summary.length,
-    node_notes: Object.keys(ctx.l1.node_notes).length, existing_nodes: ctx.existing_nodes.length, l2_nodes: ctx.l2_current.length,
+    existing_nodes: ctx.existing_nodes.length, l2_nodes: ctx.l2_current.length,
   });
   try {
     await agent.dream(ctx);

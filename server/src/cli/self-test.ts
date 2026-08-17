@@ -540,6 +540,9 @@ async function main() {
     console.log("Phase 4b: memory l1 + ask");
     const l1 = await json("GET", "/memories/short-term-memory");
     assert(l1.status === 200 && l1.data.present === true, "memory l1");
+    assert(Array.isArray(l1.data.entries) && l1.data.entries.length > 0, "l1 entries");
+    assert(!("summary" in l1.data), "l1 has no summary");
+    assert(!("node_notes" in l1.data), "l1 has no node_notes");
     assert(!("nodes" in l1.data), "l1 has no nodes");
 
     await stopServer(server);
@@ -973,6 +976,14 @@ Unique later keyword xylophone-launch window for search.
     assert(weekExists === true, "closed week summary written from empty dream");
     const monthFile = join(TEST_HOME, "memories/chain/months/2026/2026-05.summary.md");
     assert((await Bun.file(monthFile).exists()) === true, "closed month summary written");
+    assert(
+      !(await Bun.file(join(TEST_HOME, "memories/chain/initialized_weeks.yaml")).exists()),
+      "no initialized_weeks.yaml after rollup",
+    );
+    assert(
+      !(await Bun.file(join(TEST_HOME, "memories/chain/initialized_months.yaml")).exists()),
+      "no initialized_months.yaml after rollup",
+    );
 
     // Empty pool with nothing to roll up → 409 nothing_to_dream (unchanged).
     const emptyNoWork = await json("POST", "/dreams/run");

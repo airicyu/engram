@@ -103,25 +103,6 @@ export function formatElapsed(startedAt?: string): string {
   return `${Math.floor(sec / 60)}m ${sec % 60}s`;
 }
 
-export function formatL1(
-  packet: { present?: boolean; summary?: string; node_notes?: Record<string, string> } | null,
-  t: (k: string) => string,
-): { text: string; empty: boolean } {
-  if (!packet) return { text: t("empty.none"), empty: true };
-  if (!packet.present) return { text: t("empty.l1_cleared"), empty: true };
-  const parts: string[] = [];
-  if (packet.summary?.trim()) parts.push(packet.summary.trim());
-  else parts.push(t("empty.summary_blank"));
-  const notes =
-    packet.node_notes && Object.keys(packet.node_notes).length
-      ? Object.entries(packet.node_notes)
-          .map(([id, md]) => `### ${id}\n${md || t("empty.blank")}`)
-          .join("\n\n")
-      : null;
-  if (notes) parts.push("---\nnode notes\n\n" + notes);
-  return { text: parts.join("\n\n"), empty: false };
-}
-
 export function adviceFor(status: Status | null, t: (k: string, v?: Record<string, string | number>) => string): string {
   if (!status) return t("advice.none");
   if (status.lock) return t("advice.lock");

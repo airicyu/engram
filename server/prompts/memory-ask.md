@@ -21,7 +21,7 @@ now: {{NOW}}
 
 | Area | Path |
 |------|------|
-| Short-term memory (L1) | `memories/short-term-memory/pool.jsonl`, `memories/short-term-memory/summary.md`, optional `memories/short-term-memory/nodes/{id}/notes.md` |
+| Short-term memory (L1) | `memories/short-term-memory/pool.jsonl`（one JSON object per pending activity: `id`, `ts`, `raw`） |
 | L2 nodes | `memories/nodes/{id}/{id}.md` — whole file = latest standing understanding |
 | Day chain | `memories/chain/days/{YYYY-MM}/{YYYY-MM-DD}.summary.md` (prefer; whole file = day narrative), `…/{YYYY-MM-DD}.md` ledger |
 | Week／month／year | `memories/chain/weeks/{YYYY-MM}/{YYYY-Www-MMDD}.summary.md`（`MMDD`＝該週週一）, `months/{YYYY}/{YYYY-MM}.summary.md`, `years/{YYYY}.summary.md` |
@@ -36,7 +36,7 @@ Do **not** scan all of `memories/activities/events.jsonl` unless necessary — p
 You must **actively read files** and **synthesize**. Do **not** answer from a single layer or from guesswork.
 
 1. **Always open short-term memory first** for this job:
-   - Read `memories/short-term-memory/summary.md` and／or `pool.jsonl` (and relevant `nodes/*/notes.md` if the question names a person／topic).
+   - Read `memories/short-term-memory/pool.jsonl` (each line is one activity).
    - Short-term = **not yet consolidated** (may include today／recent captures that are **not** in day／week chain yet). Treat it as first-class evidence.
 2. **Then** read durable memory as needed for the question:
    - Person／topic → matching L2 `{id}.md` body

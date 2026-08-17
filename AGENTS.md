@@ -122,8 +122,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **已出貨：** `0.34.0` — Ask 廢 `include_later`：每次提問可讀 hot＋later，由 AI 判斷；見 `docs/roadmap/0.34.0/`（**shipped**；**無** store migrate）
-- **上一版：** `0.33.0` — Workbench UI：釐清貼文串＋記憶鏈／節點瀏覽重排；見 `docs/roadmap/0.33.0/`（**shipped**；**無** store migrate）
+- **已出貨：** `0.35.0` — MdBlock 附件圖＋短期記憶只留 `pool.jsonl`／GET `entries[]`；見 `docs/roadmap/0.35.0/`（**shipped**；**無** store migrate）
+- **上一版：** `0.34.0` — Ask 廢 `include_later`：每次提問可讀 hot＋later，由 AI 判斷；見 `docs/roadmap/0.34.0/`（**shipped**；**無** store migrate）
+- **更早：** `0.33.0` — Workbench UI：釐清貼文串＋記憶鏈／節點瀏覽重排；見 `docs/roadmap/0.33.0/`（**shipped**；**無** store migrate）
 - **更早：** `0.32.0` — Activities `@` mention composer＋raw token 真相＋廢 `node_refs`；見 `docs/roadmap/0.32.0/`（**shipped**；**無** store migrate）
 - **更早：** `0.31.0` — Hash 深鏈＋MdBlock wikilink 可點＋chain 寫入時 node 互指（**不**回填歷史）；見 `docs/roadmap/0.31.0/`（**shipped**；**無** store migrate）
 - **更早：** `0.30.0` — 釐清（Clarify）：補問＋順帶補充 → 入夢蒸餾進 nodes — 見 `docs/roadmap/0.30.0/`（**shipped**；**無** store migrate）
@@ -132,7 +133,7 @@ API 欄位提醒：
 - **更早：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
 - **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
 - **Backlog：** 見 `docs/roadmap/backlog/`（含 Seek／network 依分等）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31／0.31→0.32／0.32→0.33／0.33→0.34 無 migrate hop**
+- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31／0.31→0.32／0.32→0.33／0.33→0.34／0.34→0.35 無 migrate hop**
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

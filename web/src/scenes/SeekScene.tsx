@@ -120,14 +120,12 @@ export function SeekScene() {
 
   function formatSearchL1(l1: MemorySearch["l1"]) {
     if (!l1) return { text: "", empty: true };
-    const parts: string[] = [];
-    if (l1.summary?.trim()) parts.push(l1.summary.trim());
-    const notes = Object.entries(l1.node_notes ?? {})
-      .filter(([, md]) => md?.trim())
-      .map(([id, md]) => `### ${id}\n${md!.trim()}`);
-    if (notes.length) parts.push(notes.join("\n\n"));
-    const text = parts.join("\n\n");
-    return { text, empty: !text };
+    const entries = l1.entries ?? [];
+    if (entries.length === 0) return { text: "", empty: true };
+    const text = entries
+      .map((e) => `### ${e.id}\n${e.ts}\n\n${e.raw.trim()}`)
+      .join("\n\n---\n\n");
+    return { text, empty: false };
   }
 
   return (

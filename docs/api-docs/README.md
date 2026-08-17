@@ -117,7 +117,7 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 | Layer | Role |
 |-------|------|
 | **L0** | Append-only event log (`memories/activities/events.jsonl`) |
-| **short-term memory** | Short-term pool (`memories/short-term-memory/pool.jsonl`); cleared by event-id scope S on approve. HTTP wire still uses `l1`／`l1_empty` etc. |
+| **short-term memory** | Short-term pool (`memories/short-term-memory/pool.jsonl` only); cleared by event-id scope S on approve. HTTP wire still uses `l1`／`l1_empty` etc. GET returns `entries[]`. |
 | **dream staging intent** | Patches + report (`dreams/patches.jsonl`, `dreams/reports/`) — short-term→L2 intermediate |
 | **dream staging draft** | Staged L2 projection (`dreams/draft/{run_id}/`) — not live until approve |
 | **L2** | Long-term node understanding — whole `memories/nodes/{id}/{id}.md` as standing understanding（API field `understanding`）；Obsidian vault＝`memories/` |

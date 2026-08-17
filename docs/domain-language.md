@@ -54,7 +54,7 @@
 |----|------|------|-----|------|
 | **Day／week／month／year chain browse** | 記憶鏈翻閱 | 各層 index（新→舊）+ detail | `GET /memories/chain`、`/weeks`、`/months`、`/years`（及 `/{id}`） | 0.11.0 四層；與 Search 分工 |
 | **Nodes browse** | 節點翻閱 | L2 index（字母序）+ `{id}.md` 正文 detail | `GET /memories/nodes`、`GET /memories/nodes/{node_id}` | filter 在客戶端 |
-| **Short-term preview** | 短期記憶預覽 | Activities 場景顯示短期 pool 摘要 | `GET /memories/short-term-memory` | 僅 short-term；不在 Memory 場景瀏覽 |
+| **Short-term preview** | 短期記憶預覽 | Activities 顯示 pool 各筆 `{ id, ts, raw }` | `GET /memories/short-term-memory` | 僅 short-term；不在 Memory 場景瀏覽 |
 
 ### Time replay（0.9.0）
 
@@ -83,7 +83,7 @@
 | EN | 中文 | 說明 | 典型路徑 | 可變性 |
 |----|------|------|----------|--------|
 | **L0** | 事件層 | 發生了什麼（原文、時間、來源） | `memories/activities/events.jsonl` | 唯附加 |
-| **short-term memory** | 短期記憶層 | 尚未整理進長期的工作區 pool | `memories/short-term-memory/pool.jsonl` | Activities 寫入；Approve 後清 scope S |
+| **short-term memory** | 短期記憶層 | 尚未整理進長期的工作區 pool | `memories/short-term-memory/pool.jsonl` | Activities 寫入；Approve 後清 scope S；**不**另存 summary.md／node notes |
 | **dream staging** | 入夢中間層 | 由 short-term 入夢產出、待 Approve 才進 L2（draft＋report） | `dreams/draft/`、`dreams/reports/` | `dreams/` 不進 store git |
 | **L2 · nodes** | 長期節點理解 | 對某主題／人目前「相信什麼」＝**standing understanding**（整檔 `{id}.md`） | `memories/nodes/{id}/{id}.md` | Approve 寫入；可手改。Obsidian 開 **`memories/`** |
 | **L2 · chain** | 長期記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary |

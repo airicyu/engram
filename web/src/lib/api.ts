@@ -37,7 +37,7 @@ export async function api<T = Record<string, unknown>>(
 export type SearchScope = "l1" | "nodes" | "chain" | "future";
 
 export type MemorySearch = {
-  l1?: { summary?: string; node_notes?: Record<string, string> } | null;
+  l1?: { entries?: Array<{ id: string; ts: string; raw: string }> } | null;
   chain?: Array<{ day_id?: string; id?: string; content: string }>;
   nodes?: Array<{ node: string; match_reason?: string; understanding?: string }>;
   future_sight?: Array<{

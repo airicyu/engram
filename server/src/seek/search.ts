@@ -1,6 +1,6 @@
 /** Keyword search across short-term memory, L2 nodes, memory-chain, and future-sight. */
 
-import { readSummary, readAllNodeNotes } from "../store/memories/short-term-memory";
+import { readPoolEntries, type PoolEntry } from "../store/memories/short-term-memory";
 import { listChainDayIds, readDayForRecall } from "../store/memories/chain";
 import {
   listMonthIds,
@@ -19,7 +19,7 @@ import {
 export const SEARCH_SCOPES = ["l1", "nodes", "chain", "future"] as const;
 export type MemorySearchScope = (typeof SEARCH_SCOPES)[number];
 
-export type NodeMatchReason = "node_id" | "what_content" | "l1_note";
+export type NodeMatchReason = "node_id" | "what_content";
 
 export type FutureSightMatchReason = "id" | "content" | "anchor";
 
@@ -30,8 +30,7 @@ export interface MemorySearchNodeHit {
 }
 
 export interface MemorySearchShortTermHit {
-  summary: string | null;
-  node_notes: Record<string, string>;
+  entries: PoolEntry[];
 }
 
 export interface MemorySearchChainHit {
@@ -105,15 +104,11 @@ export async function searchMemory(
   const qLower = query.toLowerCase();
   const result: MemorySearchResult = { q: query, scope: scopes };
 
-  const needsShortTermStore = scopes.includes("l1") || scopes.includes("nodes");
-  const summary = needsShortTermStore ? await readSummary() : "";
-  const node_notes = needsShortTermStore ? await readAllNodeNotes() : {};
-
   if (scopes.includes("nodes")) {
-    result.nodes = await matchNodes(qLower, node_notes);
+    result.nodes = await matchNodes(qLower);
   }
   if (scopes.includes("l1")) {
-    result.l1 = matchShortTerm(summary, node_notes, qLower);
+    result.l1 = matchShortTerm(await readPoolEntries(), qLower);
   }
   if (scopes.includes("chain")) {
     result.chain = await matchChain(qLower);
@@ -125,10 +120,7 @@ export async function searchMemory(
   return result;
 }
 
-async function matchNodes(
-  qLower: string,
-  node_notes: Record<string, string>,
-): Promise<MemorySearchNodeHit[]> {
+async function matchNodes(qLower: string): Promise<MemorySearchNodeHit[]> {
   const ids = await listNodeIds();
   const out: MemorySearchNodeHit[] = [];
 
@@ -139,13 +131,8 @@ async function matchNodes(
     if (qLower.includes(idLower) || idLower.includes(qLower)) {
       reason = "node_id";
     } else {
-      const note = node_notes[id];
-      if (note && contains(note, qLower)) {
-        reason = "l1_note";
-      } else {
-        const what = await readUnderstanding(id);
-        if (contains(what, qLower)) reason = "what_content";
-      }
+      const what = await readUnderstanding(id);
+      if (contains(what, qLower)) reason = "what_content";
     }
 
     if (reason) {
@@ -160,18 +147,12 @@ async function matchNodes(
   return out;
 }
 
-function matchShortTerm(
-  summary: string,
-  node_notes: Record<string, string>,
-  qLower: string,
-): MemorySearchShortTermHit | null {
-  const summaryHit = summary.trim() && contains(summary, qLower) ? summary : null;
-  const notes: Record<string, string> = {};
-  for (const [node, note] of Object.entries(node_notes)) {
-    if (note.trim() && contains(note, qLower)) notes[node] = note;
-  }
-  if (!summaryHit && Object.keys(notes).length === 0) return null;
-  return { summary: summaryHit, node_notes: notes };
+function matchShortTerm(entries: PoolEntry[], qLower: string): MemorySearchShortTermHit | null {
+  const hits = entries.filter(
+    (e) => contains(e.raw, qLower) || contains(e.id, qLower),
+  );
+  if (hits.length === 0) return null;
+  return { entries: hits };
 }
 
 async function matchChain(qLower: string): Promise<MemorySearchChainHit[]> {

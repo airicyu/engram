@@ -18,7 +18,7 @@ import { maintainFutureSight, listAnchors } from "../../store/memories/future-si
 import { readDraftDeletes, finalizeDraftFromDisk } from "../../store/dreams/file-pipeline";
 import { commitDirtyMemorySnapshot, stageAndCommitPaths } from "../../store/git";
 import { logError } from "../../log";
-import { addInitializedIds, type HigherChainLevel } from "../../store/memories/chain-higher";
+import { dropLegacyInitializedYaml } from "../../store/memories/chain-higher";
 import { readInvolvementsForPending, settleNodeScoresOnApprove } from "../score/involvements";
 import {
   archivePendingToHistory,
@@ -140,7 +140,6 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   let scorePaths: string[] = [];
   if (!empty_patches) {
     committed = (await commitDraft(pending.id)).committed;
-    await recordInitializedFromManifest(manifest);
     try {
       scorePaths = await settleNodeScoresOnApprove({ dream_run_id: pending.id, as_of: nowIso(), manifest });
     } catch (e) {
@@ -172,7 +171,8 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   } catch (e) {
     logError("l1 clear after commit failed", e, { dream_run_id: pending.id });
   }
-  const gitPaths = [...committed, ...scorePaths, ...clarifyArchivePaths];
+  const droppedInitialized = await dropLegacyInitializedYaml();
+  const gitPaths = [...committed, ...scorePaths, ...clarifyArchivePaths, ...droppedInitialized];
   if (!pending.l1_clear_pending) gitPaths.push("memories/short-term-memory");
   if (clarifyArchivePaths.length > 0) gitPaths.push("memories/clarify");
   if (gitPaths.length > 0) {
@@ -203,23 +203,6 @@ export async function pendingRunSummary(): Promise<{ dream_run_id: string; scope
 export async function staleDraftFutureAnchorIds(dreamRunId: string): Promise<string[]> {
   const today = calendarDate();
   return (await listAnchors(draftDir(dreamRunId))).filter((a) => a.anchor_end < today).map((a) => a.id).sort();
-}
-
-export async function recordInitializedFromManifest(
-  manifest: Awaited<ReturnType<typeof readManifest>>,
-): Promise<void> {
-  const byLevel: Record<HigherChainLevel, string[]> = { week: [], month: [], year: [] };
-  for (const entry of manifest?.entries ?? []) {
-    if (entry.op !== "create") continue;
-    const level = entry.path.startsWith("memories/chain/weeks/") ? "week"
-      : entry.path.startsWith("memories/chain/months/") ? "month"
-        : entry.path.startsWith("memories/chain/years/") ? "year" : null;
-    const id = entry.path.match(/\/([^/]+)\.summary\.md$/)?.[1];
-    if (level && id) byLevel[level].push(id);
-  }
-  for (const level of ["week", "month", "year"] as HigherChainLevel[]) {
-    await addInitializedIds(level, byLevel[level]);
-  }
 }
 
 export type { DreamRunState };

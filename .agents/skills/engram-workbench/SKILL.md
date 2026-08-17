@@ -86,7 +86,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /dreams/approve` | body optional | committed paths + cleared_scope；非 empty_patches 時結算 node score |
 | `POST /dreams/discard` | body optional | `{ discarded: true }` |
 | `POST /dreams/cancel` | body optional | cancel running dream |
-| `GET /memories/short-term-memory` | none | short-term preview；wire 仍用 `l1`／`l1_empty` 等別名 |
+| `GET /memories/short-term-memory` | none | short-term `entries[]`；wire 仍用 `l1`／`l1_empty` 等別名 |
 | `GET /memories/search` | `q` (required); `scope` optional (`l1,nodes,chain,future`) | keyword hits per scope（`future`＝hot＋later） |
 | `GET /memories/chain`／`weeks`／`months`／`years`（及 `/{id}`） | — | browse timeline |
 | `GET /memories/nodes`／`{id}` | — | browse L2；含 `score`／`display_score`（無分 → null）；detail 回 `understanding` |

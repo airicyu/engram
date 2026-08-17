@@ -1,8 +1,7 @@
-/** Higher-level memory-chain (week / month / year) paths, reads, and initialized index. */
+/** Higher-level memory-chain (week / month / year) paths, reads, and init/revise via summary files. */
 
-import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { parse, stringify } from "../../yaml";
+import { access, readdir, readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
 import { homePath } from "../home";
 import { extractCurrentSection } from "./nodes";
 import {
@@ -138,46 +137,31 @@ export async function listYearIds(): Promise<string[]> {
   );
 }
 
-function initializedYamlPath(level: HigherChainLevel): string {
-  return homePath("memories", "chain", `initialized_${level}s.yaml`);
-}
-
-export async function readInitializedIds(level: HigherChainLevel): Promise<string[]> {
-  const p = initializedYamlPath(level);
-  if (!(await exists(p))) return [];
-  try {
-    const doc = parse(await readFile(p, "utf8")) as { ids?: unknown };
-    if (!Array.isArray(doc?.ids)) return [];
-    return doc.ids.filter((x): x is string => typeof x === "string");
-  } catch {
-    return [];
-  }
-}
-
-/** Mark ids as initialized (idempotent add). Call only after successful approve of init. */
-export async function addInitializedIds(
-  level: HigherChainLevel,
-  ids: string[],
-): Promise<void> {
-  if (ids.length === 0) return;
-  const existing = new Set(await readInitializedIds(level));
-  for (const id of ids) existing.add(id);
-  const sorted = [...existing].sort();
-  const p = initializedYamlPath(level);
-  await mkdir(dirname(p), { recursive: true });
-  await writeFile(p, stringify({ ids: sorted }), "utf8");
-}
+const LEGACY_INITIALIZED_YAML_RELS = [
+  "memories/chain/initialized_weeks.yaml",
+  "memories/chain/initialized_months.yaml",
+  "memories/chain/initialized_years.yaml",
+] as const;
 
 /**
- * Whether this id should use revise (file exists or already initialized).
- * File existence wins; missing yaml is healed on approve.
+ * Remove leftover 0.11 `initialized_*.yaml` indexes (init/revise is file existence only).
+ * Returns store-relative paths that existed and were deleted (for git staging).
  */
+export async function dropLegacyInitializedYaml(): Promise<string[]> {
+  const removed: string[] = [];
+  for (const rel of LEGACY_INITIALIZED_YAML_RELS) {
+    const p = homePath(...rel.split("/"));
+    if (!(await exists(p))) continue;
+    await rm(p, { force: true });
+    removed.push(rel);
+  }
+  return removed;
+}
+
+/** `revise` when the higher summary file exists; otherwise `init`. */
 export async function resolveHigherOperation(
   level: HigherChainLevel,
   id: string,
 ): Promise<"init" | "revise"> {
-  if (await higherSummaryExists(level, id)) return "revise";
-  const initialized = await readInitializedIds(level);
-  if (initialized.includes(id)) return "revise";
-  return "init";
+  return (await higherSummaryExists(level, id)) ? "revise" : "init";
 }

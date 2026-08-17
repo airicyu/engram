@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { preprocessAttachmentEmbeds } from "../lib/preprocessAttachmentEmbeds";
 import { preprocessNodeWikilinks } from "../lib/preprocessNodeWikilinks";
 
 export function Msg({
@@ -32,13 +33,35 @@ export function MdBlock({
 }) {
   const raw = text ?? "";
   const isEmpty = Boolean(empty) || !raw.trim();
-  const body = isEmpty ? raw : preprocessNodeWikilinks(raw, knownNodeIds);
+  const body = isEmpty
+    ? raw
+    : preprocessAttachmentEmbeds(preprocessNodeWikilinks(raw, knownNodeIds));
   return (
     <div className={`md-block ${isEmpty ? "is-empty" : ""} ${className}`.trim()}>
       {isEmpty ? (
         <p className="md-block-empty">{body.trim() || "—"}</p>
       ) : (
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            img({ src, alt }) {
+              if (!src) return null;
+              return (
+                <img
+                  src={src}
+                  alt={alt ?? ""}
+                  className="md-block-img"
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              );
+            },
+          }}
+        >
+          {body}
+        </ReactMarkdown>
       )}
     </div>
   );

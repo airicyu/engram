@@ -9,7 +9,7 @@ import { calendarDate, nowIso } from "../../store/memories/activities";
 import { readAllUnderstandings, listNodeIds } from "../../store/memories/nodes";
 import { readDay, readDaySummary } from "../../store/memories/chain";
 import { makeRunId } from "../../store/run-id";
-import { parseMentions, mentionNodeIds } from "../../store/memories/mentions";
+import { parseMentions } from "../../store/memories/mentions";
 
 /** Compact one-line descriptions of draft changes for retry context. */
 export function compactChangeLines(draft: Awaited<ReturnType<typeof draftSummary>>): string[] {
@@ -60,16 +60,6 @@ export async function buildDreamContext(
     mentions: parseMentions(e.raw).map((m) => ({ id: m.id, mode: m.mode })),
   }));
   const summary = scopeEntries.map((e) => `- [${e.ts}] (${e.id}) ${e.raw.trim()}`).join("\n");
-  const node_notes: Record<string, string> = {};
-  for (const e of scopeEntries) {
-    for (const nodeId of mentionNodeIds(e.raw)) {
-      const line = `- [${e.ts}] (${e.id}) ${e.raw.trim()}`;
-      node_notes[nodeId] = node_notes[nodeId] ? `${node_notes[nodeId].trimEnd()}\n${line}` : line;
-    }
-  }
-  for (const k of Object.keys(node_notes)) {
-    node_notes[k] = node_notes[k].endsWith("\n") ? node_notes[k] : `${node_notes[k]}\n`;
-  }
 
   const existing_nodes = await listNodeIds();
   const l2_current = await readAllUnderstandings();
@@ -91,7 +81,7 @@ export async function buildDreamContext(
     now: nowIso(),
     today,
     scope,
-    l1: { summary: summary ? `${summary}\n` : "", node_notes },
+    l1: { summary: summary ? `${summary}\n` : "" },
     events,
     l2_current,
     existing_nodes,

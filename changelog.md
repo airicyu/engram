@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.35.0 — 附件圖＋短期記憶只留 pool records (2026-08-17)
+
+Workbench 把精確的 `![[_attachments/uploads/{day}/{filename}]]` 渲成圖片。短期記憶磁碟只保留 `pool.jsonl`；`GET /memories/short-term-memory` 回 `entries[]`。**無** store migrate；boot gate 仍 ≥0.28。見 `docs/roadmap/0.35.0/`。
+
+### Changed
+
+- `preprocessAttachmentEmbeds`＋`MdBlock`：精確附件 embed → `<img>`
+- `.md-block img` 限制寬度、圓角
+- STM：停止寫 `summary.md`／`nodes/*/notes.md`；啟動或寫入時刪殘檔（空 pool 則先從 legacy summary 遷進 pool）
+- `GET /memories/short-term-memory`：`{ entries, present }`；廢 `summary`／`node_notes`
+- Search `l1`：命中的 pool records；廢 L2 `match_reason: l1_note`
+- Dream context 刪 `l1.node_notes`（`l1.summary` 僅記憶體內拼出）
+- Activities 依 entries 逐則顯示；Ask prompt 只列 `pool.jsonl`
+
+### Breaking
+
+- GET short-term／Search `l1` 不再回 markdown `summary` 或 `node_notes`
+
+### Non-goals
+
+- 新附件 API、capture／WYSIWYG、alias embed
+- 完整 Twitter／post UI、改 pool schema、migrate／boot gate
+
+---
+
 ## 0.34.0 — Ask 廢 `include_later`：恆可讀 later (2026-08-15)
 
 Seek Ask 不再讓人勾選「含較遠未來視（later）」：從 **API／job／prompt／UI** 拿掉 `include_later`。每次提問 agent 都可讀 `hot.md` 與 `later.md`，自行判斷要不要用。**無** store migrate；boot gate 仍 ≥0.28。見 `docs/roadmap/0.34.0/`。

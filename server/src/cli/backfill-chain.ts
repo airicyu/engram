@@ -22,7 +22,7 @@ import { runRollupCascade } from "../dream/rollup/cascade";
 import { createRollupAgent } from "../agent/factory";
 import { commitDraft } from "../store/dreams/draft";
 import { prepareDreamDraft, finalizeDraftFromDisk } from "../store/dreams/file-pipeline";
-import { addInitializedIds, type HigherChainLevel } from "../store/memories/chain-higher";
+import { type HigherChainLevel } from "../store/memories/chain-higher";
 
 function parseArgs(argv: string[]) {
   let level: "week" | "month" | "year" | "all" = "all";
@@ -71,7 +71,7 @@ async function main() {
 
   const agent = createRollupAgent();
 
-  const { written, reports } = await runRollupCascade({
+  const { reports } = await runRollupCascade({
     dreamRunId,
     dayIds: summaryDayIds,
     agent,
@@ -81,22 +81,6 @@ async function main() {
 
   console.log("reports:", JSON.stringify(reports, null, 2));
   const { committed } = await commitDraft(dreamRunId);
-  const byLevel: Record<HigherChainLevel, string[]> = { week: [], month: [], year: [] };
-  for (const path of written) {
-    const level = path.startsWith("memories/chain/weeks/")
-      ? "week"
-      : path.startsWith("memories/chain/months/")
-        ? "month"
-        : path.startsWith("memories/chain/years/")
-          ? "year"
-          : null;
-    const id = path.match(/\/([^/]+)\.summary\.md$/)?.[1];
-    if (!level || !id) continue;
-    byLevel[level].push(id);
-  }
-  for (const lv of forceLevels) {
-    await addInitializedIds(lv, byLevel[lv]);
-  }
 
   console.log(`committed ${committed.length} paths`);
   for (const c of committed) console.log(`  ${c}`);

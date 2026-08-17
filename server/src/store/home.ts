@@ -1,6 +1,6 @@
 /** Engram home directory paths and initial store scaffolding. */
 
-import { access, mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, writeFile, rm } from "node:fs/promises";
 import { ensureShortTermMemorySummaryFile } from "./memories/short-term-memory";
 import { ensureFutureSightFiles } from "./memories/future-sight";
 import { ensureDreamDirs } from "./dreams/dream-runs";
@@ -31,7 +31,6 @@ export async function ensureEngramHome(): Promise<void> {
     "",
     "memories/activities",
     "memories/short-term-memory",
-    "memories/short-term-memory/nodes",
     "memories/chain",
     "memories/chain/days",
     "memories/chain/weeks",
@@ -72,6 +71,7 @@ export async function ensureEngramHome(): Promise<void> {
   await ensureAttachmentsDir();
   await ensureClarifyDirs();
   await ensureWorkspaceFile();
+  await dropLegacyInitializedYaml();
   // 0.16: store must be a local git repo (no git binary / ensure failure → refuse start).
   await ensureStoreGit();
 }
@@ -96,4 +96,17 @@ async function ensureWorkspaceFile(): Promise<void> {
   );
   // Same process: status should see the new stamp without restart.
   (config as { storeVersion: string | null }).storeVersion = storeVersion;
+}
+
+const LEGACY_INITIALIZED_YAML = [
+  "initialized_weeks.yaml",
+  "initialized_months.yaml",
+  "initialized_years.yaml",
+] as const;
+
+/** Drop unused 0.11 chain indexes; init/revise uses summary files only. */
+async function dropLegacyInitializedYaml(): Promise<void> {
+  for (const name of LEGACY_INITIALIZED_YAML) {
+    await rm(homePath("memories", "chain", name), { force: true });
+  }
 }
