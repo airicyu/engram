@@ -125,9 +125,16 @@ export function ActivitiesScene({
   }, []);
 
   useEffect(() => {
-    void refreshL1();
     void refreshNodes();
-  }, [refreshL1, refreshNodes]);
+  }, [refreshNodes]);
+
+  useEffect(() => {
+    if (feed === "recent") {
+      void refreshL1();
+      return;
+    }
+    void refreshStatus();
+  }, [feed, refreshL1, refreshStatus]);
 
   /** Insert text at cursor via composer. */
   function insertAtCursor(text: string) {
