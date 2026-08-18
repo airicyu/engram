@@ -70,12 +70,22 @@ Engram machine writes **must** use path + display form (display name = node id u
 - Do **not** invent wikilinks for one-off passers-by you are not creating as nodes.
 - Do **not** link to `node.meta.yaml`／`score.yaml`／`what.md`／`INDEX.md`.
 
+### Day summary shape (`*.summary.md`)
+
+Day summary is a **readable same-day narrative**, not a second ledger and not a week retrospective. Fragmentary is allowed.
+
+- **Different life threads → different `##`.** ≥2 substantive threads → ≥2 `##` titles. Titles are content-derived and brief (about 2–8 words) — not a fixed Work／Family checklist.
+- **Forbidden:** stuffing unrelated threads into one title; welding unrelated beats into one paragraph (semicolon／comma walls) to look “fused”.
+- Default: **one beat (or one time-arc) per paragraph.** Same `##` may have several paragraphs. Only join beats into flowing prose when they are clearly the same arc (e.g. connect bot → stand up local → ship that evening).
+- Full sentences; time should be clear from the day’s events. Do not make a comma-list of names, versions, or paths the spine of the file.
+- **Ledger** appends stay fragmentary — do **not** article-ize ledger blocks.
+
 ### Chain node wikilinks
 
-When writing **day summary** (`*.summary.md`) or **day ledger** append blocks, if you mention an L2 node that is in frozen `l2_current`／`existing_nodes`, **or** a node you create this round → include P1 `[[nodes/{id}/{id}|{id}]]` in that prose (same form as Relation). Spoken names may still appear around the link.
+When writing **day summary** (`*.summary.md`) or **day ledger** append blocks, if you mention an L2 node that is in frozen `l2_current`／`existing_nodes`, **or** a node you create this round → **the first mention in that `##` section** (ledger: first mention in the block) must be P1 `[[nodes/{id}/{id}|{id}]]` (same form as Relation). Later in the **same** section a spoken name is enough — do not hang a link on every subject.
 
 - Do **not** invent links for entities you are not treating as nodes.
-- Do **not** rewrite unrelated historical days just to add links. If a node appears only *after* a day was written, leave that historical day alone until a later dream／amend **rewrites** that file for other reasons.
+- Do **not** rewrite unrelated historical days just to add links. If a node appears only *after* a day was written, leave that historical day alone until a later dream／amend **rewrites** that file for other reasons. Non-backfill still holds.
 
 ### Media attachments (`![[_attachments/uploads/…]]`)
 

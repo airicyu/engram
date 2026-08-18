@@ -34,8 +34,13 @@ function runLintInStore(storeDir: string, runId: string): string[] {
 
 describe("structure-notes", () => {
   test("empty warnings → _None_", async () => {
-    const { formatStructureNotesSection } = await import("./structure-notes");
+    const { formatStructureNotesSection, summaryHasProcessNarration } = await import(
+      "./structure-notes"
+    );
     expect(formatStructureNotesSection([])).toBe("## Structure notes\n\n_None_");
+    expect(summaryHasProcessNarration("## Engram\n\nQuiet.")).toBe(false);
+    expect(summaryHasProcessNarration("Writing the summary now.")).toBe(true);
+    expect(summaryHasProcessNarration("已寫入 week file.")).toBe(true);
   });
 
   test("missing headings and broken link produce warnings", async () => {
@@ -158,6 +163,106 @@ describe("structure-notes", () => {
     expect(
       warnings.some((w) => w.includes("mentions mak without wikilink")),
     ).toBe(true);
+  });
+
+  test("summary process narration → warning; still does not throw", async () => {
+    const storeDir = await mkdtemp(join(tmpdir(), "engram-struct-proc-"));
+    await writeFile(
+      join(storeDir, "engram.workspace.yaml"),
+      "timezone: Asia/Hong_Kong\nstore_version: 0.36.0\n",
+      "utf8",
+    );
+    const runId = "dream-struct-proc";
+    const sumDir = join(
+      storeDir,
+      "dreams",
+      "draft",
+      runId,
+      "memories",
+      "chain",
+      "weeks",
+      "2026-08",
+    );
+    await mkdir(sumDir, { recursive: true });
+    await writeFile(
+      join(sumDir, "2026-W33-0810.summary.md"),
+      [
+        "Reading the write context to draft the week summary.",
+        "",
+        "## Engram",
+        "",
+        "Shipped with [[nodes/engram/engram|engram]].",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const script = `
+      import { lintDraftChainSummaries } from "./src/dream/report/structure-notes.ts";
+      const warnings = await lintDraftChainSummaries(${JSON.stringify(runId)});
+      console.log(JSON.stringify(warnings));
+    `;
+    const proc = spawnSync("bun", ["-e", script], {
+      cwd: serverRoot,
+      env: { ...process.env, ENGRAM_STORE_DIR: storeDir },
+      encoding: "utf8",
+    });
+    if (proc.status !== 0) {
+      throw new Error(proc.stderr || proc.stdout || `exit ${proc.status}`);
+    }
+    const warnings = JSON.parse(proc.stdout.trim()) as string[];
+    expect(
+      warnings.some((w) =>
+        w.includes("process narration") && w.includes("2026-W33-0810.summary.md"),
+      ),
+    ).toBe(true);
+  });
+
+  test("ledger with process sentence is not linted", async () => {
+    const storeDir = await mkdtemp(join(tmpdir(), "engram-struct-led-"));
+    await writeFile(
+      join(storeDir, "engram.workspace.yaml"),
+      "timezone: Asia/Hong_Kong\nstore_version: 0.36.0\n",
+      "utf8",
+    );
+    const runId = "dream-struct-led";
+    const dayDir = join(
+      storeDir,
+      "dreams",
+      "draft",
+      runId,
+      "memories",
+      "chain",
+      "days",
+      "2026-08",
+    );
+    await mkdir(dayDir, { recursive: true });
+    await writeFile(
+      join(dayDir, "2026-08-10.md"),
+      "Reading the write context\n",
+      "utf8",
+    );
+    await writeFile(
+      join(dayDir, "2026-08-10.summary.md"),
+      "## Day\n\nQuiet.\n",
+      "utf8",
+    );
+
+    const script = `
+      import { lintDraftChainSummaries } from "./src/dream/report/structure-notes.ts";
+      const warnings = await lintDraftChainSummaries(${JSON.stringify(runId)});
+      console.log(JSON.stringify(warnings));
+    `;
+    const proc = spawnSync("bun", ["-e", script], {
+      cwd: serverRoot,
+      env: { ...process.env, ENGRAM_STORE_DIR: storeDir },
+      encoding: "utf8",
+    });
+    if (proc.status !== 0) {
+      throw new Error(proc.stderr || proc.stdout || `exit ${proc.status}`);
+    }
+    const warnings = JSON.parse(proc.stdout.trim()) as string[];
+    expect(warnings.some((w) => w.includes("process narration"))).toBe(false);
   });
 
   test("lintMentionCreates warns when create missing from draft", async () => {

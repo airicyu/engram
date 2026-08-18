@@ -364,9 +364,17 @@ export class MockOkRunner implements AgentRunner {
     const priorSummary =
       (ctx.chain_summaries_current ?? []).find((d) => d.day === chainDay)?.current.trim() ?? "";
     const increment = ctx.events.map((e) => e.raw.trim()).join(" ").slice(0, 200);
-    const summary = priorSummary
-      ? `${priorSummary} ${increment} (also ${chainPeerLink})`.trim()
-      : `Day summary (mock): work with ${chainPeerLink}; ${increment}`;
+    const summary = [
+      "## Mock day",
+      "",
+      priorSummary
+        ? `Day summary (mock): work with ${chainPeerLink} continued.`
+        : `Day summary (mock): work with ${chainPeerLink}.`,
+      "",
+      increment
+        ? `Same-day beat: ${increment}`
+        : `The rest of the day stayed quiet.`,
+    ].join("\n");
     await writeDraftFile(ctx.dream_run_id, daySummaryRel(chainDay), `${summary}\n`);
 
     const wantsFuture =

@@ -29,7 +29,11 @@ Draft orientation (paths already in this pending draft): {{DRAFT_SUMMARY}}
 2. Prefer **Read** existing draft／report／live, then **Edit** the smallest set of files. Do **not** use Bash／shell to rewrite store files.
 3. Keep standing understanding rules for any `memories/nodes/{id}/{id}.md` you touch: four English `##` headings in order — Identity → Relation → Standing facts → Current situation; empty body = `_None_`; no day-diary backbone. **Forbidden:** write `understand/what.md` or stub `INDEX.md`.
 4. When Relation／Standing facts mention another known／this-round L2 node, keep a vault-relative wikilink `[[nodes/{id}/{id}|{id}]]` (vault = `memories/`; no `memories/` prefix).
-5. If the instruction leads you to edit **chain** prose (day／week／month／year summary or a ledger block): when you mention an L2 node that exists live or in this draft／this round, use the same P1 form. Do **not** expand edits to unrelated historical days just to add links.
+5. If the instruction leads you to edit **chain** prose:
+   - **Ledger** blocks stay fragmentary (do not article-ize them unless the human asked).
+   - **Day summary:** different life threads → different `##`; unrelated beats → separate paragraphs; no combined-title walls. Day may stay fragmentary.
+   - **Week／month／year summary:** retrospective with **selection**. Answer that layer’s question (week = what mattered; month = rhythm／turns; year = through-line). **Do not** paste lower summaries as an anthology. Omit lower beats that do not define the period. Do **not** add omitted lower detail back “for completeness” unless the human instruction explicitly asks to restore a fact.
+   - Wikilinks: first mention of a known／this-round L2 node **in that `##` section** → P1 `[[nodes/{id}/{id}|{id}]]`; later in the same section a spoken name is enough. If a beat is omitted, omit its links too. Do **not** expand edits to unrelated historical days just to add links (non-backfill).
 6. Ledger appends still use `{{DRAFT_DIR}}/appends/memories/chain/days/...` when needed; do **not** wholesale overwrite day ledgers with file_update.
 7. You may update `{{DRAFT_DIR}}/node-score-involvements.yaml` if the instruction requires it; categories only `mention`｜`update`｜`focus`. Prefer leaving involvements alone when the human only asked for prose／path fixes (category-only fixes belong to structured UI, not this job).
 8. Write language = `{{MEMORY_LANGUAGE}}`. Do **not** invent future day chain ids after today=`{{TODAY}}`.

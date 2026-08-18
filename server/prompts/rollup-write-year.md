@@ -18,12 +18,12 @@ Write the summary body in **{{MEMORY_LANGUAGE}}** (`zh-Hant` = Traditional Chine
 
 ## Purpose
 
-A **year retrospective** — as if someone reviewed the months and wrote what this year *was* about. High altitude, still personal; scannable by life dimension; each section a through-line with **year-scale time sense**.
+A **year retrospective** answering: **what defined this year?** High altitude, still personal; scannable by life dimension; each section a through-line with **year-scale time sense** — **not** pasted month paragraphs.
 
 **Outer structure = lived dimensions** (`##` sections).  
 **Inner structure (inside each section) = chronological** — early year → mid → late year (or spring→summer→autumn…), with clear time anchors.
 
-This is **not** a month-by-month chronology as the page spine (no top-level Jan→Dec tour). Group by what defined the year; **within** each group, tell the arc in time order.
+This is **not** a month-by-month chronology as the page spine (no top-level Jan→Dec tour). Group by what defined the year; **within** each group, tell kept beats in time order.
 
 ## How to think (required)
 
@@ -34,17 +34,21 @@ This is **not** a month-by-month chronology as the page spine (no top-level Jan�
    - side projects／learning／creative work
    - money／housing／admin
    - society／wider world (only if it shaped *this* year for the person)
-2. For **each kept dimension**, one **short paragraph** (or two) under its own `##` title: the year’s through-line, turning points, what held steady.
-3. **Inside that section, narrate in time order.** Prefer: 年初／上半年 → 年中 → 下半年／年底, or seasons／named months (`2026-05`, 「五月」, 「盛夏」). When a month or notable day is known from `lower[]`, name it. Do **not** open a section mid-story with no time frame; give the reader「何時」before or with the first beat.
-4. Order **sections** by what mattered most that year. Order **facts inside a section** by time.
-5. More abstract than month; fewer tiny day details — but **keep temporal orientation**. Fuse into coherent prose; do not paste month paragraphs end-to-end.
+2. **Selection is required.** Default omit: restating month-layer paragraphs, every minor project version. Use seasons or first／second half. Omitting a month beat is **not** deleting memory. Pasting month sections end-to-end is a **failed** year summary.
+3. For **each kept dimension**, write its own `##` title: the year’s through-line, turning points, what held steady. **One title = one dimension.**
+4. **Paragraphs:** default **one beat (or one time-arc) per paragraph**. Several paragraphs per `##` are allowed. Fuse **only** the same through-line. Unrelated → new paragraph or omit.
+5. **Inside that section, narrate kept beats in time order.** Prefer: 年初／上半年 → 年中 → 下半年／年底, or seasons／named months (`2026-05`, 「五月」, 「盛夏」). When a month or notable day is known from `lower[]`, name it. Do **not** open a section mid-story with no time frame; give the reader「何時」before or with the first beat.
+6. Order **sections** by what mattered most that year. Order **facts inside a section** by time.
+7. More abstract than month; fewer tiny day details — but **keep temporal orientation**. Do **not** paste month paragraphs.
 
 ## Shape (required)
 
 ```markdown
 ## Short title
 
-Paragraph (chronological through-line within the dimension)…
+Paragraph (through-line)…
+
+Optional later-year paragraph…
 
 ## Another title
 
@@ -60,17 +64,17 @@ Paragraph…
 
 - **No** top-level “January… February… March…” (or month-id) spine as the main page structure.
 - No bullet catalog of month／week ids.
-- No paste／truncate-stack of lower Currents.
+- No paste／truncate-stack of lower Currents. **Do not paste month paragraphs. Anthology = failure.**
 - No `## Current` / `## History` headers.
 - No meta about being a model／writer.
 - No process narration in the output file（“Reading the write context…”, “Writing…”, “已寫入 …”）. **First line must be a `##` title.**
 - No deictic time with no anchor（「這天」「今日」「那天」without saying which day／month／season）.
 
-## Node wikilinks (when fusing)
+## Node wikilinks (when selecting)
 
-- If you mention an L2 node that still exists in live／this-round context → use P1 `[[nodes/{id}/{id}|{id}]]` (vault = `memories/`; never prefix `memories/`).
-- Preserve any `[[nodes/…]]` already present in `lower[]`.
+- If you mention an L2 node that still exists in live／this-round context → **first mention in that `##` section** must be P1 `[[nodes/{id}/{id}|{id}]]` (vault = `memories/`; never prefix `memories/`). Later in the same section a spoken name is enough.
+- If you **omit** a lower beat, **omit** its wikilinks too. Do **not** copy a lower sentence just to keep a `[[nodes/…]]`.
 - If a lower month only used plain prose for a person／project but that node **now** exists → this rollup **may** introduce P1 (new higher summary, not historical day backfill).
 - Do **not** invent links for one-off names that are not nodes.
 
-Ground only in `lower[]` (+ `prior_current` on revise). Complete replacement body on revise.
+Ground only in `lower[]` (+ `prior_current` on revise). Complete replacement body on revise (new contract, not a stitch of month paste).

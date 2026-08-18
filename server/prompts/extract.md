@@ -48,7 +48,7 @@ When `review_feedback` is absent, ignore this section.
 9. **New nodes:** emit `propose_node` to **create** a live node on approve (same run may then `semantic` / `episodic` that `proposed_id`). Put `propose_node` before patches that reference the new id. Do **not** use candidates as the "create node" path.
 10. For `semantic` / `episodic` on an id not in `existing_nodes`, you MUST also emit `propose_node` for that id in this same array.
 11. Vs L2 Current: supplementary fact → `semantic.operation: "append"`; clearly overturns Current → `"revise"`; resolving an open question → `"resolve_open"`.
-12. For each `chain` patch: set `summary_operation` from `chain_summaries_current` for that `id` (empty → `init`, non-empty → `revise`). `summary` must be the fused full-day text; `content` stays incremental.
+12. For each `chain` patch: set `summary_operation` from `chain_summaries_current` for that `id` (empty → `init`, non-empty → `revise`). `summary` is the human-readable **day narrative** (sectioned; not a single fused wall); `content` stays incremental.
 13. Do not write any files under ENGRAM_STORE_DIR. Do not call Write/Edit tools. Read the context file only. stdout JSON is the only deliverable.
 
 ## Schema specification
@@ -81,7 +81,7 @@ Update L2 **what** for an existing node **or** a node created via `propose_node`
 Day-level **occurrence** on the world timeline. One patch drives **both** tracks:
 
 - **ledger** (`content`) → append-only block on `memories/chain/days/{YYYY-MM}/{id}.md`
-- **summary** (`summary` + `summary_operation`) → fused day narrative on `memories/chain/days/{YYYY-MM}/{id}.summary.md`
+- **summary** (`summary` + `summary_operation`) → readable day narrative on `memories/chain/days/{YYYY-MM}/{id}.summary.md`
 - Week／month／year rollups are a **separate** post-extract pipeline — do **not** emit week／month／year chain patches here.
 
 | Field | Type | Required | Rules |
@@ -89,7 +89,7 @@ Day-level **occurrence** on the world timeline. One patch drives **both** tracks
 | `level` | string | yes | Must be exactly `"day"` |
 | `id` | string | yes | Occurrence day `YYYY-MM-DD` ≤ today (`{{TODAY}}`, {{TIMEZONE}}). **Never** a future day. |
 | `content` | string | yes | Non-empty **incremental** ledger text (may be fragmentary; need not match summary verbatim) |
-| `summary` | string | yes | **Fused** full-day narrative — absorb prior `chain_summaries_current[day]` + this round's facts; do **not** only repeat `content`. Prefer short `##` section titles inside the body when the day has distinct life threads (e.g. `## Harbor` / `## Engram`); titles must be content-derived and brief — not a fixed Work／Family checklist. The store writes `summary` as the **whole** `*.summary.md` file — do **not** emit `## Current` / `## History`. |
+| `summary` | string | yes | **Readable day narrative** for a person, absorbing prior `chain_summaries_current[day]` + this round's facts; do **not** only repeat `content`. **Different life threads → different `##`.** If the day has ≥2 substantive threads, emit ≥2 `##` titles. **Forbidden:** combining unrelated threads in one title (comma-list of the whole day) or welding unrelated beats into one paragraph (semicolon／comma walls). Inside a thread, one beat (or one time-arc) per paragraph; fragmentary is fine — do **not** melt trivia into one block to look “fused”. Full sentences; not a proper-noun／version dump. When you mention an L2 node that exists in `l2_current`／`existing_nodes` or you `propose_node` this run → **first mention in that `##` section** must be P1 `[[nodes/{id}/{id}\|{id}]]`; later in the same section a spoken name is enough. Do **not** invent links for passers-by. Titles: content-derived, brief (about 2–8 words) — not a fixed Work／Family checklist. The store writes `summary` as the **whole** `*.summary.md` file — do **not** emit `## Current` / `## History`. |
 | `summary_operation` | string | yes | `"init"` if that day's summary is empty／missing; `"revise"` if prior summary body exists |
 
 Context fields: `chain_summaries_current` (required for decide init vs revise); `chain_ledgers` optional (audit／debug).
@@ -157,7 +157,7 @@ Attribute an experience to a node. Low confidence (`< 0.6`) → attribution cand
     "level": "day",
     "id": "2026-07-17",
     "content": "2026-07-17: confirmed requirements (backfilled; encoded later).",
-    "summary": "On 2026-07-17, confirmed Engram requirements (later backfilled into the log).",
+    "summary": "## Engram\n\nOn 2026-07-17, confirmed [[nodes/engram/engram|engram]] requirements (later backfilled into the log).",
     "summary_operation": "init"
   },
   {

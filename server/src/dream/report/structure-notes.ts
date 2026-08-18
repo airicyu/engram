@@ -1,5 +1,5 @@
 /**
- * Soft structure lint for draft node main files (0.28) and chain summaries (0.31).
+ * Soft structure lint for draft node main files (0.28) and chain summaries (0.31／0.38).
  * Warnings only — never fails the dream job or blocks approve.
  */
 
@@ -21,6 +21,18 @@ const STANDING_HEADINGS = [
 const NODE_MAIN_RE = /^memories\/nodes\/([^/]+)\/\1\.md$/;
 /** Vault-relative wikilink to node main: [[nodes/{id}/{id}|...]] or [[nodes/{id}/{id}]] */
 const NODE_WIKILINK_RE = /\[\[nodes\/([^/\]]+)\/\1(?:\|[^\]]*)?\]\]/g;
+
+/** Process-narration needles for draft `*.summary.md` (0.38). Case-insensitive. */
+export const SUMMARY_PROCESS_NARRATION_NEEDLES = [
+  "Reading the write context",
+  "Writing the summary",
+  "已寫入",
+] as const;
+
+export function summaryHasProcessNarration(md: string): boolean {
+  const hay = md.toLowerCase();
+  return SUMMARY_PROCESS_NARRATION_NEEDLES.some((n) => hay.includes(n.toLowerCase()));
+}
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -178,7 +190,8 @@ export async function lintDraftNodeStructure(dreamRunId: string): Promise<string
 }
 
 /**
- * Soft-lint draft chain summaries: known peer id mentioned with no `[[` at all.
+ * Soft-lint draft chain summaries: known peer id mentioned with no `[[` at all;
+ * process narration leaked into the body (0.38).
  * Does not scan ledger blocks (0.31).
  */
 export async function lintDraftChainSummaries(dreamRunId: string): Promise<string[]> {
@@ -191,6 +204,11 @@ export async function lintDraftChainSummaries(dreamRunId: string): Promise<strin
   for (const { abs, rel } of summaries) {
     const md = await readFile(abs, "utf8");
     if (!md.trim()) continue;
+
+    if (summaryHasProcessNarration(md)) {
+      warnings.push(`summary ${rel}: process narration`);
+    }
+
     // Heuristic: any wikilink syntax present → skip file-level "no [[" check.
     if (md.includes("[[")) continue;
 

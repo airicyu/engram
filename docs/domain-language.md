@@ -95,7 +95,7 @@
 | **short-term memory** | 短期記憶層 | 尚未整理進長期的工作區 pool | `memories/short-term-memory/pool.jsonl` | Activities 寫入；Approve 後清 scope S；**不**另存 summary.md／node notes |
 | **dream staging** | 入夢中間層 | 由 short-term 入夢產出、待 Approve 才進 L2（draft＋report） | `dreams/draft/`、`dreams/reports/` | `dreams/` 不進 store git |
 | **L2 · nodes** | 長期節點理解 | 對某主題／人目前「相信什麼」＝**standing understanding**（整檔 `{id}.md`） | `memories/nodes/{id}/{id}.md` | Approve 寫入；可手改。Obsidian 開 **`memories/`** |
-| **L2 · chain** | 長期記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary |
+| **L2 · chain** | 長期記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary；**0.38** 摘要寫作＝日可碎須分段、高階須取捨 |
 | **future-sight** | 近程前瞻 | 短期要盯的錨點（deadline 等）；hot＝近窗熱區 | `memories/future-sight/hot.md`＋`later.md` | 入夢前／GET 機械過期；內容經入夢＋人審 |
 
 **一句話對照：**
@@ -147,7 +147,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 |------|------|----------|
 | 新建／更新 node | **Standing understanding**（四段骨架） | `memories/nodes/{id}/{id}.md`（整檔；見下行） |
 | day ledger block | 日鏈增量稽核 | `memories/chain/days/{YYYY-MM}/{id}.md`（append-only） |
-| day／week／month／year summary | 可讀敘事 snapshot | 對應 `*.summary.md`（整檔） |
+| day／week／month／year summary | 可讀敘事 snapshot | 對應 `*.summary.md`（整檔）。**0.38：** 日可碎、須分題／分段；週／月／年必須取捨，禁止把下層全文再貼一次 |
 | future-sight | 近程錨點 | `future-sight/hot.md`／`later.md` |
 | deletes | 白名單刪除清單 | draft `deletes.txt` → deploy 先刪 |
 
@@ -226,7 +226,7 @@ Seek（0.18+）：Search scope `future` 掃兩區。Ask（0.34+）恆可讀 `hot
 | EN | 中文 | 說明 | 路徑 | 寫入 |
 |----|------|------|------|------|
 | **chain ledger** | 日鏈增量紀錄 | patch block 稽核鏈；append-only | `memories/chain/days/{YYYY-MM}/{id}.md` | 機械 append |
-| **chain summary** | 日鏈融合摘要 | 可讀的當日敘事；search 命中時回傳 | `memories/chain/days/{YYYY-MM}/{id}.summary.md` | extract 產出 `summary`；approve 機械 revise |
+| **chain summary** | 日鏈敘事摘要 | 可讀的當日敘事（可分題／分段）；search 命中時回傳 | `memories/chain/days/{YYYY-MM}/{id}.summary.md` | extract 產出 `summary`；approve 機械 revise |
 
 - 一筆 `chain` patch 同時寫 ledger block 與 summary（`summary_operation`: `init` \| `revise`）。
 - 既有 `days/*.md` 視為 ledger；summary 由下一輪 dream 產生。
@@ -299,7 +299,7 @@ Seek（0.18+）：Search scope `future` 掃兩區。Ask（0.34+）恆可讀 `hot
 | `dreams/reports/{run_id}.md` | human report | 人類可讀報告 |
 | `memories/nodes/{id}/{id}.md` | L2 semantic understanding | L2 語意理解 |
 | `memories/chain/days/{YYYY-MM}/*.md` | chain ledger (day) | 日鏈增量紀錄（0.5.0 語義；0.11.0 起按月分組） |
-| `memories/chain/days/{YYYY-MM}/*.summary.md` | chain summary (day) | 日鏈融合摘要（0.5.0；0.11.0 起按月分組） |
+| `memories/chain/days/{YYYY-MM}/*.summary.md` | chain summary (day) | 日鏈敘事摘要（0.5.0；0.11.0 起按月分組；0.38 分段／分題） |
 | `memories/future-sight/hot.md`／`later.md` | future-sight zones | 近程前瞻雙區 |
 | `web/` | workbench UI | 工作台介面 |
 | `engram-workbench/`（agent skills 樹） | engram-workbench skill | 工作台 HTTP skill |

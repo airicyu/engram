@@ -952,13 +952,27 @@ Unique later keyword xylophone-launch window for search.
     const monthText = String(monthDet.data.content ?? "");
     assert(monthText.length > 20, "month summary has content");
     assert(!/^##\s*Current\b/m.test(monthText), "higher summary has no Current wrapper");
-    assert(/^##\s+\S+/m.test(monthText), "month summary has ## section title");
+    assert(/^##\s+\S+/.test(monthText.trimStart()), "month summary starts with ##");
     assert(!/^[-*]\s*\d{4}/m.test(monthText), "month summary is not an id-bullet dump");
     assert(!/summary\s*\(mock\)\s*for/i.test(monthText), "month summary has no mock dump label");
+    assert(!/reading the write context/i.test(monthText), "month summary has no process narration");
+    assert(!/writing the summary/i.test(monthText), "month summary has no writing-the-summary aside");
+    assert(!monthText.includes("已寫入"), "month summary has no 已寫入 aside");
     assert(
       monthText.includes("[[nodes/"),
       "month summary includes P1 node wikilink",
     );
+    const juneDaysDir = join(TEST_HOME, "memories/chain/days/2026-06");
+    const juneDayFiles = await readdir(juneDaysDir).catch(() => [] as string[]);
+    for (const name of juneDayFiles) {
+      if (!name.endsWith(".summary.md")) continue;
+      const dayBlob = (await readFile(join(juneDaysDir, name), "utf8")).trim();
+      if (dayBlob.length < 24) continue;
+      assert(
+        !monthText.includes(dayBlob),
+        `month summary must not paste full ${name}`,
+      );
+    }
 
     await json("DELETE", "/clock");
 
@@ -1954,7 +1968,7 @@ Unique later keyword xylophone-launch window for search.
       "empty_patches still archives clarify pending",
     );
 
-    console.log("\n✅ All self-checks passed (through 0.37)");
+    console.log("\n✅ All self-checks passed (through 0.38)");
   } finally {
     await stopServer(server);
   }

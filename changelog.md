@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.38.0 — Chain 摘要分段、取捨、文章化 (2026-08-18)
+
+記憶鏈 **day summary** 與 **week／month／year** 改寫作契約：日文可碎但須分題／分段；週／月／年必須取捨，禁止把下層全文再貼成合訂本。只改 prompts、mock 形狀、過程句 soft lint、phases。**無**新 HTTP、**無** UI 改動、**無** store migrate；boot 仍 ≥0.36。見 `docs/roadmap/0.38.0/`。
+
+### Changed
+
+- extract／dream-files：day summary 分題、線內可多段；禁止多線併題與無關節拍熔一段
+- week／month／year writer：升層丢掉細節；省略下層節拍（含其 wikilink）；wikilink 改為節內首次 P1
+- amend：改 chain 時同一海拔／分段；不要為「補完整」把已省略細節加回
+- mock：確定性產出以 `##` 開頭、有 P1、非 lower 全文 paste；週／月多 lower 時分節且節內可多段
+- Structure notes：draft `*.summary.md` 過程句（Reading the write context／Writing the summary／已寫入）→ 警告；不擋 approve
+
+### Non-goals
+
+- 新 API、記憶鏈 UI、歷史 backfill、字數硬閘門、改 ledger 為文章、抬 boot gate
+
+---
+
 ## 0.37.0 — 記憶節點 network graph (2026-08-17)
 
 Memory **節點**模式改為可縮放、可拖的 2D force-directed 圖；新增唯讀 `GET /memories/nodes/graph`。邊來自 L2 `{id}.md` 內 P1 wikilink。**不**改記憶鏈 UI／API。**無** store migrate；boot 仍 ≥0.36。見 `docs/roadmap/0.37.0/`。
