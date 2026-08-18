@@ -157,7 +157,7 @@ export function ClarifyScene() {
   const busy = selected ? busyId === selected.id : false;
 
   return (
-    <section className="scene is-active inbox-scene" aria-label={t("nav.inbox")}>
+    <section className="scene scene-fill is-active inbox-scene" aria-label={t("nav.inbox")}>
       <div className="scene-header">
         <p className="scene-lead">{t("clarify.lead")}</p>
         <button
@@ -173,6 +173,32 @@ export function ClarifyScene() {
 
       {locked ? <p className="lock-hint">{t("clarify.lock_hint")}</p> : null}
       <Msg text={msg.text} kind={msg.kind} />
+
+      <form className="clarify-aside inbox-aside" onSubmit={(e) => void onAside(e)}>
+        <div className="clarify-aside-main">
+          <h2 className="clarify-aside-title">{t("clarify.aside_title")}</h2>
+          <p className="clarify-aside-lead">{t("clarify.aside_lead")}</p>
+          <label className="sr-only" htmlFor="clarify-aside-input">
+            {t("clarify.aside_label")}
+          </label>
+          <textarea
+            id="clarify-aside-input"
+            className="clarify-aside-input"
+            rows={3}
+            value={aside}
+            disabled={locked || asideBusy}
+            onChange={(e) => setAside(e.target.value)}
+            placeholder={t("clarify.aside_placeholder")}
+          />
+          <div className="inbox-aside-actions">
+            <button type="submit" className="btn primary" disabled={locked || asideBusy}>
+              {t("clarify.aside_submit")}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <hr className="inbox-rule" />
 
       {loading || items.length === 0 ? (
         <div className="inbox-layout is-empty">
@@ -280,30 +306,6 @@ export function ClarifyScene() {
         </div>
       </div>
       )}
-
-      <form className="clarify-aside inbox-aside" onSubmit={(e) => void onAside(e)}>
-        <div className="clarify-aside-main">
-          <h2 className="clarify-aside-title">{t("clarify.aside_title")}</h2>
-          <p className="clarify-aside-lead">{t("clarify.aside_lead")}</p>
-          <label className="sr-only" htmlFor="clarify-aside-input">
-            {t("clarify.aside_label")}
-          </label>
-          <textarea
-            id="clarify-aside-input"
-            className="clarify-aside-input"
-            rows={3}
-            value={aside}
-            disabled={locked || asideBusy}
-            onChange={(e) => setAside(e.target.value)}
-            placeholder={t("clarify.aside_placeholder")}
-          />
-          <div className="inbox-aside-actions">
-            <button type="submit" className="btn primary" disabled={locked || asideBusy}>
-              {t("clarify.aside_submit")}
-            </button>
-          </div>
-        </div>
-      </form>
     </section>
   );
 }
