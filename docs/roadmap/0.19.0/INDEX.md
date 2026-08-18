@@ -4,7 +4,7 @@
 
 > **狀態：** **shipped**  
 > 來源：產品討論「node 熱度／活躍分」；非未來視 hot／cold 分區。  
-> 相關後續（本版不做）：[backlog dream-draft-edit 2b](../backlog/dream-draft-edit.md)、Seek／network 依分排序（見非目標）。
+> 相關後續（本版不做）：2b 其後出貨為 [0.27.0](../0.27.0/INDEX.md)；Seek／Ask 依活躍分仍見 [backlog](../backlog/INDEX.md)。
 
 ## 產品句
 
@@ -81,7 +81,7 @@
 - Lazy `decay(Δt)+boost`（模型 C）當主路徑
 - Seek／Ask **依分排序或種子擴張**；network 圖／節點大小
 - 獨立 HTTP **只做** downscale 的公開 API（flow 程式內可呼叫；外露 → 後版）
-- **2b** 自由句指示 agent 修任意 draft（→ [backlog](../backlog/dream-draft-edit.md)）
+- **2b** 自由句指示 agent 修任意 draft（其後 [0.27.0](../0.27.0/INDEX.md)）
 - Node merge；embedding；auth
 - AI 直接寫 `score`／`max_score`
 - 開機時因 `store_version !== product_version` 拒啟（同結構代較新字串須仍可啟）

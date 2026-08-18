@@ -220,7 +220,6 @@ export function ClarifyScene() {
                     className={`inbox-thread${on ? " is-active" : ""}`}
                     onClick={() => setSelectedId(item.id)}
                   >
-                    <span className="inbox-thread-author">{t("clarify.post_author")}</span>
                     {item.created_at ? (
                       <time className="inbox-thread-time" dateTime={item.created_at}>
                         {formatPostTime(item.created_at, t, locale)}
@@ -240,18 +239,15 @@ export function ClarifyScene() {
           ) : (
             <>
               <div className="inbox-message">
-                <div className="inbox-message-head">
-                  <span className="clarify-post-author">{t("clarify.post_author")}</span>
-                  {selected.created_at ? (
-                    <time
-                      className="clarify-post-time"
-                      dateTime={selected.created_at}
-                      title={new Date(selected.created_at).toLocaleString()}
-                    >
-                      {formatPostTime(selected.created_at, t, locale)}
-                    </time>
-                  ) : null}
-                </div>
+                {selected.created_at ? (
+                  <time
+                    className="clarify-post-time"
+                    dateTime={selected.created_at}
+                    title={new Date(selected.created_at).toLocaleString()}
+                  >
+                    {formatPostTime(selected.created_at, t, locale)}
+                  </time>
+                ) : null}
                 <p className="clarify-post-body">{selected.question}</p>
                 {selected.related_nodes.length > 0 ? (
                   <div className="clarify-post-tags">

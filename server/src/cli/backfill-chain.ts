@@ -34,7 +34,7 @@ function parseArgs(argv: string[]) {
     else if (a.startsWith("--until=")) until = a.slice(8);
     else if (a === "--until") until = argv[++i]!;
   }
-  return { level, until };
+  return { level, until } as { level: "week" | "month" | "year" | "all"; until: string | null };
 }
 
 function dayIncluded(dayId: string, until: string | null): boolean {

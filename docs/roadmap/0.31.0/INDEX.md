@@ -82,7 +82,7 @@
 ## 非目標
 
 - History API path router（`/memory/nodes/…` 無 hash）或 SSR
-- Engram 內 network graph GUI（仍見 [backlog node-network-graph](../backlog/node-network-graph.md)）
+- Engram 內 network graph GUI（其後出貨為 [0.37.0](../0.37.0/INDEX.md)）
 - Vector／語意搜尋
 - 全庫／歷史 chain **backfill** wikilink
 - Node merge；typed `graph/links.yaml`

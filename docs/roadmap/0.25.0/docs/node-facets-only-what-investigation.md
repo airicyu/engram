@@ -2,7 +2,7 @@
 
 ← [0.25.0 INDEX](../INDEX.md) · 原 backlog 調查（已結案；真相以本版＋[0.26.0](../../0.26.0/INDEX.md) 為準）
 
-**狀態：** 調查完成（2026-08-07）。**0.25** 定案短期維持 **what-only**（單檔 standing understanding）；多 facet 復辟不在本版。殘餘產品取捨見文末與 [reflective-cognition-prompts](../../backlog/reflective-cognition-prompts.md)。
+**狀態：** 調查完成（2026-08-07）。**0.25** 定案短期維持 **what-only**（單檔 standing understanding）；多 facet 復辟不在本版。殘餘產品取捨見文末；「未釐清」其後由 [0.30.0 釐清](../../0.30.0/INDEX.md) 承擔，不走獨立 facet 檔。
 
 ## 題目
 
@@ -25,7 +25,7 @@ Memory／Seek UI 上的 **node 區塊**只顯示 **`what.md`／`understanding`**
 | `chronology/`？ | **腳手架未接線**：`seedNode` 會建目錄但 **從未被呼叫**；真實 store 無任何 `chronology/` 檔 |
 | 真實資料長怎樣？ | 抽樣 node **皆僅** `what.md`；內容常混雜關係／職業／時間軸（見下；**不引原文**） |
 
-**產品方向（0.25 已定）：** 維持 what-only；把單檔做成 standing understanding（四段骨架）。若再擴充，優先釐清 **open／未釐清** 是否走 [reflective-cognition-prompts](../../backlog/reflective-cognition-prompts.md)，再決定是否恢復多 facet 檔。
+**產品方向（0.25 已定）：** 維持 what-only；把單檔做成 standing understanding（四段骨架）。若再擴充，優先釐清 **open／未釐清** 是否走 [0.30 釐清](../../0.30.0/INDEX.md) inbox，再決定是否恢復多 facet 檔。
 
 ### 1. 設計意圖（文件）
 
@@ -94,7 +94,7 @@ memories/nodes/{id}/
 ### 6. 若擴充：建議決策順序（非定案）
 
 1. **維持 what-only** — 在 prompt 引導結構化小標是否足夠？（**0.25：四段骨架**）
-2. **`open`／未釐清** — 獨立 `open.md` vs [reflective-cognition-prompts](../../backlog/reflective-cognition-prompts.md) inbox？
+2. **`open`／未釐清** — 獨立 `open.md` vs [0.30 釐清](../../0.30.0/INDEX.md) inbox？
 3. **時間語意** — `when.md` vs 留在 chain／future-sight（0.4 已傾向後者）
 4. **chronology** — 恢復 episodic 寫入 vs 廢棄目錄約定
 5. **橫切** — Search／Ask／activation 讀哪些 facet；API 是否 `understand: { what, open, … }`
@@ -120,7 +120,7 @@ memories/nodes/{id}/
 ## 相關
 
 - [0.25 standing understanding](./standing-understanding.md) — 單檔做對
-- [AI 反思與認知補問](../../backlog/reflective-cognition-prompts.md) — 「未釐清」可能重疊 `open.md` 語意
+- [0.30.0 釐清](../../0.30.0/INDEX.md) — 「未釐清」可能重疊 `open.md` 語意（其後釐清已出貨）
 - [Vector／語意搜尋](../../backlog/vector-semantic-search.md) — 索引對象目前寫死 `what.md`
 
 ## 錨點檔案

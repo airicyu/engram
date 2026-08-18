@@ -1,9 +1,9 @@
 # 0.27.0 — Amend-dream（pending 同稿自由句小修）
 
-← [changelog](../../../changelog.md) · 上游：[0.26.0](../0.26.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md) · 來源：[backlog dream-draft-edit](../backlog/dream-draft-edit.md)
+← [changelog](../../../changelog.md) · 上游：[0.26.0](../0.26.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md) · 來源：backlog dream-draft-edit（已出貨刪除）
 
 > **狀態：** **shipped**  
-> Pending review 時除 **re-dream**（現行 `POST /dreams/retry`）外，新增 **amend-dream**：同一 `dream_run_id` 上依自由句小修 draft／report。**無** store migrate。來源構想曾列 backlog `dream-draft-edit`（出貨後自 INDEX 移除；細節可仍見該檔史料）。
+> Pending review 時除 **re-dream**（現行 `POST /dreams/retry`）外，新增 **amend-dream**：同一 `dream_run_id` 上依自由句小修 draft／report。**無** store migrate。來源構想曾列 backlog `dream-draft-edit`（出貨後已刪；真相以本 INDEX 為準）。
 
 ## 產品句
 
@@ -13,8 +13,7 @@
 
 | # | 文件 | 內容 |
 |---|------|------|
-| 1 | **本檔 INDEX** | 範圍、定案、軌道、驗收 |
-| 2 | [../backlog/dream-draft-edit.md](../backlog/dream-draft-edit.md) | UX 草圖與心智模型（re-dream ≠ amend-dream） |
+| 1 | **本檔 INDEX** | 範圍、定案、軌道、驗收（含 re-dream ≠ amend-dream） |
 
 ---
 

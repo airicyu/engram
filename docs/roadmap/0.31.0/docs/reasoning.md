@@ -57,4 +57,4 @@
 ## 與 graph backlog 的分工
 
 本版只讓 **md 內邊** 更完整（node↔node 在 Relation **與** chain 出現），並讓 UI 能點。  
-互動 graph GUI 仍留 [backlog](../../backlog/node-network-graph.md)；它可之後掃這些 `[[nodes/…]]` 當邊來源。
+互動 graph GUI 其後出貨為 [0.37.0](../0.37.0/INDEX.md)；圖可掃這些 `[[nodes/…]]` 當邊來源。

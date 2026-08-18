@@ -109,4 +109,4 @@
 
 - 「請用 Obsidian 開啟記憶庫的 **`memories` 資料夾**。」
 - 「Node 筆記檔名與資料夾 id 相同，例如 `nodes/eric/eric.md`。」
-- （附圖目錄 `_attachments`：**非本版**；見 backlog activity-images）
+- （附圖目錄 `_attachments`：**非本版**；其後 [0.29.0](../0.29.0/INDEX.md)）

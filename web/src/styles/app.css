@@ -1583,7 +1583,7 @@ body {
 
 .inbox-layout {
   display: grid;
-  grid-template-columns: minmax(11rem, 16rem) minmax(0, 1fr);
+  grid-template-columns: minmax(16.5rem, 24rem) minmax(0, 1fr);
   gap: 0;
   width: 100%;
   min-width: 0;
@@ -1622,10 +1622,10 @@ body {
 }
 
 .inbox-thread {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
-  column-gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
   width: 100%;
   text-align: left;
   font: inherit;
@@ -1633,8 +1633,13 @@ body {
   background: transparent;
   border: none;
   border-left: 3px solid transparent;
-  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.85rem 0.9rem 0.9rem;
   cursor: pointer;
+}
+
+.inbox-threads li:last-child .inbox-thread {
+  border-bottom: none;
 }
 
 .inbox-thread:hover {
@@ -1646,23 +1651,17 @@ body {
   border-left-color: var(--accent);
 }
 
-.inbox-thread-author {
-  font-weight: 600;
-  font-size: 0.88rem;
-}
-
 .inbox-thread-time {
   font-size: 0.75rem;
   color: var(--ink-muted);
 }
 
 .inbox-thread-preview {
-  grid-column: 1 / -1;
-  margin-top: 0.2rem;
-  font-size: 0.82rem;
-  color: var(--ink-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--ink);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1676,10 +1675,12 @@ body {
   overflow: auto;
 }
 
-.inbox-message-head {
-  display: flex;
-  gap: 0.65rem;
-  align-items: baseline;
+.inbox-message .clarify-post-time {
+  display: block;
+}
+
+.inbox-message .clarify-post-body {
+  margin-top: 0.4rem;
 }
 
 .inbox-pane-actions {

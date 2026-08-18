@@ -71,7 +71,7 @@
 
 ## 非目標
 
-- Activity 附圖上傳／multipart API／拖放 UI；**亦不**在本版建立 `memories/_attachments/`（backlog `activity-images`；路徑約定已有 research）
+- Activity 附圖上傳／multipart API／拖放 UI；**亦不**在本版建立 `memories/_attachments/`（其後 [0.29.0](../0.29.0/INDEX.md)）
 - Engram 內 network graph GUI；typed `graph/links.yaml` 雙寫
 - Node merge；Seek 依活躍分；vector search；反思補問
 - 恢復多 facet 檔（who／open…）

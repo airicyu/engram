@@ -1,6 +1,6 @@
 # 0.29.0 — Activity 附圖（media attachments）
 
-← [changelog](../../../changelog.md) · 上游：[0.28.0](../0.28.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md) · 來源：[backlog activity-images](../backlog/activity-images.md)
+← [changelog](../../../changelog.md) · 上游：[0.28.0](../0.28.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫作規範：[GUIDELINES.md](../GUIDELINES.md) · 來源：backlog activity-images（已出貨刪除）
 
 > **狀態：** **shipped**  
 > **本版只做這一項：** Activities 捕捉附圖（tmp 上傳、media attachments UI、submit 搬檔＋標題區塊 appendix、對稱校驗、tmp housekeep、dream／STM prompt 教讀寫 embed）。**不做**其他 backlog（graph、vector、反思補問等）。
@@ -19,7 +19,6 @@
 | 3 | [docs/reasoning.md](./docs/reasoning.md) | 為何 tmp／標題區塊／不依賴 vision／不做 WYSIWYG |
 | 4 | [docs/design-review.md](./docs/design-review.md) | 設計審查史料；**D／F 已併入本檔已定案**（2026-08-10） |
 | 5 | [docs/implementation-review.md](./docs/implementation-review.md) | 實作審查（HIGH／MEDIUM／驗收對照；初審 2026-08-10） |
-| 6 | [../backlog/activity-images.md](../backlog/activity-images.md) | 討論史料；出貨後自 backlog INDEX **刪除**本列 |
 
 ---
 

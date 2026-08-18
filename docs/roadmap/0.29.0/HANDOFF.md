@@ -22,8 +22,7 @@ Ship **0.29.0**: **Activity media attachments** only — tmp upload, Activities 
 3. **[`docs/roadmap/0.29.0/INDEX.md`](./INDEX.md)** — WHAT / 已定案 #1–#45 / non-goals / tracks / 驗收
 4. [`docs/capture-and-appendix.md`](./docs/capture-and-appendix.md) — paths, API shapes, validation, appendix render
 5. [`docs/reasoning.md`](./docs/reasoning.md) — WHY (only if a decision feels ambiguous)
-6. Optional historiography: [`docs/design-review.md`](./docs/design-review.md)（已併入 INDEX；衝突時 **INDEX 勝**）  
-   [`../backlog/activity-images.md`](../backlog/activity-images.md) 同上
+6. Optional historiography: [`docs/design-review.md`](./docs/design-review.md)（已併入 INDEX；衝突時 **INDEX 勝**）
 
 ---
 

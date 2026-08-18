@@ -137,7 +137,7 @@ API 欄位提醒：
 - **更早：** `0.28.0` — Node 主檔 `{id}.md`＋Obsidian vault＝`memories/`＋Structure notes — 見 `docs/roadmap/0.28.0/`（**shipped**；**有** store migrate）
 - **更早：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
 - **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
-- **Backlog：** 見 `docs/roadmap/backlog/`（含記憶鏈橫向 strip、Seek／network 依分等）
+- **Backlog：** 見 `docs/roadmap/backlog/`（未來視 UI、記憶鏈橫向 strip、vector 搜尋、Ask 依活躍分、shared Zod）
 - **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28**／**0.28–0.35→0.36** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream；**0.36 hop** 刪 `initialized_*.yaml` 與 STM `nodes/`／summary，不丟 pending）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31／0.31→0.32／0.32→0.33／0.33→0.34／0.34→0.35／0.36→0.37／0.37→0.38／0.38→0.39 無 migrate hop**
 ## 深入閱讀
 
