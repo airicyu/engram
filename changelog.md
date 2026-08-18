@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.39.0 — 入夢自動 approve、單一根 `.env`、寫入語體（進行中）
+
+**尚未出貨。** 見 `docs/roadmap/0.39.0/`（**in progress**）。**無** 0.40.0；下列皆本版範圍。**無** store migrate；boot 仍 ≥0.36。
+
+入夢／retry／amend **成功寫出 pending 後**，預設立刻走既有 approve。本機環境變數只放 Engram **根目錄 `.env`**。`zh-Hant` 新寫入散文＝繁體中文書面語。
+
+### Added
+
+- Config `dream_auto_approve`；`GET /status.dream_scheduler.dream_auto_approve`
+- Job `result.auto_approved`（失敗時 `auto_approve_error`）
+
+### Changed
+
+- 預設成功路徑：`dream_status` 變 `ok`，不必再手動 `POST /dreams/approve`
+- 載入：server／web **各自**讀 repo 根 `.env`（已設的 process env 不覆寫）；Vite `envDir`＝repo 根；setup 只寫這份；殘留 `server/.env`／`web/.env` 忽略（overwrite 時刪）
+- Prompt：`zh-Hant` 注入語體（繁體中文書面語；非口語粵語／網路腔）
+- `web/tsconfig.json` 納入 Bun prod 檔（`server.ts`、`load-root-env.ts`）＋ `"types": ["bun"]`
+
+### Non-goals
+
+- 設定 UI、改 approve HTTP、改 workspace yaml 優先序、migrate／boot gate、另開 0.40.0
+
+---
+
 ## 0.38.0 — Chain 摘要分段、取捨、文章化 (2026-08-18)
 
 記憶鏈 **day summary** 與 **week／month／year** 改寫作契約：日文可碎但須分題／分段；週／月／年必須取捨，禁止把下層全文再貼成合訂本。只改 prompts、mock 形狀、過程句 soft lint、phases。**無**新 HTTP、**無** UI 改動、**無** store migrate；boot 仍 ≥0.36。見 `docs/roadmap/0.38.0/`。

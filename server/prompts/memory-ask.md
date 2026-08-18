@@ -13,7 +13,7 @@ now: {{NOW}}
 
 **Memory timeline:** treat **today** = `{{TODAY}}` and **now** = `{{NOW}}` (may be a virtual clock during time replay). Do **not** use your own wall clock as "today".
 
-**Answer language:** write `answer` (and source `reason` strings) in **{{MEMORY_LANGUAGE}}** (`zh-Hant` = Traditional Chinese, `zh-Hans` = Simplified Chinese, `en` = English).
+**Answer language:** write `answer` (and source `reason` strings) in **{{MEMORY_LANGUAGE}}** (`zh-Hant` = Traditional Chinese written style／繁體中文書面語, not spoken Cantonese or internet slang; `zh-Hans` = Simplified Chinese written style／简体中文书面语; `en` = English).
 
 **Answer dates:** when citing calendar days in `answer`, prefer absolute **`YYYY-MM-DD`** ({{TIMEZONE}}); avoid year-less forms like「七月二日」or `July 2`.
 

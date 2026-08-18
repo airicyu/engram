@@ -3,7 +3,7 @@
 import { join } from "node:path";
 import { resolve } from "node:path";
 import { readFile } from "node:fs/promises";
-import { config } from "../../config";
+import { config, memoryLanguagePromptLabel } from "../../config";
 import { setDreamJobAgentPid } from "../../store/dreams/dream-job";
 import { loadPrompt, renderPrompt } from "../shared/prompt-template";
 import { withTempJsonContext } from "../shared/temp-context";
@@ -60,7 +60,7 @@ export class CliClarifyDistillAgent implements ClarifyDistillAgent {
           TODAY: ctx.today,
           NOW: ctx.now,
           TIMEZONE: ctx.timezone,
-          MEMORY_LANGUAGE: ctx.memory_language,
+          MEMORY_LANGUAGE: memoryLanguagePromptLabel(ctx.memory_language),
         });
         // Writable: only draft node tree + workDir (result json). Never chain／future／live.
         const nodesRoot = join(ctx.draft_dir, "memories", "nodes");
@@ -119,7 +119,7 @@ export class CliClarifyGenerateAgent implements ClarifyGenerateAgent {
           TODAY: ctx.today,
           NOW: ctx.now,
           TIMEZONE: ctx.timezone,
-          MEMORY_LANGUAGE: ctx.memory_language,
+          MEMORY_LANGUAGE: memoryLanguagePromptLabel(ctx.memory_language),
           GENERATE_MIN: String(ctx.generate_min),
           GENERATE_MAX: String(ctx.generate_max),
           ASKING_CAP: String(ctx.asking_cap),

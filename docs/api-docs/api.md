@@ -121,7 +121,8 @@ Snapshot of store health, dream state, and async job status.
     "committed_report_retention_days": 7,
     "cleanup_min_age_days": 1,
     "auto_dream_enabled": false,
-    "auto_dream_cron": "30 3 * * *"
+    "auto_dream_cron": "30 3 * * *",
+    "dream_auto_approve": true
   }
 }
 ```
@@ -157,9 +158,9 @@ Snapshot of store health, dream state, and async job status.
 | Field | Meaning |
 |-------|---------|
 | `status` | `"running"` \| `"completed"` \| `"failed"` |
-| `phase` | `"extract"` \| `"materialize"` \| `"pending_review"` |
+| `phase` | `"extract"` \| `"materialize"` \| `"pending_review"` \| `"ok"`（0.39：自動 approve 成功） |
 | `log_tail` | When `status` is `"running"`: last ≤20 structured events (same shape as `GET /dreams/events`) |
-| `result` | On success: `scope`, `patch_count`, `superseded` (always null since 0.12), `phase` |
+| `result` | On success: `scope`, `patch_count`, `superseded` (always null since 0.12), `phase`；0.39 另有 `auto_approved`（boolean），失敗自動 approve 時可有 `auto_approve_error` |
 | `error` | On failure |
 
 ---
@@ -364,7 +365,9 @@ Serve an attachment file for preview (formal or tmp).
 
 ## `POST /dreams/run`
 
-Async **extract → materialize draft → unique pending**. Does **not** write L2.
+Async **extract → materialize draft → unique pending**. Does **not** write L2 **until approve**.
+
+**0.39 `dream_auto_approve`（預設 `true`）：** job 成功寫出 pending 後，server **立刻**走既有 approve（deploy＋git＋清 scope）。Poll `/status` 至 `dream_status=ok`（或清 scope 失敗時的 `l1_clear_pending`）。設 `false`（workspace／`ENGRAM_DREAM_AUTO_APPROVE=0`）則停在 `pending_review`，行為與 0.38 相同。自動 approve 失敗 → pending 留下，job 仍 `completed`，`result.auto_approved=false`。
 
 - Pool **empty**：
   - 尚有「已結束、缺 higher、下層有內容」的 week／month／year → **202** rollup-only（跳過 day extract，只跑 cascade）
@@ -380,7 +383,7 @@ Async **extract → materialize draft → unique pending**. Does **not** write L
 {
   "job_id": "dream-20260721-220000-a1b2c3",
   "status": "started",
-  "message": "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dreams/pending then approve, discard, or retry."
+  "message": "Dream extract+materialize submitted. Poll GET /status; on success dream_status becomes ok (auto-approve). …"
 }
 ```
 
@@ -416,7 +419,7 @@ Async. Requires active **pending_review**. Body:
 3. Start new dream on **the same S** (not re-scan whole short-term memory pool)
 4. Dream context includes `review_feedback`: `{ reason, previous_summary, previous_changes }`
 5. New run metadata records `retried_from` + `retry_reason`; report notes the feedback
-6. Completes to a new `pending_review` (failure path same as `/dreams/run`)
+6. Completes to a new pending；若 `dream_auto_approve` 則隨即自動 approve（同 `/dreams/run`）
 
 Consecutive retries: each uses the **just-discarded** attempt’s summary; **S stays the original event ids**; only the **current** reason is passed (not a history stack).
 
@@ -450,7 +453,7 @@ Async. Requires active **pending_review**. Body:
 2. **Do not** discard pending; **do not** wipe／`prepareDreamDraft`
 3. Spawn amend agent with `amend-dream.md` + instruction; may edit draft whitelist paths（write-policy：該 run 的 `draft_dir`＋`reports/`）and update report Narrative
 4. Server `finalizeDraftFromDisk` → involvements 校驗 → `finalizeDreamReport`（寫入／覆寫 `## Amend feedback`）；**不**重跑 higher-chain rollup cascade
-5. Still `pending_review` on success（`job_id`＝同一 run id）
+5. 先回到 `pending_review`（`job_id`＝同一 run id）；若 `dream_auto_approve` 則隨即自動 approve
 
 **On failure:** `dream_job.status=failed`；**pending 與 draft 保留**（仍可 approve／discard／retry／再 amend）；`dream_status` 因 pending 仍在而維持 `pending_review`。
 
@@ -887,7 +890,7 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 | Value | Meaning |
 |-------|---------|
 | `never_dreamed` | No successful extract recorded |
-| `pending_review` | Unique pending run awaiting approve／discard／retry／amend |
+| `pending_review` | Unique pending run awaiting approve／discard／retry／amend（`dream_auto_approve=true` 時成功路徑通常不會停在此狀態） |
 | `l1_clear_pending` | Commit done; scope clear failed — retry approve |
 | `dream_incomplete` | Last extract／materialize failed; short-term retained |
 | `ok` | Steady state |
@@ -918,7 +921,7 @@ POST /activities  (one or more; also OK during pending_review; raw may contain !
      ↓
 POST /dreams/run  → 202
      ↓
-GET  /status  until dream_status=pending_review (or dream_job failed)
+GET  /status  until dream_status=ok（預設自動 approve）or pending_review（dream_auto_approve=false）or dream_job failed
      ↓
 GET  /dreams/pending  (read report)
      ↓

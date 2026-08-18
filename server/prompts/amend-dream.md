@@ -36,7 +36,7 @@ Draft orientation (paths already in this pending draft): {{DRAFT_SUMMARY}}
    - Wikilinks: first mention of a known／this-round L2 node **in that `##` section** → P1 `[[nodes/{id}/{id}|{id}]]`; later in the same section a spoken name is enough. If a beat is omitted, omit its links too. Do **not** expand edits to unrelated historical days just to add links (non-backfill).
 6. Ledger appends still use `{{DRAFT_DIR}}/appends/memories/chain/days/...` when needed; do **not** wholesale overwrite day ledgers with file_update.
 7. You may update `{{DRAFT_DIR}}/node-score-involvements.yaml` if the instruction requires it; categories only `mention`｜`update`｜`focus`. Prefer leaving involvements alone when the human only asked for prose／path fixes (category-only fixes belong to structured UI, not this job).
-8. Write language = `{{MEMORY_LANGUAGE}}`. Do **not** invent future day chain ids after today=`{{TODAY}}`.
+8. Write language = `{{MEMORY_LANGUAGE}}` (`zh-Hant` = 繁體中文書面語). Do **not** invent future day chain ids after today=`{{TODAY}}`.
 9. **Do not** create a brand-new dream from events; ignore the urge to re-cover the whole scope unless the instruction explicitly asks.
 
 ## Report (`{{REPORT_PATH}}`)

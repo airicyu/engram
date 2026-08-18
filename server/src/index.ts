@@ -562,3 +562,4 @@ logInfo(`ENGRAM_TZ=${config.timezone}`);
 logInfo(`memory_language=${config.memoryLanguage}`);
 logInfo(`ENGRAM_AGENT=${config.agentMode}`);
 logInfo(`ENGRAM_ALLOW_VIRTUAL_CLOCK=${config.allowVirtualClock ? "1" : "0"}`);
+logInfo(`dream_auto_approve=${config.dreamAutoApprove ? "true" : "false"}`);

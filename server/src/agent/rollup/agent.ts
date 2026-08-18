@@ -1,7 +1,7 @@
 /** File-deliverable CLI agents for higher-chain rollup planner／writer (Phase 7 invoker). */
 
 import { join } from "node:path";
-import { config } from "../../config";
+import { config, memoryLanguagePromptLabel } from "../../config";
 import type {
   RollupAgent,
   RollupPlan,
@@ -47,7 +47,7 @@ export class CliRollupAgent implements RollupAgent {
           TODAY: ctx.today,
           NOW: ctx.now,
           TIMEZONE: ctx.timezone,
-          MEMORY_LANGUAGE: ctx.memory_language,
+          MEMORY_LANGUAGE: memoryLanguagePromptLabel(ctx.memory_language),
         });
         const policy = rollupWritePolicy({
           storeDir: config.storeDir,
@@ -94,7 +94,7 @@ export class CliRollupAgent implements RollupAgent {
           TODAY: ctx.today,
           NOW: ctx.now,
           TIMEZONE: ctx.timezone,
-          MEMORY_LANGUAGE: ctx.memory_language,
+          MEMORY_LANGUAGE: memoryLanguagePromptLabel(ctx.memory_language),
         });
         const policy = rollupWritePolicy({
           storeDir: config.storeDir,

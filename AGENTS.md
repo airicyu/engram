@@ -80,7 +80,7 @@ cd web && bun run dev             # 同 dev:ui
 |----|------|
 | `curl` / `engram-workbench` skill 打 API | 手改 `events.jsonl`、short-term notes、L2 `{id}.md` |
 | `POST /activities` 寫入 | 把 fixture seed 當試用資料 |
-| `POST /dreams/run` extract／file pipeline → pending（pending 時 409） | 未經同意就 `reset` |
+| `POST /dreams/run` extract／file pipeline → pending（pending 時 409）；**0.39 預設**成功後自動 approve（`dream_auto_approve`／`ENGRAM_DREAM_AUTO_APPROVE`，預設 true） | 未經同意就 `reset` |
 | `POST /dreams/approve`／`discard`／`retry`／`amend` | 手改 short-term／L2／draft「幫忙改對」 |
 | `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /memories/nodes/graph` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET /memories/clarify/asking` / `POST /memories/clarify/aside` / `POST|DELETE /memories/clarify/asking/...` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 | `POST /attachments/uploads` 上傳附件圖檔（multipart `file`） | 手動放檔案到 `_attachments/uploads/` |
@@ -96,6 +96,7 @@ API 欄位提醒：
 - dream **lock**（入夢／deploy）時 activities／clarify 寫入 → `409 dream_locked`；**`pending_review` 可寫 activities／clarify**
 - clarify：aside body 用 **`raw`**；submit body 用 **`answer`**；**不**寫 L0／STM／day ledger
 - **`pending_review` 時不可**再 `POST /dreams/run`（改 approve／discard／retry／amend）
+- **入夢自動 approve（0.39）：** 有效 `dream_auto_approve`＝workspace → env → 預設 **`true`**。成功 pending 後進程內走既有 approve；要人手審設 `false`。`GET /status.dream_scheduler.dream_auto_approve`
 - **空 pool 仍可入夢（0.24）：** short-term 空但存在已結束、缺 higher 的 week／month／year → `POST /dreams/run` 走 **rollup-only**（跳過 day extract，只跑 cascade）→ 202；若無此類 catch-up 才 409 `nothing_to_dream`
 - **虛擬時鐘：** `PUT /clock` 需 `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`；`DELETE /clock` 恆可；見 `/status.clock`
 - **無資料不用 404**：讀取型「目前沒有內容」回 **200**，在 body 用 `null`／`[]`／`present: false` 等表達；404 留給路徑／方法真正不存在
@@ -122,8 +123,9 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
+- **進行中：** `0.39.0` — 入夢自動 approve（預設 true）＋單一 repo 根 `.env`＋`zh-Hant`＝繁體中文書面語；見 `docs/roadmap/0.39.0/`（**in progress**；**無** store migrate；boot 仍 ≥0.36；**不**另開 0.40.0）
 - **已出貨：** `0.38.0` — Chain 摘要分段／取捨／文章化（prompts＋mock＋過程句 lint）；見 `docs/roadmap/0.38.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.36）
-- **上一版：** `0.37.0` — Memory **節點** 2D network graph＋`GET /memories/nodes/graph`；記憶鏈仍為 0.36 列表；見 `docs/roadmap/0.37.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.36）
+- **更早：** `0.37.0` — Memory **節點** 2D network graph＋`GET /memories/nodes/graph`；記憶鏈仍為 0.36 列表；見 `docs/roadmap/0.37.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.36）
 - **更早：** `0.36.0` — Workbench 左欄四項＋事件 Twitter 式＋釐清 DM；補 store hop `0.28→0.36`；見 `docs/roadmap/0.36.0/`（**shipped**；**有** store migrate；boot ≥0.36）
 - **更早：** `0.35.0` — MdBlock 附件圖＋短期記憶只留 `pool.jsonl`／GET `entries[]`；見 `docs/roadmap/0.35.0/`（**shipped**；**無** store migrate）
 - **更早：** `0.34.0` — Ask 廢 `include_later`：每次提問可讀 hot＋later，由 AI 判斷；見 `docs/roadmap/0.34.0/`（**shipped**；**無** store migrate）
@@ -136,7 +138,7 @@ API 欄位提醒：
 - **更早：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
 - **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
 - **Backlog：** 見 `docs/roadmap/backlog/`（含記憶鏈橫向 strip、Seek／network 依分等）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28**／**0.28–0.35→0.36** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream；**0.36 hop** 刪 `initialized_*.yaml` 與 STM `nodes/`／summary，不丟 pending）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31／0.31→0.32／0.32→0.33／0.33→0.34／0.34→0.35／0.36→0.37／0.37→0.38 無 migrate hop**
+- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28**／**0.28–0.35→0.36** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream；**0.36 hop** 刪 `initialized_*.yaml` 與 STM `nodes/`／summary，不丟 pending）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31／0.31→0.32／0.32→0.33／0.33→0.34／0.34→0.35／0.36→0.37／0.37→0.38／0.38→0.39 無 migrate hop**
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`

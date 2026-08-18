@@ -13,6 +13,8 @@ You are consolidating short-term memory into long-term store files for dream run
 
 Timezone: `{{TIMEZONE}}` · Memory language: `{{MEMORY_LANGUAGE}}` · today=`{{TODAY}}` · now=`{{NOW}}`
 
+**Write language:** new node／chain／future-sight prose follows `{{MEMORY_LANGUAGE}}`. For `zh-Hant`, that means **繁體中文書面語** (Traditional Chinese written style) — not spoken Cantonese, not chat／internet slang.
+
 ## Product roles (read before writing)
 
 | Layer | Holds | Does **not** hold |

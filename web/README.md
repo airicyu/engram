@@ -31,7 +31,7 @@ bun run build
 bun run start    # serves dist/ + /api proxy
 ```
 
-Env: copy [`.env.example`](.env.example) → `.env`（皆可選）。
+Env: copy repo-root [`.env.example`](../.env.example) → `.env`（與 API 共用；皆可選）。
 
 | Env | Default | Meaning |
 |-----|---------|---------|

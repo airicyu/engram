@@ -42,6 +42,7 @@ function startServer(agent: string, extraEnv: Record<string, string> = {}): Prom
       ENGRAM_AGENT: agent,
       ENGRAM_ALLOW_VIRTUAL_CLOCK: "1",
       ENGRAM_MEMORY_LANGUAGE: "en",
+      ENGRAM_DREAM_AUTO_APPROVE: "0",
       ...extraEnv,
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -106,6 +107,10 @@ async function main() {
     assert(s0.data.store_git === true, "store_git true after ensure");
     assert(typeof s0.data.product_version === "string" && /^\d+\.\d+\.\d+$/.test(s0.data.product_version), "product_version semver");
     assert(s0.data.store_version === s0.data.product_version, "new store stamped store_version");
+    assert(
+      (s0.data.dream_scheduler as { dream_auto_approve?: boolean }).dream_auto_approve === false,
+      "phases disable dream_auto_approve",
+    );
     const gitHead = Bun.spawnSync(["git", "-C", TEST_HOME, "rev-parse", "--verify", "HEAD"]);
     assert(gitHead.exitCode === 0, "store has initial HEAD commit");
     const gi = await readFile(join(TEST_HOME, ".gitignore"), "utf8");
@@ -1968,7 +1973,36 @@ Unique later keyword xylophone-launch window for search.
       "empty_patches still archives clarify pending",
     );
 
-    console.log("\n✅ All self-checks passed (through 0.38)");
+    console.log("\nPhase 0.39: dream_auto_approve");
+    await stopServer(server);
+    server = await startServer("mock-ok", { ENGRAM_DREAM_AUTO_APPROVE: "1" });
+    const stAutoCfg = await json("GET", "/status");
+    assert(
+      (stAutoCfg.data.dream_scheduler as { dream_auto_approve?: boolean }).dream_auto_approve ===
+        true,
+      "status echoes dream_auto_approve true",
+    );
+    const capAuto = await json("POST", "/activities", {
+      raw: "auto-approve fixture event",
+      source: "test",
+    });
+    assert(capAuto.status === 201, "auto-approve capture");
+    const dAuto = await json("POST", "/dreams/run");
+    assert(dAuto.status === 202, "auto-approve dream 202");
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === dAuto.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "ok",
+    );
+    const pendAuto = await json("GET", "/dreams/pending");
+    assert(pendAuto.data.present === false, "no pending after auto-approve");
+    const jobAuto = (await json("GET", "/status")).data.dream_job as {
+      result?: { auto_approved?: boolean };
+    };
+    assert(jobAuto.result?.auto_approved === true, "job result.auto_approved");
+
+    console.log("\n✅ All self-checks passed (through 0.39)");
   } finally {
     await stopServer(server);
   }

@@ -3,6 +3,9 @@
  * Dev uses Vite (`bun run dev`).
  */
 import { join } from "node:path";
+import { loadEngramRootEnv } from "./load-root-env";
+
+loadEngramRootEnv();
 
 const ENGRAM_URL = (process.env.ENGRAM_URL ?? "http://localhost:8787").replace(/\/$/, "");
 const PORT = Number(process.env.WEB_PORT ?? 8788);

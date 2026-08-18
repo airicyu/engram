@@ -10,12 +10,22 @@ import { readDreamJob, writeDreamJob } from "../../store/dreams/dream-job";
 import { releaseLock } from "../../store/dreams/lock";
 import { emitDreamEvent } from "../../dream/report/emit-event";
 import { logError, logInfo } from "../../log";
+import { config } from "../../config";
+import { approveDream } from "../../dream/review/approve";
 
-export const DREAM_SUBMITTED_MESSAGE =
-  "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dreams/pending then approve, discard, retry, or amend.";
+export function dreamSubmittedMessage(): string {
+  if (config.dreamAutoApprove) {
+    return "Dream extract+materialize submitted. Poll GET /status; on success dream_status becomes ok (auto-approve). If auto-approve fails, pending_review remains for approve／discard／retry／amend.";
+  }
+  return "Dream extract+materialize submitted. Poll GET /status; when pending_review, GET /dreams/pending then approve, discard, retry, or amend.";
+}
 
-export const DREAM_AMEND_SUBMITTED_MESSAGE =
-  "Dream amend submitted. Poll GET /status; same dream_run_id stays pending_review on success (or remains reviewable if amend fails).";
+export function dreamAmendSubmittedMessage(): string {
+  if (config.dreamAutoApprove) {
+    return "Dream amend submitted. Poll GET /status; on success the same run auto-approves (dream_status ok). If auto-approve fails, pending_review remains.";
+  }
+  return "Dream amend submitted. Poll GET /status; same dream_run_id stays pending_review on success (or remains reviewable if amend fails).";
+}
 
 export function startDreamJob(
   dreamRunId: string,
@@ -42,27 +52,48 @@ export function startDreamJob(
 
     run()
       .then(async (result) => {
+        let phase = result.phase;
+        let autoApproved = false;
+        let autoApproveError: string | undefined;
+        if (config.dreamAutoApprove && result.phase === "pending_review") {
+          try {
+            await approveDream({ dream_run_id: dreamRunId });
+            autoApproved = true;
+            phase = "ok";
+          } catch (e) {
+            autoApproveError = e instanceof Error ? e.message : String(e);
+            logError("dream auto-approve failed; left pending_review", e, {
+              dream_run_id: dreamRunId,
+            });
+          }
+        }
         await writeDreamJob({
           status: "completed",
           dream_run_id: dreamRunId,
           started_at: startedAt,
           completed_at: new Date().toISOString(),
-          phase: "pending_review",
+          phase: autoApproved ? "ok" : "pending_review",
           lock_token: lockToken,
           result: {
             scope: result.scope,
             patch_count: result.patch_count,
             superseded: result.superseded,
             extract_status: result.extract_status,
-            phase: result.phase,
+            phase,
+            auto_approved: autoApproved,
+            ...(autoApproveError ? { auto_approve_error: autoApproveError } : {}),
           },
         });
-        logInfo("dream job completed → pending_review", {
-          dream_run_id: dreamRunId,
-          patch_count: result.patch_count,
-          superseded: result.superseded,
-          retried_from: result.retried_from ?? null,
-        });
+        logInfo(
+          autoApproved ? "dream job completed → auto-approved" : "dream job completed → pending_review",
+          {
+            dream_run_id: dreamRunId,
+            patch_count: result.patch_count,
+            superseded: result.superseded,
+            retried_from: result.retried_from ?? null,
+            auto_approved: autoApproved,
+          },
+        );
       })
       .catch(async (e) => {
         const existing = await readDreamJob();

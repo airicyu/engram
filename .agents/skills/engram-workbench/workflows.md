@@ -12,10 +12,10 @@
 
 1. `GET /status` — confirm server up
 2. `POST /activities` with `{ "raw": "…" }` (repeat as needed)
-3. `POST /dreams/run` → 202; poll `/status` until `dream_status=pending_review` (or `dream_job.status=failed`)
-4. `GET /dreams/pending` — read report; check timeline / new nodes
+3. `POST /dreams/run` → 202; poll `/status` until `dream_status=ok`（預設 `dream_auto_approve`）or `pending_review`（已關自動 approve）or `dream_job.status=failed`
+4. If still pending：`GET /dreams/pending` — read report; check timeline / new nodes
 5. If wrong direction → `POST /dreams/retry` with `{ reason }` (same frozen scope), or `POST /dreams/amend` with `{ instruction }` (same `dream_run_id`), or `POST /dreams/discard`, or `POST /dreams/cancel` if still running. Do **not** call `/dreams/run` while pending.
-6. If OK → `POST /dreams/approve`
+6. If pending and OK → `POST /dreams/approve`（自動 approve 成功時可跳過）
 7. `GET /memories/search?q=…` — verify hits（預設含 future-sight）
 8. `GET /memories/future-sight` — list active near-horizon anchors (optional)
 9. `POST /memories/ask` `{ q }` — natural-language Q&A（always may read hot＋later）

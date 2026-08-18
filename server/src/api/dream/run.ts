@@ -14,7 +14,7 @@ import { hasRollupCatchupWork } from "../../dream/rollup/candidates";
 import { isLocked, acquireLock, isLockStale, breakStaleLock, LockError } from "../../store/dreams/lock";
 import { getPendingRun } from "../../store/dreams/dream-runs";
 import { logInfo } from "../../log";
-import { DREAM_AMEND_SUBMITTED_MESSAGE, DREAM_SUBMITTED_MESSAGE, startDreamJob } from "./job";
+import { dreamAmendSubmittedMessage, dreamSubmittedMessage, startDreamJob } from "./job";
 
 /** POST /dream/run — start asynchronous extract and draft materialization. */
 export async function handleDreamRun(): Promise<Response> {
@@ -78,7 +78,7 @@ export async function handleDreamRun(): Promise<Response> {
     {
       job_id: dreamRunId,
       status: "started",
-      message: DREAM_SUBMITTED_MESSAGE,
+      message: dreamSubmittedMessage(),
     },
     { status: 202 },
   );
@@ -152,7 +152,7 @@ export async function handleDreamRetry(body?: {
     {
       job_id: dreamRunId,
       status: "started",
-      message: DREAM_SUBMITTED_MESSAGE,
+      message: dreamSubmittedMessage(),
     },
     { status: 202 },
   );
@@ -228,7 +228,7 @@ export async function handleDreamAmend(body?: {
     {
       job_id: dreamRunId,
       status: "started",
-      message: DREAM_AMEND_SUBMITTED_MESSAGE,
+      message: dreamAmendSubmittedMessage(),
     },
     { status: 202 },
   );

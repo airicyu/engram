@@ -3,8 +3,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parse as parseYaml } from "./yaml";
+import { loadEngramRootEnv } from "./load-root-env";
 
-const repoRoot = resolve(import.meta.dir, "../..");
+const repoRoot = loadEngramRootEnv();
 
 /** IANA timezone for calendar days and event timestamps. */
 export const DEFAULT_TIMEZONE = "Asia/Hong_Kong";
@@ -14,6 +15,20 @@ export const MEMORY_LANGUAGES = ["zh-Hant", "zh-Hans", "en"] as const;
 export type MemoryLanguage = (typeof MEMORY_LANGUAGES)[number];
 
 export const DEFAULT_MEMORY_LANGUAGE: MemoryLanguage = "en";
+
+/** Prompt-facing write-language instruction. JSON／API still use the bare code. */
+export const MEMORY_LANGUAGE_PROMPT_LABEL: Record<MemoryLanguage, string> = {
+  "zh-Hant":
+    "zh-Hant — Traditional Chinese written style (繁體中文書面語); not spoken Cantonese, not internet slang",
+  "zh-Hans":
+    "zh-Hans — Simplified Chinese written style (简体中文书面语); not internet slang",
+  en: "en — English",
+};
+
+export function memoryLanguagePromptLabel(lang: string): string {
+  if (isMemoryLanguage(lang)) return MEMORY_LANGUAGE_PROMPT_LABEL[lang];
+  return lang;
+}
 
 const WORKSPACE_KEYS = new Set([
   "timezone",
@@ -29,6 +44,7 @@ const WORKSPACE_KEYS = new Set([
   "dream_cleanup_on_start",
   "auto_dream_enabled",
   "auto_dream_cron",
+  "dream_auto_approve",
   "port",
   "temp_dir",
   "agent",
@@ -131,6 +147,7 @@ type WorkspaceFile = {
   dream_cleanup_on_start?: boolean;
   auto_dream_enabled?: boolean;
   auto_dream_cron?: string;
+  dream_auto_approve?: boolean;
   port?: number;
   temp_dir?: string;
   agent?: AgentMode;
@@ -392,6 +409,14 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
     out.auto_dream_cron = v.trim();
   }
 
+  if ("dream_auto_approve" in obj) {
+    const v = obj.dream_auto_approve;
+    if (!isWorkspaceBoolean(v)) {
+      failWorkspace(`${path}: dream_auto_approve must be boolean`);
+    }
+    out.dream_auto_approve = v;
+  }
+
   if ("port" in obj) {
     const v = obj.port;
     if (!isPositiveIntDays(v)) {
@@ -625,6 +650,11 @@ function resolveAutoDreamCron(workspace: WorkspaceFile | null): string {
   return DEFAULT_AUTO_DREAM_CRON;
 }
 
+function resolveDreamAutoApprove(workspace: WorkspaceFile | null): boolean {
+  if (workspace?.dream_auto_approve != null) return workspace.dream_auto_approve;
+  return resolveEnvBoolean(process.env.ENGRAM_DREAM_AUTO_APPROVE, true);
+}
+
 function resolvePort(workspace: WorkspaceFile | null): number {
   const fromEnvRaw = process.env.PORT?.trim();
   const fromEnv =
@@ -812,6 +842,8 @@ export const config = {
   autoDreamEnabled: resolveAutoDreamEnabled(workspace),
   /** In-process cron for auto dream when enabled. */
   autoDreamCron: resolveAutoDreamCron(workspace),
+  /** After a successful pending draft, deploy immediately (default true). */
+  dreamAutoApprove: resolveDreamAutoApprove(workspace),
   /** Max bytes per attachment file (default 10 MiB). */
   attachmentMaxBytes: resolveAttachmentMaxBytes(workspace),
   /** Days to retain tmp uploads before housekeep (default 2). */

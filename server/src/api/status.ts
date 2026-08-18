@@ -80,6 +80,7 @@ export async function handleStatus(): Promise<object> {
       cleanup_min_age_days: config.dreamCleanupMinAgeDays,
       auto_dream_enabled: config.autoDreamEnabled,
       auto_dream_cron: config.autoDreamCron,
+      dream_auto_approve: config.dreamAutoApprove,
     },
   };
 

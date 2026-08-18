@@ -34,7 +34,7 @@ curl -s -X DELETE "$ENGRAM_URL/attachments/uploads/tmp?day=2026-08-09&filename=p
 curl -s -X POST "$ENGRAM_URL/attachments/housekeep"
 curl -s -X POST "$ENGRAM_URL/dreams/run"
 # 202 job_id | 409 pending_review | 409 nothing_to_dream | rollup-only 202 when pool empty + catch-up
-# poll until dream_status=pending_review
+# poll until dream_status=ok (default auto-approve) or pending_review
 curl -s "$ENGRAM_URL/dreams/pending"
 curl -s "$ENGRAM_URL/dreams/events"
 curl -s -X PATCH "$ENGRAM_URL/dreams/pending/node-score-involvements" \

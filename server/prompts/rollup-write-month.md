@@ -14,7 +14,7 @@ Read JSON context at: `{{CONTEXT_PATH}}`
 - Do **not** print the summary to stdout. The deliverable is that file.
 - The file must contain **only** the summary body — **first line must be a `##` title** (no process narration, no fences wrapping the whole file).
 
-Write the summary body in **{{MEMORY_LANGUAGE}}** (`zh-Hant` = Traditional Chinese, `zh-Hans` = Simplified Chinese, `en` = English). On revise, rewrite the full body in that language (do not leave mixed-language prior text).
+Write the summary body in **{{MEMORY_LANGUAGE}}** (`zh-Hant` = Traditional Chinese written style／繁體中文書面語, not spoken Cantonese or internet slang; `zh-Hans` = Simplified Chinese written style／简体中文书面语; `en` = English). On revise, rewrite the full body in that language (do not leave mixed-language prior text).
 
 ## Purpose
 

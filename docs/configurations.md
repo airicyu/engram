@@ -2,8 +2,8 @@
 
 ← [README](../README.md) · [AGENTS.md](../AGENTS.md) · [API](./api-docs/README.md) · [domain-language](./domain-language.md)
 
-Engram 設定分兩層：**進程／本機**（`server/.env` 或環境變數）與 **跟著記憶庫**（`{ENGRAM_STORE_DIR}/engram.workspace.yaml`）。  
-實作真相：`server/src/config.ts`；範例：`server/.env.example`。
+Engram 設定分兩層：**進程／本機**（repo 根目錄 `.env` 或環境變數）與 **跟著記憶庫**（`{ENGRAM_STORE_DIR}/engram.workspace.yaml`）。  
+實作真相：`server/src/config.ts`（啟動時讀 repo 根 `.env`）；範例：[`.env.example`](../.env.example)。
 
 **0.21+：** 除 `ENGRAM_STORE_DIR`（必須在讀 yaml 前知道路徑）外，**所有設定鍵皆可在 env 或 workspace 任一侧設定**；優先序見下。
 
@@ -13,10 +13,10 @@ Engram 設定分兩層：**進程／本機**（`server/.env` 或環境變數）�
 
 | 層 | 放哪 | 跟著什麼走 | 典型內容 |
 |----|------|------------|----------|
-| **Env** | `server/.env`（`cd server && bun run …` 時 Bun 自動載入）或 shell 環境變數 | **這台機器／這個進程** | 記憶庫路徑（僅 env）、本機埠覆寫、除錯開關 |
+| **Env** | repo 根 `.env`（server／web 共用；已設的 process env 不覆寫） | **這台機器／這個進程** | 記憶庫路徑（僅 env）、本機埠覆寫、除錯開關、`WEB_PORT`／`ENGRAM_URL` |
 | **Workspace** | `{ENGRAM_STORE_DIR}/engram.workspace.yaml` | **這份記憶庫**（可隨庫搬移／git 追蹤） | 時區、寫入語言、agent 選擇、dream cleanup、未來視窗 |
 
-首次可用 repo 根目錄 `bun run setup` 產生 `server/.env` 與 workspace 檔。
+首次可用 repo 根目錄 `bun run setup` 產生 `.env` 與 workspace 檔。
 
 ---
 
@@ -71,7 +71,7 @@ Engram 設定分兩層：**進程／本機**（`server/.env` 或環境變數）�
 | workspace 鍵 | env | 預設 | 說明 |
 |--------------|-----|------|------|
 | `timezone` | `ENGRAM_TZ` | `Asia/Hong_Kong` | IANA 時區（日曆日、事件時間戳） |
-| `memory_language` | `ENGRAM_MEMORY_LANGUAGE` | `en` | `zh-Hant`｜`zh-Hans`｜`en`（新寫入 chain／node／ask 散文語言） |
+| `memory_language` | `ENGRAM_MEMORY_LANGUAGE` | `en` | `zh-Hant`｜`zh-Hans`｜`en`（新寫入 chain／node／ask 散文；`zh-Hant`＝繁體中文書面語） |
 | `future_sight_window_days` | `ENGRAM_FUTURE_SIGHT_WINDOW_DAYS` | `365` | 未來視准入上限（天） |
 | `future_sight_hot_days` | `ENGRAM_FUTURE_SIGHT_HOT_DAYS` | `30` | 未來視 hot 區天數 |
 
@@ -96,6 +96,7 @@ Engram 設定分兩層：**進程／本機**（`server/.env` 或環境變數）�
 | `dream_cleanup_on_start` | `ENGRAM_DREAM_CLEANUP_ON_START` | `true` | 啟動時 sweep |
 | `auto_dream_enabled` | `ENGRAM_AUTO_DREAM_ENABLED` | `false` | 定時 auto dream |
 | `auto_dream_cron` | `ENGRAM_AUTO_DREAM_CRON` | `30 3 * * *` | auto dream cron |
+| `dream_auto_approve` | `ENGRAM_DREAM_AUTO_APPROVE` | `true` | 入夢／retry／amend **成功寫出 pending 後**自動 `approveDream`（deploy＋git＋清 scope）。`false`＝停在 `pending_review` 等人審。自動 approve 失敗則留下 pending |
 
 ### 附件（0.29+）
 
@@ -129,6 +130,7 @@ agent: cursor
 port: 8787
 # dream_staging_retention_days: 3
 # auto_dream_enabled: false
+# dream_auto_approve: true
 ```
 
 ---
@@ -143,13 +145,13 @@ port: 8787
 | 庫結構世代 | workspace `store_version`（0.36+ 最低 **0.36**） |
 | 用 Obsidian 看庫 | 開啟 **`{ENGRAM_STORE_DIR}/memories/`**（不要開 store 根） |
 
-Web UI 另有 `web/.env`（如 `WEB_PORT`、`ENGRAM_URL` proxy），**不**由此檔規範；見 `web/` 與 setup wizard。
+Web UI 的 `WEB_PORT`、`ENGRAM_URL` 也寫在**同一份**根 `.env`（不要再放 `web/.env`）。
 
 ---
 
 ## 相關
 
-- 環境變數範例：[`server/.env.example`](../server/.env.example)
+- 環境變數範例：[`.env.example`](../.env.example)
 - Server README 環境表：[`server/README.md`](../server/README.md)
 - Status／API 欄位：[`docs/api-docs/api.md`](./api-docs/api.md)
 - 未來視雙區語意：[`docs/roadmap/0.17.0/docs/store-and-zones.md`](./roadmap/0.17.0/docs/store-and-zones.md)

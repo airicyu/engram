@@ -3,6 +3,14 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO="$(cd "$ROOT/.." && pwd)"
+ENV_FILE="$REPO/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
 PORT="${PORT:-8787}"
 
 free_port() {
@@ -18,4 +26,7 @@ free_port() {
 
 free_port
 cd "$ROOT"
+if [[ -f "$ENV_FILE" ]]; then
+  exec bun --watch --env-file="$ENV_FILE" run src/index.ts
+fi
 exec bun --watch run src/index.ts

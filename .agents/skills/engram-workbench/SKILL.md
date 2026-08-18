@@ -51,7 +51,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | Term | Meaning |
 |------|---------|
 | **Capture** | `POST /activities` — L0 + short-term pool entry |
-| **Extract / Dream** | `POST /dreams/run` — AI 改 draft＋寫 report；**不**寫 L2。Pending → `409 pending_review`。短記空但有 closed higher catch-up → **rollup-only 202**；空且無事可做 → `409 nothing_to_dream` |
+| **Extract / Dream** | `POST /dreams/run` — AI 改 draft＋寫 report；**approve 前**不寫 L2。**0.39 預設自動 approve**（`dream_auto_approve`，見 `/status.dream_scheduler`）。Pending → `409 pending_review`。短記空但有 closed higher catch-up → **rollup-only 202**；空且無事可做 → `409 nothing_to_dream` |
 | **Approve** | `POST /dreams/approve` — deploy draft→live＋git commit → clear scope S |
 | **Discard** | `POST /dreams/discard` — drop pending；short-term／L2 不變 |
 | **Retry** | `POST /dreams/retry` `{ reason }` — discard → same frozen scope + feedback → new pending |
@@ -134,7 +134,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "記一下…（附圖）" | `POST /attachments/uploads` → 取得 `path` → `POST /activities`（含 `attachments[]`） |
 | "刪 compose 暫存圖" | `DELETE /attachments/uploads/tmp?day=&filename=` |
 | "清 tmp 上傳" | `POST /attachments/housekeep` |
-| "整理記憶"／extract | `POST /dreams/run`；poll 至 `pending_review`（或 rollup-only／`nothing_to_dream`） |
+| "整理記憶"／extract | `POST /dreams/run`；poll `/status`：預設自動 approve → `dream_status=ok`；若 `dream_auto_approve=false` → `pending_review`。失敗見 `dream_job.status=failed` |
 | "空池還能入夢？" | 可：closed week／month／year catch-up → rollup-only 202；否則 `409 nothing_to_dream` |
 | "看看夢報告" | `GET /dreams/pending` |
 | "批准"／寫入長期 | `POST /dreams/approve` |

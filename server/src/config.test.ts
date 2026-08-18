@@ -17,6 +17,7 @@ type ConfigSnapshot = {
   tempDir: string;
   allowStaleStore: boolean;
   dreamDebug: boolean;
+  dreamAutoApprove: boolean;
 };
 
 function loadConfig(storeDir: string, extraEnv: Record<string, string> = {}): ConfigSnapshot {
@@ -28,6 +29,7 @@ function loadConfig(storeDir: string, extraEnv: Record<string, string> = {}): Co
       tempDir: config.tempDir,
       allowStaleStore: config.allowStaleStore,
       dreamDebug: config.dreamDebug,
+      dreamAutoApprove: config.dreamAutoApprove,
     }));
   `;
   const proc = spawnSync("bun", ["-e", script], {
@@ -100,5 +102,29 @@ describe("unified config", () => {
       const c = loadConfig(storeDir, { ENGRAM_DREAM_DEBUG: "1" });
       expect(c.dreamDebug).toBe(true);
     });
+  });
+
+  test("dream_auto_approve defaults true when omitted", async () => {
+    await withWorkspace("timezone: Asia/Hong_Kong\nstore_version: 0.36.0\n", (storeDir) => {
+      const c = loadConfig(storeDir, { ENGRAM_DREAM_AUTO_APPROVE: "" });
+      expect(c.dreamAutoApprove).toBe(true);
+    });
+  });
+
+  test("ENGRAM_DREAM_AUTO_APPROVE=0 when workspace omits key", async () => {
+    await withWorkspace("timezone: Asia/Hong_Kong\nstore_version: 0.36.0\n", (storeDir) => {
+      const c = loadConfig(storeDir, { ENGRAM_DREAM_AUTO_APPROVE: "0" });
+      expect(c.dreamAutoApprove).toBe(false);
+    });
+  });
+
+  test("workspace dream_auto_approve false wins over env", async () => {
+    await withWorkspace(
+      "timezone: Asia/Hong_Kong\nstore_version: 0.36.0\ndream_auto_approve: false\n",
+      (storeDir) => {
+        const c = loadConfig(storeDir, { ENGRAM_DREAM_AUTO_APPROVE: "1" });
+        expect(c.dreamAutoApprove).toBe(false);
+      },
+    );
   });
 });

@@ -2,6 +2,14 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO="$(cd "$ROOT/.." && pwd)"
+ENV_FILE="$REPO/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
 PORT="${WEB_PORT:-8788}"
 
 free_port() {
@@ -17,4 +25,7 @@ free_port() {
 
 free_port
 cd "$ROOT"
+if [[ -f "$ENV_FILE" ]]; then
+  exec bun --env-file="$ENV_FILE" x vite --port "$PORT"
+fi
 exec bunx vite --port "$PORT"

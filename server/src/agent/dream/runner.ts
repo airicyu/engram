@@ -3,6 +3,7 @@
 import { join } from "node:path";
 import type { AgentRunner, AmendContext, DreamContext } from "./types";
 import { setDreamJobAgentPid } from "../../store/dreams/dream-job";
+import { memoryLanguagePromptLabel } from "../../config";
 import { loadPrompt, renderPrompt } from "../shared/prompt-template";
 import { withTempJsonContext } from "../shared/temp-context";
 import { dreamWritePolicy, formatWritableRoots } from "../shared/write-policy";
@@ -27,7 +28,7 @@ export class DreamCliRunner implements AgentRunner {
           CONTEXT_PATH: ctxPath,
           DREAM_RUN_ID: ctx.dream_run_id,
           TIMEZONE: ctx.timezone,
-          MEMORY_LANGUAGE: ctx.memory_language,
+          MEMORY_LANGUAGE: memoryLanguagePromptLabel(ctx.memory_language),
           TODAY: ctx.today,
           NOW: ctx.now,
           STORE_DIR: ctx.store_dir,
@@ -63,7 +64,7 @@ export class DreamCliRunner implements AgentRunner {
           DREAM_RUN_ID: ctx.dream_run_id,
           INSTRUCTION: ctx.instruction,
           TIMEZONE: ctx.timezone,
-          MEMORY_LANGUAGE: ctx.memory_language,
+          MEMORY_LANGUAGE: memoryLanguagePromptLabel(ctx.memory_language),
           TODAY: ctx.today,
           NOW: ctx.now,
           STORE_DIR: ctx.store_dir,

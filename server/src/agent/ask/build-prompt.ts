@@ -1,6 +1,7 @@
 /** Shared ask prompt + result-file read for all runners. */
 
 import { access, readFile } from "node:fs/promises";
+import { memoryLanguagePromptLabel } from "../../config";
 import type { AskAnswer, AskInput } from "./types";
 import { parseAskOutput } from "./parse";
 import { askResultPath } from "../../store/tmp/ask-job";
@@ -35,7 +36,7 @@ export function buildAskPrompt(template: string, input: AskInput): string {
     .replaceAll("{{QUESTION}}", input.q)
     .replaceAll("{{JOB_ID}}", input.job_id)
     .replaceAll("{{TIMEZONE}}", input.timezone)
-    .replaceAll("{{MEMORY_LANGUAGE}}", input.memory_language)
+    .replaceAll("{{MEMORY_LANGUAGE}}", memoryLanguagePromptLabel(input.memory_language))
     .replaceAll("{{DREAM_STATUS}}", input.dream_status)
     .replaceAll("{{TODAY}}", input.today)
     .replaceAll("{{NOW}}", input.now)

@@ -34,7 +34,7 @@ curl -s 'http://localhost:8787/memories/nodes'
 curl -s -X POST http://localhost:8787/dreams/run
 ```
 
-Env: copy [`.env.example`](./.env.example) → `.env`（Bun 會自動載入；皆可選）。首次也可用 repo 根目錄 `bun run setup`。
+Env: copy repo-root [`.env.example`](../.env.example) → `.env`（server／web 共用；皆可選）。首次也可用 repo 根目錄 `bun run setup`。
 
 **Obsidian（0.28+）：** 若用 Obsidian 閱讀記憶庫，請開啟 `{ENGRAM_STORE_DIR}/memories/` 作為 vault（不要開 store 根；`dreams/` 是暫存審稿區）。Node 主檔為 `nodes/{id}/{id}.md`。
 

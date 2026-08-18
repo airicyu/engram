@@ -19,7 +19,7 @@ Read JSON context at: `{{CONTEXT_PATH}}`
 - Prefer **execute: true** for closed past periods that are missing a summary (catch-up) or need revise after backfill.
 - Prefer **execute: false** only when there is nothing useful among closed candidates (server may still force catch-up inits).
 - Timeline: today=`{{TODAY}}` now=`{{NOW}}` tz=`{{TIMEZONE}}` lang=`{{MEMORY_LANGUAGE}}` run=`{{DREAM_RUN_ID}}`
-- Write any human-readable `reason` strings in **{{MEMORY_LANGUAGE}}** (`zh-Hant`／`zh-Hans`／`en`).
+- Write any human-readable `reason` strings in **{{MEMORY_LANGUAGE}}** (`zh-Hant` = 繁體中文書面語; `zh-Hans` = 简体中文书面语; `en` = English).
 
 ## Schema
 

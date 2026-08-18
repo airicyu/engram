@@ -7,7 +7,7 @@ import { homePath } from "../home";
 /** Lifecycle states for an asynchronous dream job. */
 export type DreamJobStatus = "running" | "completed" | "failed" | "cancelled";
 /** Pipeline phases recorded for a dream job. */
-export type DreamJobPhase = "extract" | "materialize" | "pending_review";
+export type DreamJobPhase = "extract" | "materialize" | "pending_review" | "ok";
 
 /** Persisted job progress and optional result or error. */
 export interface DreamJobState {
@@ -25,6 +25,8 @@ export interface DreamJobState {
     superseded: string | null;
     extract_status: string;
     phase: string;
+    auto_approved?: boolean;
+    auto_approve_error?: string;
   };
   error?: string;
 }

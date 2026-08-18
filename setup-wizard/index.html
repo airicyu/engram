@@ -267,7 +267,7 @@
         webPort: "Web port",
         overwriteTitle: "Existing .env files detected",
         overwritePresent: "Present:",
-        overwriteConfirm: "Confirm overwrite server/.env and web/.env",
+        overwriteConfirm: "Confirm overwrite repo-root .env",
         submit: "Save and finish",
         doneTitle: "Setup complete",
         doneHint: "You can close this tab. The setup server will shut down shortly.",
@@ -292,7 +292,7 @@
         webPort: "Web 埠",
         overwriteTitle: "偵測到既有 .env",
         overwritePresent: "已存在：",
-        overwriteConfirm: "確認覆寫 server/.env 與 web/.env",
+        overwriteConfirm: "確認覆寫專案根目錄 .env",
         submit: "儲存並完成",
         doneTitle: "設定完成",
         doneHint: "可以關閉此分頁。設定伺服器稍後會自動結束。",
@@ -439,9 +439,10 @@
       document.getElementById("server_port").value = meta.default_server_port;
       document.getElementById("web_port").value = meta.default_web_port;
 
-      if (meta.env_exists.server || meta.env_exists.web) {
+      if (meta.env_exists.root || meta.env_exists.server || meta.env_exists.web) {
         overwriteBox.classList.add("show");
         lastOverwriteFiles = [
+          meta.env_exists.root ? ".env" : null,
           meta.env_exists.server ? "server/.env" : null,
           meta.env_exists.web ? "web/.env" : null,
         ].filter(Boolean);
@@ -486,6 +487,7 @@
         if (res.status === 409) {
           overwriteBox.classList.add("show");
           lastOverwriteFiles = [
+            data.existing?.root ? ".env" : null,
             data.existing?.server ? "server/.env" : null,
             data.existing?.web ? "web/.env" : null,
           ].filter(Boolean);

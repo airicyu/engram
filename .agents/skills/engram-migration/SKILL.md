@@ -54,7 +54,7 @@ Roadmap contract／WHY for 0.17: `docs/roadmap/0.17.0/docs/migrate-0.16-to-0.17.
 ## When invoked
 
 1. **Resolve paths**
-   - `ENGRAM_STORE_DIR`：使用者給的絕對路徑，或從 `server/.env`／環境變數讀取。不確定就問。
+   - `ENGRAM_STORE_DIR`：使用者給的絕對路徑，或從 repo 根 `.env`／環境變數讀取。不確定就問。
    - 確認該目錄像 Engram store（例如有 `memories/` 或 `engram.workspace.yaml`）。否則停止並說明。
 
 2. **Resolve version hop（下一結構代）**
