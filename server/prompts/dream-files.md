@@ -132,10 +132,10 @@ Whiteboard sketch of the architecture discussion
 
 1. **Do not** edit live `{{STORE_DIR}}/memories/**` directly. Only edit under `{{DRAFT_DIR}}/memories/**`.
 2. Prefer **Read** live (or use frozen context) then **Write／Edit** the draft copy under `{{DRAFT_DIR}}`. Do **not** use Bash／shell to rewrite store files. Do **not** paste huge files into chat as the write mechanism.
-3. **file_update**: rewrite whole narrative files (`*.summary.md`, `nodes/{id}/{id}.md`, **`memories/future-sight/hot.md`** and **`later.md`** only — never `active/{id}.md`, never `understand/what.md`). Whole file = latest narrative — **no** `## Current` / `## History`. Node main files must follow the standing skeleton above.
+3. **file_update**: rewrite whole narrative files (`*.summary.md`, `nodes/{id}/{id}.md`, **`memories/future-sight/upcoming.md`** and **`longTerm.md`** only — never `active/{id}.md`, never `understand/what.md`). Whole file = latest narrative — **no** `## Current` / `## History`. Node main files must follow the standing skeleton above.
    - Future-sight: two zone files. Each item is `## {id}` + yaml fence with **only** `anchor_start`／`anchor_end` + short body. Sort near→far (`anchor_start`, then `anchor_end`, then `id`). Do **not** write `node_refs`／`event_refs`／`dream_run_id`／`committed_at` into items.
-   - **Must** read live／draft `hot.md`／`later.md` and propose add／update／delete when this round’s events affect near-horizon anchors. Unrelated mentions → leave files alone.
-   - Do **not** add anchors with `anchor_start` later than today+`future_sight_window_days` (default 365). Prefer hot vs later by `future_sight_hot_days` (default 30) from today.
+   - **Must** read live／draft `upcoming.md`／`longTerm.md` and propose add／update／delete when this round’s events affect near-horizon anchors. Unrelated mentions → leave files alone.
+   - Do **not** add anchors with `anchor_start` later than today+`future_sight_window_days` (default 365). Prefer upcoming vs longTerm by `future_sight_upcoming_days` (default 30) from today.
 4. **file_append (ledger only)**: day ledgers `memories/chain/days/{YYYY-MM}/{YYYY-MM-DD}.md` (month folder = calendar month of the day id; **not** arbitrary subpaths). Exclude `*.summary.md`. Write the new block into `{{DRAFT_DIR}}/appends/<same relative path>` (server will append). Block must include `<!-- patch:… -->` and `### patch:… · events:[…]`. Do **not** overwrite the whole ledger with file_update.
 5. **deletes**: optional lines in `{{DRAFT_DIR}}/deletes.txt` (paths relative to store root, under `memories/` only).
 6. Week／month／year summaries: if this round needs rollup updates, write them as file_update under the same draft (same human review).
@@ -171,7 +171,7 @@ Write markdown with **exactly** these section headings (fill narrative; Scope／
 ```
 
 In **Long-term updates**, describe **how standing understanding changed** for which nodes (e.g. Identity／Relation／facts／situation shifts). Do **not** paste event copies or day-by-day logs.  
-In **Near future**, explain add／update／delete on `memories/future-sight/hot.md` and／or `later.md` (or `_None_`).  
+In **Near future**, explain add／update／delete on `memories/future-sight/upcoming.md` and／or `longTerm.md` (or `_None_`).  
 Empty narrative subsections must say `_None_`. Do **not** embed full unified diffs. Appendix Paths should list the two future-sight zone paths when touched.
 
 ## Done

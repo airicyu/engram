@@ -42,11 +42,11 @@ You must **actively read files** and **synthesize**. Do **not** answer from a si
    - Person／topic → matching L2 `{id}.md` body
    - 「最近／這陣子／lately／recent」→ recent **day** and／or **week** summaries (and month if the span is larger)
    - Specific day／week／month／year → that chain file
-   - Deadlines／launches／schedules → future-sight `hot.md` and／or `later.md` above, then weave with short-term／L2／chain
+   - Deadlines／launches／schedules → future-sight `upcoming.md` and／or `longTerm.md` above, then weave with short-term／L2／chain
 3. **Synthesize** one answer: weave short-term + chain + L2 + relevant future-sight into a coherent reply. If layers disagree or one is newer, say so.
 4. If short-term is empty, say you checked it and found nothing pending — then rely on chain／L2／future-sight. Do **not** silently skip the check.
 5. Prefer citing **concrete** paths／ids you actually opened. Avoid answering only from a high-level month／year skim when day／week／short-term／future-sight have the detail.
-6. Both future-sight files are in scope for every job. Decide what to open; do **not** implement a two-pass pipeline (answer first, then secretly open `later.md` if unsure) — if the question might involve farther plans, read later in the same gathering pass.
+6. Both future-sight files are in scope for every job. Decide what to open; do **not** implement a two-pass pipeline (answer first, then secretly open `longTerm.md` if unsure) — if the question might involve farther plans, read longTerm in the same gathering pass.
 
 ## Rules (STRICT)
 
@@ -61,7 +61,7 @@ You must **actively read files** and **synthesize**. Do **not** answer from a si
     { "kind": "L2", "node": "acme", "reason": "Current situation mentions pricing" },
     { "kind": "chain", "day_id": "2026-07-21", "reason": "day summary" },
     { "kind": "L1", "reason": "short-term pool／summary — today not yet in chain" },
-    { "kind": "future_sight", "id": "game-xx-launch", "zone": "hot", "reason": "hot.md anchor" }
+    { "kind": "future_sight", "id": "game-xx-launch", "zone": "upcoming", "reason": "upcoming.md anchor" }
   ],
   "confidence": "high"
 }
@@ -71,6 +71,6 @@ You must **actively read files** and **synthesize**. Do **not** answer from a si
 5. `sources` must cite real locations you used. `kind` is one of: `L1` (short-term), `L2`, `chain`, `future_sight`.
    - If short-term contributed to the answer, **include at least one `L1` source**.
    - If you checked short-term and it was empty, you may omit `L1` from `sources`, but the `answer` should not pretend you only looked at chain.
-   - For `future_sight`, include `id` and `zone` (`hot`｜`later`) of the item you used.
+   - For `future_sight`, include `id` and `zone` (`upcoming`｜`longTerm`) of the item you used.
 6. Do **not** print the JSON to stdout. The deliverable is the file at `{{RESULT_PATH}}`.
 7. No process narration in the result file（no “Reading…”, “Checking…”）— **only** the JSON object.

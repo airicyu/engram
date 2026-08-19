@@ -35,7 +35,7 @@ const WORKSPACE_KEYS = new Set([
   "memory_language",
   "store_version",
   "future_sight_window_days",
-  "future_sight_hot_days",
+  "future_sight_upcoming_days",
   "dream_staging_retention_days",
   "dream_committed_report_retention_days",
   "dream_cleanup_min_age_days",
@@ -64,7 +64,7 @@ const WORKSPACE_KEYS = new Set([
 ]);
 
 export const DEFAULT_FUTURE_SIGHT_WINDOW_DAYS = 365;
-export const DEFAULT_FUTURE_SIGHT_HOT_DAYS = 30;
+export const DEFAULT_FUTURE_SIGHT_UPCOMING_DAYS = 30;
 export const DEFAULT_DREAM_STAGING_RETENTION_DAYS = 3;
 export const DEFAULT_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024; // 10 MiB
 export const DEFAULT_ATTACHMENT_TMP_RETENTION_DAYS = 2;
@@ -138,7 +138,7 @@ type WorkspaceFile = {
   memory_language?: MemoryLanguage;
   store_version?: string;
   future_sight_window_days?: number;
-  future_sight_hot_days?: number;
+  future_sight_upcoming_days?: number;
   dream_staging_retention_days?: number;
   dream_committed_report_retention_days?: number;
   dream_cleanup_min_age_days?: number;
@@ -329,14 +329,14 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
     out.future_sight_window_days = v;
   }
 
-  if ("future_sight_hot_days" in obj) {
-    const v = obj.future_sight_hot_days;
+  if ("future_sight_upcoming_days" in obj) {
+    const v = obj.future_sight_upcoming_days;
     if (!isPositiveIntDays(v)) {
       failWorkspace(
-        `${path}: future_sight_hot_days must be a positive integer (got ${JSON.stringify(v)})`,
+        `${path}: future_sight_upcoming_days must be a positive integer (got ${JSON.stringify(v)})`,
       );
     }
-    out.future_sight_hot_days = v;
+    out.future_sight_upcoming_days = v;
   }
 
   if ("dream_staging_retention_days" in obj) {
@@ -563,13 +563,13 @@ function resolveFutureSightWindowDays(workspace: WorkspaceFile | null): number {
   return DEFAULT_FUTURE_SIGHT_WINDOW_DAYS;
 }
 
-function resolveFutureSightHotDays(workspace: WorkspaceFile | null): number {
-  if (workspace?.future_sight_hot_days != null) return workspace.future_sight_hot_days;
-  const fromEnv = process.env.ENGRAM_FUTURE_SIGHT_HOT_DAYS?.trim();
+function resolveFutureSightUpcomingDays(workspace: WorkspaceFile | null): number {
+  if (workspace?.future_sight_upcoming_days != null) return workspace.future_sight_upcoming_days;
+  const fromEnv = process.env.ENGRAM_FUTURE_SIGHT_UPCOMING_DAYS?.trim();
   if (fromEnv) {
-    return parsePositiveIntDays(fromEnv, "ENGRAM_FUTURE_SIGHT_HOT_DAYS");
+    return parsePositiveIntDays(fromEnv, "ENGRAM_FUTURE_SIGHT_UPCOMING_DAYS");
   }
-  return DEFAULT_FUTURE_SIGHT_HOT_DAYS;
+  return DEFAULT_FUTURE_SIGHT_UPCOMING_DAYS;
 }
 
 function resolveMemoryLanguage(
@@ -809,8 +809,8 @@ export const config = {
   memoryLanguage: resolveMemoryLanguage(workspace),
   /** Future-sight admission window (days from dream day T). */
   futureSightWindowDays: resolveFutureSightWindowDays(workspace),
-  /** Future-sight hot zone window (days from dream day T). */
-  futureSightHotDays: resolveFutureSightHotDays(workspace),
+  /** Future-sight upcoming zone window (days from dream day T). */
+  futureSightUpcomingDays: resolveFutureSightUpcomingDays(workspace),
   /**
    * Disk structure generation from workspace `store_version` at process start, or null if unset.
    * Prefer {@link peekStoreVersion} for live status (file may be stamped after boot).

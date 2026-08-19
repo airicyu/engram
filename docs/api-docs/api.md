@@ -6,7 +6,7 @@ All timestamps and calendar dates use the **effective** IANA timezone: `{ENGRAM_
 
 **Memory write language** (`memory_language`): workspace yaml → `ENGRAM_MEMORY_LANGUAGE` → **`en`**. Allowed values only: `zh-Hant`｜`zh-Hans`｜`en`. Controls language of **new** dream／rollup／ask prose (not L0 `raw`, not workbench UI i18n).  
 
-**Store structure version** (`store_version`): semver in the same workspace yaml（例 `0.36.0`）. **Boot gate (0.36+):** after `ensureEngramHome`, disk `store_version` major.minor must be **≥ 0.36**; missing key or older structure → **server refuses to start** with an **offline** migrate hint（**engram-migration** skill：`0.28.x–0.35.x` → `migrate-0.28-to-0.36`；`0.19.x–0.27.x` 須先 `migrate-0.19-to-0.28` — from that skill directory run the matching `bun ./scripts/….ts`; **server need not be running first**; 0.19→0.28 discards unapproved pending dreams）. Does **not** require `store_version === product_version`（same structure generation may stamp newer product strings）. Escape hatch: `ENGRAM_ALLOW_STALE_STORE=1`（warns, still starts）. Present but not `X.Y.Z` → **server refuses to start**（workspace parse）. Server never auto-rewrites an existing／missing value to the product version on boot（except creating a brand-new workspace file）.
+**Store structure version** (`store_version`): semver in the same workspace yaml（例 `0.40.0`）. **Boot gate (0.40+):** after `ensureEngramHome`, disk `store_version` major.minor must be **≥ 0.40**; missing key or older structure → **server refuses to start** with an **offline** migrate hint（**engram-migration** skill：`0.36.x–0.39.x` → `migrate-0.36-to-0.40`；`0.28.x–0.35.x` → `migrate-0.28-to-0.36`；`0.19.x–0.27.x` 須先 `migrate-0.19-to-0.28` — from that skill directory run the matching `bun ./scripts/….ts`; **server need not be running first**; 0.19→0.28 discards unapproved pending dreams）. Does **not** require `store_version === product_version`（same structure generation may stamp newer product strings）. Escape hatch: `ENGRAM_ALLOW_STALE_STORE=1`（warns, still starts）. Present but not `X.Y.Z` → **server refuses to start**（workspace parse）. Server never auto-rewrites an existing／missing value to the product version on boot（except creating a brand-new workspace file）.
 
 
 Invalid workspace yaml／unknown keys／illegal values → **server refuses to start**.
@@ -99,10 +99,10 @@ Snapshot of store health, dream state, and async job status.
   "lock": false,
   "l1_empty": false,
   "future_sight_active_count": 0,
-  "future_sight_hot_count": 0,
-  "future_sight_later_count": 0,
+  "future_sight_upcoming_count": 0,
+  "future_sight_long_term_count": 0,
   "future_sight_window_days": 365,
-  "future_sight_hot_days": 30,
+  "future_sight_upcoming_days": 30,
   "dream_status": "pending_review",
   "dream_pending": {
     "dream_run_id": "dream-20260721-220000-a1b2c3",
@@ -142,11 +142,11 @@ Snapshot of store health, dream state, and async job status.
 | `lock` | boolean | `true` while extract／materialize／approve commit holds the lock |
 | `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
 | `l1_empty` | boolean | `true` when short-term memory pool has no entries |
-| `future_sight_active_count` | number | Total items in `hot.md`＋`later.md` (name kept for compatibility) |
-| `future_sight_hot_count` | number | Items in `memories/future-sight/hot.md` |
-| `future_sight_later_count` | number | Items in `memories/future-sight/later.md` |
+| `future_sight_active_count` | number | Total items in `upcoming.md`＋`longTerm.md` (name kept for compatibility) |
+| `future_sight_upcoming_count` | number | Items in `memories/future-sight/upcoming.md` |
+| `future_sight_long_term_count` | number | Items in `memories/future-sight/longTerm.md` |
 | `future_sight_window_days` | number | Effective admission window (workspace → env → **365**) |
-| `future_sight_hot_days` | number | Effective hot zone days (workspace → env → 30) |
+| `future_sight_upcoming_days` | number | Effective upcoming zone days (workspace → env → 30) |
 | `dream_status` | enum | See [Dream status](#dream-status) |
 | `dream_pending` | object? | Active pending summary, or `null` |
 | `l1_clear_pending` | object? | Commit succeeded but scope clear failed — retry approve |
@@ -592,7 +592,7 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 1. If `l1_clear_pending` → **only retry clear S**
 2. Else require active pending
 3. Reject future day ids in draft chain paths → **409** `future_chain_id` + `rejected_chain_ids` (pending／draft／short-term／L2 unchanged)
-4. Full maintain on draft `hot.md`／`later.md` (rebucket／sort；out-of-window dropped from draft). Still-expired items → **409** `stale_future_anchor` + `rejected_future_ids`
+4. Full maintain on draft `upcoming.md`／`longTerm.md` (rebucket／sort；out-of-window dropped from draft). Still-expired items → **409** `stale_future_anchor` + `rejected_future_ids`
 5. Empty draft (no manifest entries and no deletes) → no L2／future-sight write；**no node-score settlement**；still clear S
 6. Else deploy draft → live (deletes then copy)；then **settle node scores** on live（boost listed pre-existing nodes；downscale if any score > S_max with `exclude_node_ids` = this-run creates；init creates at S0）；path-only git rollback on deploy failure；then clear S；`git commit` message contains `dream_run_id`（also stages short-term clear **and** score／registry paths）. Higher-chain init／revise is **summary file existence only**（no `initialized_*.yaml`）. **No** post-approve future-sight maintain (pre-dream／GET cover calendar)
 7. Clear S failure → run `committed` + `l1_clear_pending`; L2 may already be git-committed; next approve retries clear only (+ scope-clear commit)
@@ -602,7 +602,7 @@ Sync. Body optional: `{ "dream_run_id": "…" }` (mismatch → 409).
 ```json
 {
   "dream_run_id": "dream-…",
-  "committed": ["memories/nodes/acme/acme.md", "memories/future-sight/hot.md"],
+  "committed": ["memories/nodes/acme/acme.md", "memories/future-sight/upcoming.md"],
   "cleared_scope": ["e0000000001", "e0000000002"],
   "l1_clear_pending": false,
   "empty_patches": false
@@ -623,9 +623,9 @@ Drop pending intent + draft. short-term／L2／live future-sight unchanged（**d
 
 ## `GET /memories/future-sight`
 
-List near-horizon future-sight anchors from **`hot.md`＋`later.md`**. Always **200**. Empty → `anchors: []`.
+List near-horizon future-sight anchors from **`upcoming.md`＋`longTerm.md`**. Always **200**. Empty → `anchors: []`.
 
-On each call: **expire-only maintain** — remove items with `anchor_end` &lt; today；append L0+short-term (`source: system/future_sight_expired`, `ingest_meta.reason: past_anchor_end`)；git commit with prefix `engram: future-sight maintain` when files change. **Does not** rebucket hot↔later（that happens on `POST /dreams/run` before the agent）.
+On each call: **expire-only maintain** — remove items with `anchor_end` &lt; today；append L0+short-term (`source: system/future_sight_expired`, `ingest_meta.reason: past_anchor_end`)；git commit with prefix `engram: future-sight maintain` when files change. **Does not** rebucket upcoming↔longTerm（that happens on `POST /dreams/run` before the agent）.
 
 **Response `200`**
 
@@ -634,7 +634,7 @@ On each call: **expire-only maintain** — remove items with `anchor_end` &lt; t
   "anchors": [
     {
       "id": "fs-2026-07-31-deadline",
-      "zone": "hot",
+      "zone": "upcoming",
       "anchor_start": "2026-07-31",
       "anchor_end": "2026-07-31",
       "content": "Deadline…"
@@ -642,12 +642,12 @@ On each call: **expire-only maintain** — remove items with `anchor_end` &lt; t
   ],
   "swept_expired": ["fs-2026-07-20-old"],
   "future_sight_window_days": 365,
-  "future_sight_hot_days": 30
+  "future_sight_upcoming_days": 30
 }
 ```
-`anchors`：先全部 hot（近→遠），再全部 later。`swept_expired` = ids removed on **this** request only（GET 不做 out-of-window）.
+`anchors`：先全部 upcoming（近→遠），再全部 longTerm。`swept_expired` = ids removed on **this** request only（GET 不做 out-of-window）.
 
-Search／Ask 讀側見下節 `GET /memories/search` 與 `POST /memories/ask`（0.18+）。
+Search／Ask 讀側見下節 `GET /memories/search` 與 `POST /memories/ask`（0.18+）。工作台可瀏覽同一清單：`#/memory/future`（0.40+；JSON 不變）。
 
 ---
 
@@ -663,7 +663,7 @@ short-term preview for Activities. **Does not** include chain or L2 nodes.
 
 ## `GET /memories/search`
 
-Keyword search across short-term memory, memory-chain, L2 nodes, and **future-sight** (`hot.md`＋`later.md`). **`q` is required** (`400 missing_q` if omitted or blank). Only **matching** sections are returned.
+Keyword search across short-term memory, memory-chain, L2 nodes, and **future-sight** (`upcoming.md`＋`longTerm.md`). **`q` is required** (`400 missing_q` if omitted or blank). Only **matching** sections are returned.
 
 **Query:**
 
@@ -706,7 +706,7 @@ Keyword search across short-term memory, memory-chain, L2 nodes, and **future-si
 | `nodes` | Present only when `nodes` in scope; L2 hits (`node_id`｜`what_content`) |
 | `l1` | Present only when `l1` in scope; `null` when no short-term hit. Hit shape `{ entries: [{ id, ts, raw }] }`（match `raw` or `id`） |
 | `chain` | Present only when `chain` in scope; day／week／month／year hits. Each has `id` + `level`; day also keeps `day_id` |
-| `future_sight` | Present only when `future` in scope; hot＋later keyword hits. Each has `id`, `zone` (`hot`\|`later`), `anchor_start`／`anchor_end`, `content`, `match_reason` (`id`\|`content`\|`anchor`). Order: all hot first (near→far), then later |
+| `future_sight` | Present only when `future` in scope; upcoming＋longTerm keyword hits. Each has `id`, `zone` (`upcoming`\|`longTerm`), `anchor_start`／`anchor_end`, `content`, `match_reason` (`id`\|`content`\|`anchor`). Order: all upcoming first (near→far), then longTerm |
 
 No matches → `200` with requested scope keys empty (`nodes: []`, `l1: null`, `chain: []`, or `future_sight: []`). Does **not** include `dream_status`. Search does **not** run full maintain (reads files as-is).
 
@@ -865,12 +865,12 @@ Start async AI ask. Agent reads `ENGRAM_STORE_DIR` directly (read-only).
 | `q` | yes | string | — | Natural-language question |
 
 **Response `202`:** `{ job_id, status: "started" }`  
-**Errors:** `400 missing_q`；`400 include_later_removed`（body 出現已廢除的 `include_later` 鍵；Ask 恆可讀 `hot.md`＋`later.md`）；`409 ask_busy`
+**Errors:** `400 missing_q`；`400 include_later_removed`（body 出現已廢除的 `include_later` 鍵；Ask 恆可讀 `upcoming.md`＋`longTerm.md`）；`409 ask_busy`
 
 Poll **`GET /memories/ask/{job_id}`** until `status` is `completed` | `failed` | `cancelled`.  
 Cancel running job: **`POST /memories/ask/{job_id}/cancel`**.
 
-Agent may cite `sources[].kind` = `L1`｜`L2`｜`chain`｜**`future_sight`**（建議帶 `id`＋`zone`）。Every job may read both `hot.md` and `later.md`; the agent decides what to open.
+Agent may cite `sources[].kind` = `L1`｜`L2`｜`chain`｜**`future_sight`**（建議帶 `id`＋`zone`）。Every job may read both `upcoming.md` and `longTerm.md`; the agent decides what to open.
 
 `job_id` shape: `ask-YYYYMMDD-HHmmss-{rand6}` (ENGRAM_TZ local time; URL-safe, no encoding).
 
@@ -905,7 +905,7 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 | `semantic` (`facet: what`) | Update `memories/nodes/{id}/{id}.md` |
 | `chain` (`level: day`) | Dual-track: append ledger `memories/chain/days/{YYYY-MM}/{id}.md` **and** init／revise summary `…/{id}.summary.md`. Occurrence day only; future day ids blocked at approve. Legacy without `summary` → ledger only. |
 | `chain` (`level: week`｜`month`｜`year`) | Summary-only rollup from post-extract planner／writer (not day extract). Paths: `weeks/…`、`months/…`、`years/…`. `summary` + `summary_operation` required; no ledger. |
-| `future` | Legacy typed patch helper — upserts into `hot.md`／`later.md` when still in window；主路徑為 file pipeline 整檔改兩區 |
+| `future` | Legacy typed patch helper — upserts into `upcoming.md`／`longTerm.md` when still in window；主路徑為 file pipeline 整檔改兩區 |
 | `episodic` (confidence &lt; 0.6) | Attribution candidate |
 | `episodic` (≥ 0.6) | No-op (chronology not in prototype) |
 

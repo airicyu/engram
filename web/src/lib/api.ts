@@ -112,6 +112,22 @@ export type NodeDetail = {
   message?: string;
   error?: string;
 };
+export type FutureSightZone = "upcoming" | "longTerm" | string;
+export type FutureSightAnchor = {
+  id: string;
+  zone: FutureSightZone;
+  anchor_start?: string;
+  anchor_end?: string;
+  content?: string;
+};
+export type FutureSightList = {
+  anchors?: FutureSightAnchor[];
+  swept_expired?: string[];
+  future_sight_window_days?: number;
+  future_sight_upcoming_days?: number;
+  message?: string;
+  error?: string;
+};
 
 export type ClarifyAskingItem = {
   id: string;
@@ -238,6 +254,8 @@ export const engramApi = {
       detail: (id: string, options?: ApiOptions) =>
         api<NodeDetail>(`/memories/nodes/${encoded(id)}`, options),
     },
+    futureSight: (options?: ApiOptions) =>
+      api<FutureSightList>("/memories/future-sight", options),
     clarify: {
       listAsking: (options?: ApiOptions) =>
         api<{ items?: ClarifyAskingItem[]; error?: string; message?: string }>(

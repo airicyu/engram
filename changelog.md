@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.40.0 — 未來視 UI 翻閱＋zone upcoming／longTerm (2026-08-20)
+
+記憶頁第三 mode「未來視」；同時廢 `hot`／`later`：檔 `upcoming.md`／`longTerm.md`，API `zone` 同形；config `future_sight_upcoming_days`。**有** store migrate `0.36–0.39 → 0.40`；boot **≥ 0.40**。見 `docs/roadmap/0.40.0/`。
+
+### Added
+
+- Workbench `#/memory/future`、`#/memory/future/{id}`；Memory pills＝記憶鏈｜節點｜未來視；分區 **upcoming／longTerm**（即將／長遠）
+- Search 未來視命中與 Ask `sources[].kind=future_sight`（有 id）可點進同一 hash
+
+### Changed
+
+- `GET /memories/future-sight`／search／Ask sources：`zone` = `upcoming`｜`longTerm`
+- Status：`future_sight_upcoming_count`／`future_sight_long_term_count`／`future_sight_upcoming_days`
+- Workspace／env：`future_sight_upcoming_days`／`ENGRAM_FUTURE_SIGHT_UPCOMING_DAYS`
+
+### Migrate
+
+- `migrate-0.36-to-0.40`：改檔名與 frontmatter；`future_sight_hot_days` → `future_sight_upcoming_days`；不丟 pending
+- Boot gate：`REQUIRED_STORE_STRUCTURE` → **0.40**
+
+### Non-goals
+
+- 錨點編輯器、第五左欄、日曆／timeline、改窗長語意
+
+---
+
 ## 0.39.0 — 入夢自動 approve、單一根 `.env`、寫入語體（進行中）
 
 **尚未出貨。** 見 `docs/roadmap/0.39.0/`（**in progress**）。**無** 0.40.0；下列皆本版範圍。**無** store migrate；boot 仍 ≥0.36。

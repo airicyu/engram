@@ -45,6 +45,8 @@ engram-migration/                 ← this skill directory (under agent skills r
 | [scripts/migrate-0.19-to-0.28.ts](./scripts/migrate-0.19-to-0.28.ts) | 本 hop 機械腳本（**無需先啟動 server**） |
 | [migrate-0.28-to-0.36.md](./migrate-0.28-to-0.36.md) | 0.28.x–0.35.x → 0.36.0（刪 `initialized_*.yaml`＋STM `nodes/`／summary） |
 | [scripts/migrate-0.28-to-0.36.ts](./scripts/migrate-0.28-to-0.36.ts) | 本 hop 機械腳本（**無需先啟動 server**；不丟 pending） |
+| [migrate-0.36-to-0.40.md](./migrate-0.36-to-0.40.md) | 0.36.x–0.39.x → 0.40.0（未來視 `hot`／`later` → `upcoming`／`longTerm`） |
+| [scripts/migrate-0.36-to-0.40.ts](./scripts/migrate-0.36-to-0.40.ts) | 本 hop 機械腳本（**無需先啟動 server**；不丟 pending） |
 
 Future hops: add `migrate-X.Y-to-A.B.md` in this directory and list it in the table above. **Do not** put hop-specific steps only in chat or only in roadmap without a file here.
 
@@ -65,6 +67,7 @@ Roadmap contract／WHY for 0.17: `docs/roadmap/0.17.0/docs/migrate-0.16-to-0.17.
      - 例：`0.17.x`／`0.18.x`（無 node `score.yaml`）→ `migrate-0.17-to-0.19`
      - 例：`0.19.x`–`0.27.x` 或仍有 `nodes/*/understand/what.md` → `migrate-0.19-to-0.28`（離線；會丟棄未批准 dream）
      - 例：`0.28.x`–`0.35.x` 或仍有 `initialized_weeks.yaml`／STM `nodes/` → `migrate-0.28-to-0.36`
+     - 例：`0.36.x`–`0.39.x` 或仍有 `future-sight/hot.md`／`later.md` → `migrate-0.36-to-0.40`
      - 例：已屬某 hop 寫明的「已達目標代」→ 告訴使用者可能已遷移，抽樣確認後不要重複破壞性改寫
    - 若 `store_version` 字串較新但**結構仍屬舊代**（產品 stamp、未改盤）：仍走該舊代的「離開 hop」，不要因字串是 `0.18` 就說「沒有 0.18→… 檔」而停住——應歸入 hop 檔宣布的同代區間。
    - 若 `store_version` **缺漏**：再檢查啟發式（day summary／`what.md` 是否仍有 `## Current`／`## History`；是否已有 store `.git`；未來視 `active/` vs `hot.md`／`later.md`）。仍不確定 → **問使用者**，並列出已支援的 hop。

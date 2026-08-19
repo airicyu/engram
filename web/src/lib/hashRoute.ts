@@ -4,7 +4,8 @@ export type ChainLevel = "day" | "week" | "month" | "year";
 
 export type MemoryHash =
   | { mode: "chain"; level?: ChainLevel; id?: string }
-  | { mode: "nodes"; id?: string };
+  | { mode: "nodes"; id?: string }
+  | { mode: "future"; id?: string };
 
 export type HashRoute =
   | { scene: Exclude<SceneId, "memory"> }
@@ -72,6 +73,16 @@ export function parseHash(hash: string): HashRoute {
     return { scene: "memory", memory: { mode: "nodes" } };
   }
 
+  if (parts[1] === "future") {
+    if (parts.length >= 3 && parts[2]) {
+      return {
+        scene: "memory",
+        memory: { mode: "future", id: decodeHashId(parts[2]) },
+      };
+    }
+    return { scene: "memory", memory: { mode: "future" } };
+  }
+
   if (parts[1] === "chain") {
     const level = parts[2] as ChainLevel | undefined;
     if (!level || !CHAIN_LEVELS.has(level)) {
@@ -100,6 +111,10 @@ export function serializeHash(route: HashRoute): string {
     if (m.id) return `#/memory/nodes/${encodeHashId(m.id)}`;
     return `#/memory/nodes`;
   }
+  if (m.mode === "future") {
+    if (m.id) return `#/memory/future/${encodeHashId(m.id)}`;
+    return `#/memory/future`;
+  }
   if (m.level && m.id) {
     return `#/memory/chain/${m.level}/${encodeHashId(m.id)}`;
   }
@@ -126,6 +141,9 @@ export function routesEqual(a: HashRoute, b: HashRoute): boolean {
 export function memoryHashEqual(a: MemoryHash, b: MemoryHash): boolean {
   if (a.mode !== b.mode) return false;
   if (a.mode === "nodes" && b.mode === "nodes") {
+    return (a.id ?? "") === (b.id ?? "");
+  }
+  if (a.mode === "future" && b.mode === "future") {
     return (a.id ?? "") === (b.id ?? "");
   }
   if (a.mode === "chain" && b.mode === "chain") {

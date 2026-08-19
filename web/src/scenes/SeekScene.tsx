@@ -5,8 +5,19 @@ import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
 import { MdBlock, Msg } from "../components/ui";
 import { useAskJob } from "../hooks/useAskJob";
+import { encodeHashId } from "../lib/hashRoute";
 
 type SeekMode = "search" | "ask";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function futureSightSourceId(source: unknown): string | null {
+  if (!isRecord(source)) return null;
+  if (source.kind !== "future_sight") return null;
+  return typeof source.id === "string" && source.id.trim() ? source.id : null;
+}
 
 function SeekModeIcon({ mode }: { mode: SeekMode }) {
   const common = {
@@ -283,9 +294,13 @@ export function SeekScene() {
                 (searchData.future_sight ?? []).map((f) => (
                   <div key={`${f.zone}-${f.id}`} className="node-card">
                     <h3>
-                      {f.id}{" "}
+                      {f.id ? (
+                        <a href={`#/memory/future/${encodeHashId(f.id)}`}>{f.id}</a>
+                      ) : (
+                        f.id
+                      )}{" "}
                       <span>
-                        · {f.zone}
+                        · {f.zone === "longTerm" ? t("memory.zone_long_term") : t("memory.zone_upcoming")}
                         {f.match_reason ? ` · ${f.match_reason}` : ""}
                         {f.anchor_start
                           ? ` · ${f.anchor_start}${f.anchor_end && f.anchor_end !== f.anchor_start ? `→${f.anchor_end}` : ""}`
@@ -357,7 +372,21 @@ export function SeekScene() {
               {(askAnswer.sources ?? []).length ? (
                 <details>
                   <summary>{t("memory.sources_title")}</summary>
-                  <MdBlock text={JSON.stringify(askAnswer.sources, null, 2)} />
+                  <ul className="ask-sources">
+                    {(askAnswer.sources ?? []).map((source, i) => {
+                      const id = futureSightSourceId(source);
+                      const line = JSON.stringify(source);
+                      return (
+                        <li key={i}>
+                          {id ? (
+                            <a href={`#/memory/future/${encodeHashId(id)}`}>{line}</a>
+                          ) : (
+                            <code>{line}</code>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </details>
               ) : null}
             </article>

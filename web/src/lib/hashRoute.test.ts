@@ -36,6 +36,24 @@ describe("parseHash", () => {
     });
   });
 
+  test("memory future deep links", () => {
+    expect(parseHash("#/memory/future")).toEqual({
+      scene: "memory",
+      memory: { mode: "future" },
+    });
+    expect(parseHash("#/memory/future/foo")).toEqual({
+      scene: "memory",
+      memory: { mode: "future", id: "foo" },
+    });
+  });
+
+  test("unknown memory segment still falls back to chain", () => {
+    expect(parseHash("#/memory/foo")).toEqual({
+      scene: "memory",
+      memory: { mode: "chain" },
+    });
+  });
+
   test("unknown level → chain mode fallback", () => {
     expect(parseHash("#/memory/chain/fortnight/x")).toEqual({
       scene: "memory",
@@ -66,6 +84,18 @@ describe("serializeHash", () => {
         memory: { mode: "chain", level: "week", id: "2026-W20-0511" },
       }),
     ).toBe("#/memory/chain/week/2026-W20-0511");
+    expect(
+      serializeHash({
+        scene: "memory",
+        memory: { mode: "future", id: "foo" },
+      }),
+    ).toBe("#/memory/future/foo");
+    expect(
+      serializeHash({
+        scene: "memory",
+        memory: { mode: "future" },
+      }),
+    ).toBe("#/memory/future");
   });
 
   test("encode non-safe id", () => {

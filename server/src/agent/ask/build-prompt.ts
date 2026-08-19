@@ -7,21 +7,21 @@ import { parseAskOutput } from "./parse";
 import { askResultPath } from "../../store/tmp/ask-job";
 import { logMemoryDebug, previewText } from "../../log";
 
-/** Future-sight rows + rules for the ask prompt (hot and later always in scope). */
+/** Future-sight rows + rules for the ask prompt (upcoming and longTerm always in scope). */
 export function buildFutureSightPromptParts(): {
   map_rows: string;
   rules: string;
 } {
   return {
     map_rows: [
-      "| Future-sight (hot) | `memories/future-sight/hot.md` — near-horizon anchors |",
-      "| Future-sight (later) | `memories/future-sight/later.md` — farther anchors within the admission window |",
+      "| Future-sight (upcoming) | `memories/future-sight/upcoming.md` — near-horizon anchors |",
+      "| Future-sight (longTerm) | `memories/future-sight/longTerm.md` — farther anchors within the admission window |",
     ].join("\n"),
     rules: [
-      "You **may** read both `memories/future-sight/hot.md` and `memories/future-sight/later.md`.",
-      "Decide from the question whether later is relevant: open `later.md` when the question could involve farther plans, deadlines, launches, or schedules — not only the near hot window.",
-      "Skip later when the question clearly has no future-plan aspect.",
-      "Do **not** dump every later item into the answer; cite only what you used.",
+      "You **may** read both `memories/future-sight/upcoming.md` and `memories/future-sight/longTerm.md`.",
+      "Decide from the question whether longTerm is relevant: open `longTerm.md` when the question could involve farther plans, deadlines, launches, or schedules — not only the upcoming window.",
+      "Skip longTerm when the question clearly has no future-plan aspect.",
+      "Do **not** dump every longTerm item into the answer; cite only what you used.",
       "Synthesize future-sight with short-term／L2／chain — do **not** answer schedule questions from guesswork alone.",
     ].join(" "),
   };

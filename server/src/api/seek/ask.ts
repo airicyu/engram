@@ -13,7 +13,7 @@ export async function handleMemoryAskPost(body: {
       {
         error: "include_later_removed",
         message:
-          "`include_later` was removed in 0.34; Ask always may read future-sight hot.md and later.md — send only `q`",
+          "`include_later` was removed in 0.34; Ask always may read future-sight upcoming.md and longTerm.md — send only `q`",
       },
       { status: 400 },
     );

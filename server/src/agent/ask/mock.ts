@@ -14,11 +14,11 @@ import {
 export class MockAskOkRunner implements MemoryAskRunner {
   async ask(input: AskInput): Promise<AskAnswer> {
     return {
-      answer: `Mock answer for: ${input.q} [future-sight hot+later allowed]`,
+      answer: `Mock answer for: ${input.q} [future-sight upcoming+longTerm allowed]`,
       sources: [
         { kind: "L1", reason: "mock-ask-ok" },
-        { kind: "future_sight", id: "mock-hot", zone: "hot", reason: "mock hot allowed" },
-        { kind: "future_sight", id: "mock-later", zone: "later", reason: "mock later allowed" },
+        { kind: "future_sight", id: "mock-upcoming", zone: "upcoming", reason: "mock upcoming allowed" },
+        { kind: "future_sight", id: "mock-longTerm", zone: "longTerm", reason: "mock longTerm allowed" },
       ],
       confidence: "high",
     };

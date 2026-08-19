@@ -90,7 +90,7 @@ No authentication in the prototype. Timestamps use effective timezone (workspace
 | `POST` | `/dreams/retry` | Discard pending → re-extract same scope with reason (async 202) |
 | `POST` | `/dreams/amend` | Same `dream_run_id` minimal draft edit (async 202) |
 | `POST` | `/dreams/cancel` | Cancel running dream (kill agent + revert draft) |
-| `GET` | `/memories/future-sight` | Active near-horizon anchors (sweeps expired first) |
+| `GET` | `/memories/future-sight` | Active near-horizon anchors (sweeps expired first). Workbench browse: `#/memory/future` (0.40+) |
 | `GET` | `/memories/short-term-memory` | Short-term preview for Activities |
 | `GET` | `/memories/search` | Keyword search (`q` required; optional `scope=l1,nodes,chain,future`) |
 | `GET` | `/memories/chain` | Day chain index (browse) |
@@ -122,7 +122,7 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 | **dream staging draft** | Staged L2 projection (`dreams/draft/{run_id}/`) — not live until approve |
 | **L2** | Long-term node understanding — whole `memories/nodes/{id}/{id}.md` as standing understanding（API field `understanding`）；Obsidian vault＝`memories/` |
 | **chain** | World timeline (`memories/chain/days|weeks|months|years/`) — day dual-track; higher summary-only |
-| **future-sight** | Near-horizon anchors (`memories/future-sight/hot.md`＋`later.md`) — not memory-chain; searchable via `/memories/search?scope=…,future`（default includes `future`） |
+| **future-sight** | Near-horizon anchors (`memories/future-sight/upcoming.md`＋`longTerm.md`) — not memory-chain; searchable via `/memories/search?scope=…,future`（default includes `future`） |
 | **candidates** | Low-confidence attribution (`dreams/candidates/`) — not the primary create-node path |
 
 **Lock rule:** capture is blocked only while extract/materialize/commit holds the dream lock. **`pending_review` allows capture** (new events ∉ frozen S).

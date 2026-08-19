@@ -204,7 +204,7 @@ function matchOneFutureSight(
   };
 }
 
-/** Keyword hits across hot.md + later.md (hot first, then later; each zone already near→far). */
+/** Keyword hits across upcoming.md + longTerm.md (upcoming first, then longTerm; each zone already near→far). */
 async function matchFutureSight(qLower: string): Promise<MemorySearchFutureSightHit[]> {
   const anchors = await listAnchors();
   const out: MemorySearchFutureSightHit[] = [];

@@ -147,7 +147,7 @@ export async function draftSummary(dreamRunId: string): Promise<{
   if (!manifest) return null;
   const paths = manifest.entries.map((e) => e.path);
   const ids = (regex: RegExp) => paths.map((path) => path.match(regex)?.[1]).filter((id): id is string => !!id).sort();
-  const touchedFuture = paths.some((path) => path === "memories/future-sight/hot.md" || path === "memories/future-sight/later.md");
+      const touchedFuture = paths.some((path) => path === "memories/future-sight/upcoming.md" || path === "memories/future-sight/longTerm.md");
   return {
     entry_count: manifest.entries.length,
     chain_days: [...new Set(ids(/^memories\/chain\/days\/\d{4}-\d{2}\/(\d{4}-\d{2}-\d{2})\.md$/))],

@@ -1,11 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { engramApi, type ChainLevel, type NodeGraphEdge, type NodeIndex } from "../lib/api";
+import {
+  engramApi,
+  type ChainLevel,
+  type FutureSightAnchor,
+  type NodeGraphEdge,
+  type NodeIndex,
+} from "../lib/api";
 import { useI18n } from "../i18n/I18nProvider";
 import { MdBlock } from "../components/ui";
 import { NodeNetworkGraph } from "../components/NodeNetworkGraph";
 import type { MemoryHash } from "../lib/hashRoute";
 
-type MemoryMode = "chain" | "nodes";
+type MemoryMode = "chain" | "nodes" | "future";
+
+function previewContent(content: string): string {
+  const collapsed = content.replace(/\s+/g, " ").trim();
+  if (collapsed.length <= 80) return collapsed;
+  return `${collapsed.slice(0, 80)}…`;
+}
+
+function formatAnchorRange(start?: string, end?: string): string {
+  if (!start) return "";
+  if (!end || end === start) return start;
+  return `${start} – ${end}`;
+}
 
 type ChainItem = { id: string; preview?: string; range?: string };
 
@@ -30,6 +48,13 @@ export function MemoryScene({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     route.mode === "nodes" && route.id ? route.id : null,
   );
+  const [futureAnchors, setFutureAnchors] = useState<FutureSightAnchor[] | null>(null);
+  const [selectedFutureId, setSelectedFutureId] = useState<string | null>(
+    route.mode === "future" && route.id ? route.id : null,
+  );
+  const [futureMeta, setFutureMeta] = useState("");
+  const [futureBody, setFutureBody] = useState("");
+  const [futureEmpty, setFutureEmpty] = useState(false);
   const [chainMeta, setChainMeta] = useState("");
   const [chainBody, setChainBody] = useState("");
   const [chainEmpty, setChainEmpty] = useState(false);
@@ -41,6 +66,7 @@ export function MemoryScene({
   const [indexEmpty, setIndexEmpty] = useState("");
   const selectedChainIdRef = useRef<string | null>(selectedChainId);
   const selectedNodeIdRef = useRef<string | null>(selectedNodeId);
+  const selectedFutureIdRef = useRef<string | null>(selectedFutureId);
   const applyingRouteRef = useRef(false);
 
   useEffect(() => {
@@ -51,6 +77,10 @@ export function MemoryScene({
     selectedNodeIdRef.current = selectedNodeId;
   }, [selectedNodeId]);
 
+  useEffect(() => {
+    selectedFutureIdRef.current = selectedFutureId;
+  }, [selectedFutureId]);
+
   // Apply deep-link / back-forward route into local state.
   useEffect(() => {
     applyingRouteRef.current = true;
@@ -58,9 +88,12 @@ export function MemoryScene({
       setMode("chain");
       if (route.level) setChainLevel(route.level);
       if (route.id !== undefined) setSelectedChainId(route.id);
-    } else {
+    } else if (route.mode === "nodes") {
       setMode("nodes");
       if (route.id !== undefined) setSelectedNodeId(route.id);
+    } else {
+      setMode("future");
+      if (route.id !== undefined) setSelectedFutureId(route.id);
     }
     queueMicrotask(() => {
       applyingRouteRef.current = false;
@@ -296,6 +329,95 @@ export function MemoryScene({
     };
   }, [mode, selectedNodeId, t]);
 
+  useEffect(() => {
+    if (mode !== "future") return;
+    const controller = new AbortController();
+    let cancelled = false;
+    setIndexEmpty("");
+    setFutureAnchors(null);
+    setFutureBody(t("memory.browse_loading"));
+    setFutureEmpty(false);
+    setFutureMeta("");
+
+    void (async () => {
+      try {
+        const { ok, data } = await engramApi.memories.futureSight({
+          signal: controller.signal,
+        });
+        if (cancelled) return;
+        if (!ok) {
+          setFutureAnchors([]);
+          setIndexEmpty(t("memory.browse_fail"));
+          setFutureBody(t("memory.browse_fail"));
+          setFutureEmpty(true);
+          return;
+        }
+        const items = data.anchors ?? [];
+        if (!items.length) {
+          setFutureAnchors([]);
+          setIndexEmpty(t("memory.future_empty"));
+          const previous = selectedFutureIdRef.current;
+          if (previous) {
+            setSelectedFutureId(previous);
+          } else {
+            setSelectedFutureId(null);
+            setFutureMeta("");
+            setFutureBody(t("memory.future_empty"));
+            setFutureEmpty(true);
+          }
+          return;
+        }
+        setFutureAnchors(items);
+        const previous = selectedFutureIdRef.current;
+        if (previous) {
+          setSelectedFutureId(previous);
+        } else {
+          const first = items[0]!.id;
+          setSelectedFutureId(first);
+          if (!applyingRouteRef.current) {
+            onRouteChange({ mode: "future", id: first }, "replace");
+          }
+        }
+      } catch (error) {
+        if (cancelled || (error as DOMException).name === "AbortError") return;
+        setFutureAnchors([]);
+        setIndexEmpty(t("memory.browse_fail"));
+        setFutureBody(t("memory.browse_fail"));
+        setFutureEmpty(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [mode, onRouteChange, t]);
+
+  useEffect(() => {
+    if (mode !== "future") return;
+    if (!selectedFutureId) {
+      setFutureMeta("");
+      setFutureBody(t("memory.future_empty"));
+      setFutureEmpty(true);
+      return;
+    }
+    const items = futureAnchors ?? [];
+    const found = items.find((a) => a.id === selectedFutureId);
+    if (!found) {
+      if (futureAnchors === null) return;
+      setFutureMeta(selectedFutureId);
+      setFutureBody(t("memory.future_missing"));
+      setFutureEmpty(true);
+      return;
+    }
+    const range = formatAnchorRange(found.anchor_start, found.anchor_end);
+    const zoneLabel = found.zone === "longTerm" ? t("memory.zone_long_term") : t("memory.zone_upcoming");
+    setFutureMeta([found.id, zoneLabel, range].filter(Boolean).join(" · "));
+    const text = (found.content ?? "").trim();
+    setFutureBody(text || t("empty.blank"));
+    setFutureEmpty(!text);
+  }, [futureAnchors, mode, selectedFutureId, t]);
+
   const levelLabel = (level: ChainLevel) => {
     if (level === "day") return t("memory.chain_level_day");
     if (level === "week") return t("memory.chain_level_week");
@@ -340,6 +462,21 @@ export function MemoryScene({
           }}
         >
           {t("memory.mode_nodes")}
+        </button>
+        <button
+          type="button"
+          className={`mode-btn${mode === "future" ? " is-active" : ""}`}
+          role="tab"
+          aria-selected={mode === "future"}
+          onClick={() => {
+            setMode("future");
+            onRouteChange(
+              { mode: "future", id: selectedFutureId ?? undefined },
+              "push",
+            );
+          }}
+        >
+          {t("memory.mode_future")}
         </button>
       </div>
 
@@ -401,11 +538,11 @@ export function MemoryScene({
             <article className="browse-detail packet-block">
               <h2>{selectedChainId ?? "—"}</h2>
               <p className="browse-meta">{chainMeta}</p>
-              <MdBlock text={chainBody} empty={chainEmpty} knownNodeIds={knownNodeIds} />
-            </article>
-          </div>
+            <MdBlock text={chainBody} empty={chainEmpty} knownNodeIds={knownNodeIds} />
+          </article>
+        </div>
         </>
-      ) : (
+      ) : mode === "nodes" ? (
         <div className="browse-layout browse-layout-nodes">
           <div className="browse-sidebar node-graph-sidebar">
             <label className="sr-only" htmlFor="memory-nodes-filter">
@@ -464,6 +601,76 @@ export function MemoryScene({
             <h2>{selectedNodeId ?? "—"}</h2>
             {nodeScoreMeta ? <p className="browse-meta">{nodeScoreMeta}</p> : null}
             <MdBlock text={nodeBody} empty={nodeEmpty} knownNodeIds={knownNodeIds} />
+          </article>
+        </div>
+      ) : (
+        <div className="browse-layout browse-layout-chain">
+          <div
+            className="browse-index browse-index-card"
+            role="listbox"
+            aria-label={t("memory.mode_future")}
+          >
+            {indexEmpty ? (
+              <p className="browse-empty">{indexEmpty}</p>
+            ) : (
+              <>
+                {(futureAnchors ?? []).some((a) => a.zone !== "longTerm") ? (
+                  <p className="browse-group-label">{t("memory.future_group_upcoming")}</p>
+                ) : null}
+                {(futureAnchors ?? [])
+                  .filter((a) => a.zone !== "longTerm")
+                  .map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`browse-item browse-item-chain${item.id === selectedFutureId ? " is-selected" : ""}`}
+                      role="option"
+                      aria-current={item.id === selectedFutureId ? "true" : undefined}
+                      onClick={() => {
+                        setSelectedFutureId(item.id);
+                        onRouteChange({ mode: "future", id: item.id }, "replace");
+                      }}
+                    >
+                      <span className="browse-item-id">
+                        {formatAnchorRange(item.anchor_start, item.anchor_end) || item.id}
+                      </span>
+                      {item.content ? (
+                        <div className="browse-item-preview">{previewContent(item.content)}</div>
+                      ) : null}
+                    </button>
+                  ))}
+                {(futureAnchors ?? []).some((a) => a.zone === "longTerm") ? (
+                  <p className="browse-group-label">{t("memory.future_group_long_term")}</p>
+                ) : null}
+                {(futureAnchors ?? [])
+                  .filter((a) => a.zone === "longTerm")
+                  .map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`browse-item browse-item-chain${item.id === selectedFutureId ? " is-selected" : ""}`}
+                      role="option"
+                      aria-current={item.id === selectedFutureId ? "true" : undefined}
+                      onClick={() => {
+                        setSelectedFutureId(item.id);
+                        onRouteChange({ mode: "future", id: item.id }, "replace");
+                      }}
+                    >
+                      <span className="browse-item-id">
+                        {formatAnchorRange(item.anchor_start, item.anchor_end) || item.id}
+                      </span>
+                      {item.content ? (
+                        <div className="browse-item-preview">{previewContent(item.content)}</div>
+                      ) : null}
+                    </button>
+                  ))}
+              </>
+            )}
+          </div>
+          <article className="browse-detail packet-block">
+            <h2>{selectedFutureId ?? "—"}</h2>
+            {futureMeta ? <p className="browse-meta">{futureMeta}</p> : null}
+            <MdBlock text={futureBody} empty={futureEmpty} knownNodeIds={knownNodeIds} />
           </article>
         </div>
       )}

@@ -24,6 +24,6 @@ export async function handleFutureSight(): Promise<object> {
     })),
     swept_expired: result.expired,
     future_sight_window_days: config.futureSightWindowDays,
-    future_sight_hot_days: config.futureSightHotDays,
+    future_sight_upcoming_days: config.futureSightUpcomingDays,
   };
 }

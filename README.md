@@ -9,7 +9,7 @@
 寫入／沉澱    搜尋／提問     釐清 DM        翻閱
 ```
 
-**目前版本：** [0.39.0](./version.md)（進行中） · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
+**目前版本：** [0.40.0](./version.md) · 變更見 [changelog.md](./changelog.md) · 使用前請讀 [DISCLAIMER.md](./DISCLAIMER.md)
 
 > **讀文件時：** 這份 README 是給人看的專案說明。給 AI coding agent 的操作邊界與開發脈絡在 [AGENTS.md](./AGENTS.md)（Cursor／Claude Code 會自動讀取），請勿把兩者當成同一份文件。
 

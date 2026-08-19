@@ -73,7 +73,7 @@ Engram 設定分兩層：**進程／本機**（repo 根目錄 `.env` 或環境�
 | `timezone` | `ENGRAM_TZ` | `Asia/Hong_Kong` | IANA 時區（日曆日、事件時間戳） |
 | `memory_language` | `ENGRAM_MEMORY_LANGUAGE` | `en` | `zh-Hant`｜`zh-Hans`｜`en`（新寫入 chain／node／ask 散文；`zh-Hant`＝繁體中文書面語） |
 | `future_sight_window_days` | `ENGRAM_FUTURE_SIGHT_WINDOW_DAYS` | `365` | 未來視准入上限（天） |
-| `future_sight_hot_days` | `ENGRAM_FUTURE_SIGHT_HOT_DAYS` | `30` | 未來視 hot 區天數 |
+| `future_sight_upcoming_days` | `ENGRAM_FUTURE_SIGHT_UPCOMING_DAYS` | `30` | 未來視 upcoming 區天數 |
 
 ### 除錯與實驗
 

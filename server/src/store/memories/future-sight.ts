@@ -1,4 +1,4 @@
-/** Future-sight dual-zone store (hot.md / later.md), parse/render, and calendar maintenance. */
+/** Future-sight dual-zone store (upcoming.md / longTerm.md), parse/render, and calendar maintenance. */
 
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -18,7 +18,7 @@ export interface FutureSightAnchor {
 }
 
 /** Zone for an anchor in the dual-file layout. */
-export type FutureSightZone = "hot" | "later";
+export type FutureSightZone = "upcoming" | "longTerm";
 
 /** Anchor plus which file it currently lives in. */
 export interface FutureSightListedAnchor extends FutureSightAnchor {
@@ -38,7 +38,7 @@ export interface MaintainFutureSightOpts {
   /** When true and target=live, commit changed tracked paths. */
   commit?: boolean;
   windowDays?: number;
-  hotDays?: number;
+  upcomingDays?: number;
 }
 
 export interface MaintainFutureSightResult {
@@ -108,10 +108,10 @@ export function emptyZoneMarkdown(zone: FutureSightZone, updatedAt = nowIso()): 
   return `---\n${stringify({ zone, updated_at: updatedAt }).trim()}\n---\n`;
 }
 
-/** Ensure live hot.md / later.md exist. */
+/** Ensure live upcoming.md / longTerm.md exist. */
 export async function ensureFutureSightFiles(): Promise<void> {
   await mkdir(futureSightDir(), { recursive: true });
-  for (const zone of ["hot", "later"] as const) {
+  for (const zone of ["upcoming", "longTerm"] as const) {
     const path = liveZonePath(zone);
     if (!(await exists(path))) {
       await writeFile(path, emptyZoneMarkdown(zone), "utf8");
@@ -232,8 +232,8 @@ export function parseLegacyActiveMarkdown(text: string, fallbackId?: string): Fu
 /** @deprecated Alias — prefer parseLegacyActiveMarkdown or parseZoneFile. */
 export function parseFutureSightMarkdown(text: string, fallbackId?: string): FutureSightAnchor {
   // Zone files start with zone: in frontmatter and ## headings in body.
-  if (/^---\n[\s\S]*?\nzone:\s*(hot|later)\b/m.test(text) && /^##\s+\S+/m.test(text)) {
-    const zone = text.match(/^zone:\s*(hot|later)\s*$/m)?.[1] as FutureSightZone | undefined;
+  if (/^---\n[\s\S]*?\nzone:\s*(upcoming|longTerm)\b/m.test(text) && /^##\s+\S+/m.test(text)) {
+    const zone = text.match(/^zone:\s*(upcoming|longTerm)\s*$/m)?.[1] as FutureSightZone | undefined;
     const list = parseZoneFile(text, zone);
     if (fallbackId) {
       const found = list.find((a) => a.id === fallbackId);
@@ -291,17 +291,17 @@ async function writeZoneAnchors(
   await writeFile(zonePath(zone, baseDir), renderZoneFile(zone, anchors), "utf8");
 }
 
-/** List all anchors with zone; hot first then later; each zone sorted. */
+/** List all anchors with zone; upcoming first then longTerm; each zone sorted. */
 export async function listAnchors(baseDir?: string): Promise<FutureSightListedAnchor[]> {
-  const hot = sortAnchors(await readZoneAnchors("hot", baseDir)).map((a) => ({
+  const upcoming = sortAnchors(await readZoneAnchors("upcoming", baseDir)).map((a) => ({
     ...a,
-    zone: "hot" as const,
+    zone: "upcoming" as const,
   }));
-  const later = sortAnchors(await readZoneAnchors("later", baseDir)).map((a) => ({
+  const longTerm = sortAnchors(await readZoneAnchors("longTerm", baseDir)).map((a) => ({
     ...a,
-    zone: "later" as const,
+    zone: "longTerm" as const,
   }));
-  return [...hot, ...later];
+  return [...upcoming, ...longTerm];
 }
 
 /** @deprecated Use listAnchors. */
@@ -311,12 +311,12 @@ export async function listActiveAnchors(): Promise<FutureSightAnchor[]> {
 
 export async function countZoneAnchors(): Promise<{
   total: number;
-  hot: number;
-  later: number;
+  upcoming: number;
+  longTerm: number;
 }> {
-  const hot = (await readZoneAnchors("hot")).length;
-  const later = (await readZoneAnchors("later")).length;
-  return { total: hot + later, hot, later };
+  const upcoming = (await readZoneAnchors("upcoming")).length;
+  const longTerm = (await readZoneAnchors("longTerm")).length;
+  return { total: upcoming + longTerm, upcoming, longTerm };
 }
 
 /** Count of all zone items (status.future_sight_active_count). */
@@ -328,15 +328,15 @@ export async function countActiveAnchors(): Promise<number> {
 export function assignZone(
   a: FutureSightAnchor,
   today: string,
-  hotDays: number,
+  upcomingDays: number,
   windowDays: number,
 ): FutureSightZone | "expired" | "out_of_window" {
   if (a.anchor_end < today) return "expired";
-  const hotLast = addCalendarDays(today, hotDays);
+  const upcomingLast = addCalendarDays(today, upcomingDays);
   const windowLast = addCalendarDays(today, windowDays);
   if (a.anchor_start > windowLast) return "out_of_window";
-  if (a.anchor_start <= hotLast) return "hot";
-  return "later";
+  if (a.anchor_start <= upcomingLast) return "upcoming";
+  return "longTerm";
 }
 
 /** Whether content may enter future-sight on extract. */
@@ -386,7 +386,7 @@ export async function maintainFutureSight(
   const target = opts.target ?? "live";
   const today = opts.today ?? calendarDate();
   const windowDays = opts.windowDays ?? config.futureSightWindowDays;
-  const hotDays = opts.hotDays ?? config.futureSightHotDays;
+  const upcomingDays = opts.upcomingDays ?? config.futureSightUpcomingDays;
   const baseDir = target === "draft" ? opts.baseDir : undefined;
   if (target === "draft" && !baseDir) {
     throw new Error("maintainFutureSight: draft target requires baseDir");
@@ -396,26 +396,26 @@ export async function maintainFutureSight(
     await ensureFutureSightFiles();
   }
 
-  const beforeHot = await readZoneAnchors("hot", baseDir);
-  const beforeLater = await readZoneAnchors("later", baseDir);
-  const hotPath = zonePath("hot", baseDir);
-  const laterPath = zonePath("later", baseDir);
+  const beforeUpcoming = await readZoneAnchors("upcoming", baseDir);
+  const beforeLongTerm = await readZoneAnchors("longTerm", baseDir);
+  const upcomingPath = zonePath("upcoming", baseDir);
+  const longTermPath = zonePath("longTerm", baseDir);
   const needsCanonical =
-    ((await exists(hotPath)) && zoneFileHasDroppedKeys(await readFile(hotPath, "utf8"))) ||
-    ((await exists(laterPath)) && zoneFileHasDroppedKeys(await readFile(laterPath, "utf8")));
+    ((await exists(upcomingPath)) && zoneFileHasDroppedKeys(await readFile(upcomingPath, "utf8"))) ||
+    ((await exists(longTermPath)) && zoneFileHasDroppedKeys(await readFile(longTermPath, "utf8")));
 
-  const all = [...beforeHot, ...beforeLater];
+  const all = [...beforeUpcoming, ...beforeLongTerm];
   const byId = new Map<string, FutureSightAnchor>();
   for (const a of all) byId.set(a.id, a);
 
   const expired: string[] = [];
   const out_of_window: string[] = [];
   const stale_expired: string[] = [];
-  const hot: FutureSightAnchor[] = [];
-  const later: FutureSightAnchor[] = [];
+  const upcoming: FutureSightAnchor[] = [];
+  const longTerm: FutureSightAnchor[] = [];
 
   for (const a of byId.values()) {
-    const bucket = assignZone(a, today, hotDays, windowDays);
+    const bucket = assignZone(a, today, upcomingDays, windowDays);
 
     if (mode === "expire_only") {
       if (bucket === "expired") {
@@ -424,12 +424,12 @@ export async function maintainFutureSight(
           expired.push(a.id);
         } else {
           stale_expired.push(a.id);
-          hot.push(a);
+          upcoming.push(a);
         }
         continue;
       }
-      if (beforeHot.some((x) => x.id === a.id)) hot.push(a);
-      else later.push(a);
+      if (beforeUpcoming.some((x) => x.id === a.id)) upcoming.push(a);
+      else longTerm.push(a);
       continue;
     }
 
@@ -440,7 +440,7 @@ export async function maintainFutureSight(
         expired.push(a.id);
       } else {
         stale_expired.push(a.id);
-        hot.push(a);
+        upcoming.push(a);
       }
       continue;
     }
@@ -453,8 +453,8 @@ export async function maintainFutureSight(
       }
       continue;
     }
-    if (bucket === "hot") hot.push(a);
-    else later.push(a);
+    if (bucket === "upcoming") upcoming.push(a);
+    else longTerm.push(a);
   }
 
   const sameIds = (a: FutureSightAnchor[], b: FutureSightAnchor[]) => {
@@ -473,18 +473,18 @@ export async function maintainFutureSight(
   };
 
   const changed =
-    needsCanonical || !sameIds(beforeHot, hot) || !sameIds(beforeLater, later);
+    needsCanonical || !sameIds(beforeUpcoming, upcoming) || !sameIds(beforeLongTerm, longTerm);
 
   if (changed) {
-    await writeZoneAnchors("hot", hot, baseDir);
-    await writeZoneAnchors("later", later, baseDir);
+    await writeZoneAnchors("upcoming", upcoming, baseDir);
+    await writeZoneAnchors("longTerm", longTerm, baseDir);
   }
 
   let committed = false;
   if (changed && opts.commit && target === "live") {
     const paths = [
-      futureSightZoneRel("hot"),
-      futureSightZoneRel("later"),
+      futureSightZoneRel("upcoming"),
+      futureSightZoneRel("longTerm"),
       "memories/activities/events.jsonl",
       "memories/short-term-memory",
     ];
@@ -511,12 +511,12 @@ export async function sweepExpiredFutureSight(today = calendarDate()): Promise<s
  * Replace both zone files with the given partitioned anchors (used by migrate／tests).
  */
 export async function writeAllZones(opts: {
-  hot: FutureSightAnchor[];
-  later: FutureSightAnchor[];
+  upcoming: FutureSightAnchor[];
+  longTerm: FutureSightAnchor[];
   baseDir?: string;
 }): Promise<void> {
-  await writeZoneAnchors("hot", opts.hot, opts.baseDir);
-  await writeZoneAnchors("later", opts.later, opts.baseDir);
+  await writeZoneAnchors("upcoming", opts.upcoming, opts.baseDir);
+  await writeZoneAnchors("longTerm", opts.longTerm, opts.baseDir);
 }
 
 /** Upsert one anchor into the correct live zone (typed patch helper). */
@@ -525,15 +525,15 @@ export async function upsertLiveAnchor(
   today = calendarDate(),
 ): Promise<FutureSightZone | null> {
   await ensureFutureSightFiles();
-  const bucket = assignZone(a, today, config.futureSightHotDays, config.futureSightWindowDays);
+  const bucket = assignZone(a, today, config.futureSightUpcomingDays, config.futureSightWindowDays);
   if (bucket === "expired" || bucket === "out_of_window") return null;
 
-  const hot = (await readZoneAnchors("hot")).filter((x) => x.id !== a.id);
-  const later = (await readZoneAnchors("later")).filter((x) => x.id !== a.id);
-  if (bucket === "hot") hot.push(a);
-  else later.push(a);
-  await writeZoneAnchors("hot", hot);
-  await writeZoneAnchors("later", later);
+  const upcoming = (await readZoneAnchors("upcoming")).filter((x) => x.id !== a.id);
+  const longTerm = (await readZoneAnchors("longTerm")).filter((x) => x.id !== a.id);
+  if (bucket === "upcoming") upcoming.push(a);
+  else longTerm.push(a);
+  await writeZoneAnchors("upcoming", upcoming);
+  await writeZoneAnchors("longTerm", longTerm);
   return bucket;
 }
 

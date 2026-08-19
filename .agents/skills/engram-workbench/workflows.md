@@ -83,4 +83,4 @@ Commit succeeded but clearing S failed. Call approve again — only retries clea
 
 ## Memory ask
 
-`POST /memories/ask` `{ q }` → poll `GET /memories/ask/{job_id}` until `completed` | `failed` | `cancelled`. One running ask at a time (`409 ask_busy`). Cancel via `POST /memories/ask/{job_id}/cancel`. Agent may read both `hot.md` and `later.md`. Do **not** send `include_later` (`400 include_later_removed`). `/status.ask_job` mirrors the running／last ask job.
+`POST /memories/ask` `{ q }` → poll `GET /memories/ask/{job_id}` until `completed` | `failed` | `cancelled`. One running ask at a time (`409 ask_busy`). Cancel via `POST /memories/ask/{job_id}/cancel`. Agent may read both `upcoming.md` and `longTerm.md`. Do **not** send `include_later` (`400 include_later_removed`). `/status.ask_job` mirrors the running／last ask job.

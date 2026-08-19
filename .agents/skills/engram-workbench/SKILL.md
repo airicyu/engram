@@ -57,13 +57,13 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Retry** | `POST /dreams/retry` `{ reason }` — discard → same frozen scope + feedback → new pending |
 | **Amend** | `POST /dreams/amend` `{ instruction }` — same `dream_run_id` minimal draft edit; failure keeps pending |
 | **Dream cancel** | `POST /dreams/cancel` — stop running dream；revert draft |
-| **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain,future`; default all four; `future`＝hot＋later) |
-| **Ask** | `POST /memories/ask` `{ q }` — async AI Q&A（恆可讀 hot＋later）；poll `GET /memories/ask/{job_id}` |
-| **Future-sight** | `GET /memories/future-sight` — `hot`／`later` 錨點（GET 只清過期並可 git commit；重桶在入夢前） |
+| **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain,future`; default all four; `future`＝upcoming＋longTerm) |
+| **Ask** | `POST /memories/ask` `{ q }` — async AI Q&A（恆可讀 upcoming＋longTerm）；poll `GET /memories/ask/{job_id}` |
+| **Future-sight** | `GET /memories/future-sight` — `upcoming`／`longTerm` 錨點（GET 只清過期並可 git commit；重桶在入夢前）。工作台記憶頁第三 mode `#/memory/future` 可瀏覽 |
 | **Clarify** | `GET /memories/clarify/asking`；`POST .../submit` `{ answer }`；`DELETE .../{id}`；`POST /memories/clarify/aside` `{ raw }` — 非 activity；dream lock → 409；pending_review 可寫 |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `never_dreamed` |
 | **store_git** | `GET /status.store_git` — 記憶庫是否為可用 local git（0.16+；否則 server 拒啟） |
-| **store_version** | `GET /status.store_version` — 記憶庫結構世代。**0.36+ boot** 要求 major.minor ≥ 0.36，否則拒啟並須**離線**跑 engram-migration（`0.28–0.35` → `migrate-0.28-to-0.36`；更舊先 `migrate-0.19-to-0.28`，該 hop 會丟棄未批准 dream）；對照 `product_version`（不必字串相等） |
+| **store_version** | `GET /status.store_version` — 記憶庫結構世代。**0.40+ boot** 要求 major.minor ≥ 0.40，否則拒啟並須**離線**跑 engram-migration（`0.36–0.39` → `migrate-0.36-to-0.40`；更舊先 `migrate-0.28-to-0.36`／`migrate-0.19-to-0.28`）；對照 `product_version`（不必字串相等） |
 | **Obsidian** | 人應開啟 `{ENGRAM_STORE_DIR}/memories/` 作為 vault（不是 store 根）。Node 主檔＝`nodes/{id}/{id}.md` |
 
 ## ⚠️ Before any API call
@@ -87,11 +87,11 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /dreams/discard` | body optional | `{ discarded: true }` |
 | `POST /dreams/cancel` | body optional | cancel running dream |
 | `GET /memories/short-term-memory` | none | short-term `entries[]`；wire 仍用 `l1`／`l1_empty` 等別名 |
-| `GET /memories/search` | `q` (required); `scope` optional (`l1,nodes,chain,future`) | keyword hits per scope（`future`＝hot＋later） |
+| `GET /memories/search` | `q` (required); `scope` optional (`l1,nodes,chain,future`) | keyword hits per scope（`future`＝upcoming＋longTerm） |
 | `GET /memories/chain`／`weeks`／`months`／`years`（及 `/{id}`） | — | browse timeline |
 | `GET /memories/nodes`／`graph`／`{id}` | — | browse L2；graph 含 `edges[]`（P1 互指）；detail 回 `understanding` |
 | `POST /memories/ask` | `q` | `202` + `job_id`；勿傳 `include_later`（400） |
-| `GET /memories/future-sight` | none | `anchors`（含 `zone`）、`swept_expired` |
+| `GET /memories/future-sight` | none | `anchors`（含 `zone` upcoming／longTerm）、`swept_expired` |
 | `GET /memories/clarify/asking` | none | `{ items: [...] }`（舊→新）；空＝`{ "items": [] }` |
 | `POST /memories/clarify/asking/{id}/submit` | `{ answer }` | asking→pending；缺檔 404；lock → 409 |
 | `DELETE /memories/clarify/asking/{id}` | none | dismiss；缺檔 200 冪等 |
@@ -142,7 +142,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "搜尋記憶" | `GET /memories/search?q=…&scope=…`（預設含 `future`） |
 | "翻時間軸／節點" | `GET /memories/chain`／`nodes`／`nodes/graph`（及 higher／detail） |
 | "問記憶庫" | `POST /memories/ask` `{ q }`；poll job |
-| "近期前瞻／未來視" | `GET /memories/future-sight`；Seek Search／Ask 亦可讀（`scope=future`） |
+| "近期前瞻／未來視" | `GET /memories/future-sight`；工作台 `#/memory/future`；Seek Search／Ask 亦可讀（`scope=future`） |
 | "釐清／補問／順帶補充" | `GET …/clarify/asking`；`POST …/submit` `{ answer }`；`DELETE …/{id}`；`POST …/aside` `{ raw }` |
 | "丟掉這次夢" | `POST /dreams/discard` |
 | "重試／改方向" | `POST /dreams/retry` + `{ reason }` — **不要**手改檔案；**不要**無理由再 `dreams/run` |

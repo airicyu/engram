@@ -399,14 +399,14 @@ export class MockOkRunner implements AgentRunner {
       const zone = assignZone(
         anchor,
         today,
-        config.futureSightHotDays,
+        config.futureSightUpcomingDays,
         config.futureSightWindowDays,
       );
-      if (zone === "hot" || zone === "later") {
-        for (const z of ["hot", "later"] as const) {
+      if (zone === "upcoming" || zone === "longTerm") {
+        for (const z of ["upcoming", "longTerm"] as const) {
           await copyLiveIntoDraft(ctx.dream_run_id, `memories/future-sight/${z}.md`);
         }
-        const load = async (z: "hot" | "later"): Promise<FutureSightAnchor[]> => {
+        const load = async (z: "upcoming" | "longTerm"): Promise<FutureSightAnchor[]> => {
           const p = draftAbs(ctx.dream_run_id, "memories", "future-sight", `${z}.md`);
           if (!(await exists(p))) {
             const live = homePath("memories", "future-sight", `${z}.md`);
@@ -425,19 +425,19 @@ export class MockOkRunner implements AgentRunner {
             return [];
           }
         };
-        let hot = (await load("hot")).filter((a) => a.id !== id);
-        let later = (await load("later")).filter((a) => a.id !== id);
-        if (zone === "hot") hot.push(anchor);
-        else later.push(anchor);
+        let upcoming = (await load("upcoming")).filter((a) => a.id !== id);
+        let longTerm = (await load("longTerm")).filter((a) => a.id !== id);
+        if (zone === "upcoming") upcoming.push(anchor);
+        else longTerm.push(anchor);
         await writeDraftFile(
           ctx.dream_run_id,
-          "memories/future-sight/hot.md",
-          renderZoneFile("hot", hot),
+          "memories/future-sight/upcoming.md",
+          renderZoneFile("upcoming", upcoming),
         );
         await writeDraftFile(
           ctx.dream_run_id,
-          "memories/future-sight/later.md",
-          renderZoneFile("later", later),
+          "memories/future-sight/longTerm.md",
+          renderZoneFile("longTerm", longTerm),
         );
         futureLine = `Proposed future-sight \`${id}\` (${anchorDay}, zone=${zone}): Mock near-horizon deadline from short-term`;
       }

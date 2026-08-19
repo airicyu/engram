@@ -602,12 +602,12 @@ async function main() {
       assert(poll.status === 200 && poll.data.present === true, "ask poll");
       if (poll.data.status === "completed") {
         assert(String(poll.data.answer).includes("Mock answer"), "ask answer");
-        assert(String(poll.data.answer).includes("hot+later allowed"), "ask always allows later");
+        assert(String(poll.data.answer).includes("upcoming+longTerm allowed"), "ask always allows longTerm");
         assert(!("include_later" in poll.data), "poll has no include_later");
         const srcs = poll.data.sources as { kind?: string; zone?: string }[];
         assert(
-          Array.isArray(srcs) && srcs.some((s) => s.kind === "future_sight" && s.zone === "later"),
-          "ask later source zone",
+          Array.isArray(srcs) && srcs.some((s) => s.kind === "future_sight" && s.zone === "longTerm"),
+          "ask longTerm source zone",
         );
         askDone = true;
         break;
@@ -761,7 +761,7 @@ async function main() {
     assert(
       (apFs.data.committed as string[]).some(
         (p: string) =>
-          p === "memories/future-sight/hot.md" || p === "memories/future-sight/later.md",
+          p === "memories/future-sight/upcoming.md" || p === "memories/future-sight/longTerm.md",
       ),
       `committed future-sight zone path: ${JSON.stringify(apFs.data.committed)}`,
     );
@@ -770,17 +770,17 @@ async function main() {
     assert(list1.status === 200, "future-sight 200");
     assert(Array.isArray(list1.data.anchors) && list1.data.anchors.length >= 1, "has active anchors");
     assert(
-      (list1.data.anchors as { zone?: string }[]).every((a) => a.zone === "hot" || a.zone === "later"),
+      (list1.data.anchors as { zone?: string }[]).every((a) => a.zone === "upcoming" || a.zone === "longTerm"),
       "anchors have zone",
     );
     const stFs = await json("GET", "/status");
     assert(stFs.data.future_sight_active_count >= 1, "status count");
-    assert(typeof stFs.data.future_sight_hot_count === "number", "hot count");
-    assert(typeof stFs.data.future_sight_later_count === "number", "later count");
+    assert(typeof stFs.data.future_sight_upcoming_count === "number", "upcoming count");
+    assert(typeof stFs.data.future_sight_long_term_count === "number", "longTerm count");
 
-    // Plant an already-expired anchor in hot.md; GET should sweep → L0+short-term event + remove
-    const hotPath = join(TEST_HOME, "memories/future-sight/hot.md");
-    const hotExisting = await readFile(hotPath, "utf8");
+    // Plant an already-expired anchor in upcoming.md; GET should sweep → L0+short-term event + remove
+    const upcomingPath = join(TEST_HOME, "memories/future-sight/upcoming.md");
+    const upcomingExisting = await readFile(upcomingPath, "utf8");
     const expiredBlock = `
 ## fs-expired-test
 \`\`\`yaml
@@ -790,7 +790,7 @@ anchor_end: "2020-01-02"
 
 Old foresight that should expire.
 `;
-    await Bun.write(hotPath, hotExisting.trimEnd() + "\n" + expiredBlock);
+    await Bun.write(upcomingPath, upcomingExisting.trimEnd() + "\n" + expiredBlock);
     const list2 = await json("GET", "/memories/future-sight");
     assert(list2.data.swept_expired?.includes("fs-expired-test"), "swept expired id");
     assert(
@@ -803,23 +803,23 @@ Old foresight that should expire.
     const poolSweep = await readFile(join(TEST_HOME, "memories/short-term-memory/pool.jsonl"), "utf8");
     assert(poolSweep.includes("Future-sight expired"), "short-term has expiry note");
 
-    console.log("Phase 5b: search future-sight (hot + later)");
+    console.log("Phase 5b: search future-sight (upcoming + longTerm)");
     const stWindow = await json("GET", "/status");
     assert(stWindow.data.future_sight_window_days === 365, "default window_days 365");
-    assert(stWindow.data.future_sight_hot_days === 30, "hot_days still 30");
+    assert(stWindow.data.future_sight_upcoming_days === 30, "upcoming_days still 30");
 
-    const laterPath = join(TEST_HOME, "memories/future-sight/later.md");
-    const laterExisting = await readFile(laterPath, "utf8");
-    const laterBlock = `
+    const longTermPath = join(TEST_HOME, "memories/future-sight/longTerm.md");
+    const longTermExisting = await readFile(longTermPath, "utf8");
+    const longTermBlock = `
 ## game-xx-launch
 \`\`\`yaml
 anchor_start: "2026-12-01"
 anchor_end: "2026-12-15"
 \`\`\`
 
-Unique later keyword xylophone-launch window for search.
+Unique longTerm keyword xylophone-launch window for search.
 `;
-    await Bun.write(laterPath, laterExisting.trimEnd() + "\n" + laterBlock);
+    await Bun.write(longTermPath, longTermExisting.trimEnd() + "\n" + longTermBlock);
 
     const searchFuture = await json("GET", "/memories/search?q=xylophone-launch&scope=future");
     assert(searchFuture.status === 200, "search future 200");
@@ -832,8 +832,8 @@ Unique later keyword xylophone-launch window for search.
       match_reason?: string;
     }[];
     assert(
-      fsHits.some((h) => h.id === "game-xx-launch" && h.zone === "later"),
-      "search hits later zone",
+      fsHits.some((h) => h.id === "game-xx-launch" && h.zone === "longTerm"),
+      "search hits longTerm zone",
     );
 
     const searchDefaultFs = await json("GET", "/memories/search?q=deadline");
@@ -1386,10 +1386,58 @@ Unique later keyword xylophone-launch window for search.
     wsAfter = await readFile(wsPath, "utf8");
     assert(wsAfter.includes("store_version: 0.36.0"), "store_version 0.36.0");
 
+    // T1d: migrate 0.36→0.40 (future-sight hot/later → upcoming/longTerm)
+    await mkdir(join(TEST_HOME, "memories/future-sight"), { recursive: true });
+    await Bun.write(
+      join(TEST_HOME, "memories/future-sight/hot.md"),
+      "---\nzone: hot\nupdated_at: 2026-08-01T00:00:00.000Z\n---\n",
+    );
+    await Bun.write(
+      join(TEST_HOME, "memories/future-sight/later.md"),
+      "---\nzone: later\nupdated_at: 2026-08-01T00:00:00.000Z\n---\n",
+    );
+    wsText = await readFile(wsPath, "utf8");
+    if (!wsText.includes("future_sight_hot_days:")) {
+      wsText = wsText.replace(
+        /store_version:\s*0\.36\.0/,
+        "store_version: 0.36.0\nfuture_sight_hot_days: 30",
+      );
+      await Bun.write(wsPath, wsText);
+    }
+    const mig40 = Bun.spawnSync([
+      "bun",
+      migrationScript("migrate-0.36-to-0.40.ts"),
+      TEST_HOME,
+    ]);
+    assert(mig40.exitCode === 0, `migrate 0.36→0.40 exit 0: ${mig40.stderr.toString()}\n${mig40.stdout.toString()}`);
+    assert(
+      await Bun.file(join(TEST_HOME, "memories/future-sight/upcoming.md")).exists(),
+      "upcoming.md after hop",
+    );
+    assert(
+      await Bun.file(join(TEST_HOME, "memories/future-sight/longTerm.md")).exists(),
+      "longTerm.md after hop",
+    );
+    assert(
+      !(await Bun.file(join(TEST_HOME, "memories/future-sight/hot.md")).exists()),
+      "hot.md removed",
+    );
+    assert(
+      !(await Bun.file(join(TEST_HOME, "memories/future-sight/later.md")).exists()),
+      "later.md removed",
+    );
+    const upcomingMd = await readFile(join(TEST_HOME, "memories/future-sight/upcoming.md"), "utf8");
+    assert(upcomingMd.includes("zone: upcoming"), "upcoming frontmatter");
+    wsAfter = await readFile(wsPath, "utf8");
+    assert(wsAfter.includes("store_version: 0.40.0"), "store_version 0.40.0");
+    assert(wsAfter.includes("future_sight_upcoming_days:"), "renamed upcoming_days key");
+    assert(!wsAfter.includes("future_sight_hot_days:"), "old hot_days key gone");
+
     // T11–T13: boot structure gate (pure check; process exit covered by assertStoreStructureOrExit)
     const tooOld = checkStoreStructure("0.27.0");
     assert(tooOld.ok === false && tooOld.reason === "too_old", "T11 0.27 too old");
     assert(tooOld.message.includes("migrate-0.19-to-0.28"), "T11 migrate hint 0.19→0.28");
+    assert(tooOld.message.includes("migrate-0.36-to-0.40"), "T11 migrate hint 0.36→0.40");
     assert(tooOld.message.includes("migrate-0.28-to-0.36"), "T11 migrate hint 0.28→0.36");
     assert(
       tooOld.message.includes("need not be running") || tooOld.message.includes("offline"),
@@ -1397,14 +1445,16 @@ Unique later keyword xylophone-launch window for search.
     );
     const missing = checkStoreStructure(null);
     assert(missing.ok === false && missing.reason === "missing", "T12 missing store_version");
-    assert(checkStoreStructure("0.28.0").ok === false, "T13 0.28 too old for 0.36 gate");
+    assert(checkStoreStructure("0.28.0").ok === false, "T13 0.28 too old for 0.40 gate");
     assert(checkStoreStructure("0.35.0").ok === false, "T13 0.35 too old");
-    assert(checkStoreStructure("0.36.0").ok === true, "T13 0.36 ok");
-    assert(checkStoreStructure("0.37.1").ok === true, "T13 newer stamp ok");
+    assert(checkStoreStructure("0.36.0").ok === false, "T13 0.36 too old for 0.40 gate");
+    assert(checkStoreStructure("0.39.0").ok === false, "T13 0.39 too old");
+    assert(checkStoreStructure("0.40.0").ok === true, "T13 0.40 ok");
+    assert(checkStoreStructure("0.40.1").ok === true, "T13 newer stamp ok");
     const mm27 = parseMajorMinor("0.27.0");
-    const mm36 = parseMajorMinor("0.36.0");
-    assert(mm27 && mm36 && !structureAtLeast(mm27, mm36), "structureAtLeast 0.27 < 0.36");
-    assert(mm36 && structureAtLeast(mm36, { major: 0, minor: 36 }), "structureAtLeast 0.36 >=");
+    const mm40 = parseMajorMinor("0.40.0");
+    assert(mm27 && mm40 && !structureAtLeast(mm27, mm40), "structureAtLeast 0.27 < 0.40");
+    assert(mm40 && structureAtLeast(mm40, { major: 0, minor: 40 }), "structureAtLeast 0.40 >=");
 
     console.log("\nPhase 9: capture concurrency + mentions (0.32)");
     await stopServer(server);
@@ -2002,7 +2052,7 @@ Unique later keyword xylophone-launch window for search.
     };
     assert(jobAuto.result?.auto_approved === true, "job result.auto_approved");
 
-    console.log("\n✅ All self-checks passed (through 0.39)");
+    console.log("\n✅ All self-checks passed (through 0.40)");
   } finally {
     await stopServer(server);
   }

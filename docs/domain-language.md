@@ -54,8 +54,8 @@
 
 | EN | 中文 | 說明 | API | 備註 |
 |----|------|------|-----|------|
-| **Search** | 搜尋 | keyword 命中 short-term／chain／nodes／**future-sight** | `GET /memories/search?q=&scope=` | `q` 必填；`scope` 可選（`l1,nodes,chain,future`；預設四者）；`future`＝掃 hot＋later |
-| **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memories/ask`、`GET /memories/ask/{job_id}` | 同時只允許一個 running job；恆可讀 hot＋later（0.34 廢 `include_later`） |
+| **Search** | 搜尋 | keyword 命中 short-term／chain／nodes／**future-sight** | `GET /memories/search?q=&scope=` | `q` 必填；`scope` 可選（`l1,nodes,chain,future`；預設四者）；`future`＝掃 upcoming＋longTerm（`upcoming.md`＋`longTerm.md`） |
+| **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memories/ask`、`GET /memories/ask/{job_id}` | 同時只允許一個 running job；恆可讀 upcoming＋longTerm（0.34 廢 `include_later`；wire 仍讀兩檔） |
 
 ### Memory browse（0.8.0）
 
@@ -96,7 +96,7 @@
 | **dream staging** | 入夢中間層 | 由 short-term 入夢產出、待 Approve 才進 L2（draft＋report） | `dreams/draft/`、`dreams/reports/` | `dreams/` 不進 store git |
 | **L2 · nodes** | 長期節點理解 | 對某主題／人目前「相信什麼」＝**standing understanding**（整檔 `{id}.md`） | `memories/nodes/{id}/{id}.md` | Approve 寫入；可手改。Obsidian 開 **`memories/`** |
 | **L2 · chain** | 長期記憶鏈／時間軸 | 公共時間軸（世界發生了什麼） | `memories/chain/days|weeks|months|years/` | 0.11.0 起含週／月／年 **summary**；day 仍雙軌 ledger／summary；**0.38** 摘要寫作＝日可碎須分段、高階須取捨 |
-| **future-sight** | 近程前瞻 | 短期要盯的錨點（deadline 等）；hot＝近窗熱區 | `memories/future-sight/hot.md`＋`later.md` | 入夢前／GET 機械過期；內容經入夢＋人審 |
+| **future-sight** | 未來視 | 窗內要盯的錨點（deadline 等）。分區：**upcoming**（即將）／**longTerm**（長遠）。`zone` 與檔名同形。**longTerm 不是 L2 長期記憶** | `memories/future-sight/upcoming.md`＋`longTerm.md` | 入夢前／GET 機械過期；內容經入夢＋人審 |
 
 **一句話對照：**
 
@@ -109,7 +109,7 @@
 | 現在對某主題的穩定理解 | L2 · nodes | 長期節點理解 |
 | 那天／那週整體發生什麼 | L2 · chain | 記憶鏈摘要 |
 | 那天寫入了哪些 patch block | chain ledger (day) | 日鏈增量紀錄（0.5.0） |
-| 這週／這前要盯什麼 | future-sight | 近程前瞻 |
+| 這週／這前要盯什麼 | future-sight | 未來視 |
 
 ---
 
@@ -148,7 +148,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 | 新建／更新 node | **Standing understanding**（四段骨架） | `memories/nodes/{id}/{id}.md`（整檔；見下行） |
 | day ledger block | 日鏈增量稽核 | `memories/chain/days/{YYYY-MM}/{id}.md`（append-only） |
 | day／week／month／year summary | 可讀敘事 snapshot | 對應 `*.summary.md`（整檔）。**0.38：** 日可碎、須分題／分段；週／月／年必須取捨，禁止把下層全文再貼一次 |
-| future-sight | 近程錨點 | `future-sight/hot.md`／`later.md` |
+| future-sight | 未來視錨點 | `future-sight/upcoming.md`／`longTerm.md` |
 | deletes | 白名單刪除清單 | draft `deletes.txt` → deploy 先刪 |
 
 **Approve 閘門錯誤：**
@@ -173,7 +173,7 @@ activities → dreams/run → pending_review → approve | discard | retry
 | **Structure notes** | Dream report 節 | Finalize 後軟校驗警告（缺小標／疑似無 link／死連）；無問題＝`_None_`；**不**擋 approve |
 | **facet** | 理解面向 | 舊設計 who／why／open 等多檔；現行 file pipeline **只**寫 what；多 facet **未**接線 |
 | **match_reason** | 命中原因 | search 時為何選中該 node |
-| **score**（帳面） | 活躍分 | 有結算的 dream 才增減；存 `score.yaml`；**非**未來視 hot |
+| **score**（帳面） | 活躍分 | 有結算的 dream 才增減；存 `score.yaml`；**非**未來視 upcoming |
 | **display_score** | 相對活躍分 | `ceil(score/max_score*100)`（1–100）；無 max → null／—；0.37 圖上節點大小用此值（null＝最小可見點） |
 | **node graph** | 節點網絡 | 無向邊來自各 `{id}.md` 內 P1 wikilink；`refs`／`level` 見 `GET /memories/nodes/graph`。**不**寫 `graph/links.yaml`、**不**掃 chain 當邊 |
 | **category** | 涉入档 | `mention`｜`update`｜`focus`；AI 只判档，script 算分 |
@@ -208,14 +208,16 @@ activities → dreams/run → pending_review → approve | discard | retry
 
 | EN | 中文 | 說明 |
 |----|------|------|
-| **anchor** | 錨點 | 一則近程要留意的事 |
+| **anchor** | 錨點 | 一則窗內要留意的事 |
 | **anchor_start** / **anchor_end** | 錨點起訖日 | 有效區間（設定時區日級；預設 Asia/Hong_Kong） |
-| **zone** | 分區 | `hot`（近窗熱區）／`later`（仍在 window 內） |
+| **upcoming** | 即將 | 較近的前瞻區（預設 `hot_days`＝30）。**不是**活躍分／熱點 |
+| **longTerm** | 長遠 | 仍在 window 內、比 upcoming 更遠。**不是** L2 長期記憶（nodes＋chain） |
+| **zone** | 分區 | `upcoming`／`longTerm`（檔 `upcoming.md`／`longTerm.md`） |
 | **sweep** / **lazy sweep** | 懶清掃 | GET 時過期清（不重桶）；入夢前 full maintain |
 | **swept_expired** | 本次清掉清單 | 剛移除的過期 anchor id |
 
 過期／出窗：寫 L0 + short-term system event（`source: system/future_sight_expired`，`reason` 區分），再從兩檔移除。無過期瀏覽 API。  
-Seek（0.18+）：Search scope `future` 掃兩區。Ask（0.34+）恆可讀 `hot.md` 與 `later.md`，由 agent 判斷是否引用；請求帶 `include_later` → 400。准入窗預設 **365** 日（workspace／env 可覆寫）。
+Seek（0.18+）：Search scope `future` 掃兩區。Ask（0.34+）恆可讀 `upcoming.md` 與 `longTerm.md`，由 agent 判斷是否引用；請求帶 `include_later` → 400。准入窗預設 **365** 日（workspace／env 可覆寫）。
 
 ---
 
@@ -300,7 +302,7 @@ Seek（0.18+）：Search scope `future` 掃兩區。Ask（0.34+）恆可讀 `hot
 | `memories/nodes/{id}/{id}.md` | L2 semantic understanding | L2 語意理解 |
 | `memories/chain/days/{YYYY-MM}/*.md` | chain ledger (day) | 日鏈增量紀錄（0.5.0 語義；0.11.0 起按月分組） |
 | `memories/chain/days/{YYYY-MM}/*.summary.md` | chain summary (day) | 日鏈敘事摘要（0.5.0；0.11.0 起按月分組；0.38 分段／分題） |
-| `memories/future-sight/hot.md`／`later.md` | future-sight zones | 近程前瞻雙區 |
+| `memories/future-sight/upcoming.md`／`longTerm.md` | future-sight zones | upcoming／longTerm |
 | `web/` | workbench UI | 工作台介面 |
 | `engram-workbench/`（agent skills 樹） | engram-workbench skill | 工作台 HTTP skill |
 

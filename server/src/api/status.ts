@@ -49,13 +49,13 @@ export async function handleStatus(): Promise<object> {
     timezone: config.timezone,
     memory_language: config.memoryLanguage,
     future_sight_window_days: config.futureSightWindowDays,
-    future_sight_hot_days: config.futureSightHotDays,
+    future_sight_upcoming_days: config.futureSightUpcomingDays,
     clock: getClockSnapshot(),
     lock,
     l1_empty: await isShortTermMemoryEmpty(),
     future_sight_active_count: fsCounts.total,
-    future_sight_hot_count: fsCounts.hot,
-    future_sight_later_count: fsCounts.later,
+    future_sight_upcoming_count: fsCounts.upcoming,
+    future_sight_long_term_count: fsCounts.longTerm,
     dream_status,
     dream_pending: dream_pending
       ? {

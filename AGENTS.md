@@ -22,7 +22,7 @@
 | **L2** | **長期已沉澱記憶**＝**nodes**（主題理解）＋**chain**（時間軸）；見下行兩欄 |
 | └ **nodes** | `memories/nodes/{id}/{id}.md`（整檔＝**standing understanding**；期望四段 Identity／Relation／Standing facts／Current situation；API 回 `understanding`）。Obsidian vault＝**`memories/`** |
 | └ **chain** | `memories/chain/days|weeks|months|years/`（day summary＝整檔敘事；ledger＝append-only） |
-| **future-sight** | 近程前瞻錨點（`memories/future-sight/hot.md`＋`later.md`）；入夢前 script 過期／重桶並 git commit；GET 懶清過期 |
+| **future-sight** | 未來視錨點（`memories/future-sight/upcoming.md`＋`longTerm.md`）；入夢前 script 過期／重桶並 git commit；GET 懶清過期 |
 | **clarify** | 釐清 queue（`memories/clarify/{asking,pending,history}/`）；非 activity；入夢末段 distill→generate；approve 歸檔 pending→history |
 | **store git** | `ENGRAM_STORE_DIR` 必為 local git；追蹤 `memories/**`＋`engram.workspace.yaml`；**不**追 `dreams/`、store `tmp/` |
 | **runtime temp** | `ENGRAM_TEMP_DIR`（預設 `/tmp`）：ask jobs＋dream agent disposable workdirs；不在記憶庫內 |
@@ -31,7 +31,7 @@
 
 時區由 **有效 timezone** 決定：記憶庫內 `engram.workspace.yaml` → 環境變數 `ENGRAM_TZ` → 預設 **`Asia/Hong_Kong`**。  
 記憶寫入語言：workspace config `memory_language` → 環境變數 `ENGRAM_MEMORY_LANGUAGE` → 預設 **`en`**（僅 `zh-Hant`｜`zh-Hans`｜`en`）。原型無 auth。  
-記憶庫結構世代：workspace **`store_version`**（semver）。**0.36+**：啟動時 major.minor 須 **≥ 0.36**，缺鍵或過舊 → **拒啟**並提示離線跑 **engram-migration** skill（結構代鏈：`migrate-0.19-to-0.28` 再 `migrate-0.28-to-0.36`；在該 skill 目錄執行對應 `bun ./scripts/…ts`；**無需先啟動 server**；0.19→0.28 **會丟棄未批准 dream**；0.28→0.36 只刪殘留索引／STM 衍生檔；勿手改當 migrate）；`ENGRAM_ALLOW_STALE_STORE=1` 可警告後仍啟。migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`docs/roadmap/0.19.0/docs/store-boot-gate.md`、**engram-migration** `SKILL.md`。
+記憶庫結構世代：workspace **`store_version`**（semver）。**0.40+**：啟動時 major.minor 須 **≥ 0.40**，缺鍵或過舊 → **拒啟**並提示離線跑 **engram-migration** skill（結構代鏈：`migrate-0.19-to-0.28` 再 `migrate-0.28-to-0.36` 再 `migrate-0.36-to-0.40`；在該 skill 目錄執行對應 `bun ./scripts/…ts`；**無需先啟動 server**；0.19→0.28 **會丟棄未批准 dream**；0.28→0.36 只刪殘留索引／STM 衍生檔；0.36→0.40 改未來視檔名／`zone`；勿手改當 migrate）；`ENGRAM_ALLOW_STALE_STORE=1` 可警告後仍啟。migrate／新建才 stamp。**結構沒變的產品版可不 bump 舊庫**，但新建仍可能 stamp 產品版 → 同形狀可有多個字串；migrate 按**結構世代**、跨代**逐 hop**——見 `docs/roadmap/0.16.0/docs/store-version.md`、`docs/roadmap/0.19.0/docs/store-boot-gate.md`、**engram-migration** `SKILL.md`。
 
 
 ## 倉庫結構
@@ -90,7 +90,7 @@ API 欄位提醒：
 
 - activities body 用 **`raw`**（不是 `content` / `text`）；**不要**傳 `ts` — 要模擬過去時間先 `PUT /clock`；**不要**傳 `node_refs`（0.32 廢除 → 400）；node 關聯用 `raw` 內 `[@id](node:id)`／`[@id](node-create:id)`
 - memory search query 用 **`q`**（必填）；可選 **`scope`** = `l1,nodes,chain,future`（逗號分隔，預設四者全開）
-- memory ask body 用 **`q`**；**不要**傳 `include_later`（0.34 廢除 → 400 `include_later_removed`；Ask 恆可讀 hot＋later）
+- memory ask body 用 **`q`**；**不要**傳 `include_later`（0.34 廢除 → 400 `include_later_removed`；Ask 恆可讀 upcoming＋longTerm）
 - dream **retry** body 用 **`reason`**（必填）；對同一凍結 scope 重跑，注入上一輪摘要
 - dream **amend** body 用 **`instruction`**（必填）；**同一** `dream_run_id` 小修 draft；失敗仍保留 pending
 - dream **lock**（入夢／deploy）時 activities／clarify 寫入 → `409 dream_locked`；**`pending_review` 可寫 activities／clarify**
@@ -100,7 +100,7 @@ API 欄位提醒：
 - **空 pool 仍可入夢（0.24）：** short-term 空但存在已結束、缺 higher 的 week／month／year → `POST /dreams/run` 走 **rollup-only**（跳過 day extract，只跑 cascade）→ 202；若無此類 catch-up 才 409 `nothing_to_dream`
 - **虛擬時鐘：** `PUT /clock` 需 `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`；`DELETE /clock` 恆可；見 `/status.clock`
 - **無資料不用 404**：讀取型「目前沒有內容」回 **200**，在 body 用 `null`／`[]`／`present: false` 等表達；404 留給路徑／方法真正不存在
-- **未來視窗：** 有效 `future_sight_window_days`＝workspace → env → 預設 **365**；`hot_days` 預設仍 **30**
+- **未來視窗：** 有效 `future_sight_window_days`＝workspace → env → 預設 **365**；`upcoming_days` 預設仍 **30**
 
 操作技能：**engram-workbench**（`.agents/skills/engram-workbench/`）
 
@@ -123,7 +123,8 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
-- **進行中：** `0.39.0` — 入夢自動 approve（預設 true）＋單一 repo 根 `.env`＋`zh-Hant`＝繁體中文書面語；見 `docs/roadmap/0.39.0/`（**in progress**；**無** store migrate；boot 仍 ≥0.36；**不**另開 0.40.0）
+- **進行中：** `0.39.0` — 入夢自動 approve（預設 true）＋單一 repo 根 `.env`＋`zh-Hant`＝繁體中文書面語；見 `docs/roadmap/0.39.0/`（**in progress**；**無** store migrate）
+- **已出貨：** `0.40.0` — 記憶頁未來視翻閱＋zone／檔名 `upcoming`／`longTerm`（廢 `hot`／`later`）；見 `docs/roadmap/0.40.0/`（**shipped**；**有** store migrate `0.36→0.40`；boot ≥0.40）
 - **已出貨：** `0.38.0` — Chain 摘要分段／取捨／文章化（prompts＋mock＋過程句 lint）；見 `docs/roadmap/0.38.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.36）
 - **更早：** `0.37.0` — Memory **節點** 2D network graph＋`GET /memories/nodes/graph`；記憶鏈仍為 0.36 列表；見 `docs/roadmap/0.37.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.36）
 - **更早：** `0.36.0` — Workbench 左欄四項＋事件 Twitter 式＋釐清 DM；補 store hop `0.28→0.36`；見 `docs/roadmap/0.36.0/`（**shipped**；**有** store migrate；boot ≥0.36）
@@ -137,8 +138,8 @@ API 欄位提醒：
 - **更早：** `0.28.0` — Node 主檔 `{id}.md`＋Obsidian vault＝`memories/`＋Structure notes — 見 `docs/roadmap/0.28.0/`（**shipped**；**有** store migrate）
 - **更早：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
 - **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
-- **Backlog：** 見 `docs/roadmap/backlog/`（未來視 UI、記憶鏈橫向 strip、vector 搜尋、Ask 依活躍分、shared Zod）
-- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28**／**0.28–0.35→0.36** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream；**0.36 hop** 刪 `initialized_*.yaml` 與 STM `nodes/`／summary，不丟 pending）；**0.19→0.20／0.24→0.25／0.25→0.26／0.26→0.27／0.28→0.29／0.29→0.30／0.30→0.31／0.31→0.32／0.32→0.33／0.33→0.34／0.34→0.35／0.36→0.37／0.37→0.38／0.38→0.39 無 migrate hop**
+- **Backlog：** 見 `docs/roadmap/backlog/`（記憶鏈橫向 strip、vector 搜尋、Ask 依活躍分、shared Zod）
+- **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28**／**0.28–0.35→0.36**／**0.36–0.39→0.40** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream；**0.36 hop** 刪 `initialized_*.yaml` 與 STM `nodes/`／summary，不丟 pending；**0.40 hop** 改未來視檔名與 `zone`，不丟 pending）
 ## 深入閱讀
 
 - Roadmap 寫作：`docs/roadmap/GUIDELINES.md`
