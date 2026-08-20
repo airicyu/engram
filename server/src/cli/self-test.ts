@@ -624,6 +624,12 @@ async function main() {
     const chainDet = await json("GET", `/memories/chain/${browseDay}`);
     assert(chainDet.status === 200 && chainDet.data.present === true, "chain day detail");
     assert(String(chainDet.data.content ?? "").length > 0, "chain day content");
+    if (String(chainDet.data.content).includes("[[nodes/")) {
+      assert(
+        !String(chainIdx.data.days[0].preview ?? "").includes("[["),
+        "chain index preview uses wikilink display text",
+      );
+    }
 
     const nodesIdx = await json("GET", "/memories/nodes");
     assert(nodesIdx.status === 200 && nodesIdx.data.present === true, "nodes index present");

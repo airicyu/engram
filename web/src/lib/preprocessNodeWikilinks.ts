@@ -13,6 +13,31 @@ function toMdLink(label: string, id: string): string {
   return `[${label}](#/memory/nodes/${encodeNodeId(id)})`;
 }
 
+function displayTextForWikilinkInner(inner: string): string | null {
+  if (inner.includes("#") || inner.includes("^")) return null;
+
+  const pipe = inner.indexOf("|");
+  const dest = (pipe >= 0 ? inner.slice(0, pipe) : inner).trim();
+  const labelRaw = pipe >= 0 ? inner.slice(pipe + 1).trim() : "";
+  if (!dest) return null;
+
+  const p1 = /^nodes\/([^/]+)\/\1$/.exec(dest);
+  if (p1) return labelRaw || p1[1]!;
+  if (dest.startsWith("nodes/") || dest.includes("/")) return null;
+  return labelRaw || dest;
+}
+
+/**
+ * Plain-text stand-in for node wikilinks (index／card previews).
+ * Same recognition as {@link preprocessNodeWikilinks}, minus known-id gating on short form.
+ */
+export function nodeWikilinksToDisplayText(md: string): string {
+  return md.replace(/(!)?\[\[([^\]]+)\]\]/g, (full, bang: string | undefined, inner: string) => {
+    if (bang) return full;
+    return displayTextForWikilinkInner(inner) ?? full;
+  });
+}
+
 /**
  * Preprocess markdown before react-markdown.
  * - P1 `[[nodes/{id}/{id}|label]]` / `[[nodes/{id}/{id}]]` always convert (symmetric path).

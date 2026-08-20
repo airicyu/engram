@@ -10,11 +10,12 @@ import { useI18n } from "../i18n/I18nProvider";
 import { MdBlock } from "../components/ui";
 import { NodeNetworkGraph } from "../components/NodeNetworkGraph";
 import type { MemoryHash } from "../lib/hashRoute";
+import { nodeWikilinksToDisplayText } from "../lib/preprocessNodeWikilinks";
 
 type MemoryMode = "chain" | "nodes" | "future";
 
 function previewContent(content: string): string {
-  const collapsed = content.replace(/\s+/g, " ").trim();
+  const collapsed = nodeWikilinksToDisplayText(content).replace(/\s+/g, " ").trim();
   if (collapsed.length <= 80) return collapsed;
   return `${collapsed.slice(0, 80)}…`;
 }
@@ -529,7 +530,9 @@ export function MemoryScene({
                       <div className="browse-item-preview">{item.range}</div>
                     ) : null}
                     {item.preview ? (
-                      <div className="browse-item-preview">{item.preview}</div>
+                      <div className="browse-item-preview">
+                        {nodeWikilinksToDisplayText(item.preview)}
+                      </div>
                     ) : null}
                   </button>
                 ))

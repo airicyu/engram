@@ -24,8 +24,30 @@ import {
 
 const PREVIEW_MAX = 80;
 
+/**
+ * Plain-text stand-in for node wikilinks in index previews.
+ * P1 `[[nodes/{id}/{id}|label]]`／short `[[id|label]]` → display text (`label` or id).
+ * Leaves attachment embeds, heading／block refs, and asymmetric paths unchanged.
+ */
+export function nodeWikilinksToDisplayText(md: string): string {
+  return md.replace(/(!)?\[\[([^\]]+)\]\]/g, (full, bang: string | undefined, inner: string) => {
+    if (bang) return full;
+    if (inner.includes("#") || inner.includes("^")) return full;
+
+    const pipe = inner.indexOf("|");
+    const dest = (pipe >= 0 ? inner.slice(0, pipe) : inner).trim();
+    const labelRaw = pipe >= 0 ? inner.slice(pipe + 1).trim() : "";
+    if (!dest) return full;
+
+    const p1 = /^nodes\/([^/]+)\/\1$/.exec(dest);
+    if (p1) return labelRaw || p1[1]!;
+    if (dest.startsWith("nodes/") || dest.includes("/")) return full;
+    return labelRaw || dest;
+  });
+}
+
 export function previewText(text: string, max = PREVIEW_MAX): string {
-  const oneLine = text.replace(/\s+/g, " ").trim();
+  const oneLine = nodeWikilinksToDisplayText(text).replace(/\s+/g, " ").trim();
   if (!oneLine) return "";
   return oneLine.length <= max ? oneLine : `${oneLine.slice(0, max)}…`;
 }

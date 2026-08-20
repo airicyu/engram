@@ -732,7 +732,7 @@ Day chain **index** (newest first). Lightweight: `day_id` + `preview` + `source`
 | Field | Meaning |
 |-------|---------|
 | `days` | Sorted **day_id descending** (new → old); days with no content omitted |
-| `preview` | First **80** chars (whitespace-normalized) |
+| `preview` | First **80** chars（先把 node wikilink 換成 display text：`[[nodes/{id}/{id}\|label]]`／`[[id\|label]]` → `label`，無 alias 則 id；再正規化空白後截斷） |
 | `source` | `summary` \| `ledger_fallback` |
 | `present` | `days.length > 0` |
 
@@ -756,7 +756,7 @@ Higher-granularity **index** (newest first). Same preview rules as day (80 chars
 |---------------|---------|
 | `week_id` | `YYYY-Www-MMDD` — ISO week-year + week；**`MMDD` = that week's Monday** (not an arbitrary day in the week) |
 | `start` / `end` | Inclusive Mon–Sun as full `YYYY-MM-DD` (derived from id; always present for a valid id) |
-| `preview` | First **80** chars (whitespace-normalized) |
+| `preview` | Same as day index（display text then 80 chars） |
 
 Empty → `present: false` and empty array (not 404).
 
@@ -805,6 +805,7 @@ L2 node **index** (id ascending). Lightweight: `node` + `preview` + activity sco
 }
 ```
 
+- `preview`：與 chain index 同一 helper（node wikilink → display text，再 80 字）
 - `score`：帳面分；無 `score.yaml` → `null`
 - `display_score`：`ceil(score / max_score * 100)`；無有效 `max_score` → `null`（UI 顯示 —）
 

@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { preprocessNodeWikilinks } from "./preprocessNodeWikilinks";
+import {
+  nodeWikilinksToDisplayText,
+  preprocessNodeWikilinks,
+} from "./preprocessNodeWikilinks";
 
 describe("preprocessNodeWikilinks", () => {
   test("P1 with and without label", () => {
@@ -35,5 +38,14 @@ describe("preprocessNodeWikilinks", () => {
     expect(preprocessNodeWikilinks("[[nodes/eric/eric#Identity]]")).toBe(
       "[[nodes/eric/eric#Identity]]",
     );
+  });
+});
+
+describe("nodeWikilinksToDisplayText", () => {
+  test("P1 and short form become label", () => {
+    expect(nodeWikilinksToDisplayText("[[nodes/eric/eric|eric]] met [[mak|Mak]]")).toBe(
+      "eric met Mak",
+    );
+    expect(nodeWikilinksToDisplayText("[[nodes/eric/eric]]")).toBe("eric");
   });
 });
