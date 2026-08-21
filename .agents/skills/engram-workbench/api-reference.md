@@ -15,7 +15,7 @@ Canonical spec: [../../../docs/api-docs/api.md](../../../docs/api-docs/api.md)
 ./scripts/engram-api.sh <command> [args]
 ```
 
-Commands: `status` | `capture` | `attachment-upload` | `attachment-delete-tmp` | `attachment-file` | `attachment-housekeep` | `dream` | `dream-retry` | `dream-amend` | `dream-cancel` | `pending` | `pending-involvement` | `dream-events` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `clarify-asking` | `clarify-submit` | `clarify-dismiss` | `clarify-aside` | `chain` | `chain-detail` | `nodes` | `node` | `clock` | `clock-set` | `clock-clear` | `root`
+Commands: `status` | `capture` | `attachment-upload` | `attachment-delete-tmp` | `attachment-file` | `attachment-housekeep` | `dream` | `dream-retry` | `dream-amend` | `dream-cancel` | `pending` | `pending-involvement` | `dream-events` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `clarify-asking` | `clarify-pending` | `clarify-submit` | `clarify-dismiss` | `clarify-aside` | `chain` | `chain-detail` | `nodes` | `node` | `clock` | `clock-set` | `clock-clear` | `root`
 
 `memory-l1` = `GET /memories/short-term-memory`（產品語意＝short-term；wire 仍用 `l1`／`l1_empty`）。
 
@@ -57,6 +57,7 @@ curl -s -X POST "$ENGRAM_URL/memories/ask" \
   -d '{"q":"What about Alice?"}'
 curl -s "$ENGRAM_URL/memories/future-sight"
 curl -s "$ENGRAM_URL/memories/clarify/asking"
+curl -s "$ENGRAM_URL/memories/clarify/pending"
 curl -s -X POST "$ENGRAM_URL/memories/clarify/aside" \
   -H 'content-type: application/json' -d '{"raw":"補充：合約其實兩年"}'
 curl -s -X POST "$ENGRAM_URL/memories/clarify/asking/ask-xxx/submit" \
@@ -82,6 +83,7 @@ curl -s -X DELETE "$ENGRAM_URL/clock"
 | Call | Body／notes |
 |------|-------------|
 | `GET /memories/clarify/asking` | `{ items: [...] }`；空＝`{ "items": [] }` |
+| `GET /memories/clarify/pending` | live pending（prompt＋aside）；新→舊 `answered_at`；空＝`{ "items": [] }` |
 | `POST …/asking/{id}/submit` | `{ answer }` |
 | `DELETE …/asking/{id}` | dismiss；缺檔 200 |
 | `POST /memories/clarify/aside` | `{ raw }` → **201**；非 L0 |

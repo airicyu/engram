@@ -138,6 +138,17 @@ export type ClarifyAskingItem = {
   question: string;
 };
 
+export type ClarifyPendingItem = {
+  id: string;
+  kind: "prompt" | "aside" | string;
+  created_at: string;
+  answered_at: string;
+  source_dream_run_id: string | null;
+  related_nodes: string[];
+  question: string | null;
+  answer: string;
+};
+
 function encoded(id: string): string {
   return encodeURIComponent(id);
 }
@@ -260,6 +271,11 @@ export const engramApi = {
       listAsking: (options?: ApiOptions) =>
         api<{ items?: ClarifyAskingItem[]; error?: string; message?: string }>(
           "/memories/clarify/asking",
+          options,
+        ),
+      listPending: (options?: ApiOptions) =>
+        api<{ items?: ClarifyPendingItem[]; error?: string; message?: string }>(
+          "/memories/clarify/pending",
           options,
         ),
       submit: (id: string, body: { answer: string }, options?: ApiOptions) =>

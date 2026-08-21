@@ -32,6 +32,7 @@ curl -s 'http://localhost:8787/memories/nodes'
 curl -s -X POST http://localhost:8787/memories/clarify/aside \
   -H 'content-type: application/json' -d '{"raw":"補充：合約其實兩年"}'
 curl -s http://localhost:8787/memories/clarify/asking
+curl -s http://localhost:8787/memories/clarify/pending
 ```
 
 ## Web UI

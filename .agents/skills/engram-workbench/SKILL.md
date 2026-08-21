@@ -38,7 +38,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /dreams/run` → pending → `approve`／`discard`／`retry`／`amend`／`cancel` | Hand-edit short-term／L2／draft during review |
 | `GET /memories/short-term-memory` / `GET /memories/search` / `POST /memories/ask` | Assemble context by reading markdown files |
 | `GET /memories/future-sight` for near-horizon anchors | Hand-edit `future-sight/` |
-| Clarify: list／submit／dismiss／aside | Hand-edit `memories/clarify/` |
+| Clarify: list asking／pending／submit／dismiss／aside | Hand-edit `memories/clarify/` |
 | Report `dream_status` from `/status` | Hand-edit dream state files |
 
 ### Not exposed by API (prototype)
@@ -60,7 +60,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain,future`; default all four; `future`＝upcoming＋longTerm) |
 | **Ask** | `POST /memories/ask` `{ q }` — async AI Q&A（恆可讀 upcoming＋longTerm）；poll `GET /memories/ask/{job_id}` |
 | **Future-sight** | `GET /memories/future-sight` — `upcoming`／`longTerm` 錨點（GET 只清過期並可 git commit；重桶在入夢前）。工作台記憶頁第三 mode `#/memory/future` 可瀏覽 |
-| **Clarify** | `GET /memories/clarify/asking`；`POST .../submit` `{ answer }`；`DELETE .../{id}`；`POST /memories/clarify/aside` `{ raw }` — 非 activity；extract 中可寫（不進本場快照）；pending_review 可寫 |
+| **Clarify** | `GET /memories/clarify/asking`；`GET /memories/clarify/pending`（live 已答＋aside）；`POST .../submit` `{ answer }`；`DELETE .../{id}`；`POST /memories/clarify/aside` `{ raw }` — 非 activity；extract 中可寫（不進本場快照）；pending_review 可寫 |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `never_dreamed` |
 | **store_git** | `GET /status.store_git` — 記憶庫是否為可用 local git（0.16+；否則 server 拒啟） |
 | **store_version** | `GET /status.store_version` — 記憶庫結構世代。**0.40+ boot** 要求 major.minor ≥ 0.40，否則拒啟並須**離線**跑 engram-migration（`0.36–0.39` → `migrate-0.36-to-0.40`；更舊先 `migrate-0.28-to-0.36`／`migrate-0.19-to-0.28`）；對照 `product_version`（不必字串相等） |
@@ -93,6 +93,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /memories/ask` | `q` | `202` + `job_id`；勿傳 `include_later`（400） |
 | `GET /memories/future-sight` | none | `anchors`（含 `zone` upcoming／longTerm）、`swept_expired` |
 | `GET /memories/clarify/asking` | none | `{ items: [...] }`（舊→新）；空＝`{ "items": [] }` |
+| `GET /memories/clarify/pending` | none | live pending（新→舊 `answered_at`）；空＝`{ "items": [] }`；dream lock 中仍 200 |
 | `POST /memories/clarify/asking/{id}/submit` | `{ answer }` | asking→pending；缺檔 404；extract 中可寫 |
 | `DELETE /memories/clarify/asking/{id}` | none | dismiss；缺檔 200 冪等 |
 | `POST /memories/clarify/aside` | `{ raw }` | **201** pending aside；非 L0 |
@@ -118,6 +119,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 ./scripts/engram-api.sh memory-ask 'When is launch?' true
 ./scripts/engram-api.sh future-sight
 ./scripts/engram-api.sh clarify-asking
+./scripts/engram-api.sh clarify-pending
 ./scripts/engram-api.sh clarify-aside '補充：合約其實兩年'
 ./scripts/engram-api.sh chain
 ./scripts/engram-api.sh nodes
@@ -143,7 +145,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "翻時間軸／節點" | `GET /memories/chain`／`nodes`／`nodes/graph`（及 higher／detail） |
 | "問記憶庫" | `POST /memories/ask` `{ q }`；poll job |
 | "近期前瞻／未來視" | `GET /memories/future-sight`；工作台 `#/memory/future`；Seek Search／Ask 亦可讀（`scope=future`） |
-| "釐清／補問／順帶補充" | `GET …/clarify/asking`；`POST …/submit` `{ answer }`；`DELETE …/{id}`；`POST …/aside` `{ raw }` |
+| "釐清／補問／順帶補充" | `GET …/clarify/asking`；`GET …/clarify/pending`；`POST …/submit` `{ answer }`；`DELETE …/{id}`；`POST …/aside` `{ raw }` |
 | "丟掉這次夢" | `POST /dreams/discard` |
 | "重試／改方向" | `POST /dreams/retry` + `{ reason }` — **不要**手改檔案；**不要**無理由再 `dreams/run` |
 | "同稿小修／amend" | `POST /dreams/amend` + `{ instruction }` — 同一 `dream_run_id`；失敗仍 pending |

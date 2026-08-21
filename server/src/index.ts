@@ -46,6 +46,7 @@ import {
   handleClarifyAside,
   handleClarifyDismiss,
   handleClarifyListAsking,
+  handleClarifyListPending,
   handleClarifySubmit,
 } from "./api/clarify";
 import { logError, logInfo, logMemory, withRequestLog } from "./log";
@@ -114,6 +115,7 @@ try {
             "GET /memories/nodes/graph",
             "GET /memories/nodes/{node_id}",
             "GET /memories/clarify/asking",
+            "GET /memories/clarify/pending",
             "POST /memories/clarify/asking/{id}/submit",
             "DELETE /memories/clarify/asking/{id}",
             "POST /memories/clarify/aside",
@@ -389,6 +391,10 @@ try {
 
     "/memories/clarify/asking": {
       GET: withRequestLog(async () => handleClarifyListAsking()),
+    },
+
+    "/memories/clarify/pending": {
+      GET: withRequestLog(async () => handleClarifyListPending()),
     },
 
     "/memories/clarify/aside": {

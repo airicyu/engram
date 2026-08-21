@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type DragEvent } from "react";
-import { api, engramApi, type NodeIndex } from "../lib/api";
+import { api, engramApi, type ClarifyPendingItem, type NodeIndex } from "../lib/api";
 import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
 import { MdBlock, Msg, RefreshIcon } from "../components/ui";
@@ -84,6 +84,8 @@ export function ActivitiesScene({
   const [l1Entries, setL1Entries] = useState<Array<{ id: string; ts: string; raw: string }>>([]);
   const [l1Empty, setL1Empty] = useState(false);
   const [l1Status, setL1Status] = useState(t("activities.loading"));
+  const [pendingItems, setPendingItems] = useState<ClarifyPendingItem[]>([]);
+  const [pendingStatus, setPendingStatus] = useState("");
   const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -110,8 +112,22 @@ export function ActivitiesScene({
     const entries = data.entries ?? [];
     setL1Entries([...entries].reverse());
     setL1Empty(!data.present || entries.length === 0);
-    setL1Status(data.present ? "" : t("empty.l1_cleared"));
+    setL1Status(data.present ? "" : t("activities.recent_events_empty"));
   }, [t]);
+
+  const refreshPending = useCallback(async () => {
+    const { ok, data } = await engramApi.memories.clarify.listPending();
+    if (!ok) {
+      setPendingStatus(data?.message || data?.error || t("activities.pending_clarify_load"));
+      return;
+    }
+    setPendingItems(data.items ?? []);
+    setPendingStatus("");
+  }, [t]);
+
+  const refreshRecent = useCallback(async () => {
+    await Promise.all([refreshL1(), refreshPending()]);
+  }, [refreshL1, refreshPending]);
 
   const refreshNodes = useCallback(async () => {
     const { ok, data } = await engramApi.memories.nodes.index();
@@ -128,11 +144,11 @@ export function ActivitiesScene({
 
   useEffect(() => {
     if (feed === "recent") {
-      void refreshL1();
+      void refreshRecent();
       return;
     }
     void refreshStatus();
-  }, [feed, refreshL1, refreshStatus]);
+  }, [feed, refreshRecent, refreshStatus]);
 
   /** Insert text at cursor via composer. */
   function insertAtCursor(text: string) {
@@ -268,7 +284,7 @@ export function ActivitiesScene({
     composerRef.current?.clear();
     setRaw("");
     setAttachments([]);
-    await Promise.all([refreshStatus(), refreshL1(), refreshNodes()]);
+    await Promise.all([refreshStatus(), refreshRecent(), refreshNodes()]);
   }
 
   return (
@@ -404,28 +420,65 @@ export function ActivitiesScene({
             <button
               type="button"
               className="icon-btn"
-              onClick={() => void refreshL1()}
+              onClick={() => void refreshRecent()}
               data-tooltip={t("activities.refresh")}
               aria-label={t("activities.refresh")}
             >
               <RefreshIcon />
             </button>
           </div>
-          {l1Empty ? (
-            <MdBlock text={l1Status || t("empty.l1_cleared")} empty />
-          ) : (
-            <div className="stm-feed">
-              {l1Entries.map((e) => (
-                <article key={e.id} className="stm-entry">
-                  <header className="stm-entry-meta">
-                    <time dateTime={e.ts}>{e.ts}</time>
-                    <span className="stm-entry-id">{e.id}</span>
-                  </header>
-                  <MdBlock text={e.raw} />
-                </article>
-              ))}
-            </div>
-          )}
+          <section className="recent-section" aria-labelledby="recent-events-heading">
+            <h2 id="recent-events-heading" className="recent-section-title">
+              {t("activities.recent_events_heading")}
+            </h2>
+            {l1Empty ? (
+              <MdBlock text={l1Status || t("activities.recent_events_empty")} empty />
+            ) : (
+              <div className="stm-feed">
+                {l1Entries.map((e) => (
+                  <article key={e.id} className="stm-entry">
+                    <header className="stm-entry-meta">
+                      <time dateTime={e.ts}>{e.ts}</time>
+                      <span className="stm-entry-id">{e.id}</span>
+                    </header>
+                    <MdBlock text={e.raw} />
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+          <section className="recent-section" aria-labelledby="recent-pending-heading">
+            <h2 id="recent-pending-heading" className="recent-section-title">
+              {t("activities.pending_clarify_heading")}
+            </h2>
+            {pendingStatus ? (
+              <MdBlock text={pendingStatus} empty />
+            ) : pendingItems.length === 0 ? (
+              <MdBlock text={t("activities.pending_clarify_empty")} empty />
+            ) : (
+              <div className="stm-feed">
+                {pendingItems.map((item) => (
+                  <article key={item.id} className="stm-entry">
+                    <header className="stm-entry-meta">
+                      <time dateTime={item.answered_at}>{item.answered_at}</time>
+                      <span className="stm-entry-id">{item.id}</span>
+                      {item.kind === "aside" ? (
+                        <span className="stm-entry-kind">{t("activities.pending_aside_label")}</span>
+                      ) : item.kind !== "prompt" ? (
+                        <span className="stm-entry-kind">{t("scene.clarify")}</span>
+                      ) : null}
+                    </header>
+                    {item.kind === "prompt" && item.question ? (
+                      <div className="clarify-pending-question">
+                        <MdBlock text={item.question} />
+                      </div>
+                    ) : null}
+                    <MdBlock text={item.answer} />
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       ) : (
         <div className="events-consolidate" role="tabpanel">

@@ -31,6 +31,7 @@ Commands:
   memory-ask-cancel <id> POST /memories/ask/{job_id}/cancel
   future-sight        GET /memories/future-sight (active anchors; sweeps expired)
   clarify-asking      GET /memories/clarify/asking
+  clarify-pending     GET /memories/clarify/pending
   clarify-submit <id> <answer> POST /memories/clarify/asking/{id}/submit
   clarify-dismiss <id> DELETE /memories/clarify/asking/{id}
   clarify-aside <text> POST /memories/clarify/aside
@@ -148,6 +149,9 @@ case "$cmd" in
     ;;
   clarify-asking)
     curl -sS "$BASE/memories/clarify/asking"
+    ;;
+  clarify-pending)
+    curl -sS "$BASE/memories/clarify/pending"
     ;;
   clarify-submit)
     id="${1:?usage: engram-api.sh clarify-submit <id> <answer>}"

@@ -36,7 +36,7 @@
 |----|------|------|-----------|------|
 | **Activities** | 事件 | 把「此刻要記住的事」寫進系統（L0 + short-term memory） | `POST /activities` | UI 場景 id：`activities`；左欄 **事件**；body 用 **`raw`** |
 | **Consolidate** | 沉澱 | 整理短時記憶：AI 出報告，人審後寫入長期 | `POST /dreams/run` → Approve／Discard | 事件頁內 tab（hash `#/consolidate`）；不佔左欄 |
-| **Clarify** | 釐清 | 系統補問人＋人順帶補充；入夢蒸餾進 draft nodes，approve 才進 L2 | `/memories/clarify/*` | 非 activity；場景 id：`clarify`；左欄 **提問郵箱**／Question inbox（不是郵件收件匣） |
+| **Clarify** | 釐清 | 系統補問人＋人順帶補充；入夢蒸餾進 draft nodes，approve 才進 L2；事件頁近期區（2）＝ live pending | `/memories/clarify/*` | 非 activity；場景 id：`clarify`；左欄 **提問郵箱**／Question inbox（不是郵件收件匣） |
 | **Seek** | 尋問 | 用關鍵字或 AI 提問找記憶 | `GET /memories/search`、`POST /memories/ask` | 左欄 **尋問**／Seek（內頁仍分「搜尋／提問」）；場景 id 仍 `seek` |
 | **Memory** | 記憶 | 沿時間軸或節點網絡翻閱已寫入記憶 | `GET /memories/chain`、`GET /memories/nodes`、`GET /memories/nodes/graph` | 左欄 **記憶**；鏈＝列表；節點＝圖＋detail；不含 Seek 的 Search／Ask |
 | **Dream** | 入夢 | 對 short-term memory 跑 AI 提取，產出待審報告 | `POST /dreams/run` | 產品語；技術上含 extract |

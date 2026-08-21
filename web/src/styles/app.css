@@ -916,6 +916,12 @@ body {
   border-top: 1px solid var(--line);
 }
 
+.events-col .l1-panel {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
 .panel-head {
   display: flex;
   align-items: center;
@@ -962,6 +968,26 @@ body {
 
 .stm-entry-id {
   font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.stm-entry-kind {
+  font-size: 0.75rem;
+}
+
+.recent-section {
+  margin-top: 1.15rem;
+}
+
+.recent-section-title {
+  font-family: var(--font-brand);
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin: 0 0 0.55rem;
+}
+
+.clarify-pending-question {
+  margin-bottom: 0.45rem;
+  opacity: 0.88;
 }
 
 .stm-entry .md-block {

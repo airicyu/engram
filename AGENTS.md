@@ -82,7 +82,7 @@ cd web && bun run dev             # 同 dev:ui
 | `POST /activities` 寫入 | 把 fixture seed 當試用資料 |
 | `POST /dreams/run` extract／file pipeline → pending（pending 時 409）；**0.39 預設**成功後自動 approve（`dream_auto_approve`／`ENGRAM_DREAM_AUTO_APPROVE`，預設 true） | 未經同意就 `reset` |
 | `POST /dreams/approve`／`discard`／`retry`／`amend` | 手改 short-term／L2／draft「幫忙改對」 |
-| `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /memories/nodes/graph` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET /memories/clarify/asking` / `POST /memories/clarify/aside` / `POST|DELETE /memories/clarify/asking/...` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
+| `GET /memories/search` / `GET /memories/short-term-memory` / `POST /memories/ask` / `GET /memories/chain` / `GET /memories/nodes` / `GET /memories/nodes/graph` / `GET /status` / `GET /dreams/pending` / `GET /memories/future-sight` / `GET /memories/clarify/asking` / `GET /memories/clarify/pending` / `POST /memories/clarify/aside` / `POST|DELETE /memories/clarify/asking/...` / `GET|PUT|DELETE /clock` | 臆測 request 欄位名（API 嚴格，錯欄位 → 400） |
 | `POST /attachments/uploads` 上傳附件圖檔（multipart `file`） | 手動放檔案到 `_attachments/uploads/` |
 | `DELETE /attachments/uploads/tmp?day=&filename=` 刪暫存 | 手刪 tmp 目錄 |
 
@@ -123,6 +123,7 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
+- **已出貨：** `0.42.0` — 近期輸入內容展示 live clarify pending（已答＋aside）＋`GET /memories/clarify/pending`。見 `docs/roadmap/0.42.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.40）
 - **進行中：** `0.41.0` — 背景入夢：extract 不擋記帳／釐清；兩份開跑快照；單場夢仍互斥。見 `docs/roadmap/0.41.0/`（**in progress**；**無** store migrate；boot 仍 ≥0.40）
 - **進行中：** `0.39.0` — 入夢自動 approve（預設 true）＋單一 repo 根 `.env`＋`zh-Hant`＝繁體中文書面語；見 `docs/roadmap/0.39.0/`（**in progress**；**無** store migrate）
 - **已出貨：** `0.40.0` — 記憶頁未來視翻閱＋zone／檔名 `upcoming`／`longTerm`（廢 `hot`／`later`）；見 `docs/roadmap/0.40.0/`（**shipped**；**有** store migrate `0.36→0.40`；boot ≥0.40）

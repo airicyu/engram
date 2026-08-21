@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.42.0 — 近期輸入內容展示未入夢釐清（2026-08-21）
+
+事件頁「近期輸入內容」分兩區：短期記憶事件，以及 live `clarify/pending`（已答補問＋順帶補充）。新增 `GET /memories/clarify/pending`。**不**改 distill／approve／提問郵箱 asking。**無** store migrate；boot 仍 ≥0.40。見 `docs/roadmap/0.42.0/`。
+
+### Added
+
+- `GET /memories/clarify/pending`：全部 live pending；空 200 `{ items: [] }`；`answered_at` 新→舊
+- 工作台近期 tab：區（1）事件、區（2）已答尚未入夢；獨立空態；進 tab／refresh／發帖後皆重抓
+
+### Non-goals
+
+- history GET、郵箱已答匣、改 generate／快照、混排時間軸、pending 分頁、store migrate／抬 boot
+
+---
+
 ## 0.41.0 — 背景入夢：extract 不擋記帳／釐清（2026-08-21）
 
 入夢單場仍互斥；extract 進行中允許 activities／附件上傳／clarify 寫入。本場只消化開跑時凍結的 pool 與 pending（`dreams/runs/{id}.input.json`）。**無** store migrate；boot 仍 ≥0.40。見 `docs/roadmap/0.41.0/`。

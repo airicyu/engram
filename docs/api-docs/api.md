@@ -57,6 +57,7 @@ Service discovery.
     "GET /memories/nodes/graph",
     "GET /memories/nodes/{node_id}",
     "GET /memories/clarify/asking",
+    "GET /memories/clarify/pending",
     "POST /memories/clarify/asking/{id}/submit",
     "DELETE /memories/clarify/asking/{id}",
     "POST /memories/clarify/aside",
@@ -544,6 +545,41 @@ List open follow-ups（`asking/` only）, oldest → newest by `created_at`. Emp
   ]
 }
 ```
+
+---
+
+## `GET /memories/clarify/pending`
+
+List live `pending/`（已答補問＋aside）, newest → oldest by `answered_at`（tie → `id` ascending `localeCompare`）. Empty → `{ "items": [] }`（not 404）. No query／pagination；extra query ignored. Read does **not** take the clarify write lock；extract／deploy／`pending_review` **allow** GET（never `409 dream_locked`). Distill／snapshot still use store `listPendingItems()` oldest→newest.
+
+```json
+{
+  "items": [
+    {
+      "id": "…",
+      "kind": "prompt",
+      "created_at": "…",
+      "answered_at": "…",
+      "source_dream_run_id": "…",
+      "related_nodes": ["acme"],
+      "question": "…",
+      "answer": "…"
+    },
+    {
+      "id": "…",
+      "kind": "aside",
+      "created_at": "…",
+      "answered_at": "…",
+      "source_dream_run_id": null,
+      "related_nodes": [],
+      "question": null,
+      "answer": "…"
+    }
+  ]
+}
+```
+
+Workbench 事件頁「近期輸入內容」區（2）讀此列表；提問郵箱仍只 `GET asking`。
 
 ---
 

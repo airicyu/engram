@@ -7,6 +7,7 @@ import {
   ensureClarifyDirs,
   isValidClarifyId,
   listAskingItems,
+  listPendingItems,
   submitAsking,
   withClarifyWriteLock,
   writeAside,
@@ -20,6 +21,18 @@ function validationResponse(e: ClarifyValidationError): Response {
 export async function handleClarifyListAsking(): Promise<Response> {
   await ensureClarifyDirs();
   const items = await listAskingItems();
+  return Response.json({ items });
+}
+
+/** GET /memories/clarify/pending — newest answered_at first; does not change listPendingItems order. */
+export async function handleClarifyListPending(): Promise<Response> {
+  await ensureClarifyDirs();
+  const items = await listPendingItems();
+  items.sort((a, b) => {
+    const byAnswered = b.answered_at.localeCompare(a.answered_at);
+    if (byAnswered !== 0) return byAnswered;
+    return a.id.localeCompare(b.id);
+  });
   return Response.json({ items });
 }
 

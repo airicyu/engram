@@ -1829,6 +1829,12 @@ Unique longTerm keyword xylophone-launch window for search.
     await stopServer(server);
     server = await startServer("mock-ok");
 
+    const clarifyPendingEmpty = await json("GET", "/memories/clarify/pending");
+    assert(clarifyPendingEmpty.status === 200, "GET pending empty 200");
+    assert(Array.isArray(clarifyPendingEmpty.data.items) && clarifyPendingEmpty.data.items.length === 0, "pending empty items []");
+    const pendingExtraQ = await json("GET", "/memories/clarify/pending?limit=1");
+    assert(pendingExtraQ.status === 200 && Array.isArray(pendingExtraQ.data.items), "pending extra query ignored");
+
     // Ensure at least one live node so generate is not no-op
     const nodesBefore = await json("GET", "/memories/nodes");
     if (!(nodesBefore.data.nodes as unknown[])?.length) {
@@ -1844,6 +1850,11 @@ Unique longTerm keyword xylophone-launch window for search.
     const aside = await json("POST", "/memories/clarify/aside", { raw: "Acme contract is two years not one." });
     assert(aside.status === 201 && aside.data.id, "clarify aside 201");
     const asideId = aside.data.id as string;
+    const pendingAfterAside = await json("GET", "/memories/clarify/pending");
+    const asideRow = (pendingAfterAside.data.items as Array<{ id: string; kind: string; question: string | null }>).find(
+      (x) => x.id === asideId,
+    );
+    assert(asideRow?.kind === "aside" && asideRow.question === null, "aside in pending kind aside question null");
 
     // Seed an asking for submit／dismiss path (write into TEST_HOME; server already ensure'd dirs)
     const askingDir = join(TEST_HOME, "memories/clarify/asking");
@@ -1874,6 +1885,16 @@ Unique longTerm keyword xylophone-launch window for search.
       answer: "Internal beta first.",
     });
     assert(submit.status === 200 && submit.data.queue === "pending", "clarify submit 200");
+    const askAfterSubmit = await json("GET", "/memories/clarify/asking");
+    assert(
+      !(askAfterSubmit.data.items as Array<{ id: string }>).some((x) => x.id === "phase30-ask-1"),
+      "submitted asking gone",
+    );
+    const pendingAfterSubmit = await json("GET", "/memories/clarify/pending");
+    const submittedRow = (pendingAfterSubmit.data.items as Array<{ id: string; question: string; answer: string }>).find(
+      (x) => x.id === "phase30-ask-1",
+    );
+    assert(submittedRow?.question && submittedRow.answer, "submit in pending with Q+A");
     await Bun.write(
       join(askingDir, "phase30-ask-dismiss.md"),
       [
@@ -1898,6 +1919,11 @@ Unique longTerm keyword xylophone-launch window for search.
       !(askAfterDismiss.data.items as Array<{ id: string }>).some((x) => x.id === "phase30-ask-dismiss"),
       "dismissed asking gone",
     );
+    const pendingAfterDismiss = await json("GET", "/memories/clarify/pending");
+    assert(
+      !(pendingAfterDismiss.data.items as Array<{ id: string }>).some((x) => x.id === "phase30-ask-dismiss"),
+      "dismissed id not in pending",
+    );
 
     // extract lock does not 409 aside (0.41)
     const lockPath30 = join(TEST_HOME, "dreams", "dream.lock");
@@ -1908,6 +1934,8 @@ Unique longTerm keyword xylophone-launch window for search.
     }));
     const lockedAside = await json("POST", "/memories/clarify/aside", { raw: "aside during lock ok" });
     assert(lockedAside.status === 201 && lockedAside.data.id, "clarify aside during lock 201");
+    const lockedPendingGet = await json("GET", "/memories/clarify/pending");
+    assert(lockedPendingGet.status === 200, "GET pending during lock 200");
     await rm(lockPath30);
 
     const i30 = await json("POST", "/activities", { raw: "clarify pipeline activity", source: "api" });
@@ -2001,6 +2029,11 @@ Unique longTerm keyword xylophone-launch window for search.
     const histPath = join(TEST_HOME, "memories/clarify/history", `${aside2Id}.md`);
     const histExists = await access(histPath).then(() => true).catch(() => false);
     assert(histExists, `history has archived aside2 ${aside2Id}`);
+    const pendingAfterApprove = await json("GET", "/memories/clarify/pending");
+    assert(
+      !(pendingAfterApprove.data.items as Array<{ id: string }>).some((x) => x.id === aside2Id),
+      "approved snapshot id not in GET pending",
+    );
 
     // empty_patches still archives clarify snapshot
     await stopServer(server);
