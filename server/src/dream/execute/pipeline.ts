@@ -3,16 +3,14 @@
 import type { AgentRunner, AmendContext, ReviewFeedback } from "../../agent/dream/types";
 import { createDreamRunner, createRollupAgent } from "../../agent/factory";
 import { acquireLock, isLocked, LockError, releaseLock } from "../../store/dreams/lock";
-import {
-  isShortTermMemoryEmpty,
-  listPoolEventIds,
-  readPoolEntriesForScope,
-} from "../../store/memories/short-term-memory";
+import { readPoolEntries, type PoolEntry } from "../../store/memories/short-term-memory";
 import { draftSummary } from "../../store/dreams/draft";
 import {
   discardPending,
   getPendingRun,
   newPendingRun,
+  readDreamInput,
+  writeDreamInput,
   removeDraft,
   writeDreamRun,
   type DreamRunState,
@@ -45,7 +43,16 @@ import { formatRollupReportSection, runRollupCascade } from "../rollup/cascade";
 import { hasRollupCatchupWork } from "../rollup/candidates";
 import { config } from "../../config";
 import { calendarDate, nowIso } from "../../store/memories/activities";
-import { listPendingIds, deleteAskingBySourceRunIds, commitClarifyPaths, deleteAskingFile } from "../../store/memories/clarify";
+import {
+  commitClarifyPaths,
+  deleteAskingBySourceRunIds,
+  deleteAskingFile,
+  listPendingItems,
+  readPendingItem,
+  withClarifyWriteLock,
+  type ClarifyPendingItem,
+} from "../../store/memories/clarify";
+import { withCaptureLock } from "../../store/memories/capture";
 import { runClarifyDistill } from "../clarify/distill";
 import { runClarifyGenerate } from "../clarify/generate";
 
@@ -76,11 +83,23 @@ export async function runDream(opts?: {
   try {
     const existing = await getPendingRun();
     if (existing) throw new PendingReviewError(existing.id);
-    const scope = await listPoolEventIds();
-    if ((scope.length === 0 || (await isShortTermMemoryEmpty())) && !(await hasRollupCatchupWork())) {
+    const poolEntries = await withCaptureLock(async () => structuredClone(await readPoolEntries()));
+    const clarifyPending = await withClarifyWriteLock(async () =>
+      structuredClone(await listPendingItems()),
+    );
+    if (poolEntries.length === 0 && !(await hasRollupCatchupWork())) {
       throw new NothingToDreamError();
     }
-    return await executeDreamPipeline({ dreamRunId, scope, runner: opts?.runner });
+    await writeDreamInput(dreamRunId, {
+      pool_snapshot: poolEntries,
+      clarify_snapshot: clarifyPending,
+    });
+    return await executeDreamPipeline({
+      dreamRunId,
+      poolEntries,
+      clarifyPending,
+      runner: opts?.runner,
+    });
   } catch (e) {
     await recordDreamFailure(e, dreamRunId);
     throw e;
@@ -120,16 +139,27 @@ export async function retryDream(opts: {
       previous_changes: compactChangeLines(prevDraft),
       retried_from: pending.id,
     };
-    const scope = [...pending.scope];
-    // 0.30: before re-generate, delete asking sourced from discarded／superseded run ids.
+    const frozen = await loadFrozenInputForRun(pending);
     const clearIds = new Set<string>([pending.id]);
     if (pending.retried_from) clearIds.add(pending.retried_from);
-    const deleted = await deleteAskingBySourceRunIds(clearIds);
-    if (deleted.length > 0) {
-      await commitClarifyPaths(`engram: clarify retry clear asking`).catch(() => {});
-    }
+    await withClarifyWriteLock(async () => {
+      const deleted = await deleteAskingBySourceRunIds(clearIds);
+      if (deleted.length > 0) {
+        await commitClarifyPaths(`engram: clarify retry clear asking`).catch(() => {});
+      }
+    });
     await discardPending(pending.id);
-    return await executeDreamPipeline({ dreamRunId, scope, runner: opts.runner, reviewFeedback });
+    await writeDreamInput(dreamRunId, {
+      pool_snapshot: frozen.poolEntries,
+      clarify_snapshot: frozen.clarifyPending,
+    });
+    return await executeDreamPipeline({
+      dreamRunId,
+      poolEntries: frozen.poolEntries,
+      clarifyPending: frozen.clarifyPending,
+      runner: opts.runner,
+      reviewFeedback,
+    });
   } catch (e) {
     await recordDreamFailure(e, dreamRunId);
     throw e;
@@ -246,11 +276,11 @@ async function executeAmendPipeline(opts: {
     throw new AmendFailedError(dreamRunId, msg, "materialize");
   }
 
-  const poolEntries = await readPoolEntriesForScope(scope);
+  const frozen = await loadFrozenInputForRun(pending);
   await finalizeDreamReport({
     dream_run_id: dreamRunId,
     scope,
-    events: poolEntries,
+    events: frozen.poolEntries,
     amend_feedback: { instruction },
   });
 
@@ -291,11 +321,13 @@ async function recordDreamFailure(error: unknown, dreamRunId: string): Promise<v
 
 export async function executeDreamPipeline(opts: {
   dreamRunId: string;
-  scope: string[];
+  poolEntries: PoolEntry[];
+  clarifyPending: ClarifyPendingItem[];
   runner?: AgentRunner;
   reviewFeedback?: ReviewFeedback;
 }): Promise<DreamRunResult> {
-  const { dreamRunId, scope, runner, reviewFeedback } = opts;
+  const { dreamRunId, poolEntries, clarifyPending, runner, reviewFeedback } = opts;
+  const scope = poolEntries.map((e) => e.id);
   emitDreamEvent(dreamRunId, {
     phase: "extract", event: "run_start", message: `Dream run started (${scope.length} events in scope)`,
     detail: { scope_count: scope.length, superseded: null, retried_from: reviewFeedback?.retried_from ?? null, has_review_feedback: !!reviewFeedback },
@@ -327,7 +359,7 @@ export async function executeDreamPipeline(opts: {
       detail: { rollup_only: true },
     });
   } else {
-    await doDreamFiles(dreamRunId, scope, runner, reviewFeedback);
+    await doDreamFiles(dreamRunId, poolEntries, runner, reviewFeedback);
     throwIfDreamCancelled(dreamRunId);
   }
   await updateDreamJobPhase("materialize");
@@ -361,7 +393,6 @@ export async function executeDreamPipeline(opts: {
     throw new DreamIncompleteError(dreamRunId, msg, "materialize");
   }
 
-  const poolEntries = await readPoolEntriesForScope(scope);
   try {
     await assertInvolvementsValidForPending(dreamRunId);
   } catch (e) {
@@ -378,10 +409,11 @@ export async function executeDreamPipeline(opts: {
   let clarifyGeneratedIds: string[] = [];
   try {
     throwIfDreamCancelled(dreamRunId);
-    clarifySnapshotIds = await listPendingIds();
+    clarifySnapshotIds = clarifyPending.map((p) => p.id);
     const distill = await runClarifyDistill({
       dreamRunId,
       snapshotIds: clarifySnapshotIds,
+      pendingItems: clarifyPending,
     });
     clarifyDistilledNodeIds = distill.distilled_node_ids;
     clarifyDistillNarrative = distill.narrative;
@@ -399,10 +431,12 @@ export async function executeDreamPipeline(opts: {
   } catch (e) {
     // INDEX #34: best-effort delete asking written this job if dream fails after land
     if (clarifyGeneratedIds.length > 0) {
-      for (const id of clarifyGeneratedIds) {
-        await deleteAskingFile(id).catch(() => {});
-      }
-      await commitClarifyPaths(`engram: clarify generate rollback ${dreamRunId}`).catch(() => {});
+      await withClarifyWriteLock(async () => {
+        for (const id of clarifyGeneratedIds) {
+          await deleteAskingFile(id).catch(() => {});
+        }
+        await commitClarifyPaths(`engram: clarify generate rollback ${dreamRunId}`).catch(() => {});
+      });
     }
     await removeDraft(dreamRunId).catch(() => {});
     if (isDreamCancelled(dreamRunId)) throw new DreamCancelledError(dreamRunId);
@@ -461,14 +495,38 @@ async function writeRollupOnlyReportSkeleton(dreamRunId: string): Promise<void> 
   await writeFile(reportPath(dreamRunId), md, "utf8");
 }
 
+async function loadFrozenInputForRun(pending: DreamRunState): Promise<{
+  poolEntries: PoolEntry[];
+  clarifyPending: ClarifyPendingItem[];
+}> {
+  const input = await readDreamInput(pending.id);
+  if (input) {
+    return {
+      poolEntries: structuredClone(input.pool_snapshot),
+      clarifyPending: structuredClone(input.clarify_snapshot),
+    };
+  }
+  const poolEntries: PoolEntry[] = pending.scope.map((id) => ({ id, ts: "", raw: "" }));
+  if (!Object.prototype.hasOwnProperty.call(pending, "clarify_pending_snapshot_ids")) {
+    return { poolEntries, clarifyPending: [] };
+  }
+  const ids = pending.clarify_pending_snapshot_ids ?? [];
+  const clarifyPending: ClarifyPendingItem[] = [];
+  for (const id of ids) {
+    const item = await readPendingItem(id);
+    if (item) clarifyPending.push(item);
+  }
+  return { poolEntries, clarifyPending };
+}
+
 async function doDreamFiles(
   dreamRunId: string,
-  scope: string[],
+  poolEntries: PoolEntry[],
   runner?: AgentRunner,
   reviewFeedback?: ReviewFeedback,
 ): Promise<void> {
   const agent = runner ?? createDreamRunner();
-  const ctx = await buildDreamContext(dreamRunId, scope, reviewFeedback);
+  const ctx = await buildDreamContext(dreamRunId, poolEntries, reviewFeedback);
   logExtractContext({
     dream_run_id: dreamRunId, events: ctx.events.length, l1_chars: ctx.l1.summary.length,
     existing_nodes: ctx.existing_nodes.length, l2_nodes: ctx.l2_current.length,

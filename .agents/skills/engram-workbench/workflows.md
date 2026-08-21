@@ -38,7 +38,7 @@ Not activities. Does **not** write L0／short-term／day ledger.
 2. Answer: `POST /memories/clarify/asking/{id}/submit` `{ "answer": "…" }` → moves to pending
 3. Dismiss: `DELETE /memories/clarify/asking/{id}`（missing → 200 idempotent）
 4. Freestyle: `POST /memories/clarify/aside` `{ "raw": "…" }` → **201** pending aside
-5. Dream **lock**（running extract／approve）→ `409 dream_locked`；**`pending_review` may still write** clarify／activities
+5. Extract／deploy **does not** 409 capture／clarify writes；a **second** `POST /dreams/run` while running → `409 dream_locked`. **`pending_review` may still write** clarify／activities
 6. Next dream distill／generate updates draft nodes／asking； approve archives snapshot∩pending → history
 
 ## Browse chain／nodes

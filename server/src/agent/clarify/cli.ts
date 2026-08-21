@@ -1,7 +1,6 @@
 /** CLI clarify distill／generate agents (file deliverables via AgentInvoker). */
 
-import { join } from "node:path";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { readFile } from "node:fs/promises";
 import { config, memoryLanguagePromptLabel } from "../../config";
 import { setDreamJobAgentPid } from "../../store/dreams/dream-job";
@@ -71,6 +70,11 @@ export class CliClarifyDistillAgent implements ClarifyDistillAgent {
             normRoot(ctx.store_dir),
             normRoot(ctx.draft_dir),
             normRoot(workDir),
+          ],
+          deniedReadPrefixes: [
+            join(normRoot(ctx.store_dir), "memories", "short-term-memory", "pool.jsonl"),
+            join(normRoot(ctx.store_dir), "memories", "activities", "events.jsonl"),
+            join(normRoot(ctx.store_dir), "memories", "clarify", "pending"),
           ],
         };
         await this.invoker.run({

@@ -5,7 +5,6 @@ import {
   withCaptureLock,
   rollbackLastEventIfMatch,
 } from "../store/memories/capture";
-import { isLocked } from "../store/dreams/lock";
 import {
   validateAttachments,
   buildAppendix,
@@ -63,13 +62,6 @@ async function validateActivityMentions(raw: string): Promise<Response | null> {
 
 /** Validate and persist a captured memory event. */
 export async function handleActivities(body: ActivitiesBody): Promise<{ event_id: string } | Response> {
-  if (await isLocked()) {
-    return Response.json(
-      { error: "dream_locked", message: "Dream in progress; capture rejected" },
-      { status: 409 },
-    );
-  }
-
   // 0.32: node_refs removed — key present (any value) → 400
   if (Object.prototype.hasOwnProperty.call(body, "node_refs")) {
     return Response.json(

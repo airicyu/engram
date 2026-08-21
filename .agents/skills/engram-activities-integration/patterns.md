@@ -15,24 +15,7 @@ curl -sS -X POST "$ENGRAM_URL/activities" \
 # → {"event_id":"e0000000042"}
 ```
 
-Retry on dream lock:
-
-```bash
-post_activity() {
-  local raw="$1" source="${2:-api}"
-  local attempt=0 max=5
-  while [ "$attempt" -lt "$max" ]; do
-    code=$(curl -sS -o /tmp/engram-resp.json -w '%{http_code}' \
-      -X POST "$ENGRAM_URL/activities" \
-      -H 'content-type: application/json' \
-      -d "$(jq -n --arg r "$raw" --arg s "$source" '{raw:$r, source:$s}')")
-    if [ "$code" = "201" ]; then cat /tmp/engram-resp.json; return 0; fi
-    if [ "$code" = "409" ]; then sleep $((30 + attempt * 15)); attempt=$((attempt+1)); continue; fi
-    cat /tmp/engram-resp.json >&2; return 1
-  done
-  echo "dream_locked: gave up after $max retries" >&2; return 1
-}
-```
+Extract 進行中仍應得到 **201**（可能稍慢）。不要對 201 做 `dream_locked` backoff。
 
 ## Bun / TypeScript
 
@@ -43,24 +26,16 @@ export async function captureActivity(
   raw: string,
   opts?: { source?: string },
 ): Promise<{ event_id: string }> {
-  const maxAttempts = 5;
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const res = await fetch(`${ENGRAM_URL}/activities`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        raw,
-        source: opts?.source ?? "integration",
-      }),
-    });
-    if (res.status === 201) return res.json();
-    if (res.status === 409) {
-      await Bun.sleep(30_000 + attempt * 15_000);
-      continue;
-    }
-    throw new Error(`capture failed ${res.status}: ${await res.text()}`);
-  }
-  throw new Error("capture failed: dream_locked (retries exhausted)");
+  const res = await fetch(`${ENGRAM_URL}/activities`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      raw,
+      source: opts?.source ?? "integration",
+    }),
+  });
+  if (res.status === 201) return res.json();
+  throw new Error(`capture failed ${res.status}: ${await res.text()}`);
 }
 ```
 
@@ -68,25 +43,18 @@ export async function captureActivity(
 
 ```python
 import os
-import time
 import requests
 
 ENGRAM_URL = os.environ.get("ENGRAM_URL", "http://localhost:8787")
 
 def capture_activity(raw: str, source: str = "integration") -> dict:
-    for attempt in range(5):
-        r = requests.post(
-            f"{ENGRAM_URL}/activities",
-            json={"raw": raw, "source": source},
-            timeout=30,
-        )
-        if r.status_code == 201:
-            return r.json()
-        if r.status_code == 409:
-            time.sleep(30 + attempt * 15)
-            continue
-        r.raise_for_status()
-    raise RuntimeError("dream_locked: retries exhausted")
+    r = requests.post(
+        f"{ENGRAM_URL}/activities",
+        json={"raw": raw, "source": source},
+        timeout=60,
+    )
+    r.raise_for_status()
+    return r.json()
 ```
 
 ## Minimal webhook handler (Bun.serve)

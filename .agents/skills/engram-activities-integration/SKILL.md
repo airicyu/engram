@@ -50,10 +50,9 @@ Prototype has **no auth**. Integrations assume a trusted network (localhost or p
 | Status | Meaning | Integrator action |
 |--------|---------|-------------------|
 | `400` | Missing `raw`, `node_refs_removed`, `invalid_mention_id`, `mention_create_exists`, or attachment validation error | Fix payload |
-| `409` `dream_locked` | Extract／commit in progress | Retry with backoff (see below) |
 | Connection refused | Server down | Queue or fail loudly |
 
-**Allowed during `pending_review`** — capture does not require dream to be idle except during lock.
+**Allowed during extract, deploy, and `pending_review`.** Do **not** treat extract-in-progress as `409 dream_locked`. Capture may **queue** behind pool clear／git (still **201**).
 
 **Do not send client `ts`.** To backdate, set virtual clock first (`PUT /clock`, needs `ENGRAM_ALLOW_VIRTUAL_CLOCK=1`) — rare for integrations; see API doc.
 
@@ -61,11 +60,11 @@ Prototype has **no auth**. Integrations assume a trusted network (localhost or p
 
 ### 1. Fire-and-forget (simplest)
 
-One HTTP POST per event. Accept `409 dream_locked` → sleep 30–60s, retry up to N times.
+One HTTP POST per event. Retry on **connection errors** and **5xx**, not on extract-in-progress.
 
 ### 2. Local queue (recommended for bots)
 
-Append to a local file／SQLite queue → worker drains with `POST /activities`. Survives Engram restarts and dream locks.
+Append to a local file／SQLite queue → worker drains with `POST /activities`. Survives Engram restarts.
 
 ### 3. Batch import
 
@@ -101,7 +100,7 @@ When helping an integration:
 
 1. Minimal **working code** (curl, Bun, Python — match user's stack)
 2. **`ENGRAM_URL`** config note
-3. **Retry** behavior for `409 dream_locked`
+3. **Retry** on connection／5xx only — **not** extract-in-progress `dream_locked`
 4. Explicit **out of scope**: no direct file writes, no auto-approve unless user requests policy
 
 ## Sub-files

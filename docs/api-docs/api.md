@@ -139,7 +139,7 @@ Snapshot of store health, dream state, and async job status.
 | `timezone` | string | Effective IANA zone (workspace yaml → `ENGRAM_TZ` → `Asia/Hong_Kong`) |
 | `memory_language` | string | Effective write language: `zh-Hant`｜`zh-Hans`｜`en` |
 | `clock` | object | Memory-timeline clock snapshot (see [Virtual clock](#virtual-clock)) |
-| `lock` | boolean | `true` while extract／materialize／approve commit holds the lock |
+| `lock` | boolean | `true` while extract／materialize／approve commit holds the run mutex. **Does not** mean capture／upload／clarify writes are rejected. |
 | `lock_stale` | boolean? | Present only when `lock: true`; stale lock (>30 min) |
 | `l1_empty` | boolean | `true` when short-term memory pool has no entries |
 | `future_sight_active_count` | number | Total items in `upcoming.md`＋`longTerm.md` (name kept for compatibility) |
@@ -277,7 +277,7 @@ Events are stored at `dream/runs/{dream_run_id}/events.jsonl` (append-only). Sup
 
 Append one event to L0 and the short-term memory pool (indexed by event id).
 
-**Allowed during `pending_review`** (no dream lock). Rejected only while lock is held (extract／commit).
+**Allowed during extract, deploy, and `pending_review`.** Capture waits on the capture lock (may delay) but still returns **201**, not `409 dream_locked`. New events are **not** in the running dream's frozen scope.
 
 **Request body**
 
@@ -297,7 +297,7 @@ Append one event to L0 and the short-term memory pool (indexed by event id).
 
 **Response `201`:** `{ "event_id": "e0000000001" }`
 
-**Errors:** `400` missing `raw`；`400` `node_refs_removed`（請求體出現已廢除的 `node_refs` 鍵）；`400` `invalid_mention_id`／`mention_create_exists`（`raw` 內 mention token）；`400` `embed_without_attachment`／`attachment_not_in_embeds`／`empty_relationship`／`duplicate_attachment_path`／`invalid_attachment_path`／`attachment_file_missing`／`double_appendix`；`409` `dream_locked`.
+**Errors:** `400` missing `raw`；`400` `node_refs_removed`（請求體出現已廢除的 `node_refs` 鍵）；`400` `invalid_mention_id`／`mention_create_exists`（`raw` 內 mention token）；`400` `embed_without_attachment`／`attachment_not_in_embeds`／`empty_relationship`／`duplicate_attachment_path`／`invalid_attachment_path`／`attachment_file_missing`／`double_appendix`。**0.41：** extract／deploy 中 **不再** `409 dream_locked`。
 
 **0.32+ mentions：** 關聯真相寫在 `raw` 內嵌 token——`[@label](node:{id})`（既有）／`[@label](node-create:{id})`（本輪應新建）。**禁止**再傳 `node_refs`（鍵存在即 400）。`node-create` 若 live 已有該 id → 400 `mention_create_exists`（不自動改成 ref）。舊 JSONL 若仍含 `node_refs`：讀取忽略，不做 migrate。Dream context 對每則 event 附解析後的 `mentions: [{ id, mode }]`；漏建 create → Structure notes 軟警告（不擋 approve）。
 
@@ -313,7 +313,7 @@ Append one event to L0 and the short-term memory pool (indexed by event id).
 
 **MIME 限制：** `image/jpeg`｜`image/png`｜`image/webp`｜`image/gif`（拒 HEIC 與其餘）。  
 **大小限制：** 預設 10 MiB（`attachment_max_bytes` workspace／`ENGRAM_ATTACHMENT_MAX_BYTES`）。  
-**Dream lock 時：** `409 dream_locked`。
+**Dream lock：** 上傳 **不**因 extract／deploy 回 `409 dream_locked`（0.41）。`DELETE …/uploads/tmp` 本來就不擋。
 
 **Response `201`**
 
@@ -328,7 +328,7 @@ Append one event to L0 and the short-term memory pool (indexed by event id).
 **實體：** `memories/_attachments/uploads/tmp/{day}/{filename}`。  
 `path` 為最終正式路徑（永不含 `/tmp`），可直接嵌入 `raw`。
 
-**Errors:** `400` `missing_file`／`invalid_mime`／`file_too_large`／`invalid_filename`；`409` `dream_locked`。
+**Errors:** `400` `missing_file`／`invalid_mime`／`file_too_large`／`invalid_filename`。
 
 ---
 
@@ -549,19 +549,19 @@ List open follow-ups（`asking/` only）, oldest → newest by `created_at`. Emp
 
 ## `POST /memories/clarify/asking/{id}/submit`
 
-Body: `{ "answer": "…" }`（trim 後非空；UTF-8 ≤16KiB）. Moves asking → pending with `## Answer`. Success **200** `{ "id", "queue": "pending" }`. Missing asking → **404**. Dream lock → **409** `dream_locked`. `pending_review` **allows** writes.
+Body: `{ "answer": "…" }`（trim 後非空；UTF-8 ≤16KiB）. Moves asking → pending with `## Answer`. Success **200** `{ "id", "queue": "pending" }`. Missing asking → **404**. Extract／deploy **allows** writes（0.41；不進本場釐清快照）.
 
 ---
 
 ## `DELETE /memories/clarify/asking/{id}`
 
-Dismiss＝true-delete asking file. Missing → **200** idempotent. Does **not** enter history. Dream lock → **409**.
+Dismiss＝true-delete asking file. Missing → **200** idempotent. Does **not** enter history. Extract／deploy **allows** dismiss（0.41）.
 
 ---
 
 ## `POST /memories/clarify/aside`
 
-Body: `{ "raw": "…" }`（trim 後非空；≤16KiB）. Creates pending `kind: aside`（**not** L0／STM／ledger）. Success **201** `{ "id", "queue": "pending" }`. Dream lock → **409**；`pending_review` allows.
+Body: `{ "raw": "…" }`（trim 後非空；≤16KiB）. Creates pending `kind: aside`（**not** L0／STM／ledger）. Success **201** `{ "id", "queue": "pending" }`. Extract／deploy／`pending_review` **allow** writes；中途 aside **不**進本場 distill 快照.
 
 Clarify queues live under `memories/clarify/{asking,pending,history}/`. Dream pipeline ends with `clarify_distill` → `clarify_generate` before `pending_review`. Approve archives `clarify_pending_snapshot_ids` ∩ pending → `history/`（even when `empty_patches`）.
 

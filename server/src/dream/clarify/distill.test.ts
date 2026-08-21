@@ -71,6 +71,19 @@ describe("clarify distill", () => {
     expect(await readFile(abs, "utf8")).toBe(original);
   });
 
+  test("E2: missing input.json and missing yaml ids → distill empty despite live aside", async () => {
+    await writeAside("live aside must not be listed");
+    const runId = "run-e2-empty";
+    await prepareDreamDraft(runId);
+    const out = await runClarifyDistill({
+      dreamRunId: runId,
+      snapshotIds: [],
+      pendingItems: [],
+      agent: new MockClarifyDistillAgent(),
+    });
+    expect(out.distilled_node_ids).toEqual([]);
+  });
+
   test("distill no-op on empty pending", async () => {
     const runId = "run-empty";
     await prepareDreamDraft(runId);

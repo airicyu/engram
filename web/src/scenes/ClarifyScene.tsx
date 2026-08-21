@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type Keyboard
 import { engramApi, type ClarifyAskingItem } from "../lib/api";
 import { serializeHash } from "../lib/hashRoute";
 import { useI18n } from "../i18n/I18nProvider";
-import { useStatus } from "../context/StatusContext";
 import { Msg, RefreshIcon } from "../components/ui";
 
 function formatPostTime(
@@ -28,7 +27,6 @@ function formatPostTime(
 
 export function ClarifyScene() {
   const { t, locale } = useI18n();
-  const { status, dreaming } = useStatus();
   const [items, setItems] = useState<ClarifyAskingItem[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -39,7 +37,6 @@ export function ClarifyScene() {
   const [loading, setLoading] = useState(true);
   const replyRef = useRef<HTMLTextAreaElement>(null);
 
-  const locked = !!(status?.lock || dreaming);
   const selected = items.find((item) => item.id === selectedId) ?? null;
 
   const refresh = useCallback(async () => {
@@ -72,10 +69,6 @@ export function ClarifyScene() {
   }, [selectedId]);
 
   async function onSubmit(id: string) {
-    if (locked) {
-      setMsg({ text: t("clarify.locked"), kind: "error" });
-      return;
-    }
     const answer = (answers[id] ?? "").trim();
     if (!answer) {
       setMsg({ text: t("clarify.answer_required"), kind: "error" });
@@ -102,10 +95,6 @@ export function ClarifyScene() {
   }
 
   async function onDismiss(id: string) {
-    if (locked) {
-      setMsg({ text: t("clarify.locked"), kind: "error" });
-      return;
-    }
     setBusyId(id);
     const { ok, status: http, data } = await engramApi.memories.clarify.dismiss(id);
     setBusyId(null);
@@ -123,10 +112,6 @@ export function ClarifyScene() {
 
   async function onAside(e: FormEvent) {
     e.preventDefault();
-    if (locked) {
-      setMsg({ text: t("clarify.locked"), kind: "error" });
-      return;
-    }
     const raw = aside.trim();
     if (!raw) {
       setMsg({ text: t("clarify.aside_required"), kind: "error" });
@@ -171,7 +156,6 @@ export function ClarifyScene() {
         </button>
       </div>
 
-      {locked ? <p className="lock-hint">{t("clarify.lock_hint")}</p> : null}
       <Msg text={msg.text} kind={msg.kind} />
 
       <form className="clarify-aside inbox-aside" onSubmit={(e) => void onAside(e)}>
@@ -186,12 +170,12 @@ export function ClarifyScene() {
             className="clarify-aside-input"
             rows={3}
             value={aside}
-            disabled={locked || asideBusy}
+            disabled={asideBusy}
             onChange={(e) => setAside(e.target.value)}
             placeholder={t("clarify.aside_placeholder")}
           />
           <div className="inbox-aside-actions">
-            <button type="submit" className="btn primary" disabled={locked || asideBusy}>
+            <button type="submit" className="btn primary" disabled={asideBusy}>
               {t("clarify.aside_submit")}
             </button>
           </div>
@@ -272,7 +256,7 @@ export function ClarifyScene() {
                 className="clarify-answer"
                 rows={5}
                 value={answers[selected.id] ?? ""}
-                disabled={locked || busy}
+                disabled={busy}
                 onChange={(e) =>
                   setAnswers((prev) => ({ ...prev, [selected.id]: e.target.value }))
                 }
@@ -283,7 +267,7 @@ export function ClarifyScene() {
                 <button
                   type="button"
                   className="btn primary"
-                  disabled={locked || busy}
+                  disabled={busy}
                   onClick={() => void onSubmit(selected.id)}
                 >
                   {t("clarify.submit")}
@@ -291,7 +275,7 @@ export function ClarifyScene() {
                 <button
                   type="button"
                   className="btn ghost"
-                  disabled={locked || busy}
+                  disabled={busy}
                   onClick={() => void onDismiss(selected.id)}
                 >
                   {t("clarify.dismiss")}

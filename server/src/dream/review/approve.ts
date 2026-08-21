@@ -13,6 +13,7 @@ import {
   type DreamRunState,
 } from "../../store/dreams/dream-runs";
 import { clearShortTermMemoryScope, isShortTermMemoryEmpty } from "../../store/memories/short-term-memory";
+import { withCaptureLock } from "../../store/memories/capture";
 import { readExtractState } from "../../store/dreams/extract-state";
 import { maintainFutureSight, listAnchors } from "../../store/memories/future-sight";
 import { readDraftDeletes, finalizeDraftFromDisk } from "../../store/dreams/file-pipeline";
@@ -22,6 +23,7 @@ import { dropLegacyInitializedYaml } from "../../store/memories/chain-higher";
 import { readInvolvementsForPending, settleNodeScoresOnApprove } from "../score/involvements";
 import {
   archivePendingToHistory,
+  withClarifyWriteLock,
 } from "../../store/memories/clarify";
 import {
   FutureChainIdError,
@@ -104,11 +106,13 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
     if (opts?.dream_run_id && opts.dream_run_id !== clearOnly.id) {
       throw new DreamRunMismatchError(clearOnly.id, opts.dream_run_id);
     }
-    await clearShortTermMemoryScope(clearOnly.scope);
-    clearOnly.l1_clear_pending = false;
-    await writeDreamRun(clearOnly);
-    await stageAndCommitPaths(["memories/short-term-memory"], `engram: dream ${clearOnly.id} (scope clear)`)
-      .catch((e) => logError("git commit after scope clear failed", e, { dream_run_id: clearOnly.id }));
+    await withCaptureLock(async () => {
+      await clearShortTermMemoryScope(clearOnly.scope);
+      clearOnly.l1_clear_pending = false;
+      await writeDreamRun(clearOnly);
+      await stageAndCommitPaths(["memories/short-term-memory"], `engram: dream ${clearOnly.id} (scope clear)`)
+        .catch((e) => logError("git commit after scope clear failed", e, { dream_run_id: clearOnly.id }));
+    });
     return {
       dream_run_id: clearOnly.id, committed: [], cleared_scope: clearOnly.scope,
       l1_clear_pending: false, empty_patches: clearOnly.patch_count === 0,
@@ -131,8 +135,12 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
   const stale = await staleDraftFutureAnchorIds(pending.id);
   if (stale.length > 0) throw new StaleFutureAnchorError(stale);
 
-  await commitDirtyMemorySnapshot(`engram: autosave before ${pending.id}`)
-    .catch((e) => logError("autosave before dream deploy failed", e, { dream_run_id: pending.id }));
+  await withCaptureLock(async () => {
+    await withClarifyWriteLock(async () => {
+      await commitDirtyMemorySnapshot(`engram: autosave before ${pending.id}`)
+        .catch((e) => logError("autosave before dream deploy failed", e, { dream_run_id: pending.id }));
+    });
+  });
   const manifest = await readManifest(pending.id);
   const deletes = await readDraftDeletes(pending.id);
   const empty_patches = !(manifest?.entries.length) && !deletes.length;
@@ -147,38 +155,40 @@ export async function approveDream(opts?: { dream_run_id?: string }): Promise<Ap
     }
   }
 
-  // 0.30: archive clarify snapshot ∩ pending → history (even when empty_patches).
-  // Deploy failure above throws before here → no move. l1_clear_pending shortcut never reaches here.
   let clarifyArchivePaths: string[] = [];
   const snapshot = pending.clarify_pending_snapshot_ids ?? [];
-  if (snapshot.length > 0) {
-    try {
-      clarifyArchivePaths = await archivePendingToHistory(snapshot);
-    } catch (e) {
-      logError("clarify archive to history failed", e, { dream_run_id: pending.id });
-      throw e;
-    }
-  }
 
-  pending.status = "committed";
-  pending.committed_at = nowIso();
-  pending.l1_clear_pending = true;
-  await writeDreamRun(pending);
-  try {
-    await clearShortTermMemoryScope(pending.scope);
-    pending.l1_clear_pending = false;
-    await writeDreamRun(pending);
-  } catch (e) {
-    logError("l1 clear after commit failed", e, { dream_run_id: pending.id });
-  }
-  const droppedInitialized = await dropLegacyInitializedYaml();
-  const gitPaths = [...committed, ...scorePaths, ...clarifyArchivePaths, ...droppedInitialized];
-  if (!pending.l1_clear_pending) gitPaths.push("memories/short-term-memory");
-  if (clarifyArchivePaths.length > 0) gitPaths.push("memories/clarify");
-  if (gitPaths.length > 0) {
-    await stageAndCommitPaths([...new Set(gitPaths)], `engram: dream ${pending.id}`)
-      .catch((e) => logError("git commit after dream deploy failed", e, { dream_run_id: pending.id }));
-  }
+  await withCaptureLock(async () => {
+    await withClarifyWriteLock(async () => {
+      if (snapshot.length > 0) {
+        try {
+          clarifyArchivePaths = await archivePendingToHistory(snapshot);
+        } catch (e) {
+          logError("clarify archive to history failed", e, { dream_run_id: pending.id });
+          throw e;
+        }
+      }
+      pending.status = "committed";
+      pending.committed_at = nowIso();
+      pending.l1_clear_pending = true;
+      await writeDreamRun(pending);
+      try {
+        await clearShortTermMemoryScope(pending.scope);
+        pending.l1_clear_pending = false;
+        await writeDreamRun(pending);
+      } catch (e) {
+        logError("l1 clear after commit failed", e, { dream_run_id: pending.id });
+      }
+      const droppedInitialized = await dropLegacyInitializedYaml();
+      const gitPaths = [...committed, ...scorePaths, ...clarifyArchivePaths, ...droppedInitialized];
+      if (!pending.l1_clear_pending) gitPaths.push("memories/short-term-memory");
+      if (clarifyArchivePaths.length > 0) gitPaths.push("memories/clarify");
+      if (gitPaths.length > 0) {
+        await stageAndCommitPaths([...new Set(gitPaths)], `engram: dream ${pending.id}`)
+          .catch((e) => logError("git commit after dream deploy failed", e, { dream_run_id: pending.id }));
+      }
+    });
+  });
   await removeDraft(pending.id).catch(() => {});
   return {
     dream_run_id: pending.id, committed,

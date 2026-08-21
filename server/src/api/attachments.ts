@@ -1,6 +1,5 @@
 /** Attachments API handlers: upload, delete tmp. */
 
-import { isLocked } from "../store/dreams/lock";
 import { config } from "../config";
 import {
   ALLOWED_MIME_TYPES,
@@ -15,13 +14,6 @@ import { logInfo } from "../log";
 
 /** Handle multipart file upload to tmp. */
 export async function handleUpload(req: Request): Promise<Response> {
-  if (await isLocked()) {
-    return Response.json(
-      { error: "dream_locked", message: "Dream in progress; upload rejected" },
-      { status: 409 },
-    );
-  }
-
   await ensureAttachmentsDir();
 
   let formData: FormData;

@@ -7,7 +7,7 @@ You are consolidating short-term memory into long-term store files for dream run
 - Store root: `{{STORE_DIR}}` (Read only for live memories — never Write／Edit live)
 - Draft workspace (ONLY place you may write memory files): `{{DRAFT_DIR}}`
 - Report file (you must write): `{{REPORT_PATH}}`
-- Frozen context JSON (read-only): `{{CONTEXT_PATH}}`
+- Frozen context JSON (read-only): `{{CONTEXT_PATH}}` — **this** is the freeze of short-term events. Do **not** Read live `memories/short-term-memory/pool.jsonl`, `memories/activities/events.jsonl`, or `memories/clarify/pending/**`.
 - Writable roots (enforced by tools): 
   - {{WRITABLE_ROOTS}}
 

@@ -14,6 +14,8 @@ You are Engram's clarify distill agent. Fold answered clarify items into **draft
 JSON context: `{{CONTEXT_PATH}}`  
 Fields include `pending[]` (`kind` prompt|aside, `question`, `answer`, `related_nodes`) and `existing_node_ids`.
 
+Do **not** Read live `memories/clarify/pending/**`, `memories/short-term-memory/pool.jsonl`, or `memories/activities/events.jsonl`. Distill only the frozen `pending[]` in the context JSON.
+
 ## Task
 
 1. Read each pending item. Distill answers into the standing understanding of related nodes (prefer `related_nodes`; otherwise create a sensible new node id: lowercase kebab).

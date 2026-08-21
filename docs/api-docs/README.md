@@ -125,7 +125,7 @@ Full request/response schemas, error codes, and semantics: **[api.md](./api.md)*
 | **future-sight** | Near-horizon anchors (`memories/future-sight/upcoming.md`＋`longTerm.md`) — not memory-chain; searchable via `/memories/search?scope=…,future`（default includes `future`） |
 | **candidates** | Low-confidence attribution (`dreams/candidates/`) — not the primary create-node path |
 
-**Lock rule:** capture is blocked only while extract/materialize/commit holds the dream lock. **`pending_review` allows capture** (new events ∉ frozen S).
+**Lock rule:** extract／deploy 仍用 `dream.lock` 禁第二場夢與進行中的審核。`POST /activities`、upload、clarify 寫入 **不**因 lock 回 409；本場只消化開跑快照。**`pending_review` allows capture**.
 
 ## What the API does *not* expose (prototype)
 

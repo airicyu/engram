@@ -48,7 +48,7 @@
 | 近期輸入內容／Recent input | short-term memory | 事件頁 tab；列表即 `GET /memories/short-term-memory` `entries[]`。**不要**在 tab 教「短期記憶」 |
 | 沉澱入夢 | Consolidate ＋ Dream | 同一事件頁另一 tab |
 | 尋問／Seek | Seek | 左欄；內頁仍分 **搜尋／提問**（Search／Ask） |
-| （不顯示「入夢鎖」） | dream lock | `GET /status.lock`；入夢 extract 與批准 deploy 時為 true；待審為 false。工作台用入夢狀態／進度表達 |
+| （不顯示「入夢鎖」） | dream lock | `GET /status.lock`；入夢 extract 與批准 deploy 時為 true；待審為 false。**lock true ≠ 不可記帳**（0.41）。工作台用入夢狀態／進度表達 |
 
 ### Seek（0.8.0）
 

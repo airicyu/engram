@@ -24,6 +24,8 @@ import {
   liveMemoriesRoot,
   rollupWritePolicy,
   storeDreamsRoot,
+  isReadablePath,
+  dreamDeniedReadPrefixes,
 } from "./write-policy";
 import type { DreamContext } from "../dream/types";
 import type { AskInput } from "../ask/types";
@@ -80,6 +82,14 @@ describe("write-policy", () => {
     expect(tools).toContain("Edit(//");
     expect(tools).not.toContain("Bash");
     expect(claudeDisallowedTools()).toBe("Bash");
+    const denied = dreamDeniedReadPrefixes(storeDir);
+    expect(isReadablePath(policy, denied[0]!)).toBe(false);
+    expect(isReadablePath(policy, join(liveMemoriesRoot(storeDir), "nodes", "acme", "acme.md"))).toBe(
+      true,
+    );
+    const askDenied = claudeDisallowedTools(policy);
+    expect(askDenied).toContain("Bash");
+    expect(askDenied).toContain("pool.jsonl");
 
     const addDirs = cursorWritableAddDirs(policy);
     expect(addDirs).toContain(ctx.draft_dir);

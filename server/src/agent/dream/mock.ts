@@ -207,6 +207,10 @@ export class MockEmptyPatchesRunner implements AgentRunner {
 /** Writes a minimal valid draft + narrative report without a live agent. */
 export class MockOkRunner implements AgentRunner {
   async dream(ctx: DreamContext): Promise<void> {
+    const delayMs = Number.parseInt(process.env.ENGRAM_MOCK_DREAM_SLEEP_MS ?? "", 10);
+    if (Number.isFinite(delayMs) && delayMs > 0) {
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
     const ts = nowIso();
     const today = calendarDate();
     const eventIds = ctx.events.map((e) => e.id);

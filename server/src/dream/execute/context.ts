@@ -4,7 +4,7 @@ import type { DreamContext, ReviewFeedback } from "../../agent/dream/types";
 import { config } from "../../config";
 import { draftSummary } from "../../store/dreams/draft";
 import { draftDir, reportPath } from "../../store/dreams/dream-runs";
-import { readPoolEntriesForScope } from "../../store/memories/short-term-memory";
+import type { PoolEntry } from "../../store/memories/short-term-memory";
 import { calendarDate, nowIso } from "../../store/memories/activities";
 import { readAllUnderstandings, listNodeIds } from "../../store/memories/nodes";
 import { readDay, readDaySummary } from "../../store/memories/chain";
@@ -49,10 +49,10 @@ export function makeDreamRunId(at = nowIso()): string {
 /** Build the frozen short-term, L2, and chain context supplied to a dream runner. */
 export async function buildDreamContext(
   dreamRunId: string,
-  scope: string[],
+  scopeEntries: PoolEntry[],
   reviewFeedback?: ReviewFeedback,
 ): Promise<DreamContext> {
-  const scopeEntries = await readPoolEntriesForScope(scope);
+  const scope = scopeEntries.map((e) => e.id);
   const events = scopeEntries.map((e) => ({
     id: e.id,
     ts: e.ts,

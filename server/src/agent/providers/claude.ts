@@ -66,7 +66,7 @@ export class ClaudeInvoker implements AgentInvoker {
   async run(job: AgentJob): Promise<void> {
     const policy = job.writePolicy;
     const allowedTools = claudeAllowedToolsForWrites(policy);
-    const disallowedTools = claudeDisallowedTools();
+    const disallowedTools = claudeDisallowedTools(policy);
 
     const cmd = [
       config.claudeBin,

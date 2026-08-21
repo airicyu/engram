@@ -1,6 +1,5 @@
 /** Clarify HTTP handlers: list asking, submit, dismiss, aside. */
 
-import { isLocked } from "../store/dreams/lock";
 import {
   ClarifyValidationError,
   commitClarifyPaths,
@@ -12,13 +11,6 @@ import {
   withClarifyWriteLock,
   writeAside,
 } from "../store/memories/clarify";
-
-function dreamLocked(): Response {
-  return Response.json(
-    { error: "dream_locked", message: "Dream in progress; clarify write rejected" },
-    { status: 409 },
-  );
-}
 
 function validationResponse(e: ClarifyValidationError): Response {
   return Response.json({ error: e.error, message: e.message }, { status: 400 });
@@ -36,7 +28,6 @@ export async function handleClarifySubmit(
   id: string,
   body: unknown,
 ): Promise<Response> {
-  if (await isLocked()) return dreamLocked();
   if (!isValidClarifyId(id)) {
     return Response.json({ error: "not_found", message: "asking not found" }, { status: 404 });
   }
@@ -67,7 +58,6 @@ export async function handleClarifySubmit(
 
 /** DELETE /memories/clarify/asking/{id} — dismiss (idempotent 200). */
 export async function handleClarifyDismiss(id: string): Promise<Response> {
-  if (await isLocked()) return dreamLocked();
   if (!isValidClarifyId(id)) {
     return Response.json({ ok: true, deleted: false });
   }
@@ -82,7 +72,6 @@ export async function handleClarifyDismiss(id: string): Promise<Response> {
 
 /** POST /memories/clarify/aside  body: { raw } → 201 */
 export async function handleClarifyAside(body: unknown): Promise<Response> {
-  if (await isLocked()) return dreamLocked();
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return Response.json({ error: "invalid_body", message: "Expected JSON object" }, { status: 400 });
   }

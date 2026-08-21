@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { config } from "../../config";
 import { calendarDate, nowIso } from "../../store/memories/activities";
 import {
-  listPendingItems,
+  readPendingItem,
   type ClarifyPendingItem,
 } from "../../store/memories/clarify";
 import { listNodeIds } from "../../store/memories/nodes";
@@ -127,6 +127,8 @@ function toPayload(items: ClarifyPendingItem[]) {
 export async function runClarifyDistill(opts: {
   dreamRunId: string;
   snapshotIds: string[];
+  /** Frozen bodies from input.json; when omitted, read each id (E2: no directory listing). */
+  pendingItems?: ClarifyPendingItem[];
   agent?: ClarifyDistillAgent;
 }): Promise<{
   snapshot_ids: string[];
@@ -141,9 +143,16 @@ export async function runClarifyDistill(opts: {
     detail: { snapshot_ids: opts.snapshotIds },
   });
 
-  const allPending = await listPendingItems();
-  const snapSet = new Set(opts.snapshotIds);
-  const pending = allPending.filter((p) => snapSet.has(p.id));
+  let pending: ClarifyPendingItem[];
+  if (opts.pendingItems) {
+    pending = opts.pendingItems;
+  } else {
+    pending = [];
+    for (const id of opts.snapshotIds) {
+      const item = await readPendingItem(id);
+      if (item) pending.push(item);
+    }
+  }
 
   if (pending.length === 0) {
     emitDreamEvent(dreamRunId, {

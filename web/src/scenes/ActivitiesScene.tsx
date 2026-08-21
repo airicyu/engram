@@ -78,7 +78,7 @@ export function ActivitiesScene({
   onFeedChange: (feed: EventsFeed) => void;
 }) {
   const { t } = useI18n();
-  const { status, dreaming, refreshStatus } = useStatus();
+  const { refreshStatus } = useStatus();
   const [raw, setRaw] = useState("");
   const [msg, setMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [l1Entries, setL1Entries] = useState<Array<{ id: string; ts: string; raw: string }>>([]);
@@ -93,8 +93,6 @@ export function ActivitiesScene({
   const composerRef = useRef<MentionComposerHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
-
-  const locked = !!(status?.lock || dreaming);
 
   const refreshL1 = useCallback(async () => {
     const { ok, data } = await api<{
@@ -143,14 +141,13 @@ export function ActivitiesScene({
 
   /** Upload a file to tmp and insert embed at cursor. */
   async function uploadFile(file: File) {
-    if (locked) return;
     setUploading(true);
     setUploadError("");
 
     const { ok, status: http, data } = await engramApi.attachments.upload(file);
 
     if (http === 409 || data?.error === "dream_locked") {
-      setUploadError(t("activities.locked"));
+      setUploadError(data?.message || t("activities.locked"));
       setUploading(false);
       await refreshStatus();
       return;
@@ -185,7 +182,7 @@ export function ActivitiesScene({
   function onDragOver(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!locked) setDragOver(true);
+    setDragOver(true);
   }
 
   function onDragLeave(e: DragEvent) {
@@ -198,7 +195,6 @@ export function ActivitiesScene({
     e.preventDefault();
     e.stopPropagation();
     setDragOver(false);
-    if (locked) return;
 
     const files = e.dataTransfer.files;
     for (const file of files) {
@@ -231,10 +227,6 @@ export function ActivitiesScene({
     const trimmed = (composerRef.current?.getSerialized() ?? raw).trim();
     if (!trimmed) {
       setMsg({ text: t("activities.empty_input"), kind: "error" });
-      return;
-    }
-    if (status?.lock) {
-      setMsg({ text: t("activities.lock_hint"), kind: "error" });
       return;
     }
 
@@ -296,7 +288,6 @@ export function ActivitiesScene({
           <MentionComposer
             ref={composerRef}
             id="activities-raw"
-            disabled={locked}
             placeholder={t("activities.placeholder")}
             nodeIds={nodeIds}
             onChange={setRaw}
@@ -340,13 +331,11 @@ export function ActivitiesScene({
                     placeholder={t("activities.attachment_relationship_placeholder")}
                     value={a.relationship}
                     onChange={(e) => updateRelationship(i, e.target.value)}
-                    disabled={locked}
                   />
                 </div>
                 <button
                   type="button"
                   className="btn ghost attachment-remove-btn"
-                  disabled={locked}
                   onClick={() => removeAttachment(i)}
                   title={t("activities.attachment_remove")}
                 >
@@ -362,7 +351,6 @@ export function ActivitiesScene({
             <button
               type="button"
               className="compose-tool-btn"
-              disabled={locked}
               onClick={() => fileInputRef.current?.click()}
               data-tooltip={t("activities.attachment_add")}
               aria-label={t("activities.attachment_add")}
@@ -378,11 +366,10 @@ export function ActivitiesScene({
               multiple
             />
           </div>
-          <button type="submit" className="btn primary compose-post-btn" disabled={locked}>
+          <button type="submit" className="btn primary compose-post-btn">
             {t("activities.submit")}
           </button>
         </div>
-        {locked ? <p className="form-hint">{t("activities.lock_hint")}</p> : null}
         <Msg text={msg.text} kind={msg.kind} />
       </form>
 

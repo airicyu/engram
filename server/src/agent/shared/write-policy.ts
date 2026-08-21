@@ -18,6 +18,8 @@ export type WritePolicy = {
   writableRoots: string[];
   /** Absolute directories where Read is expected (store + writable + extras). */
   readableRoots: string[];
+  /** Absolute files／dirs dream／distill／rollup must not Read (Ask leaves this empty). */
+  deniedReadPrefixes?: string[];
 };
 
 function normRoot(p: string): string {
@@ -105,6 +107,7 @@ export function dreamWritePolicy(
     storeDir,
     writableRoots,
     readableRoots: uniqueRoots([storeDir, ...writableRoots]),
+    deniedReadPrefixes: dreamDeniedReadPrefixes(storeDir),
   };
 }
 
@@ -136,6 +139,7 @@ export function rollupWritePolicy(opts: {
     storeDir,
     writableRoots,
     readableRoots: uniqueRoots([storeDir, ...writableRoots]),
+    deniedReadPrefixes: dreamDeniedReadPrefixes(storeDir),
   };
 }
 
@@ -146,6 +150,34 @@ function uniqueRoots(roots: string[]): string[] {
     if (!out.some((x) => x === n)) out.push(n);
   }
   return out;
+}
+
+/** Live pool／L0／clarify pending — frozen input lives in context JSON／input.json. */
+export function dreamDeniedReadPrefixes(storeDir: string): string[] {
+  const store = normRoot(storeDir);
+  return [
+    join(store, "memories", "short-term-memory", "pool.jsonl"),
+    join(store, "memories", "activities", "events.jsonl"),
+    join(store, "memories", "clarify", "pending"),
+  ];
+}
+
+/** True if path is a denied live input file for dream／distill／rollup. */
+export function isDeniedReadPath(policy: WritePolicy, path: string): boolean {
+  const prefixes = policy.deniedReadPrefixes ?? [];
+  const abs = resolve(path);
+  return prefixes.some((p) => isPathInsideRoot(abs, p) || abs === resolve(p));
+}
+
+export function isReadablePath(policy: WritePolicy, path: string): boolean {
+  if (isDeniedReadPath(policy, path)) return false;
+  return policy.readableRoots.some((root) => isPathInsideRoot(path, root));
+}
+
+export function assertReadablePath(policy: WritePolicy, path: string): void {
+  if (!isReadablePath(policy, path)) {
+    throw new Error(`read_policy_denied: ${resolve(path)}`);
+  }
 }
 
 /**
@@ -162,8 +194,14 @@ export function claudeAllowedToolsForWrites(policy: WritePolicy): string {
 }
 
 /** Claude `--disallowedTools` — block Bash (and bare Write if Edit handles writes). */
-export function claudeDisallowedTools(): string {
-  return "Bash";
+export function claudeDisallowedTools(policy?: WritePolicy): string {
+  const parts = ["Bash"];
+  for (const p of policy?.deniedReadPrefixes ?? []) {
+    const abs = p.replace(/\\/g, "/");
+    parts.push(`Read(//${abs})`);
+    parts.push(`Read(//${abs}/**)`);
+  }
+  return parts.join(",");
 }
 
 /**

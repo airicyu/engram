@@ -1790,7 +1790,7 @@ Unique longTerm keyword xylophone-launch window for search.
     const bigData = await bigRes.json() as { error: string };
     assert(bigData.error === "file_too_large", "file_too_large error");
 
-    // Upload during lock → 409
+    // Upload during extract lock → 201 (0.41)
     const lockPath = join(TEST_HOME, "dreams", "dream.lock");
     await Bun.write(lockPath, JSON.stringify({
       holder: "test-lock",
@@ -1801,9 +1801,7 @@ Unique longTerm keyword xylophone-launch window for search.
       method: "POST",
       body: (() => { const f = new FormData(); f.set("file", blob, "locked.png"); return f; })(),
     });
-    assert(lockedUpload.status === 409, `upload during lock → 409 got ${lockedUpload.status}`);
-    const lockedData = await lockedUpload.json() as { error: string };
-    assert(lockedData.error === "dream_locked", "dream_locked error");
+    assert(lockedUpload.status === 201, `upload during lock → 201 got ${lockedUpload.status}`);
     await rm(lockPath);
 
     // Housekeep: create expired tmp dir and verify it's cleaned
@@ -1901,15 +1899,15 @@ Unique longTerm keyword xylophone-launch window for search.
       "dismissed asking gone",
     );
 
-    // dream_locked → 409
+    // extract lock does not 409 aside (0.41)
     const lockPath30 = join(TEST_HOME, "dreams", "dream.lock");
     await Bun.write(lockPath30, JSON.stringify({
       holder: "test-lock",
       token: "tok-30",
       acquired_at: new Date().toISOString(),
     }));
-    const lockedAside = await json("POST", "/memories/clarify/aside", { raw: "should fail" });
-    assert(lockedAside.status === 409 && lockedAside.data.error === "dream_locked", "clarify aside locked 409");
+    const lockedAside = await json("POST", "/memories/clarify/aside", { raw: "aside during lock ok" });
+    assert(lockedAside.status === 201 && lockedAside.data.id, "clarify aside during lock 201");
     await rm(lockPath30);
 
     const i30 = await json("POST", "/activities", { raw: "clarify pipeline activity", source: "api" });
@@ -2029,6 +2027,54 @@ Unique longTerm keyword xylophone-launch window for search.
       "empty_patches still archives clarify pending",
     );
 
+    console.log("\nPhase 0.41: capture during extract");
+    await stopServer(server);
+    server = await startServer("mock-ok", { ENGRAM_MOCK_DREAM_SLEEP_MS: "2500" });
+    const i41 = await json("POST", "/activities", { raw: "in freeze scope", source: "api" });
+    assert(i41.status === 201, "0.41 seed activity");
+    const d41 = await json("POST", "/dreams/run");
+    assert(d41.status === 202 && d41.data.job_id, "0.41 dream 202");
+    let lockSeen = false;
+    for (let i = 0; i < 50; i++) {
+      const stLock = await json("GET", "/status");
+      if (stLock.data.lock === true) {
+        lockSeen = true;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    assert(lockSeen, "saw extract lock");
+    const mid = await json("POST", "/activities", { raw: "during extract stay in pool", source: "api" });
+    assert(mid.status === 201 && mid.data.event_id, "capture during extract 201");
+    const midId = mid.data.event_id as string;
+    const form41 = new FormData();
+    form41.set("file", new Blob([new Uint8Array([1, 2, 3, 4])], { type: "image/png" }), "during.png");
+    const up41 = await fetch(`${BASE}/attachments/uploads`, { method: "POST", body: form41 });
+    assert(up41.status === 201, `upload during extract 201 got ${up41.status}`);
+    const aside41 = await json("POST", "/memories/clarify/aside", { raw: "aside during extract" });
+    assert(aside41.status === 201, "aside during extract 201");
+    const secondRun = await json("POST", "/dreams/run");
+    assert(secondRun.status === 409, `second run 409 got ${secondRun.status}`);
+    assert(
+      secondRun.data.error === "dream_locked" || secondRun.data.error === "pending_review",
+      `second run error ${secondRun.data.error}`,
+    );
+    await waitForJob(
+      (job, st2) =>
+        job?.dream_run_id === d41.data.job_id &&
+        job?.status === "completed" &&
+        st2.dream_status === "pending_review",
+      30000,
+    );
+    const pend41 = await json("GET", "/dreams/pending");
+    const scope41 = (pend41.data.scope as string[]) ?? [];
+    assert(!scope41.includes(midId), "mid event not in frozen scope");
+    const ap41 = await json("POST", "/dreams/approve", {});
+    assert(ap41.status === 200, "0.41 approve");
+    const stm41 = await json("GET", "/memories/short-term-memory");
+    const ids41 = ((stm41.data.entries as Array<{ id: string }>) ?? []).map((e) => e.id);
+    assert(ids41.includes(midId), "mid event remains in pool after approve");
+
     console.log("\nPhase 0.39: dream_auto_approve");
     await stopServer(server);
     server = await startServer("mock-ok", { ENGRAM_DREAM_AUTO_APPROVE: "1" });
@@ -2058,7 +2104,7 @@ Unique longTerm keyword xylophone-launch window for search.
     };
     assert(jobAuto.result?.auto_approved === true, "job result.auto_approved");
 
-    console.log("\n✅ All self-checks passed (through 0.40)");
+    console.log("\n✅ All self-checks passed (through 0.41)");
   } finally {
     await stopServer(server);
   }

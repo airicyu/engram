@@ -93,7 +93,7 @@ API 欄位提醒：
 - memory ask body 用 **`q`**；**不要**傳 `include_later`（0.34 廢除 → 400 `include_later_removed`；Ask 恆可讀 upcoming＋longTerm）
 - dream **retry** body 用 **`reason`**（必填）；對同一凍結 scope 重跑，注入上一輪摘要
 - dream **amend** body 用 **`instruction`**（必填）；**同一** `dream_run_id` 小修 draft；失敗仍保留 pending
-- dream **lock**（入夢／deploy）時 activities／clarify 寫入 → `409 dream_locked`；**`pending_review` 可寫 activities／clarify**
+- dream **lock**（入夢／deploy）時 **第二場** run／retry／amend／approve／discard → `409 dream_locked`；extract／deploy 中 **允許** `POST /activities`、upload、clarify 寫入（不進本場快照）。**`pending_review` 可寫 activities／clarify**
 - clarify：aside body 用 **`raw`**；submit body 用 **`answer`**；**不**寫 L0／STM／day ledger
 - **`pending_review` 時不可**再 `POST /dreams/run`（改 approve／discard／retry／amend）
 - **入夢自動 approve（0.39）：** 有效 `dream_auto_approve`＝workspace → env → 預設 **`true`**。成功 pending 後進程內走既有 approve；要人手審設 `false`。`GET /status.dream_scheduler.dream_auto_approve`
@@ -123,6 +123,7 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
+- **進行中：** `0.41.0` — 背景入夢：extract 不擋記帳／釐清；兩份開跑快照；單場夢仍互斥。見 `docs/roadmap/0.41.0/`（**in progress**；**無** store migrate；boot 仍 ≥0.40）
 - **進行中：** `0.39.0` — 入夢自動 approve（預設 true）＋單一 repo 根 `.env`＋`zh-Hant`＝繁體中文書面語；見 `docs/roadmap/0.39.0/`（**in progress**；**無** store migrate）
 - **已出貨：** `0.40.0` — 記憶頁未來視翻閱＋zone／檔名 `upcoming`／`longTerm`（廢 `hot`／`later`）；見 `docs/roadmap/0.40.0/`（**shipped**；**有** store migrate `0.36→0.40`；boot ≥0.40）
 - **已出貨：** `0.38.0` — Chain 摘要分段／取捨／文章化（prompts＋mock＋過程句 lint）；見 `docs/roadmap/0.38.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.36）
@@ -138,7 +139,7 @@ API 欄位提醒：
 - **更早：** `0.28.0` — Node 主檔 `{id}.md`＋Obsidian vault＝`memories/`＋Structure notes — 見 `docs/roadmap/0.28.0/`（**shipped**；**有** store migrate）
 - **更早：** `0.27.0` — Amend-dream（pending 同稿自由句小修）— 見 `docs/roadmap/0.27.0/`
 - **更早：** `0.26.0` Node API `understanding`；`0.25.0` standing understanding；`0.24.0` 空 pool 入夢＝rollup-only
-- **Backlog：** 見 `docs/roadmap/backlog/`（記憶鏈橫向 strip、vector 搜尋、Ask 依活躍分、shared Zod）
+- **Backlog：** 見 `docs/roadmap/backlog/`（記憶鏈橫向 strip、vector 搜尋、Ask 依活躍分、shared Zod）。背景入夢已進 [0.41.0](docs/roadmap/0.41.0/INDEX.md)
 - **遷移：** 0.16→0.17／0.17–0.18→0.19／**0.19–0.27→0.28**／**0.28–0.35→0.36**／**0.36–0.39→0.40** store 見 **engram-migration** skill（勿手改記憶庫當 migrate；**0.28 hop 離線、無需先 start server**，會丟棄未批准 dream；**0.36 hop** 刪 `initialized_*.yaml` 與 STM `nodes/`／summary，不丟 pending；**0.40 hop** 改未來視檔名與 `zone`，不丟 pending）
 ## 深入閱讀
 

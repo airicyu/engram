@@ -86,7 +86,7 @@ curl -s -X DELETE "$ENGRAM_URL/clock"
 | `DELETE …/asking/{id}` | dismiss；缺檔 200 |
 | `POST /memories/clarify/aside` | `{ raw }` → **201**；非 L0 |
 
-Dream lock → `409 dream_locked`. `pending_review` may still write.
+Extract／deploy **allows** capture／clarify writes（0.41）. `dream_locked` is for a second dream／in-flight review only.
 
 ## Empty pool / rollup-only (0.24+)
 

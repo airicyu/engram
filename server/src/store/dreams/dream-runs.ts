@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { parse, stringify } from "../../yaml";
 import { homePath } from "../home";
 import { nowIso } from "../memories/activities";
+import type { PoolEntry } from "../memories/short-term-memory";
+import type { ClarifyPendingItem } from "../memories/clarify";
 
 /** Lifecycle state of a persisted dream run. */
 export type DreamRunStatus = "pending" | "committed" | "superseded" | "discarded";
@@ -40,6 +42,33 @@ function runsDir(): string {
 
 function runPath(id: string): string {
   return join(runsDir(), `${id}.yaml`);
+}
+
+/** Frozen extract input (pool + pending clarify bodies). Not store-git. */
+export function dreamInputPath(id: string): string {
+  return join(runsDir(), `${id}.input.json`);
+}
+
+export interface DreamRunInput {
+  pool_snapshot: PoolEntry[];
+  clarify_snapshot: ClarifyPendingItem[];
+}
+
+/** Persist frozen snapshots for a run. */
+export async function writeDreamInput(id: string, input: DreamRunInput): Promise<void> {
+  await ensureDreamDirs();
+  await writeFile(dreamInputPath(id), `${JSON.stringify(input, null, 2)}\n`, "utf8");
+}
+
+/** Read frozen snapshots; missing file → null (pre-0.41 pending). */
+export async function readDreamInput(id: string): Promise<DreamRunInput | null> {
+  const p = dreamInputPath(id);
+  if (!(await exists(p))) return null;
+  const raw = JSON.parse(await readFile(p, "utf8")) as DreamRunInput;
+  return {
+    pool_snapshot: Array.isArray(raw.pool_snapshot) ? raw.pool_snapshot : [],
+    clarify_snapshot: Array.isArray(raw.clarify_snapshot) ? raw.clarify_snapshot : [],
+  };
 }
 
 async function exists(path: string): Promise<boolean> {

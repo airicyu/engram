@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.41.0 — 背景入夢：extract 不擋記帳／釐清（2026-08-21）
+
+入夢單場仍互斥；extract 進行中允許 activities／附件上傳／clarify 寫入。本場只消化開跑時凍結的 pool 與 pending（`dreams/runs/{id}.input.json`）。**無** store migrate；boot 仍 ≥0.40。見 `docs/roadmap/0.41.0/`。
+
+### Changed
+
+- 開跑在 capture／clarify 鎖內各讀一次快照後釋放；餵 extract／report／distill 只用快照，禁止再讀 live `pool.jsonl` 或列 pending 目錄
+- `409 dream_locked` 僅擋第二場夢與進行中的審核；capture／upload／clarify 寫入改為排隊延遲，仍 201／200
+- `clearShortTermMemoryScope`、approve 歸檔、觸及 memories 的 git 在對應寫入鎖內
+- Workbench：入夢中可發帖／寫釐清；`advice.lock` 不再暗示不能記帳
+
+### Non-goals
+
+- 兩場夢、Ask 改讀範圍、clarify id 進 `scope[]`、store migrate／抬 boot
+
+---
+
 ## 0.40.0 — 未來視 UI 翻閱＋zone upcoming／longTerm (2026-08-20)
 
 記憶頁第三 mode「未來視」；同時廢 `hot`／`later`：檔 `upcoming.md`／`longTerm.md`，API `zone` 同形；config `future_sight_upcoming_days`。**有** store migrate `0.36–0.39 → 0.40`；boot **≥ 0.40**。見 `docs/roadmap/0.40.0/`。
