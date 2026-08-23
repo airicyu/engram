@@ -27,6 +27,7 @@ Commands:
   memory-l1           GET /memories/short-term-memory (short-term; wire alias l1)
   memory-search <q> [scope]  GET /memories/search (scope: l1,nodes,chain,future)
   memory-ask <q>          POST /memories/ask
+  memory-ask-recent       GET /memories/ask/recent
   memory-ask-get <id> GET /memories/ask/{job_id}
   memory-ask-cancel <id> POST /memories/ask/{job_id}/cancel
   future-sight        GET /memories/future-sight (active anchors; sweeps expired)
@@ -134,6 +135,9 @@ case "$cmd" in
     q="${1:?usage: engram-api.sh memory-ask <question>}"
     python3 -c 'import json,sys; print(json.dumps({"q":sys.argv[1]}))' "$q" \
       | curl -sS -X POST "$BASE/memories/ask" -H 'content-type: application/json' -d @-
+    ;;
+  memory-ask-recent)
+    curl -sS "$BASE/memories/ask/recent"
     ;;
   memory-ask-get)
     id="${1:?usage: engram-api.sh memory-ask-get <job_id>}"

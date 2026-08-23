@@ -105,6 +105,7 @@ No authentication in the prototype. Timestamps use effective timezone (workspace
 | `DELETE` | `/memories/clarify/asking/{id}` | Dismiss asking (0.30+) |
 | `POST` | `/memories/clarify/aside` | Freestyle aside → pending (0.30+；非 L0) |
 | `POST` | `/memories/ask` | Start async AI ask |
+| `GET` | `/memories/ask/recent` | Recent ask list (0.43+) |
 | `GET` | `/memories/ask/{job_id}` | Poll ask job |
 | `POST` | `/memories/ask/{job_id}/cancel` | Cancel running ask |
 | `GET` | `/clock` | Memory-timeline clock snapshot |

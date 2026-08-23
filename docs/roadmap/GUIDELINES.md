@@ -87,7 +87,7 @@ B. 先記再談
 | 排程 | `docs/roadmap/X.Y.Z/INDEX.md`（可先 rough） | 有版本號與產品句 |
 | Briefing | 更新 INDEX：已定案、非目標、驗收；需要時加 `docs/`、`reasoning.md` | **待拍板清空或標成非目標** |
 | 開工 | — | **「讀完本版 roadmap 即可開工」**；無需依賴聊天紀錄 |
-| 出貨 | 勾驗收；`version.md`／`changelog.md`／契約文件同步 | 狀態 → `shipped` |
+| 出貨 | 勾驗收；`version.md`／`changelog.md`／契約文件同步；**清 backlog** | 狀態 → `shipped`；backlog **不再佔列** |
 
 Rough INDEX 允許暫時簡短，但 **進入實作前必須升格為自足稿**。  
 「之後再談 detail」可以；**談完不更新檔案就開工**不行。
@@ -169,8 +169,12 @@ Reasoning 對 AI 特別有價值：保留動機與反例，讓實作／改契約
 
 - `backlog/`＝**尚未出貨**的構想，不是承諾範圍
 - 條目仍應讓人看懂題意；極短 stub 須在排進 version 時寫完整
-- 排進某版後：INDEX ↔ backlog **雙向連結**
-- **出貨後**：從 `backlog/` **刪除**該條（含獨立 `.md`）；真相留在 `docs/roadmap/X.Y.Z/`。勿長期堆「已併入」殭屍列
+- 排進某版後（該版仍 `planned`／`in progress`）：INDEX ↔ backlog **雙向連結**
+- **已經出貨的不該再佔 backlog**（強制）：
+  - 該構想若已在某版 `INDEX`＝`shipped`（或 `changelog`／`version.md` 已標該版出貨），**立刻**從 `backlog/INDEX.md` **刪列**，並**刪除**對應獨立 `backlog/*.md`
+  - 真相只留在 `docs/roadmap/X.Y.Z/`。backlog INDEX 頂部「已出貨、已自本表移除」可記一句指向該版，**不要**再留「已排程 0.x、定案以 INDEX 為準」的活連結當佔位
+  - 禁止：碼與 changelog 已出貨，backlog 仍掛「進行中／已排程」；或版本 INDEX 忘了改 `shipped` 卻繼續用 backlog 當入口
+  - 出貨檢查若漏清：發現當下就補刪，不要等下一版
 
 ---
 
@@ -193,4 +197,5 @@ Reasoning 對 AI 特別有價值：保留動機與反例，讓實作／改契約
 
 - 勾驗收；狀態改 `shipped`
 - 更新 `version.md`、`changelog.md`
+- **清 backlog**：刪該條獨立 `.md` 與 `backlog/INDEX.md` 列（已出貨不佔 backlog）
 - 若改了 API／操作邊界／詞彙：同步 `docs/api-docs/`、`AGENTS.md`、`docs/domain-language.md`（列進最後一軌較不易漏）

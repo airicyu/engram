@@ -52,9 +52,19 @@ export type MemorySearch = {
   error?: string;
 };
 
+export type AskRecentItem = {
+  job_id: string;
+  q: string;
+  status: string;
+  started_at: string;
+  completed_at?: string | null;
+  answer_preview?: string | null;
+};
+
 export type AskJob = {
   job_id?: string;
   present?: boolean;
+  q?: string;
   status?: "running" | "completed" | "failed" | "cancelled" | string;
   phase?: string;
   started_at?: string;
@@ -235,6 +245,8 @@ export const engramApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+    askRecent: (options?: ApiOptions) =>
+      api<{ items: AskRecentItem[] }>("/memories/ask/recent", options),
     askJob: (jobId: string, options?: ApiOptions) =>
       api<AskJob>(`/memories/ask/${encoded(jobId)}`, options),
     cancelAsk: (jobId: string, options?: ApiOptions) =>

@@ -68,7 +68,9 @@ export function App() {
       <div className="atmosphere" aria-hidden="true" />
       <div className="app">
         <Sidebar scene={scene} onScene={onScene} />
-        <main className={`stage${scene === "memory" || scene === "clarify" ? " stage-locked" : ""}`}>
+        <main
+          className={`stage${scene === "memory" || scene === "clarify" || scene === "seek" ? " stage-locked" : ""}`}
+        >
           {eventsOpen ? (
             <ActivitiesScene
               feed={scene === "consolidate" ? "consolidate" : "recent"}

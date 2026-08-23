@@ -592,6 +592,10 @@ async function main() {
       "ask reject include_later true",
     );
 
+    const recent0 = await json("GET", "/memories/ask/recent");
+    assert(recent0.status === 200 && Array.isArray(recent0.data.items), "ask recent 200 array");
+    assert((recent0.data.items as unknown[]).length === 0, "ask recent empty before first ask");
+
     const askStart = await json("POST", "/memories/ask", { q: "What about Acme?" });
     assert(askStart.status === 202 && askStart.data.job_id, "ask 202");
     assert(!("include_later" in askStart.data), "ask 202 has no include_later");
@@ -615,6 +619,18 @@ async function main() {
       await new Promise((r) => setTimeout(r, 150));
     }
     assert(askDone, "ask completed");
+
+    const recentList = await json("GET", "/memories/ask/recent");
+    assert(recentList.status === 200 && Array.isArray(recentList.data.items), "ask recent 200");
+    const recentHit = (recentList.data.items as { job_id?: string; answer?: unknown; sources?: unknown }[]).find(
+      (it) => it.job_id === jobId,
+    );
+    assert(recentHit, "ask recent contains completed job");
+    assert(!("answer" in recentHit!) && !("sources" in recentHit!), "ask recent has no answer/sources");
+    const askReplay = await json("GET", `/memories/ask/${encodeURIComponent(jobId)}`);
+    assert(askReplay.status === 200 && askReplay.data.present === true, "ask history get");
+    assert(String(askReplay.data.q).includes("Acme"), "ask history q");
+    assert(String(askReplay.data.answer).includes("Mock answer"), "ask history answer");
 
     console.log("Phase 4c: browse chain + nodes");
     const chainIdx = await json("GET", "/memories/chain");

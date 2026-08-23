@@ -116,6 +116,10 @@ May return `409` with `future_chain_id` + `rejected_chain_ids`, or `stale_future
 
 Body: `q` required. **Do not** send `include_later`（0.34 removed → `400 include_later_removed`）. Agent may read `upcoming.md` and `longTerm.md`; it decides what to cite. `202` `{ job_id, status }` — no `include_later` echo.
 
+### `GET /memories/ask/recent`
+
+Always 200 `{ items: [] }`. No query. Preview only — no full `answer`, no `sources`. Replay with `GET /memories/ask/{job_id}`.
+
 ### `GET /memories/future-sight`
 
 Always 200. Expire-only maintain（過期 → L0+short-term + 從 `upcoming.md`／`longTerm.md` 移除 + 可 git commit），回傳帶 `zone` 的 `anchors`（先 upcoming 再 longTerm）。不重桶。無 `/future-sight/expired`。

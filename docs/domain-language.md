@@ -55,7 +55,7 @@
 | EN | 中文 | 說明 | API | 備註 |
 |----|------|------|-----|------|
 | **Search** | 搜尋 | keyword 命中 short-term／chain／nodes／**future-sight** | `GET /memories/search?q=&scope=` | `q` 必填；`scope` 可選（`l1,nodes,chain,future`；預設四者）；`future`＝掃 upcoming＋longTerm（`upcoming.md`＋`longTerm.md`） |
-| **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memories/ask`、`GET /memories/ask/{job_id}` | 同時只允許一個 running job；恆可讀 upcoming＋longTerm（0.34 廢 `include_later`；wire 仍讀兩檔） |
+| **Ask** | 提問 | AI 讀 store、自然語言問答（非同步 job） | `POST /memories/ask`、`GET /memories/ask/{job_id}`、`GET /memories/ask/recent` | 同時只允許一個 running job；恆可讀 upcoming＋longTerm（0.34 廢 `include_later`）。0.43 終態側車 24h，列表回看不重跑 |
 
 ### Memory browse（0.8.0）
 

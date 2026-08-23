@@ -48,7 +48,7 @@ Env: copy repo-root [`.env.example`](../.env.example) → `.env`（與 API 共�
 | Scene | What it does |
 |-------|----------------|
 | **Events** (`activities` + `consolidate`) | Compose `POST /activities` · Recent input `entries[]` · Consolidate dream review |
-| **Seek** (`seek`) | **Search** — `GET /memories/search?q=&scope=` · **Ask** — `POST /memories/ask` |
+| **Seek** (`seek`) | **Search** — `GET /memories/search?q=&scope=` · **Ask** — `POST /memories/ask` · recent `GET /memories/ask/recent` |
 | **Question inbox** (`clarify`) | Asking list + reply／dismiss · aside |
 | **Memory** | **Chain** — `GET /memories/chain` + detail · **Nodes** — `GET /memories/nodes/graph` + `{id}` detail |
 

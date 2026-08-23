@@ -29,6 +29,7 @@ import {
   handleMemoryAskPost,
   handleMemoryAskGet,
   handleMemoryAskCancel,
+  handleMemoryAskRecent,
 } from "./api/seek/ask";
 import {
   handleChainIndex,
@@ -120,6 +121,7 @@ try {
             "DELETE /memories/clarify/asking/{id}",
             "POST /memories/clarify/aside",
             "POST /memories/ask",
+            "GET /memories/ask/recent",
             "GET /memories/ask/{job_id}",
             "POST /memories/ask/{job_id}/cancel",
             "GET /clock",
@@ -389,6 +391,10 @@ try {
       }),
     },
 
+    "/memories/ask/recent": {
+      GET: withRequestLog(async () => handleMemoryAskRecent()),
+    },
+
     "/memories/clarify/asking": {
       GET: withRequestLog(async () => handleClarifyListAsking()),
     },
@@ -516,6 +522,9 @@ try {
     const match = url.pathname.match(/^\/memories\/ask\/([^/]+)(\/cancel)?$/);
     if (match) {
       const jobId = decodeURIComponent(match[1]!);
+      if (jobId === "recent" && req.method === "GET") {
+        return handleMemoryAskRecent();
+      }
       if (match[2] === "/cancel" && req.method === "POST") {
         return handleMemoryAskCancel(jobId);
       }

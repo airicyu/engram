@@ -116,7 +116,7 @@ describe("dream staging cleanup", () => {
     });
   });
 
-  test("TTL removes old discarded report but keeps run yaml", async () => {
+  test("TTL removes old discarded report and run yaml", async () => {
     await withStore(async (storeDir) => {
       const runId = "dream-discard-old";
       await writeFile(
@@ -131,8 +131,9 @@ describe("dream staging cleanup", () => {
         ENGRAM_DREAM_STAGING_RETENTION_DAYS: "3",
       });
       expect(result.reports_removed).toContain(runId);
+      expect(result.run_yamls_removed).toContain(runId);
       expect(await exists(join(storeDir, "dreams", "reports", `${runId}.md`))).toBe(false);
-      expect(await exists(join(storeDir, "dreams", "runs", `${runId}.yaml`))).toBe(true);
+      expect(await exists(join(storeDir, "dreams", "runs", `${runId}.yaml`))).toBe(false);
     });
   });
 
@@ -151,6 +152,81 @@ describe("dream staging cleanup", () => {
         ENGRAM_DREAM_COMMITTED_REPORT_RETENTION_DAYS: "-1",
       });
       expect(result.reports_removed).not.toContain(runId);
+      expect(result.run_yamls_removed ?? []).not.toContain(runId);
+      expect(await exists(join(storeDir, "dreams", "reports", `${runId}.md`))).toBe(true);
+      expect(await exists(join(storeDir, "dreams", "runs", `${runId}.yaml`))).toBe(true);
+    });
+  });
+
+  test("TTL removes committed report yaml and input together", async () => {
+    await withStore(async (storeDir) => {
+      const runId = "dream-commit-old";
+      await writeFile(
+        join(storeDir, "dreams", "runs", `${runId}.yaml`),
+        `id: ${runId}\nstatus: committed\nscope: []\ncreated_at: 2020-01-01T00:00:00+08:00\ncommitted_at: 2020-01-02T00:00:00+08:00\npatch_count: 1\nreport_path: dreams/reports/${runId}.md\n`,
+        "utf8",
+      );
+      await writeFile(join(storeDir, "dreams", "runs", `${runId}.input.json`), "{}\n", "utf8");
+      await writeFile(join(storeDir, "dreams", "reports", `${runId}.md`), "# old\n", "utf8");
+      await mkdir(join(storeDir, "dreams", "runs", runId), { recursive: true });
+      await writeFile(join(storeDir, "dreams", "runs", runId, "events.jsonl"), "{}\n", "utf8");
+
+      const result = runCleanup(storeDir, false, {
+        ENGRAM_DREAM_CLEANUP_MIN_AGE_DAYS: "0",
+        ENGRAM_DREAM_COMMITTED_REPORT_RETENTION_DAYS: "7",
+      });
+      expect(result.reports_removed).toContain(runId);
+      expect(result.event_dirs_removed).toContain(runId);
+      expect(result.run_yamls_removed).toContain(runId);
+      expect(result.input_jsons_removed).toContain(runId);
+      expect(await exists(join(storeDir, "dreams", "reports", `${runId}.md`))).toBe(false);
+      expect(await exists(join(storeDir, "dreams", "runs", runId))).toBe(false);
+      expect(await exists(join(storeDir, "dreams", "runs", `${runId}.yaml`))).toBe(false);
+      expect(await exists(join(storeDir, "dreams", "runs", `${runId}.input.json`))).toBe(false);
+    });
+  });
+
+  test("TTL keeps pending yaml report and input", async () => {
+    await withStore(async (storeDir) => {
+      const runId = "dream-pending-old";
+      await writeFile(
+        join(storeDir, "dreams", "runs", `${runId}.yaml`),
+        `id: ${runId}\nstatus: pending\nscope: []\ncreated_at: 2020-01-01T00:00:00+08:00\npatch_count: 0\nreport_path: dreams/reports/${runId}.md\n`,
+        "utf8",
+      );
+      await writeFile(join(storeDir, "dreams", "runs", `${runId}.input.json`), "{}\n", "utf8");
+      await writeFile(join(storeDir, "dreams", "reports", `${runId}.md`), "# pending\n", "utf8");
+
+      const result = runCleanup(storeDir, false, {
+        ENGRAM_DREAM_CLEANUP_MIN_AGE_DAYS: "0",
+        ENGRAM_DREAM_STAGING_RETENTION_DAYS: "3",
+        ENGRAM_DREAM_COMMITTED_REPORT_RETENTION_DAYS: "7",
+      });
+      expect(result.reports_removed ?? []).not.toContain(runId);
+      expect(result.run_yamls_removed ?? []).not.toContain(runId);
+      expect(await exists(join(storeDir, "dreams", "runs", `${runId}.yaml`))).toBe(true);
+      expect(await exists(join(storeDir, "dreams", "runs", `${runId}.input.json`))).toBe(true);
+      expect(await exists(join(storeDir, "dreams", "reports", `${runId}.md`))).toBe(true);
+    });
+  });
+
+  test("TTL keeps l1_clear_pending yaml", async () => {
+    await withStore(async (storeDir) => {
+      const runId = "dream-l1-pending";
+      await writeFile(
+        join(storeDir, "dreams", "runs", `${runId}.yaml`),
+        `id: ${runId}\nstatus: committed\nl1_clear_pending: true\nscope: []\ncreated_at: 2020-01-01T00:00:00+08:00\ncommitted_at: 2020-01-02T00:00:00+08:00\npatch_count: 1\nreport_path: dreams/reports/${runId}.md\n`,
+        "utf8",
+      );
+      await writeFile(join(storeDir, "dreams", "runs", `${runId}.input.json`), "{}\n", "utf8");
+      await writeFile(join(storeDir, "dreams", "reports", `${runId}.md`), "# keep\n", "utf8");
+
+      const result = runCleanup(storeDir, false, {
+        ENGRAM_DREAM_CLEANUP_MIN_AGE_DAYS: "0",
+        ENGRAM_DREAM_COMMITTED_REPORT_RETENTION_DAYS: "7",
+      });
+      expect(result.run_yamls_removed ?? []).not.toContain(runId);
+      expect(await exists(join(storeDir, "dreams", "runs", `${runId}.yaml`))).toBe(true);
       expect(await exists(join(storeDir, "dreams", "reports", `${runId}.md`))).toBe(true);
     });
   });

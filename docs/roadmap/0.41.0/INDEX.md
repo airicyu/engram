@@ -1,8 +1,8 @@
 # 0.41.0 — 背景入夢：extract 不擋記帳／釐清
 
-← [changelog](../../../changelog.md) · 上游：[0.40.0](../0.40.0/INDEX.md)（shipped）· 下游：[0.42.0](../0.42.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫法：[GUIDELINES.md](../GUIDELINES.md) · 節奏：[agent-workflow.md](../agent-workflow.md) · 構想：[backlog 背景入夢](../backlog/background-dream-lock.md)
+← [changelog](../../../changelog.md) · 上游：[0.40.0](../0.40.0/INDEX.md)（shipped）· 下游：[0.42.0](../0.42.0/INDEX.md)（shipped）· current: [version](../../../version.md) · 寫法：[GUIDELINES.md](../GUIDELINES.md) · 節奏：[agent-workflow.md](../agent-workflow.md)
 
-> **狀態：** **in progress**  
+> **狀態：** **shipped**（2026-08-21）  
 > 入夢 agent 仍單場跑；extract／amend 進行中 **允許** `POST /activities`、附件 upload、clarify 寫入。輸入正確性靠 **開跑時兩份凍結快照**＋**寫入鏈與清／歸檔同鎖**，不再靠全程 `409 dream_locked`。**無** store migrate；boot 仍 ≥ **0.40**。  
 > **開工前仍須拍板：無。** 設計審查 H1–H3／M1–M7 已併入本 INDEX 與 HOW（見 [design-review](./docs/design-review.md)）。
 

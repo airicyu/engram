@@ -36,7 +36,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /attachments/uploads` to upload images | Hand-place files under `_attachments/` |
 | `POST /activities` to capture | Append to `events.jsonl` by hand |
 | `POST /dreams/run` → pending → `approve`／`discard`／`retry`／`amend`／`cancel` | Hand-edit short-term／L2／draft during review |
-| `GET /memories/short-term-memory` / `GET /memories/search` / `POST /memories/ask` | Assemble context by reading markdown files |
+| `GET /memories/short-term-memory` / `GET /memories/search` / `POST /memories/ask` / `GET /memories/ask/recent` | Assemble context by reading markdown files |
 | `GET /memories/future-sight` for near-horizon anchors | Hand-edit `future-sight/` |
 | Clarify: list asking／pending／submit／dismiss／aside | Hand-edit `memories/clarify/` |
 | Report `dream_status` from `/status` | Hand-edit dream state files |
@@ -58,7 +58,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | **Amend** | `POST /dreams/amend` `{ instruction }` — same `dream_run_id` minimal draft edit; failure keeps pending |
 | **Dream cancel** | `POST /dreams/cancel` — stop running dream；revert draft |
 | **Memory / Search** | `GET /memories/search?q=&scope=` — keyword hits (`scope=l1,nodes,chain,future`; default all four; `future`＝upcoming＋longTerm) |
-| **Ask** | `POST /memories/ask` `{ q }` — async AI Q&A（恆可讀 upcoming＋longTerm）；poll `GET /memories/ask/{job_id}` |
+| **Ask** | `POST /memories/ask` `{ q }` — async AI Q&A（恆可讀 upcoming＋longTerm）；poll `GET /memories/ask/{job_id}`；列表 `GET /memories/ask/recent`（回看不重跑） |
 | **Future-sight** | `GET /memories/future-sight` — `upcoming`／`longTerm` 錨點（GET 只清過期並可 git commit；重桶在入夢前）。工作台記憶頁第三 mode `#/memory/future` 可瀏覽 |
 | **Clarify** | `GET /memories/clarify/asking`；`GET /memories/clarify/pending`（live 已答＋aside）；`POST .../submit` `{ answer }`；`DELETE .../{id}`；`POST /memories/clarify/aside` `{ raw }` — 非 activity；extract 中可寫（不進本場快照）；pending_review 可寫 |
 | **dream_status** | `ok` \| `pending_review` \| `l1_clear_pending` \| `dream_incomplete` \| `never_dreamed` |
@@ -91,6 +91,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `GET /memories/chain`／`weeks`／`months`／`years`（及 `/{id}`） | — | browse timeline |
 | `GET /memories/nodes`／`graph`／`{id}` | — | browse L2；graph 含 `edges[]`（P1 互指）；detail 回 `understanding` |
 | `POST /memories/ask` | `q` | `202` + `job_id`；勿傳 `include_later`（400） |
+| `GET /memories/ask/recent` | none | `{ items: [] }`；無完整 answer／sources |
 | `GET /memories/future-sight` | none | `anchors`（含 `zone` upcoming／longTerm）、`swept_expired` |
 | `GET /memories/clarify/asking` | none | `{ items: [...] }`（舊→新）；空＝`{ "items": [] }` |
 | `GET /memories/clarify/pending` | none | live pending（新→舊 `answered_at`）；空＝`{ "items": [] }`；dream lock 中仍 200 |
@@ -116,6 +117,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 ./scripts/engram-api.sh memory-l1
 ./scripts/engram-api.sh memory-search acme
 ./scripts/engram-api.sh memory-ask 'What about Acme?'
+./scripts/engram-api.sh memory-ask-recent
 ./scripts/engram-api.sh memory-ask 'When is launch?' true
 ./scripts/engram-api.sh future-sight
 ./scripts/engram-api.sh clarify-asking

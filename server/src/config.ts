@@ -61,6 +61,8 @@ const WORKSPACE_KEYS = new Set([
   "attachment_housekeep_cron",
   "attachment_housekeep_cron_enabled",
   "attachment_housekeep_on_start",
+  "ask_history_retention_hours",
+  "ask_history_max_entries",
 ]);
 
 export const DEFAULT_FUTURE_SIGHT_WINDOW_DAYS = 365;
@@ -73,6 +75,8 @@ export const DEFAULT_DREAM_COMMITTED_REPORT_RETENTION_DAYS = 7;
 export const DEFAULT_DREAM_CLEANUP_MIN_AGE_DAYS = 1;
 export const DEFAULT_DREAM_CLEANUP_CRON = "10 0 * * *";
 export const DEFAULT_AUTO_DREAM_CRON = "30 0 * * *";
+export const DEFAULT_ASK_HISTORY_RETENTION_HOURS = 24;
+export const DEFAULT_ASK_HISTORY_MAX_ENTRIES = 50;
 
 /** Valid `ENGRAM_AGENT` / workspace `agent` values. */
 export const AGENT_MODES = [
@@ -164,6 +168,8 @@ type WorkspaceFile = {
   attachment_housekeep_cron?: string;
   attachment_housekeep_cron_enabled?: boolean;
   attachment_housekeep_on_start?: boolean;
+  ask_history_retention_hours?: number;
+  ask_history_max_entries?: number;
 };
 
 /** Positive integer day-count (future-sight windows). */
@@ -551,6 +557,26 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
     out.attachment_housekeep_on_start = v;
   }
 
+  if ("ask_history_retention_hours" in obj) {
+    const v = obj.ask_history_retention_hours;
+    if (!isNonNegativeIntDays(v)) {
+      failWorkspace(
+        `${path}: ask_history_retention_hours must be a non-negative integer (got ${JSON.stringify(v)})`,
+      );
+    }
+    out.ask_history_retention_hours = v;
+  }
+
+  if ("ask_history_max_entries" in obj) {
+    const v = obj.ask_history_max_entries;
+    if (!isPositiveIntDays(v)) {
+      failWorkspace(
+        `${path}: ask_history_max_entries must be an integer >= 1 (got ${JSON.stringify(v)})`,
+      );
+    }
+    out.ask_history_max_entries = v;
+  }
+
   return out;
 }
 
@@ -753,6 +779,24 @@ function resolveAttachmentHousekeepOnStart(workspace: WorkspaceFile | null): boo
   return resolveEnvBoolean(process.env.ENGRAM_ATTACHMENT_HOUSEKEEP_ON_START, true);
 }
 
+function resolveAskHistoryRetentionHours(workspace: WorkspaceFile | null): number {
+  if (workspace?.ask_history_retention_hours != null) return workspace.ask_history_retention_hours;
+  const fromEnv = process.env.ENGRAM_ASK_HISTORY_RETENTION_HOURS?.trim();
+  if (fromEnv !== undefined && fromEnv !== "") {
+    return parseNonNegativeIntDays(fromEnv, "ENGRAM_ASK_HISTORY_RETENTION_HOURS");
+  }
+  return DEFAULT_ASK_HISTORY_RETENTION_HOURS;
+}
+
+function resolveAskHistoryMaxEntries(workspace: WorkspaceFile | null): number {
+  if (workspace?.ask_history_max_entries != null) return workspace.ask_history_max_entries;
+  const fromEnv = process.env.ENGRAM_ASK_HISTORY_MAX_ENTRIES?.trim();
+  if (fromEnv !== undefined && fromEnv !== "") {
+    return parsePositiveIntDays(fromEnv, "ENGRAM_ASK_HISTORY_MAX_ENTRIES");
+  }
+  return DEFAULT_ASK_HISTORY_MAX_ENTRIES;
+}
+
 function resolveTimezone(workspace: WorkspaceFile | null): string {
   if (workspace?.timezone) return workspace.timezone;
   const fromEnv = process.env.ENGRAM_TZ?.trim();
@@ -854,4 +898,8 @@ export const config = {
   attachmentHousekeepCronEnabled: resolveAttachmentHousekeepCronEnabled(workspace),
   /** Run attachment tmp housekeep on server start (default true). */
   attachmentHousekeepOnStart: resolveAttachmentHousekeepOnStart(workspace),
+  /** Hours to keep terminal ask Q&A; 0 = do not write history. */
+  askHistoryRetentionHours: resolveAskHistoryRetentionHours(workspace),
+  /** Max terminal ask-history files after TTL. */
+  askHistoryMaxEntries: resolveAskHistoryMaxEntries(workspace),
 };

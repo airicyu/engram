@@ -1,6 +1,6 @@
 # 0.42.0 — 近期輸入內容展示未入夢釐清
 
-← [changelog](../../../changelog.md) · 上游：[0.41.0](../0.41.0/INDEX.md)（in progress）· current: [version](../../../version.md) · 寫法：[GUIDELINES.md](../GUIDELINES.md) · 節奏：[agent-workflow.md](../agent-workflow.md) · 構想：[backlog](../backlog/INDEX.md)
+← [changelog](../../../changelog.md) · 上游：[0.41.0](../0.41.0/INDEX.md)（shipped）· 下游：[0.43.0](../0.43.0/INDEX.md)（planned）· current: [version](../../../version.md) · 寫法：[GUIDELINES.md](../GUIDELINES.md) · 節奏：[agent-workflow.md](../agent-workflow.md) · 構想：[backlog](../backlog/INDEX.md)
 
 > **狀態：** **shipped**  
 > 事件頁「近期輸入內容」除短期記憶事件外，列出 live `clarify/pending/`（已答補問＋順帶補充），讓人看見下輪入夢才會蒸餾的釐清輸入。新增 `GET /memories/clarify/pending`。**無** store migrate；boot 仍 ≥ **0.40**。  

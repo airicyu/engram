@@ -136,6 +136,9 @@ const server = Bun.serve({
     if (url.pathname === "/api/memories/ask" && req.method === "POST") {
       return proxyApi(req, "/memories/ask");
     }
+    if (url.pathname === "/api/memories/ask/recent" && req.method === "GET") {
+      return proxyApi(req, "/memories/ask/recent");
+    }
     if (url.pathname === "/api/memories/chain" && req.method === "GET") {
       return proxyApi(req, "/memories/chain");
     }

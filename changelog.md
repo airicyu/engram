@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.43.0 — Dream run 與 report 同步 TTL；尋問 recent ask（2026-08-23）
+
+Staging 達齡刪 report／events 時一併刪同 id 的 `runs/{id}.yaml` 與 `{id}.input.json`。尋問終態寫入 `dreams/ask-history`（預設 24h、最多 50 筆），`GET /memories/ask/recent` 供列表回看，不重跑 agent。**無** store migrate；boot 仍 ≥0.40。見 `docs/roadmap/0.43.0/`。
+
+### Added
+
+- `GET /memories/ask/recent`：history＋running；空 200 `{ items: [] }`；list 僅 preview，無 sources
+- workspace／env：`ask_history_retention_hours`、`ask_history_max_entries`
+- 工作台尋問 Ask 模式近期列表；點列回填題目並展示該次答案（不 POST）
+
+### Changed
+
+- `sweepDreamArtifacts` 刪 report 時同步刪 yaml／input；`pending` 與 `l1_clear_pending` 不因 TTL 刪；`GET /status.dream_cleanup` 增 `run_yamls_removed`／`input_jsons_removed`
+
+### Non-goals
+
+- 新 yaml 專用 retention 天數、改 extract／approve、Ask `include_later`、UI 顯示 sources、hash 深鏈、store migrate／抬 boot
+
+---
+
 ## 0.42.0 — 近期輸入內容展示未入夢釐清（2026-08-21）
 
 事件頁「近期輸入內容」分兩區：短期記憶事件，以及 live `clarify/pending`（已答補問＋順帶補充）。新增 `GET /memories/clarify/pending`。**不**改 distill／approve／提問郵箱 asking。**無** store migrate；boot 仍 ≥0.40。見 `docs/roadmap/0.42.0/`。

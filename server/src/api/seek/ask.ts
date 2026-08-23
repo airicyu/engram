@@ -1,6 +1,7 @@
 /** HTTP handlers for memory ask jobs. */
 
 import { startAskJob, cancelAskJob, getAskJobPayload, AskBusyError } from "../../seek/ask-run";
+import { listAskRecent } from "../../store/dreams/ask-history";
 import { logInfo } from "../../log";
 
 /** POST /memory/ask — start an asynchronous ask job. */
@@ -44,6 +45,12 @@ export async function handleMemoryAskPost(body: {
     }
     throw e;
   }
+}
+
+/** GET /memories/ask/recent — terminal history + running temp job. */
+export async function handleMemoryAskRecent(): Promise<Response> {
+  const items = await listAskRecent();
+  return Response.json({ items });
 }
 
 /** GET /memory/ask/{job_id} — poll ask job status. */

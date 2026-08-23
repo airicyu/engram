@@ -12,6 +12,7 @@ import {
   removeDraft,
   type DreamRunState,
 } from "./dream-runs";
+import { pruneAskHistory } from "./ask-history";
 import { writeExtractState } from "./extract-state";
 import { nowIso } from "../memories/activities";
 
@@ -35,6 +36,9 @@ export interface DreamCleanupResult {
   stale_lock_broken: boolean;
   reports_removed: string[];
   event_dirs_removed: string[];
+  run_yamls_removed: string[];
+  input_jsons_removed: string[];
+  ask_history_removed: string[];
 }
 
 function storePath(...parts: string[]): string {
@@ -146,11 +150,38 @@ async function sweepStaleLock(dryRun: boolean): Promise<boolean> {
   return breakStaleLock();
 }
 
+function skipTtl(run: DreamRunState, pendingId: string | null): boolean {
+  if (pendingId != null && run.id === pendingId) return true;
+  if (run.status === "pending") return true;
+  if (run.l1_clear_pending === true) return true;
+  return false;
+}
+
+async function removeYamlAndInput(
+  runId: string,
+  dryRun: boolean,
+  run_yamls_removed: string[],
+  input_jsons_removed: string[],
+): Promise<void> {
+  const yamlPath = storePath("dreams", "runs", `${runId}.yaml`);
+  if (await pathExists(yamlPath)) {
+    if (!run_yamls_removed.includes(runId)) run_yamls_removed.push(runId);
+    await removePath(yamlPath, dryRun);
+  }
+  const inputPath = storePath("dreams", "runs", `${runId}.input.json`);
+  if (await pathExists(inputPath)) {
+    if (!input_jsons_removed.includes(runId)) input_jsons_removed.push(runId);
+    await removePath(inputPath, dryRun);
+  }
+}
+
 async function removeRunArtifacts(
   runId: string,
   dryRun: boolean,
   reports_removed: string[],
   event_dirs_removed: string[],
+  run_yamls_removed: string[],
+  input_jsons_removed: string[],
 ): Promise<void> {
   const reportPath = storePath("dreams", "reports", `${runId}.md`);
   if (await pathExists(reportPath)) {
@@ -165,6 +196,7 @@ async function removeRunArtifacts(
       await removePath(eventsDir, dryRun);
     }
   }
+  await removeYamlAndInput(runId, dryRun, run_yamls_removed, input_jsons_removed);
 }
 
 function pastRetention(ageMs: number, retentionDays: number, minAgeDays: number): boolean {
@@ -182,14 +214,24 @@ async function sweepCommittedArtifacts(
   pendingId: string | null,
   reports_removed: string[],
   event_dirs_removed: string[],
+  run_yamls_removed: string[],
+  input_jsons_removed: string[],
 ): Promise<void> {
   if (committedRetentionDays === -1) return;
 
   const runs = await listDreamRuns();
   for (const run of runs) {
     if (run.status !== "committed") continue;
+    if (skipTtl(run, pendingId)) continue;
     if (!pastRetention(runAgeMs(run, now), committedRetentionDays, minAgeDays)) continue;
-    await removeRunArtifacts(run.id, dryRun, reports_removed, event_dirs_removed);
+    await removeRunArtifacts(
+      run.id,
+      dryRun,
+      reports_removed,
+      event_dirs_removed,
+      run_yamls_removed,
+      input_jsons_removed,
+    );
   }
 }
 
@@ -201,6 +243,8 @@ async function sweepStagingArtifacts(
   pendingId: string | null,
   reports_removed: string[],
   event_dirs_removed: string[],
+  run_yamls_removed: string[],
+  input_jsons_removed: string[],
 ): Promise<void> {
   if (stagingRetentionDays <= 0) return;
 
@@ -209,8 +253,16 @@ async function sweepStagingArtifacts(
 
   for (const run of runs) {
     if (run.status !== "discarded" && run.status !== "superseded") continue;
+    if (skipTtl(run, pendingId)) continue;
     if (!pastRetention(runAgeMs(run, now), stagingRetentionDays, minAgeDays)) continue;
-    await removeRunArtifacts(run.id, dryRun, reports_removed, event_dirs_removed);
+    await removeRunArtifacts(
+      run.id,
+      dryRun,
+      reports_removed,
+      event_dirs_removed,
+      run_yamls_removed,
+      input_jsons_removed,
+    );
   }
 
   const reportsDir = storePath("dreams", "reports");
@@ -224,20 +276,33 @@ async function sweepStagingArtifacts(
       if (!pastRetention(age, stagingRetentionDays, minAgeDays)) continue;
       if (!reports_removed.includes(id)) reports_removed.push(id);
       await removePath(reportPath, dryRun);
+      await removeYamlAndInput(id, dryRun, run_yamls_removed, input_jsons_removed);
     }
   }
 
   const runsDir = storePath("dreams", "runs");
   if (await pathExists(runsDir)) {
     for (const entry of await readdir(runsDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const id = entry.name;
-      if (pendingId === id || knownIds.has(id)) continue;
-      const eventsDir = join(runsDir, id);
-      const age = await fileAgeMs(eventsDir, now);
+      if (entry.isDirectory()) {
+        const id = entry.name;
+        if (pendingId === id || knownIds.has(id)) continue;
+        const eventsDir = join(runsDir, id);
+        const age = await fileAgeMs(eventsDir, now);
+        if (!pastRetention(age, stagingRetentionDays, minAgeDays)) continue;
+        if (!event_dirs_removed.includes(id)) event_dirs_removed.push(id);
+        await removePath(eventsDir, dryRun);
+        await removeYamlAndInput(id, dryRun, run_yamls_removed, input_jsons_removed);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      let id: string | null = null;
+      if (entry.name.endsWith(".yaml")) id = entry.name.slice(0, -5);
+      else if (entry.name.endsWith(".input.json")) id = entry.name.slice(0, -".input.json".length);
+      if (!id || pendingId === id || knownIds.has(id)) continue;
+      const filePath = join(runsDir, entry.name);
+      const age = await fileAgeMs(filePath, now);
       if (!pastRetention(age, stagingRetentionDays, minAgeDays)) continue;
-      if (!event_dirs_removed.includes(id)) event_dirs_removed.push(id);
-      await removePath(eventsDir, dryRun);
+      await removeYamlAndInput(id, dryRun, run_yamls_removed, input_jsons_removed);
     }
   }
 }
@@ -269,6 +334,8 @@ export async function sweepDreamArtifacts(
 
   const reports_removed: string[] = [];
   const event_dirs_removed: string[] = [];
+  const run_yamls_removed: string[] = [];
+  const input_jsons_removed: string[] = [];
   const now = Date.now();
   const pending = await getPendingRun();
   const pendingId = pending?.id ?? null;
@@ -281,6 +348,8 @@ export async function sweepDreamArtifacts(
     pendingId,
     reports_removed,
     event_dirs_removed,
+    run_yamls_removed,
+    input_jsons_removed,
   );
   await sweepStagingArtifacts(
     dryRun,
@@ -290,7 +359,10 @@ export async function sweepDreamArtifacts(
     pendingId,
     reports_removed,
     event_dirs_removed,
+    run_yamls_removed,
+    input_jsons_removed,
   );
+  const ask_history_removed = await pruneAskHistory(dryRun);
 
   const result: DreamCleanupResult = {
     dry_run: dryRun,
@@ -299,6 +371,9 @@ export async function sweepDreamArtifacts(
     stale_lock_broken,
     reports_removed,
     event_dirs_removed,
+    run_yamls_removed,
+    input_jsons_removed,
+    ask_history_removed,
   };
 
   lastCleanupResult = result;
@@ -308,7 +383,10 @@ export async function sweepDreamArtifacts(
     stale_job_recovered ||
     stale_lock_broken ||
     reports_removed.length > 0 ||
-    event_dirs_removed.length > 0;
+    event_dirs_removed.length > 0 ||
+    run_yamls_removed.length > 0 ||
+    input_jsons_removed.length > 0 ||
+    ask_history_removed.length > 0;
 
   if (touched) {
     logInfo("dream staging cleanup", {
@@ -318,6 +396,9 @@ export async function sweepDreamArtifacts(
       stale_lock_broken,
       reports_removed: reports_removed.length,
       event_dirs_removed: event_dirs_removed.length,
+      run_yamls_removed: run_yamls_removed.length,
+      input_jsons_removed: input_jsons_removed.length,
+      ask_history_removed: ask_history_removed.length,
     });
   }
 

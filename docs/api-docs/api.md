@@ -62,6 +62,7 @@ Service discovery.
     "DELETE /memories/clarify/asking/{id}",
     "POST /memories/clarify/aside",
     "POST /memories/ask",
+    "GET /memories/ask/recent",
     "GET /memories/ask/{job_id}",
     "POST /memories/ask/{job_id}/cancel",
     "POST /dreams/cancel",
@@ -906,6 +907,12 @@ Start async AI ask. Agent reads `ENGRAM_STORE_DIR` directly (read-only).
 
 Poll **`GET /memories/ask/{job_id}`** until `status` is `completed` | `failed` | `cancelled`.  
 Cancel running job: **`POST /memories/ask/{job_id}/cancel`**.
+
+**`GET /memories/ask/recent`** — 近 24 小時終態問答＋可能的 running。無 query／分頁；多餘 query 忽略。空亦 **200** `{ "items": [] }`。新→舊（`started_at` 降序；同分 `job_id` `localeCompare` 升序）。每筆：`job_id`、`q`、`status`、`started_at`、`completed_at`（可 null）、`answer_preview`（trim 後空白→`null`，否則最多 80 個 UTF-16 code unit＋`…`）。**不**回完整 `answer`、**不**回 `sources`。
+
+單筆仍走 **`GET /memories/ask/{job_id}`**：先 temp job，再 `dreams/ask-history/{job_id}.json`；皆無則 **200** `{ "present": false }`。終態寫入 history 的條件：有效 `ask_history_retention_hours`（workspace → `ENGRAM_ASK_HISTORY_RETENTION_HOURS` → **24**）**> 0**。`0`＝不寫；sweep 會清既有檔。筆數帽 `ask_history_max_entries`（→ `ENGRAM_ASK_HISTORY_MAX_ENTRIES` → **50**）。history 不進 `memories/**`、不進 store git。
+
+`GET /status.dream_cleanup` 在有掃過後含 `run_yamls_removed`／`input_jsons_removed`（與 `reports_removed`／`event_dirs_removed` 並列；dry-run 同樣填）。`dream_committed_report_retention_days=-1` 時 committed 的 report／events／yaml／input **都不** TTL 刪。
 
 Agent may cite `sources[].kind` = `L1`｜`L2`｜`chain`｜**`future_sight`**（建議帶 `id`＋`zone`）。Every job may read both `upcoming.md` and `longTerm.md`; the agent decides what to open.
 

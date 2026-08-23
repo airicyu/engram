@@ -77,6 +77,8 @@ Env: copy repo-root [`.env.example`](../.env.example) → `.env`（server／web 
 | `GET` | `/memories/nodes` | L2 node index (browse) |
 | `GET` | `/memories/nodes/{node_id}` | L2 node detail |
 | `POST` | `/memories/ask` | async AI Q&A |
+| `GET` | `/memories/ask/recent` | recent ask list |
+| `GET` | `/memories/ask/{job_id}` | poll ask job |
 | `GET`/`PUT`/`DELETE` | `/clock` | virtual memory timeline (PUT needs env) |
 | `GET` | `/status` | lock, short-term (`l1_empty`), dream_status, ask_job, clock |
 

@@ -103,6 +103,27 @@ export function useAskJob() {
     [beginPolling, stopPolling],
   );
 
+  const viewPast = useCallback(async (jobId: string): Promise<ApiResult<AskJob>> => {
+    stopPolling();
+    setAskJobId(null);
+    setProgress(null);
+    const result = await engramApi.memories.askJob(jobId);
+    if (!mounted.current) return result;
+    if (!result.ok || result.data.present === false) {
+      setAnswer(null);
+      setFailure(result.data);
+      return result;
+    }
+    if (result.data.status === "completed") {
+      setAnswer(result.data);
+      setFailure(null);
+    } else {
+      setAnswer(null);
+      setFailure(result.data);
+    }
+    return result;
+  }, [setAskJobId, stopPolling]);
+
   const cancel = useCallback(async () => {
     const jobId = activeJobId.current ?? askJobId ?? status?.ask_job?.job_id;
     if (!jobId) return null;
@@ -132,6 +153,7 @@ export function useAskJob() {
   return {
     start,
     cancel,
+    viewPast,
     progress,
     answer,
     failure,

@@ -14,6 +14,7 @@ import {
   pruneOldAskJobs,
   type AskJobState,
 } from "../store/tmp/ask-job";
+import { persistAskHistory, readAskHistory } from "../store/dreams/ask-history";
 import { nowIso, calendarDate } from "../store/memories/activities";
 
 /** Indicates another ask job is already running. */
@@ -132,6 +133,7 @@ async function runAskJob(jobId: string, q: string, startedAt: string): Promise<v
       confidence: result.confidence ?? null,
       error: null,
     });
+    await persistAskHistory((await readAskJob(jobId))!);
 
     emitAskEvent(jobId, {
       phase: "parse",
@@ -162,6 +164,7 @@ async function runAskJob(jobId: string, q: string, startedAt: string): Promise<v
       sources: [],
       error: msg,
     });
+    await persistAskHistory((await readAskJob(jobId))!);
   } finally {
     cancelledJobs.delete(jobId);
   }
@@ -187,6 +190,7 @@ async function finalizeCancelled(jobId: string, q: string, startedAt: string): P
     sources: [],
     error: "cancelled by user",
   });
+  await persistAskHistory((await readAskJob(jobId))!);
 }
 
 /** Cancel a running ask job. */
@@ -206,13 +210,18 @@ export async function cancelAskJob(jobId: string): Promise<AskJobState | null> {
 /** Build poll payload for GET /memory/ask/{id}. */
 export async function getAskJobPayload(jobId: string): Promise<object> {
   const job = await readAskJob(jobId);
-  if (!job) return { present: false };
-
-  const payload: Record<string, unknown> = { ...job, present: true };
-  delete payload.include_later;
-  if (job.status === "running") {
-    const { tailAskEvents } = await import("../store/tmp/ask-events");
-    payload.log_tail = await tailAskEvents(jobId, 20);
+  if (job) {
+    const payload: Record<string, unknown> = { ...job, present: true };
+    delete payload.include_later;
+    if (job.status === "running") {
+      const { tailAskEvents } = await import("../store/tmp/ask-events");
+      payload.log_tail = await tailAskEvents(jobId, 20);
+    }
+    return payload;
   }
-  return payload;
+  const history = await readAskHistory(jobId);
+  if (history) {
+    return { ...history, present: true };
+  }
+  return { present: false };
 }

@@ -89,7 +89,7 @@ Engram 設定分兩層：**進程／本機**（repo 根目錄 `.env` 或環境�
 | workspace 鍵 | env | 預設 | 說明 |
 |--------------|-----|------|------|
 | `dream_staging_retention_days` | `ENGRAM_DREAM_STAGING_RETENTION_DAYS` | `3` | staging TTL；`0`＝僅 recovery |
-| `dream_committed_report_retention_days` | `ENGRAM_DREAM_COMMITTED_REPORT_RETENTION_DAYS` | `7` | committed report TTL；`-1`＝永久 |
+| `dream_committed_report_retention_days` | `ENGRAM_DREAM_COMMITTED_REPORT_RETENTION_DAYS` | `7` | committed report／events／**yaml／input** 同 TTL（0.43）；`-1`＝此四類都不 TTL 刪 |
 | `dream_cleanup_min_age_days` | `ENGRAM_DREAM_CLEANUP_MIN_AGE_DAYS` | `1` | TTL 刪除最小齡 |
 | `dream_cleanup_cron` | `ENGRAM_DREAM_CLEANUP_CRON` | `0 3 * * *` | in-process cleanup cron |
 | `dream_cleanup_cron_enabled` | `ENGRAM_DREAM_CLEANUP_CRON_ENABLED` | `true` | 註冊 cleanup cron |
@@ -97,6 +97,8 @@ Engram 設定分兩層：**進程／本機**（repo 根目錄 `.env` 或環境�
 | `auto_dream_enabled` | `ENGRAM_AUTO_DREAM_ENABLED` | `false` | 定時 auto dream |
 | `auto_dream_cron` | `ENGRAM_AUTO_DREAM_CRON` | `30 3 * * *` | auto dream cron |
 | `dream_auto_approve` | `ENGRAM_DREAM_AUTO_APPROVE` | `true` | 入夢／retry／amend **成功寫出 pending 後**自動 `approveDream`（deploy＋git＋清 scope）。`false`＝停在 `pending_review` 等人審。自動 approve 失敗則留下 pending |
+| `ask_history_retention_hours` | `ENGRAM_ASK_HISTORY_RETENTION_HOURS` | `24` | 尋問終態側車壽命（小時）；`0`＝不寫 history |
+| `ask_history_max_entries` | `ENGRAM_ASK_HISTORY_MAX_ENTRIES` | `50` | 終態 history 筆數帽（先 TTL 再裁） |
 
 ### 附件（0.29+）
 

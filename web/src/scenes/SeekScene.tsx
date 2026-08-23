@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { engramApi, type AskJob, type MemorySearch } from "../lib/api";
+import { engramApi, type AskJob, type AskRecentItem, type MemorySearch } from "../lib/api";
 import { formatElapsed } from "../lib/types";
 import { useI18n } from "../i18n/I18nProvider";
 import { useStatus } from "../context/StatusContext";
@@ -8,16 +8,6 @@ import { useAskJob } from "../hooks/useAskJob";
 import { encodeHashId } from "../lib/hashRoute";
 
 type SeekMode = "search" | "ask";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function futureSightSourceId(source: unknown): string | null {
-  if (!isRecord(source)) return null;
-  if (source.kind !== "future_sight") return null;
-  return typeof source.id === "string" && source.id.trim() ? source.id : null;
-}
 
 function SeekModeIcon({ mode }: { mode: SeekMode }) {
   const common = {
@@ -52,7 +42,7 @@ function SeekModeIcon({ mode }: { mode: SeekMode }) {
 export function SeekScene() {
   const { t } = useI18n();
   const { status } = useStatus();
-  const { start, cancel, progress: askProgress, answer: askAnswer, failure, isActive } = useAskJob();
+  const { start, cancel, viewPast, progress: askProgress, answer: askAnswer, failure, isActive } = useAskJob();
   const [mode, setMode] = useState<SeekMode>("ask");
   const [q, setQ] = useState("");
   const [askQ, setAskQ] = useState("");
@@ -60,11 +50,23 @@ export function SeekScene() {
   const [searchMsg, setSearchMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [askMsg, setAskMsg] = useState({ text: "", kind: "" as "" | "error" | "ok" });
   const [searchData, setSearchData] = useState<MemorySearch | null>(null);
+  const [recentAsks, setRecentAsks] = useState<AskRecentItem[]>([]);
+  const [selectedRecentId, setSelectedRecentId] = useState<string | null>(null);
 
   const knownNodeIds = useMemo(
     () => new Set((searchData?.nodes ?? []).map((n) => n.node)),
     [searchData],
   );
+
+  async function refreshRecent() {
+    const { ok, data } = await engramApi.memories.askRecent();
+    if (ok && Array.isArray(data.items)) setRecentAsks(data.items);
+  }
+
+  useEffect(() => {
+    if (mode !== "ask") return;
+    void refreshRecent();
+  }, [mode, askAnswer?.job_id, failure?.job_id, isActive]);
 
   useEffect(() => {
     if (askAnswer?.status === "completed") {
@@ -154,6 +156,40 @@ export function SeekScene() {
       return;
     }
     setAskMsg({ text: t("memory.ask_cancelled"), kind: "ok" });
+    void refreshRecent();
+  }
+
+  async function onRecentClick(item: AskRecentItem) {
+    setSelectedRecentId(item.job_id);
+    setAskQ(item.q);
+    if (item.status === "running") {
+      setAskMsg({ text: t("memory.ask_running"), kind: "" });
+      return;
+    }
+    const result = await viewPast(item.job_id);
+    if (!result.ok || result.data.present === false) {
+      setAskMsg({ text: t("memory.ask_fail"), kind: "error" });
+      return;
+    }
+    if (result.data.q) setAskQ(result.data.q);
+    if (result.data.status === "completed") {
+      setAskMsg({ text: t("memory.ask_done"), kind: "ok" });
+    } else if (result.data.status === "cancelled") {
+      setAskMsg({ text: t("memory.ask_cancelled"), kind: "ok" });
+    } else {
+      setAskMsg({
+        text: result.data.error || result.data.message || t("memory.ask_fail"),
+        kind: "error",
+      });
+    }
+  }
+
+  function recentStatusLabel(status: string) {
+    if (status === "completed") return t("memory.ask_done");
+    if (status === "failed") return t("memory.ask_fail");
+    if (status === "cancelled") return t("memory.ask_cancelled");
+    if (status === "running") return t("memory.ask_running");
+    return status;
   }
 
   const liveAsk = askProgress || (status?.ask_job as AskJob | undefined);
@@ -170,7 +206,7 @@ export function SeekScene() {
   }
 
   return (
-    <section className="scene is-active seek-col" role="tabpanel">
+    <section className="scene scene-fill is-active seek-col" role="tabpanel">
       <div className="memory-modes seek-modes" role="tablist" aria-label="Seek mode">
         <button
           type="button"
@@ -195,7 +231,7 @@ export function SeekScene() {
       </div>
 
       {mode === "search" ? (
-        <div>
+        <div className="seek-search-pane">
           <p className="scene-lead">{t("seek.lead")}</p>
           <form className="recall-form" onSubmit={onSearch}>
             <label className="sr-only" htmlFor="seek-search-q">
@@ -318,7 +354,7 @@ export function SeekScene() {
           ) : null}
         </div>
       ) : (
-        <div>
+        <div className="seek-ask-pane">
           <p className="scene-lead">{t("memory.ask_lead")}</p>
           <form className="recall-form ask-form" onSubmit={onAsk}>
             <label className="sr-only" htmlFor="seek-ask-q">
@@ -343,6 +379,31 @@ export function SeekScene() {
               </button>
             </div>
           </form>
+          <section className="seek-recent-asks" aria-label={t("seek.recent_asks")}>
+            <h2 className="seek-recent-asks-title">{t("seek.recent_asks")}</h2>
+            {recentAsks.length === 0 ? (
+              <p className="seek-recent-asks-empty">{t("seek.recent_empty")}</p>
+            ) : (
+              <ul className="seek-recent-asks-list">
+                {recentAsks.map((item) => (
+                  <li key={item.job_id}>
+                    <button
+                      type="button"
+                      className={`seek-recent-asks-item${selectedRecentId === item.job_id ? " is-selected" : ""}`}
+                      onClick={() => void onRecentClick(item)}
+                    >
+                      <span className="seek-recent-asks-q">{item.q}</span>
+                      <span className="seek-recent-asks-meta">
+                        {item.started_at ? new Date(item.started_at).toLocaleString() : ""}
+                        {" · "}
+                        {recentStatusLabel(item.status)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
           <Msg text={askMsg.text} kind={askMsg.kind} />
           {askActive && liveAsk ? (
             <div className="dream-progress">
@@ -369,26 +430,11 @@ export function SeekScene() {
             <article className="packet-block">
               <h2>{t("memory.answer_title")}</h2>
               <MdBlock text={askAnswer.answer} />
-              {(askAnswer.sources ?? []).length ? (
-                <details>
-                  <summary>{t("memory.sources_title")}</summary>
-                  <ul className="ask-sources">
-                    {(askAnswer.sources ?? []).map((source, i) => {
-                      const id = futureSightSourceId(source);
-                      const line = JSON.stringify(source);
-                      return (
-                        <li key={i}>
-                          {id ? (
-                            <a href={`#/memory/future/${encodeHashId(id)}`}>{line}</a>
-                          ) : (
-                            <code>{line}</code>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </details>
-              ) : null}
+            </article>
+          ) : failure?.error && !askActive ? (
+            <article className="packet-block">
+              <h2>{t("memory.answer_title")}</h2>
+              <MdBlock text={failure.error || failure.message || t("memory.ask_fail")} />
             </article>
           ) : null}
         </div>
