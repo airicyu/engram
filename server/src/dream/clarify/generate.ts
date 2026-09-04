@@ -144,30 +144,49 @@ export async function landClarifyGeneratePrompts(opts: {
 
 export async function runClarifyGenerate(opts: {
   dreamRunId: string;
+  week_rollup_executed: boolean;
   agent?: ClarifyGenerateAgent;
 }): Promise<{ written_ids: string[]; pruned_ids: string[]; noop: boolean }> {
-  const { dreamRunId } = opts;
+  const { dreamRunId, week_rollup_executed } = opts;
   emitDreamEvent(dreamRunId, {
     phase: "materialize",
     event: "clarify_generate",
     message: "Clarify generate start",
   });
 
-  const candidates = await selectClarifyGenerateCandidates(dreamRunId);
   const nodeCount = (await listNodeIds()).length;
-  const report = await readReport(dreamRunId);
-  const narrative = extractNarrativeExcerpt(report);
-
-  // INDEX #35: store 無任何 node → generate no-op（不報錯）
   if (nodeCount === 0) {
     emitDreamEvent(dreamRunId, {
       phase: "materialize",
       event: "clarify_generate",
       message: "Clarify generate no-op (no nodes in store)",
-      detail: { had_narrative: !!narrative.trim() },
     });
     return { written_ids: [], pruned_ids: [], noop: true };
   }
+
+  const asking = await listAskingItems();
+  if (asking.length >= CLARIFY_ASKING_CAP) {
+    emitDreamEvent(dreamRunId, {
+      phase: "materialize",
+      event: "clarify_generate",
+      message: "Clarify generate no-op (asking at cap)",
+      detail: { asking_count: asking.length, asking_cap: CLARIFY_ASKING_CAP },
+    });
+    return { written_ids: [], pruned_ids: [], noop: true };
+  }
+
+  if (!week_rollup_executed) {
+    emitDreamEvent(dreamRunId, {
+      phase: "materialize",
+      event: "clarify_generate",
+      message: "Clarify generate no-op (no week rollup this run)",
+    });
+    return { written_ids: [], pruned_ids: [], noop: true };
+  }
+
+  const candidates = await selectClarifyGenerateCandidates(dreamRunId);
+  const report = await readReport(dreamRunId);
+  const narrative = extractNarrativeExcerpt(report);
 
   const workDir = await mkdtemp(join(config.tempDir || tmpdir(), "engram-clarify-gen-"));
   try {

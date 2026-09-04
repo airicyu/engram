@@ -109,6 +109,25 @@ describe("enforceRollupPlan", () => {
     expect(plan.targets.map((t) => t.id)).toEqual(["2026-W31-0727"]);
   });
 
+  test("empty stub without reason → no closed periods to roll up", () => {
+    const plan = enforceRollupPlan({
+      level: "week",
+      plan: { level: "week", execute: false, targets: [] },
+      meta: [
+        {
+          id: "2026-W32-0803",
+          exists: false,
+          suggested_operation: "init",
+          is_current_period: true,
+        },
+      ],
+      touchedPeriods: new Set(["2026-W32-0803"]),
+    });
+    expect(plan.execute).toBe(false);
+    expect(plan.reason).toBe("no closed periods to roll up");
+    expect(plan.reason).not.toContain("mechanical");
+  });
+
   test("revises closed existing when touched", () => {
     const plan = enforceRollupPlan({
       level: "week",

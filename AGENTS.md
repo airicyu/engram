@@ -123,6 +123,7 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
+- **規劃中：** `0.45.0` — 入夢少開 planner／收緊 generate、凍結 node 改 Identity 名片。見 `docs/roadmap/0.45.0/`（**in progress**；**無** store migrate；boot 仍 ≥0.40）
 - **已出貨：** `0.44.0` — 事件頁第三 tab「近期入夢報告」＋修近期釐清已答多行只見第一行。見 `docs/roadmap/0.44.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.40）
 - **已出貨：** `0.43.0` — dream run yaml／input 與 report 同步 TTL；尋問 recent ask（24h 側車＋列表回看）。見 `docs/roadmap/0.43.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.40）
 - **已出貨：** `0.42.0` — 近期輸入內容展示 live clarify pending（已答＋aside）＋`GET /memories/clarify/pending`。見 `docs/roadmap/0.42.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.40）

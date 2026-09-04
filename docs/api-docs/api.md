@@ -641,7 +641,7 @@ Dismiss＝true-delete asking file. Missing → **200** idempotent. Does **not** 
 
 Body: `{ "raw": "…" }`（trim 後非空；≤16KiB）. Creates pending `kind: aside`（**not** L0／STM／ledger）. Success **201** `{ "id", "queue": "pending" }`. Extract／deploy／`pending_review` **allow** writes；中途 aside **不**進本場 distill 快照.
 
-Clarify queues live under `memories/clarify/{asking,pending,history}/`. Dream pipeline ends with `clarify_distill` → `clarify_generate` before `pending_review`. Approve archives `clarify_pending_snapshot_ids` ∩ pending → `history/`（even when `empty_patches`）.
+Clarify queues live under `memories/clarify/{asking,pending,history}/`. Dream pipeline ends with `clarify_distill` then **gated** `clarify_generate`（skip when store has no nodes, asking is at cap 10, or this run did not write a week summary）before `pending_review`. Approve archives `clarify_pending_snapshot_ids` ∩ pending → `history/`（even when `empty_patches`）.
 
 ---
 
@@ -989,7 +989,7 @@ Cancel a **running** dream (kill extract agent + remove draft). Optional body `{
 | `propose_node` | Create live node under `memories/nodes/{id}/` (seed what／meta) |
 | `semantic` (`facet: what`) | Update `memories/nodes/{id}/{id}.md` |
 | `chain` (`level: day`) | Dual-track: append ledger `memories/chain/days/{YYYY-MM}/{id}.md` **and** init／revise summary `…/{id}.summary.md`. Occurrence day only; future day ids blocked at approve. Legacy without `summary` → ledger only. |
-| `chain` (`level: week`｜`month`｜`year`) | Summary-only rollup from post-extract planner／writer (not day extract). Paths: `weeks/…`、`months/…`、`years/…`. `summary` + `summary_operation` required; no ledger. |
+| `chain` (`level: week`｜`month`｜`year`) | Summary-only rollup from post-extract mechanical plan／writer (not day extract). Paths: `weeks/…`、`months/…`、`years/…`. `summary` + `summary_operation` required; no ledger. |
 | `future` | Legacy typed patch helper — upserts into `upcoming.md`／`longTerm.md` when still in window；主路徑為 file pipeline 整檔改兩區 |
 | `episodic` (confidence &lt; 0.6) | Attribution candidate |
 | `episodic` (≥ 0.6) | No-op (chronology not in prototype) |

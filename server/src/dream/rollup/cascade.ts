@@ -1,4 +1,4 @@
-/** Post-extract week／month／year rollup: planner → writer → draft file updates. */
+/** Post-extract week／month／year rollup: mechanical plan → writer → draft file updates. */
 
 import { readDay, readDaySummary } from "../../store/memories/chain";
 import {
@@ -243,7 +243,7 @@ async function runLevel(opts: {
   }
 
   const planCtx = await buildPlanContext(dreamRunId, level, candidates, today);
-  const rawPlan = await agent.plan(planCtx);
+  const rawPlan = { level, execute: false as const, targets: [] };
   const plan = enforceRollupPlan({
     level,
     plan: rawPlan,
@@ -328,7 +328,7 @@ export async function runRollupCascade(opts: {
     emitDreamEvent(dreamRunId, {
       phase: "materialize",
       event: "rollup_plan_start",
-      message: `Rollup planner ${level} (${cand.length} candidates)`,
+      message: `Rollup mechanical plan ${level} (${cand.length} candidates)`,
       detail: { level, candidates: cand },
     });
 

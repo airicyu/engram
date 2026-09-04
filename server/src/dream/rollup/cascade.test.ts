@@ -25,6 +25,12 @@ async function seedStore(base: string): Promise<void> {
     "timezone: Asia/Hong_Kong\nstore_version: 0.20.0\n",
     "utf8",
   );
+  await mkdir(join(base, "tmp"), { recursive: true });
+  await writeFile(
+    join(base, "tmp", "clock.json"),
+    JSON.stringify({ now: "2026-08-04T12:00:00+08:00" }),
+    "utf8",
+  );
 }
 
 function runCascade(storeDir: string, dayIds: string[]): {
@@ -32,9 +38,11 @@ function runCascade(storeDir: string, dayIds: string[]): {
   weekExecute: boolean;
 } {
   const script = `
+    import { loadClockFromDisk } from "./src/store/clock.ts";
     import { runRollupCascade } from "./src/dream/rollup/cascade.ts";
     import { prepareDreamDraft } from "./src/store/dreams/file-pipeline.ts";
     import { MockRollupAgent } from "./src/agent/rollup/mock.ts";
+    await loadClockFromDisk();
     const dreamRunId = "dream-test-rollup";
     await prepareDreamDraft(dreamRunId);
     const { reports } = await runRollupCascade({
@@ -76,46 +84,36 @@ describe("runRollupCascade catch-up", () => {
     expect(result.weekTargets).not.toContain("2026-W32-0803");
   });
 
-  test("planner cannot force current week when enforce runs", async () => {
+  test("cascade does not call agent.plan; still writes closed catch-up", async () => {
     const storeDir = await mkdtemp(join(tmpdir(), "engram-rollup-bad-"));
     await seedStore(storeDir);
     const script = `
+      import { loadClockFromDisk } from "./src/store/clock.ts";
       import { runRollupCascade } from "./src/dream/rollup/cascade.ts";
       import { prepareDreamDraft } from "./src/store/dreams/file-pipeline.ts";
       import { MockRollupAgent } from "./src/agent/rollup/mock.ts";
-      class BadPlanner extends MockRollupAgent {
+      await loadClockFromDisk();
+      class SpyAgent extends MockRollupAgent {
+        planCalls = 0;
         async plan(ctx) {
-          return {
-            level: ctx.level,
-            execute: true,
-            targets: ctx.candidates.map((id) => ({
-              id,
-              operation: "init",
-              reason: "force all",
-            })).concat(
-              ctx.level === "week"
-                ? [{ id: "2026-W32-0803", operation: "init", reason: "sneak current" }]
-                : [],
-            ),
-          };
+          this.planCalls += 1;
+          return super.plan(ctx);
         }
       }
-      const dreamRunId = "dream-test-bad";
+      const dreamRunId = "dream-test-no-plan";
       await prepareDreamDraft(dreamRunId);
-      try {
-        const { reports } = await runRollupCascade({
-          dreamRunId,
-          dayIds: ["2026-08-04"],
-          agent: new BadPlanner(),
-        });
-        const week = reports.find((r) => r.level === "week");
-        console.log(JSON.stringify({
-          weekTargets: (week?.targets ?? []).map((t) => t.id),
-        }));
-      } catch (e) {
-        // inventing non-candidate current week should fail validate OR be stripped before validate
-        console.log(JSON.stringify({ error: String(e), weekTargets: [] }));
-      }
+      const agent = new SpyAgent();
+      const { reports } = await runRollupCascade({
+        dreamRunId,
+        dayIds: ["2026-08-04"],
+        agent,
+      });
+      const week = reports.find((r) => r.level === "week");
+      console.log(JSON.stringify({
+        planCalls: agent.planCalls,
+        weekTargets: (week?.targets ?? []).map((t) => t.id),
+        weekReason: week?.reason ?? null,
+      }));
     `;
     const proc = spawnSync("bun", ["-e", script], {
       cwd: serverRoot,
@@ -132,10 +130,14 @@ describe("runRollupCascade catch-up", () => {
     }
     const line = proc.stdout.trim().split("\n").find((l) => l.startsWith("{"));
     if (!line) throw new Error(`no json: ${proc.stdout}`);
-    const result = JSON.parse(line) as { weekTargets: string[]; error?: string };
+    const result = JSON.parse(line) as {
+      weekTargets: string[];
+      planCalls: number;
+      weekReason?: string | null;
+    };
+    expect(result.planCalls).toBe(0);
     expect(result.weekTargets).not.toContain("2026-W32-0803");
-    if (!result.error) {
-      expect(result.weekTargets).toContain("2026-W31-0727");
-    }
+    expect(result.weekTargets).toContain("2026-W31-0727");
+    expect(JSON.stringify(result)).not.toContain("mechanical");
   });
 });

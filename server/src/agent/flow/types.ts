@@ -16,6 +16,11 @@ export type AgentJob = {
    * Not treated as writable roots.
    */
   cursorExtraAddDirs?: string[];
+  /**
+   * Claude: pass `--add-dir` store root. Default true (extract／distill／Ask).
+   * Clarify generate sets false.
+   */
+  addStoreDir?: boolean;
   exitErrorLabel?: string;
   /** Optional context for spawn／result logs (e.g. dream_run_id, job_id). */
   logMeta?: Record<string, unknown>;

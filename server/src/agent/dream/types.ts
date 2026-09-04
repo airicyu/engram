@@ -32,8 +32,8 @@ export interface DreamContext {
     /** Parsed from raw mention tokens (0.32). */
     mentions: Array<{ id: string; mode: "ref" | "create" }>;
   }>;
-  /** Live node understandings: `understanding` = whole `{id}.md` (standing understanding). */
-  l2_current: Array<{ node: string; understanding: string }>;
+  /** Live node identity cards (not whole-file understanding). */
+  l2_current: Array<{ node: string; live_rel: string; identity_excerpt: string }>;
   existing_nodes: string[];
   /**
    * Day-chain summary body for candidate occurrence days.

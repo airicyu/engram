@@ -6,7 +6,9 @@ import { draftSummary } from "../../store/dreams/draft";
 import { draftDir, reportPath } from "../../store/dreams/dream-runs";
 import type { PoolEntry } from "../../store/memories/short-term-memory";
 import { calendarDate, nowIso } from "../../store/memories/activities";
-import { readAllUnderstandings, listNodeIds } from "../../store/memories/nodes";
+import { listNodeIds, understandingPath, understandingRel } from "../../store/memories/nodes";
+import { extractIdentityExcerpt } from "./identity-excerpt";
+import { readFile } from "node:fs/promises";
 import { readDay, readDaySummary } from "../../store/memories/chain";
 import { makeRunId } from "../../store/run-id";
 import { parseMentions } from "../../store/memories/mentions";
@@ -62,7 +64,18 @@ export async function buildDreamContext(
   const summary = scopeEntries.map((e) => `- [${e.ts}] (${e.id}) ${e.raw.trim()}`).join("\n");
 
   const existing_nodes = await listNodeIds();
-  const l2_current = await readAllUnderstandings();
+  const l2_current: DreamContext["l2_current"] = [];
+  for (const id of existing_nodes) {
+    const live_rel = understandingRel(id);
+    let identity_excerpt = "";
+    try {
+      const raw = await readFile(understandingPath(id), "utf8");
+      identity_excerpt = extractIdentityExcerpt(raw);
+    } catch {
+      identity_excerpt = "";
+    }
+    l2_current.push({ node: id, live_rel, identity_excerpt });
+  }
   const today = calendarDate();
   const candidateDays = new Set<string>([today]);
   for (const e of events) candidateDays.add(calendarDate(e.ts));

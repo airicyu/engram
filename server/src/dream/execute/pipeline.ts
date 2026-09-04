@@ -378,11 +378,15 @@ export async function executeDreamPipeline(opts: {
   emitDreamEvent(dreamRunId, { phase: "materialize", event: "materialize_done", message: "Draft files finalized" });
 
   let rollupSection = "";
+  let week_rollup_executed = false;
   try {
     throwIfDreamCancelled(dreamRunId);
     const draft = await draftSummary(dreamRunId);
     const dayIds = draft?.chain_summary_days?.length ? draft.chain_summary_days : (draft?.chain_days ?? []);
     const { reports } = await runRollupCascade({ dreamRunId, dayIds, agent: createRollupAgent() });
+    week_rollup_executed = reports.some(
+      (r) => r.level === "week" && r.execute && r.targets.length > 0,
+    );
     rollupSection = formatRollupReportSection(reports);
     await finalizeDraftFromDisk(dreamRunId);
   } catch (e) {
@@ -418,7 +422,7 @@ export async function executeDreamPipeline(opts: {
     clarifyDistilledNodeIds = distill.distilled_node_ids;
     clarifyDistillNarrative = distill.narrative;
     await finalizeDraftFromDisk(dreamRunId);
-    const gen = await runClarifyGenerate({ dreamRunId });
+    const gen = await runClarifyGenerate({ dreamRunId, week_rollup_executed });
     clarifyGeneratedIds = gen.written_ids;
     await finalizeDreamReport({
       dream_run_id: dreamRunId,
@@ -530,6 +534,7 @@ async function doDreamFiles(
   logExtractContext({
     dream_run_id: dreamRunId, events: ctx.events.length, l1_chars: ctx.l1.summary.length,
     existing_nodes: ctx.existing_nodes.length, l2_nodes: ctx.l2_current.length,
+    identity_excerpt_chars: ctx.l2_current.reduce((n, row) => n + row.identity_excerpt.length, 0),
   });
   try {
     await agent.dream(ctx);

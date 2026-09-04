@@ -19,7 +19,7 @@ import { loadPrompt, renderPrompt } from "../shared/prompt-template";
 import { withTempJsonContext } from "../shared/temp-context";
 import { rollupWritePolicy } from "../shared/write-policy";
 import type { AgentInvoker } from "../flow/types";
-import { parsePlanJson, readRequiredFile, stripRollupWriterPreamble } from "./parse";
+import { readRequiredFile, stripRollupWriterPreamble } from "./parse";
 
 export { MockRollupAgent, fuseMockNarrative } from "./mock";
 export { stripRollupWriterPreamble, parsePlanJson } from "./parse";
@@ -28,45 +28,8 @@ export { stripRollupWriterPreamble, parsePlanJson } from "./parse";
 export class CliRollupAgent implements RollupAgent {
   constructor(private readonly invoker: AgentInvoker) {}
 
-  async plan(ctx: RollupPlanContext): Promise<RollupPlan> {
-    const promptPath = join(import.meta.dir, "../../../prompts/rollup-plan.md");
-    const template = await loadPrompt(promptPath);
-    return withTempJsonContext(
-      {
-        prefix: "engram-rollup-plan",
-        filename: "plan-context.json",
-        value: ctx,
-      },
-      async (workDir, ctxPath) => {
-        const resultPath = join(workDir, "plan.json");
-        const prompt = renderPrompt(template, {
-          CONTEXT_PATH: ctxPath,
-          RESULT_PATH: resultPath,
-          DREAM_RUN_ID: ctx.dream_run_id,
-          LEVEL: ctx.level,
-          TODAY: ctx.today,
-          NOW: ctx.now,
-          TIMEZONE: ctx.timezone,
-          MEMORY_LANGUAGE: memoryLanguagePromptLabel(ctx.memory_language),
-        });
-        const policy = rollupWritePolicy({
-          storeDir: config.storeDir,
-          workDir,
-        });
-        await this.invoker.run({
-          processKey: `dream:${ctx.dream_run_id}`,
-          prompt,
-          cwd: workDir,
-          writePolicy: policy,
-          requireFiles: [resultPath],
-          onPid: (pid) => setDreamJobAgentPid(pid),
-          exitErrorLabel: "rollup agent",
-          logMeta: { dream_run_id: ctx.dream_run_id },
-        });
-        const raw = await readRequiredFile(resultPath, "rollup plan");
-        return parsePlanJson(raw);
-      },
-    );
+  async plan(_ctx: RollupPlanContext): Promise<RollupPlan> {
+    throw new Error("CliRollupAgent.plan removed; rollup plan is mechanical");
   }
 
   async write(ctx: RollupWriteContext): Promise<string> {

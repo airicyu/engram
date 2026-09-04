@@ -18,6 +18,7 @@ export function logExtractContext(ctx: {
   l1_chars: number;
   existing_nodes: number;
   l2_nodes: number;
+  identity_excerpt_chars?: number;
 }): void {
   emitDreamEvent(ctx.dream_run_id, {
     phase: "extract",
@@ -28,6 +29,9 @@ export function logExtractContext(ctx: {
       l1_chars: ctx.l1_chars,
       existing_nodes: ctx.existing_nodes,
       l2_nodes: ctx.l2_nodes,
+      ...(ctx.identity_excerpt_chars != null
+        ? { identity_excerpt_chars: ctx.identity_excerpt_chars }
+        : {}),
     },
   });
 }

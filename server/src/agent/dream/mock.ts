@@ -301,8 +301,13 @@ export class MockOkRunner implements AgentRunner {
     async function touchExistingWhat(nodeId: string, peerForLink?: string | null): Promise<void> {
       const whatRel = understandingRel(nodeId);
       await copyLiveIntoDraft(ctx.dream_run_id, whatRel);
-      const prior =
-        ctx.l2_current.find((n) => n.node === nodeId)?.understanding.trim() ?? "";
+      const draftMain = draftAbs(ctx.dream_run_id, ...whatRel.split("/"));
+      let prior = "";
+      try {
+        prior = (await readFile(draftMain, "utf8")).trim();
+      } catch {
+        prior = "";
+      }
       let identity = `Node \`${nodeId}\``;
       let standingFacts = "_None_";
       if (hasStandingHeadings(prior)) {

@@ -25,7 +25,9 @@ Timezone: `{{TIMEZONE}}` · Memory language: `{{MEMORY_LANGUAGE}}` · today=`{{T
 
 **Rule:** event detail → **chain** (and future-sight when it is a near-horizon anchor). Only **settled conclusions** that change long-term cognition → **node `{id}.md`**.
 
-Frozen context `l2_current[].understanding` is the live whole-file body of each node’s main file. If it reads like a dated diary or event list, **rewrite** it this round into the standing model below — lift still-valid stable facts into Identity／Relation／Standing facts; leave episode detail to chain (write into this round’s day summary／ledger when applicable; do **not** invent day chain entries just to “move” old diary text).
+Frozen context `l2_current[]` is an **identity card**, not the live whole-file body: `node` (id), `live_rel` (`memories/nodes/{id}/{id}.md`), and a mechanical `identity_excerpt` from the first exact `## Identity` heading. An empty excerpt does **not** mean the node is missing — the id is still in `existing_nodes`／`l2_current`. Judge diary vs standing shape only after **Read** of the live file at `{{STORE_DIR}}/`+`live_rel`, or the matching draft file if you already copied it. If that full file reads like a dated diary or event list, **rewrite** it this round into the standing model below — lift still-valid stable facts into Identity／Relation／Standing facts; leave episode detail to chain (write into this round’s day summary／ledger when applicable; do **not** invent day chain entries just to “move” old diary text).
+
+When this round’s events／mentions touch an id, or you will rewrite the main file / write Relation／wikilinks from current understanding → you **must Read** live or draft `{id}.md`. Do **not** whole-file rewrite a node you have not Read. Draft writes remain `{{DRAFT_DIR}}/memories/nodes/{id}/{id}.md`.
 
 ## Standing understanding skeleton (`memories/nodes/{id}/{id}.md`)
 

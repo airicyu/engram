@@ -147,6 +147,7 @@ export class CliClarifyGenerateAgent implements ClarifyGenerateAgent {
           onPid: (pid) => setDreamJobAgentPid(pid),
           exitErrorLabel: "clarify generate agent",
           logMeta: { dream_run_id: ctx.dream_run_id },
+          addStoreDir: false,
         });
         const doc = (await readRequiredJson(resultPath, "clarify generate")) as {
           prompts?: unknown;

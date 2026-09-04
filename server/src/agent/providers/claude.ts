@@ -61,28 +61,29 @@ function logResult(
   });
 }
 
+/** Build Claude `-p` argv from write-policy (exported for unit tests). */
+export function buildClaudeCmd(job: AgentJob, bin = config.claudeBin): string[] {
+  const policy = job.writePolicy;
+  const allowedTools = claudeAllowedToolsForWrites(policy);
+  const disallowedTools = claudeDisallowedTools(policy);
+
+  const cmd = [bin, "-p", job.prompt, "--output-format", "text"];
+  if (job.addStoreDir !== false) {
+    cmd.push("--add-dir", policy.storeDir);
+  }
+  for (const root of policy.writableRoots) {
+    if (root !== policy.storeDir) {
+      cmd.push("--add-dir", root);
+    }
+  }
+  cmd.push("--allowedTools", allowedTools, "--disallowedTools", disallowedTools);
+  return cmd;
+}
+
 /** Spawn Claude Code with write-policy scoped Edit tools (no Bash). */
 export class ClaudeInvoker implements AgentInvoker {
   async run(job: AgentJob): Promise<void> {
-    const policy = job.writePolicy;
-    const allowedTools = claudeAllowedToolsForWrites(policy);
-    const disallowedTools = claudeDisallowedTools(policy);
-
-    const cmd = [
-      config.claudeBin,
-      "-p",
-      job.prompt,
-      "--output-format",
-      "text",
-      "--add-dir",
-      policy.storeDir,
-    ];
-    for (const root of policy.writableRoots) {
-      if (root !== policy.storeDir) {
-        cmd.push("--add-dir", root);
-      }
-    }
-    cmd.push("--allowedTools", allowedTools, "--disallowedTools", disallowedTools);
+    const cmd = buildClaudeCmd(job);
 
     logSpawn(job, cmd);
 
