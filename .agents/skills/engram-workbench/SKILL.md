@@ -81,6 +81,8 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | `POST /dreams/retry` | `{ reason }` required | `202` + `job_id` — same scope + review feedback |
 | `POST /dreams/amend` | `{ instruction }` required | `202` + `job_id`（＝pending id）— same draft；失敗仍可審 |
 | `GET /dreams/pending` | none | always `200`; `present: false` if none；含 `node_score_involvements` |
+| `GET /dreams/reports` | none | `{ items: [] }`；僅 committed＋檔仍在；無全文 |
+| `GET /dreams/reports/{id}` | path id | `present: true`＋`report`；否則 200 `present: false` |
 | `PATCH /dreams/pending/node-score-involvements` | `{ id, category }` | 2a 改涉入 category（pending 時）；非法 category → 400；未知 id → 404 |
 | `GET /dreams/events` | none | recent dream job log events（debug） |
 | `POST /dreams/approve` | body optional | committed paths + cleared_scope；非 empty_patches 時結算 node score |
@@ -111,6 +113,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 ./scripts/engram-api.sh attachment-housekeep
 ./scripts/engram-api.sh dream
 ./scripts/engram-api.sh pending
+./scripts/engram-api.sh reports
 ./scripts/engram-api.sh approve
 ./scripts/engram-api.sh discard
 ./scripts/engram-api.sh dream-cancel
@@ -140,7 +143,7 @@ If connection refused → tell the user to run `cd server && bun run start` (and
 | "清 tmp 上傳" | `POST /attachments/housekeep` |
 | "整理記憶"／extract | `POST /dreams/run`；poll `/status`：預設自動 approve → `dream_status=ok`；若 `dream_auto_approve=false` → `pending_review`。失敗見 `dream_job.status=failed` |
 | "空池還能入夢？" | 可：closed week／month／year catch-up → rollup-only 202；否則 `409 nothing_to_dream` |
-| "看看夢報告" | `GET /dreams/pending` |
+| "看看夢報告" | `GET /dreams/pending`（待審）或 `GET /dreams/reports`／`/{id}`（已批准、TTL 前） |
 | "批准"／寫入長期 | `POST /dreams/approve` |
 | "取消入夢" | `POST /dreams/cancel` (running only) |
 | "搜尋記憶" | `GET /memories/search?q=…&scope=…`（預設含 `future`） |

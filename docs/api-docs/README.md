@@ -23,6 +23,8 @@ curl -s -X POST http://localhost:8787/attachments/uploads -F 'file=@photo.png'
 curl -s -X POST http://localhost:8787/dreams/run
 # poll /status until dream_status=pending_review
 curl -s http://localhost:8787/dreams/pending
+curl -s http://localhost:8787/dreams/reports
+curl -s http://localhost:8787/dreams/reports/dream-run-id
 curl -s -X POST http://localhost:8787/dreams/approve
 curl -s 'http://localhost:8787/memories/short-term-memory'
 curl -s 'http://localhost:8787/memories/search?q=keyword&scope=nodes,chain'
@@ -71,6 +73,8 @@ http://localhost:${PORT:-8787}
 
 No authentication in the prototype. Timestamps use effective timezone (workspace yaml → `ENGRAM_TZ` → `Asia/Hong_Kong`). Memory write language: workspace → `ENGRAM_MEMORY_LANGUAGE` → `en`.
 
+**CORS:** browser Origins on `http(s)://localhost` / `127.0.0.1` / `[::1]` **any port** are reflected (`Access-Control-Allow-Origin`). Other Origins get no CORS headers. Preflight: `OPTIONS` → `204`.
+
 ## Endpoints
 
 | Method | Path | Purpose |
@@ -84,6 +88,8 @@ No authentication in the prototype. Timestamps use effective timezone (workspace
 | `POST` | `/attachments/housekeep` | Clean expired tmp upload dirs |
 | `POST` | `/dreams/run` | Extract→draft→pending（async 202）；空 pool 且有 closed higher catch-up → **rollup-only** 202；空且無事可做 → **409** `nothing_to_dream`；已有 pending → **409** `pending_review` |
 | `GET` | `/dreams/pending` | Active pending report + patches (`present: false` if none) |
+| `GET` | `/dreams/reports` | Committed reports still on disk (`items[]`; empty 200) |
+| `GET` | `/dreams/reports/{id}` | One committed report (`present: false` if gone) |
 | `PATCH` | `/dreams/pending/node-score-involvements` | Edit pending node-score involvement category |
 | `GET` | `/dreams/events` | Recent dream job log events (debug) |
 | `POST` | `/dreams/approve` | `commitDraft` → L2, clear scope S |

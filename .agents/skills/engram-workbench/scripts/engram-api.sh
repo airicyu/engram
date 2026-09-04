@@ -20,6 +20,8 @@ Commands:
   dream-amend <instruction> POST /dreams/amend (same run_id + instruction)
   dream-cancel        POST /dreams/cancel (running job only)
   pending             GET /dreams/pending
+  reports             GET /dreams/reports
+  report <id>         GET /dreams/reports/{id}
   pending-involvement <id> <category> PATCH /dreams/pending/node-score-involvements
   dream-events        GET /dreams/events
   approve             POST /dreams/approve
@@ -103,6 +105,13 @@ case "$cmd" in
     ;;
   pending)
     curl -sS "$BASE/dreams/pending"
+    ;;
+  reports)
+    curl -sS "$BASE/dreams/reports"
+    ;;
+  report)
+    id="${1:?usage: engram-api.sh report <dream_run_id>}"
+    curl -sS "$BASE/dreams/reports/$(enc "$id")"
     ;;
   pending-involvement)
     id="${1:?usage: engram-api.sh pending-involvement <id> <category>}"

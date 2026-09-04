@@ -8,7 +8,8 @@ export type MemoryHash =
   | { mode: "future"; id?: string };
 
 export type HashRoute =
-  | { scene: Exclude<SceneId, "memory"> }
+  | { scene: Exclude<SceneId, "memory" | "dream_reports"> }
+  | { scene: "dream_reports"; dream_run_id?: string }
   | { scene: "memory"; memory: MemoryHash };
 
 const SCENES = new Set<SceneId>([
@@ -52,10 +53,15 @@ export function parseHash(hash: string): HashRoute {
   if (parts.length === 0) return { scene: "activities" };
 
   const head = parts[0]!;
+  if (head === "dream-reports") {
+    const id = parts[1] ? decodeHashId(parts[1]) : undefined;
+    if (id) return { scene: "dream_reports", dream_run_id: id };
+    return { scene: "dream_reports" };
+  }
   if (!SCENES.has(head as SceneId)) return { scene: "activities" };
 
   if (head !== "memory") {
-    return { scene: head as Exclude<SceneId, "memory"> };
+    return { scene: head as Exclude<SceneId, "memory" | "dream_reports"> };
   }
 
   // #/memory
@@ -103,6 +109,12 @@ export function parseHash(hash: string): HashRoute {
 
 /** Serialize route to a hash string including leading `#`. */
 export function serializeHash(route: HashRoute): string {
+  if (route.scene === "dream_reports") {
+    if (route.dream_run_id) {
+      return `#/dream-reports/${encodeHashId(route.dream_run_id)}`;
+    }
+    return `#/dream-reports`;
+  }
   if (route.scene !== "memory") {
     return `#/${route.scene}`;
   }

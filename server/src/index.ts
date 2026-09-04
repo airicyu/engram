@@ -22,6 +22,7 @@ import {
   handleDreamCancel,
 } from "./api/dream/review";
 import { handlePatchNodeScoreInvolvements } from "./api/dream/involvements";
+import { handleDreamReportsList, handleDreamReportGet } from "./api/dream/reports";
 import { handleDreamEvents } from "./api/dream/events";
 import { handleShortTermMemory } from "./api/memory/short-term-memory";
 import { handleMemorySearchRequest } from "./api/seek/search";
@@ -97,6 +98,8 @@ try {
             "POST /dreams/amend",
             "POST /dreams/cancel",
             "GET /dreams/pending",
+            "GET /dreams/reports",
+            "GET /dreams/reports/:id",
             "PATCH /dreams/pending/node-score-involvements",
             "GET /dreams/events",
             "POST /dreams/approve",
@@ -235,6 +238,10 @@ try {
 
     "/dreams/pending": {
       GET: withRequestLog(() => handleDreamPending()),
+    },
+
+    "/dreams/reports": {
+      GET: withRequestLog(() => handleDreamReportsList()),
     },
 
     "/dreams/pending/node-score-involvements": {
@@ -418,6 +425,12 @@ try {
 
   fetch: withRequestLog(async (req) => {
     const url = new URL(req.url);
+
+    const dreamReportMatch = url.pathname.match(/^\/dreams\/reports\/([^/]+)$/);
+    if (dreamReportMatch && req.method === "GET") {
+      const id = decodeURIComponent(dreamReportMatch[1]!);
+      return handleDreamReportGet(id);
+    }
 
     const weekMatch = url.pathname.match(/^\/memories\/chain\/weeks\/([^/]+)$/);
     if (weekMatch && req.method === "GET") {

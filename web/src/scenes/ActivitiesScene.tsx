@@ -8,8 +8,9 @@ import {
   type MentionComposerHandle,
 } from "../components/MentionComposer";
 import { ConsolidateScene } from "./ConsolidateScene";
+import { DreamReportsPanel } from "./DreamReportsPanel";
 
-export type EventsFeed = "recent" | "consolidate";
+export type EventsFeed = "recent" | "consolidate" | "dream_reports";
 
 function EventsTabIcon({ feed }: { feed: EventsFeed }) {
   const common = {
@@ -33,6 +34,16 @@ function EventsTabIcon({ feed }: { feed: EventsFeed }) {
         <circle cx="4.2" cy="6" r="1.15" fill="currentColor" stroke="none" />
         <circle cx="4.2" cy="12" r="1.15" fill="currentColor" stroke="none" />
         <circle cx="4.2" cy="18" r="1.15" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  if (feed === "dream_reports") {
+    return (
+      <svg {...common}>
+        <path d="M7 3.5h7.5L19 8v12.5H7Z" />
+        <path d="M14.5 3.5V8H19" />
+        <path d="M9.5 12h7" />
+        <path d="M9.5 15.5h7" />
       </svg>
     );
   }
@@ -73,9 +84,13 @@ function MediaIcon() {
 export function ActivitiesScene({
   feed,
   onFeedChange,
+  dreamReportId,
+  onDreamReportIdChange,
 }: {
   feed: EventsFeed;
   onFeedChange: (feed: EventsFeed) => void;
+  dreamReportId?: string;
+  onDreamReportIdChange?: (id: string | undefined, mode: "push" | "replace") => void;
 }) {
   const { t } = useI18n();
   const { refreshStatus } = useStatus();
@@ -412,6 +427,17 @@ export function ActivitiesScene({
           <EventsTabIcon feed="consolidate" />
           {t("events.tab_consolidate")}
         </button>
+        <button
+          type="button"
+          role="tab"
+          id="events-tab-dream-reports"
+          className={`events-tab${feed === "dream_reports" ? " is-active" : ""}`}
+          aria-selected={feed === "dream_reports"}
+          onClick={() => onFeedChange("dream_reports")}
+        >
+          <EventsTabIcon feed="dream_reports" />
+          {t("events.tab_dream_reports")}
+        </button>
       </div>
 
       {feed === "recent" ? (
@@ -441,7 +467,7 @@ export function ActivitiesScene({
                       <time dateTime={e.ts}>{e.ts}</time>
                       <span className="stm-entry-id">{e.id}</span>
                     </header>
-                    <MdBlock text={e.raw} />
+                    <MdBlock text={e.raw} preserveNewlines />
                   </article>
                 ))}
               </div>
@@ -470,16 +496,21 @@ export function ActivitiesScene({
                     </header>
                     {item.kind === "prompt" && item.question ? (
                       <div className="clarify-pending-question">
-                        <MdBlock text={item.question} />
+                        <MdBlock text={item.question} preserveNewlines />
                       </div>
                     ) : null}
-                    <MdBlock text={item.answer} />
+                    <MdBlock text={item.answer} preserveNewlines />
                   </article>
                 ))}
               </div>
             )}
           </section>
         </div>
+      ) : feed === "dream_reports" ? (
+        <DreamReportsPanel
+          selectedId={dreamReportId}
+          onSelectedIdChange={onDreamReportIdChange ?? (() => {})}
+        />
       ) : (
         <div className="events-consolidate" role="tabpanel">
           <ConsolidateScene />

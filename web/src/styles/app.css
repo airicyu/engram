@@ -703,6 +703,85 @@ body {
   flex-direction: column;
 }
 
+.events-dream-reports {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: min(28rem, calc(100dvh - 12rem));
+}
+
+.dream-reports-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  max-height: min(40vh, 18rem);
+  overflow-y: auto;
+}
+
+.dream-reports-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  color: inherit;
+}
+
+.dream-reports-item:hover,
+.dream-reports-item.is-selected {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.dream-reports-item-time {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.dream-reports-item-preview {
+  max-width: 100%;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dream-reports-item-id {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.72rem;
+  opacity: 0.6;
+}
+
+.dream-reports-item-flag {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.dream-report-read {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.dream-report-read-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  font-size: 0.8rem;
+  opacity: 0.72;
+  margin-bottom: 0.4rem;
+}
+
 .consolidate-dream-row {
   justify-content: flex-end;
   margin-top: auto;
@@ -992,6 +1071,16 @@ body {
 
 .stm-entry .md-block {
   margin: 0;
+  height: auto;
+  max-height: 28rem;
+  overflow: auto;
+  white-space: normal;
+}
+
+.stm-entry .md-block p,
+.stm-entry .md-block li {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .md-block {

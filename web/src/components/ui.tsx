@@ -44,17 +44,21 @@ export function MdBlock({
   empty,
   className = "",
   knownNodeIds,
+  preserveNewlines,
 }: {
   text: string;
   empty?: boolean;
   className?: string;
   knownNodeIds?: ReadonlySet<string> | readonly string[];
+  /** Keep single-newline hard breaks (clarify／STM cards). */
+  preserveNewlines?: boolean;
 }) {
   const raw = text ?? "";
   const isEmpty = Boolean(empty) || !raw.trim();
+  const withBreaks = preserveNewlines && !isEmpty ? raw.replace(/([^\n])\n(?!\n)/g, "$1  \n") : raw;
   const body = isEmpty
     ? raw
-    : preprocessAttachmentEmbeds(preprocessNodeWikilinks(raw, knownNodeIds));
+    : preprocessAttachmentEmbeds(preprocessNodeWikilinks(withBreaks, knownNodeIds));
   return (
     <div className={`md-block ${isEmpty ? "is-empty" : ""} ${className}`.trim()}>
       {isEmpty ? (

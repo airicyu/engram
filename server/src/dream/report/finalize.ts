@@ -38,15 +38,25 @@ const REQUIRED_HEADINGS = [
   "### Paths",
 ] as const;
 
+const NARRATIVE_BODY_RE =
+  /## Narrative\s*\n([\s\S]*?)(?=\n## Node score involvements\b|\n## Clarify distill\b|\n## Structure notes\b|\n## Appendix — pending deploy\b|$)/;
+
+/**
+ * Body of `## Narrative` up to the next server-owned section.
+ * Empty string when the heading is missing (preview uses this; finalize falls back).
+ */
+export function extractNarrativeBody(md: string): string {
+  const m = md.match(NARRATIVE_BODY_RE);
+  return m ? m[1].trim() : "";
+}
+
 /**
  * Extract narrative block between ## Narrative and the next server-owned section.
  * Truncates at involvements, Clarify distill, Structure notes, or Appendix.
  */
 function extractNarrative(md: string): string {
-  const m = md.match(
-    /## Narrative\s*\n([\s\S]*?)(?=\n## Node score involvements\b|\n## Clarify distill\b|\n## Structure notes\b|\n## Appendix — pending deploy\b|$)/,
-  );
-  if (m) return m[1].trim();
+  const body = extractNarrativeBody(md);
+  if (body) return body;
   // Fallback: build minimal narrative skeleton
   return [
     "### Timeline",

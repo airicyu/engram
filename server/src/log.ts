@@ -1,6 +1,7 @@
 /** Minimal structured console logging for the Engram API server. */
 
 import { config } from "./config";
+import { applyCors, corsPreflight } from "./cors";
 
 function ts(): string {
   return new Date().toISOString();
@@ -59,7 +60,7 @@ export function logError(msg: string, err?: unknown, extra?: Record<string, unkn
   }
 }
 
-/** Wrap a route handler: log method, path, status, duration. */
+/** Wrap a route handler: CORS (localhost any port), log method/path/status/duration. */
 export function withRequestLog(
   handler: (req: Request) => Response | Promise<Response>,
 ): (req: Request) => Promise<Response> {
@@ -68,7 +69,13 @@ export function withRequestLog(
     const url = new URL(req.url);
     const path = url.pathname + url.search;
     try {
-      const res = await handler(req);
+      if (req.method === "OPTIONS") {
+        const res = corsPreflight(req);
+        const ms = Math.round(performance.now() - start);
+        logInfo(`${req.method} ${path} → ${res.status} ${ms}ms`);
+        return res;
+      }
+      const res = applyCors(req, await handler(req));
       const ms = Math.round(performance.now() - start);
       logInfo(`${req.method} ${path} → ${res.status} ${ms}ms`);
       return res;

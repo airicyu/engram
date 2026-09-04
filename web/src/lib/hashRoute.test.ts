@@ -18,6 +18,18 @@ describe("parseHash", () => {
     expect(parseHash("#/seek")).toEqual({ scene: "seek" });
   });
 
+  test("#/dream-reports and id (extra segments ignored)", () => {
+    expect(parseHash("#/dream-reports")).toEqual({ scene: "dream_reports" });
+    expect(parseHash("#/dream-reports/dream-abc")).toEqual({
+      scene: "dream_reports",
+      dream_run_id: "dream-abc",
+    });
+    expect(parseHash("#/dream-reports/dream-abc/extra")).toEqual({
+      scene: "dream_reports",
+      dream_run_id: "dream-abc",
+    });
+  });
+
   test("#/memory → chain mode", () => {
     expect(parseHash("#/memory")).toEqual({
       scene: "memory",
@@ -72,6 +84,10 @@ describe("parseHash", () => {
 describe("serializeHash", () => {
   test("round-trip scenes", () => {
     expect(serializeHash({ scene: "activities" })).toBe("#/activities");
+    expect(serializeHash({ scene: "dream_reports" })).toBe("#/dream-reports");
+    expect(
+      serializeHash({ scene: "dream_reports", dream_run_id: "dream-1" }),
+    ).toBe("#/dream-reports/dream-1");
     expect(
       serializeHash({
         scene: "memory",

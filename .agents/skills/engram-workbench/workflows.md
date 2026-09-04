@@ -14,6 +14,7 @@
 2. `POST /activities` with `{ "raw": "…" }` (repeat as needed)
 3. `POST /dreams/run` → 202; poll `/status` until `dream_status=ok`（預設 `dream_auto_approve`）or `pending_review`（已關自動 approve）or `dream_job.status=failed`
 4. If still pending：`GET /dreams/pending` — read report; check timeline / new nodes
+5. After approve：`GET /dreams/reports`／`GET /dreams/reports/{id}` — committed reports until TTL
 5. If wrong direction → `POST /dreams/retry` with `{ reason }` (same frozen scope), or `POST /dreams/amend` with `{ instruction }` (same `dream_run_id`), or `POST /dreams/discard`, or `POST /dreams/cancel` if still running. Do **not** call `/dreams/run` while pending.
 6. If pending and OK → `POST /dreams/approve`（自動 approve 成功時可跳過）
 7. `GET /memories/search?q=…` — verify hits（預設含 future-sight）

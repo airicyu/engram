@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
-import { ActivitiesScene } from "./scenes/ActivitiesScene";
+import { ActivitiesScene, type EventsFeed } from "./scenes/ActivitiesScene";
 import { ClarifyScene } from "./scenes/ClarifyScene";
 import { SeekScene } from "./scenes/SeekScene";
 import { MemoryScene } from "./scenes/MemoryScene";
@@ -17,11 +17,26 @@ function routeFromLocation() {
   return parseHash(location.hash);
 }
 
+function feedFromScene(scene: SceneId): EventsFeed {
+  if (scene === "consolidate") return "consolidate";
+  if (scene === "dream_reports") return "dream_reports";
+  return "recent";
+}
+
+function sceneFromFeed(feed: EventsFeed): SceneId {
+  if (feed === "consolidate") return "consolidate";
+  if (feed === "dream_reports") return "dream_reports";
+  return "activities";
+}
+
 export function App() {
   const initial = routeFromLocation();
   const [scene, setScene] = useState<SceneId>(initial.scene);
   const [memoryRoute, setMemoryRoute] = useState<MemoryHash>(
     initial.scene === "memory" ? initial.memory : { mode: "chain" },
+  );
+  const [dreamReportId, setDreamReportId] = useState<string | undefined>(
+    initial.scene === "dream_reports" ? initial.dream_run_id : undefined,
   );
 
   useEffect(() => {
@@ -32,6 +47,9 @@ export function App() {
         setMemoryRoute((prev) =>
           memoryHashEqual(prev, route.memory) ? prev : route.memory,
         );
+      }
+      if (route.scene === "dream_reports") {
+        setDreamReportId(route.dream_run_id);
       }
     };
     window.addEventListener("popstate", syncFromLocation);
@@ -48,9 +66,20 @@ export function App() {
       const mem: MemoryHash = { mode: "chain" };
       setMemoryRoute(mem);
       writeHash(serializeHash({ scene: "memory", memory: mem }), "push");
+    } else if (next === "dream_reports") {
+      writeHash(serializeHash({ scene: "dream_reports" }), "push");
+      setDreamReportId(undefined);
     } else {
       writeHash(serializeHash({ scene: next }), "push");
     }
+  }, []);
+
+  const onDreamReportIdChange = useCallback((id: string | undefined, mode: "push" | "replace") => {
+    setDreamReportId(id);
+    writeHash(
+      serializeHash(id ? { scene: "dream_reports", dream_run_id: id } : { scene: "dream_reports" }),
+      mode,
+    );
   }, []);
 
   const onMemoryRouteChange = useCallback(
@@ -61,7 +90,8 @@ export function App() {
     [],
   );
 
-  const eventsOpen = scene === "activities" || scene === "consolidate";
+  const eventsOpen =
+    scene === "activities" || scene === "consolidate" || scene === "dream_reports";
 
   return (
     <>
@@ -73,10 +103,10 @@ export function App() {
         >
           {eventsOpen ? (
             <ActivitiesScene
-              feed={scene === "consolidate" ? "consolidate" : "recent"}
-              onFeedChange={(feed) =>
-                onScene(feed === "consolidate" ? "consolidate" : "activities")
-              }
+              feed={feedFromScene(scene)}
+              onFeedChange={(feed) => onScene(sceneFromFeed(feed))}
+              dreamReportId={dreamReportId}
+              onDreamReportIdChange={onDreamReportIdChange}
             />
           ) : null}
           {scene === "clarify" ? <ClarifyScene /> : null}

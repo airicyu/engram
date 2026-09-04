@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.44.0 — 事件頁近期入夢報告；釐清已答多行可見（2026-08-31）
+
+事件頁第三 tab 只讀尚未 TTL 刪除的 committed dream report。新增 `GET /dreams/reports` 與 `GET /dreams/reports/{id}`。近期輸入區釐清已答多行全文可見。沉澱 tab 與 cleanup **不變**。**無** store migrate；boot 仍 ≥0.40。見 `docs/roadmap/0.44.0/`。
+
+### Added
+
+- `GET /dreams/reports`：committed＋檔仍在；空 200 `{ items: [] }`；`narrative_preview` 無全文
+- `GET /dreams/reports/{id}`：成功 `present: true`＋`report`；否則 200 `present: false`
+- 工作台 `#/dream-reports`／`#/dream-reports/{id}`；事件第三 tab「近期入夢報告」上下主從唯讀
+
+### Changed
+
+- 近期輸入區（2）釐清已答（及區（1）STM）保留硬換行與自動折行，不再只露第一行
+
+### Non-goals
+
+- 改 auto-approve／TTL／pending、列出 discarded、本 tab 審核按鈕、store migrate／抬 boot
+
+---
 ## 0.43.0 — Dream run 與 report 同步 TTL；尋問 recent ask（2026-08-23）
 
 Staging 達齡刪 report／events 時一併刪同 id 的 `runs/{id}.yaml` 與 `{id}.input.json`。尋問終態寫入 `dreams/ask-history`（預設 24h、最多 50 筆），`GET /memories/ask/recent` 供列表回看，不重跑 agent。**無** store migrate；boot 仍 ≥0.40。見 `docs/roadmap/0.43.0/`。

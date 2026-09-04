@@ -2,6 +2,8 @@
 
 Base URL: `http://localhost:8787` (override with `PORT`).
 
+**CORS (browser):** Origins matching `http(s)://localhost|127.0.0.1|[::1]` with **any port** are allowed (reflected `Access-Control-Allow-Origin`). Non-local Origins are unchanged (no ACAO). `OPTIONS` preflight → `204`.
+
 All timestamps and calendar dates use the **effective** IANA timezone: `{ENGRAM_STORE_DIR}/engram.workspace.yaml` `timezone` if set, else `ENGRAM_TZ`, else **`Asia/Hong_Kong`**.
 
 **Memory write language** (`memory_language`): workspace yaml → `ENGRAM_MEMORY_LANGUAGE` → **`en`**. Allowed values only: `zh-Hant`｜`zh-Hans`｜`en`. Controls language of **new** dream／rollup／ask prose (not L0 `raw`, not workbench UI i18n).  
@@ -36,6 +38,8 @@ Service discovery.
     "POST /attachments/housekeep",
     "POST /dreams/run",
     "GET /dreams/pending",
+    "GET /dreams/reports",
+    "GET /dreams/reports/:id",
     "PATCH /dreams/pending/node-score-involvements",
     "GET /dreams/events",
     "POST /dreams/approve",
@@ -528,6 +532,43 @@ Node standing understanding path (0.28+): `memories/nodes/{id}/{id}.md`（API fi
 
 ---
 
+## `GET /dreams/reports`
+
+List **committed** dream reports whose markdown file still exists (TTL not yet deleted). Always **200**. Empty → `{ "items": [] }` (not 404). No query／pagination; extra query ignored. Extract／deploy／`pending_review` **allow** GET (never `409 dream_locked`). Newest `committed_at` first (fallback `created_at`; tie → `id` `localeCompare` ascending).
+
+Does **not** include `pending`／`discarded`／`superseded`, orphan markdown without yaml, or committed yaml whose report file is gone. `l1_clear_pending: true` **is** included.
+
+Each item: `dream_run_id`, `created_at`, `committed_at`, `patch_count`, `l1_clear_pending`, `narrative_preview` (flattened `## Narrative` body, max 80 UTF-16 units + `…`; empty → `null`). **No** full `report`, draft paths, or involvements array.
+
+```json
+{
+  "items": [
+    {
+      "dream_run_id": "dream-…",
+      "created_at": "…",
+      "committed_at": "…",
+      "patch_count": 2,
+      "l1_clear_pending": false,
+      "narrative_preview": "…"
+    }
+  ]
+}
+```
+
+Workbench: `#/dream-reports`／`#/dream-reports/{id}`.
+
+---
+
+## `GET /dreams/reports/{id}`
+
+Always **200** for a syntactically valid id. Committed **and** file present → `{ "present": true, "dream_run_id", "created_at", "committed_at", "patch_count", "l1_clear_pending", "report" }` (`report` = full markdown). Otherwise `{ "present": false }` (including pending／discarded／unknown／missing file). **Not** 404.
+
+Illegal id (empty, path separators) → **400** `invalid_dream_run_id` (same style as other `:id` routes).
+
+Pending reports remain on `GET /dreams/pending` only.
+
+---
+
 ## `GET /memories/clarify/asking`
 
 List open follow-ups（`asking/` only）, oldest → newest by `created_at`. Empty → `{ "items": [] }`（not 404）.
@@ -971,6 +1012,8 @@ GET  /dreams/pending  (read report)
      ↓
 POST /dreams/approve   OR   POST /dreams/discard   OR   POST /dreams/retry   OR   POST /dreams/amend
      OR   POST /dreams/cancel (while running)
+     ↓
+GET  /dreams/reports  →  GET /dreams/reports/{id}  (committed reports until TTL)
      ↓
 GET  /memories/search?q=…&scope=l1,nodes,chain,future
 GET  /memories/chain  →  GET /memories/chain/{day_id}

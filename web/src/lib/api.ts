@@ -148,6 +148,27 @@ export type ClarifyAskingItem = {
   question: string;
 };
 
+export type DreamReportListItem = {
+  dream_run_id: string;
+  created_at: string;
+  committed_at: string;
+  patch_count: number;
+  l1_clear_pending: boolean;
+  narrative_preview: string | null;
+};
+
+export type DreamReportDetail = {
+  present: boolean;
+  dream_run_id?: string;
+  created_at?: string;
+  committed_at?: string;
+  patch_count?: number;
+  l1_clear_pending?: boolean;
+  report?: string;
+  error?: string;
+  message?: string;
+};
+
 export type ClarifyPendingItem = {
   id: string;
   kind: "prompt" | "aside" | string;
@@ -196,6 +217,13 @@ export const engramApi = {
         method: "POST",
       }),
     pending: (options?: ApiOptions) => api<Pending>("/dreams/pending", options),
+    reports: (options?: ApiOptions) =>
+      api<{ items?: DreamReportListItem[]; error?: string; message?: string }>(
+        "/dreams/reports",
+        options,
+      ),
+    report: (id: string, options?: ApiOptions) =>
+      api<DreamReportDetail>(`/dreams/reports/${encoded(id)}`, options),
     approve: (options?: ApiOptions) =>
       api<Record<string, unknown> & { message?: string; error?: string }>("/dreams/approve", {
         ...options,

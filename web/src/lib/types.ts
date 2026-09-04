@@ -1,4 +1,10 @@
-export type SceneId = "activities" | "consolidate" | "clarify" | "seek" | "memory";
+export type SceneId =
+  | "activities"
+  | "consolidate"
+  | "dream_reports"
+  | "clarify"
+  | "seek"
+  | "memory";
 
 export type Status = {
   store_dir?: string;

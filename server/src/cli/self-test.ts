@@ -327,6 +327,24 @@ async function main() {
       logText.includes(approvedRunId) || logText.includes(`dream ${approvedRunId}`),
       `git commit mentions dream_run_id; log=${logText}`,
     );
+
+    const reportsList = await json("GET", "/dreams/reports");
+    assert(reportsList.status === 200, "GET /dreams/reports 200");
+    assert(Array.isArray(reportsList.data.items), "reports items array");
+    const reportIds = (reportsList.data.items as Array<{ dream_run_id?: string }>).map(
+      (i) => i.dream_run_id,
+    );
+    assert(reportIds.includes(approvedRunId), "approved run in committed reports list");
+    const reportRow = (reportsList.data.items as Array<Record<string, unknown>>).find(
+      (i) => i.dream_run_id === approvedRunId,
+    );
+    assert(reportRow && !("report" in reportRow), "list has no full report");
+    assert(typeof reportRow.narrative_preview === "string" || reportRow.narrative_preview === null, "preview field");
+    const reportOne = await json("GET", `/dreams/reports/${approvedRunId}`);
+    assert(reportOne.status === 200 && reportOne.data.present === true, "GET report present");
+    assert(typeof reportOne.data.report === "string" && reportOne.data.report.length > 0, "report markdown");
+    const reportMissing = await json("GET", "/dreams/reports/dream-does-not-exist");
+    assert(reportMissing.status === 200 && reportMissing.data.present === false, "missing report present false");
     const dreamsTracked = Bun.spawnSync(["git", "-C", TEST_HOME, "ls-files", "dreams"]);
     assert(
       dreamsTracked.exitCode === 0 && dreamsTracked.stdout.toString().trim() === "",

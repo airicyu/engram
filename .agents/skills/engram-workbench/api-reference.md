@@ -15,7 +15,7 @@ Canonical spec: [../../../docs/api-docs/api.md](../../../docs/api-docs/api.md)
 ./scripts/engram-api.sh <command> [args]
 ```
 
-Commands: `status` | `capture` | `attachment-upload` | `attachment-delete-tmp` | `attachment-file` | `attachment-housekeep` | `dream` | `dream-retry` | `dream-amend` | `dream-cancel` | `pending` | `pending-involvement` | `dream-events` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `clarify-asking` | `clarify-pending` | `clarify-submit` | `clarify-dismiss` | `clarify-aside` | `chain` | `chain-detail` | `nodes` | `node` | `clock` | `clock-set` | `clock-clear` | `root`
+Commands: `status` | `capture` | `attachment-upload` | `attachment-delete-tmp` | `attachment-file` | `attachment-housekeep` | `dream` | `dream-retry` | `dream-amend` | `dream-cancel` | `pending` | `reports` | `report` | `pending-involvement` | `dream-events` | `approve` | `discard` | `memory-l1` | `memory-search` | `memory-ask` | `memory-ask-get` | `memory-ask-cancel` | `future-sight` | `clarify-asking` | `clarify-pending` | `clarify-submit` | `clarify-dismiss` | `clarify-aside` | `chain` | `chain-detail` | `nodes` | `node` | `clock` | `clock-set` | `clock-clear` | `root`
 
 `memory-l1` = `GET /memories/short-term-memory`（產品語意＝short-term；wire 仍用 `l1`／`l1_empty`）。
 
@@ -36,6 +36,8 @@ curl -s -X POST "$ENGRAM_URL/dreams/run"
 # 202 job_id | 409 pending_review | 409 nothing_to_dream | rollup-only 202 when pool empty + catch-up
 # poll until dream_status=ok (default auto-approve) or pending_review
 curl -s "$ENGRAM_URL/dreams/pending"
+curl -s "$ENGRAM_URL/dreams/reports"
+curl -s "$ENGRAM_URL/dreams/reports/dream-run-id"
 curl -s "$ENGRAM_URL/dreams/events"
 curl -s -X PATCH "$ENGRAM_URL/dreams/pending/node-score-involvements" \
   -H 'content-type: application/json' -d '{"id":"acme","category":"focus"}'
@@ -103,6 +105,14 @@ Includes `dream_status`, `dream_pending`, `l1_clear_pending`, `future_sight_*`, 
 ### `GET /dreams/pending`
 
 Always 200. `present: false` when empty.
+
+### `GET /dreams/reports`
+
+Always 200 `{ items: [] }`. Committed + file still present only. List has `narrative_preview`, not full `report`.
+
+### `GET /dreams/reports/{id}`
+
+200 `{ present: true, report }` or `{ present: false }`. Illegal id → 400.
 
 ### `POST /dreams/approve`
 

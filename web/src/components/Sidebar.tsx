@@ -61,7 +61,9 @@ function NavIcon({ id }: { id: NavId }) {
 }
 
 function navSelected(nav: NavId, scene: SceneId): boolean {
-  if (nav === "events") return scene === "activities" || scene === "consolidate";
+  if (nav === "events") {
+    return scene === "activities" || scene === "consolidate" || scene === "dream_reports";
+  }
   return scene === nav;
 }
 
