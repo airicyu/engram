@@ -60,11 +60,12 @@ Engram 設定分兩層：**進程／本機**（repo 根目錄 `.env` 或環境�
 
 | workspace 鍵 | env | 預設 | 說明 |
 |--------------|-----|------|------|
-| `agent` | `ENGRAM_AGENT` | `claude` | `claude`｜`cursor`｜`codex`｜`mock-*`（Dream／Ask／Rollup runner） |
+| `agent` | `ENGRAM_AGENT` | `claude` | `claude`｜`cursor`｜`codex`｜`pi`｜`mock-*`（Dream／Ask／Rollup runner） |
 | `claude_bin` | `CLAUDE_BIN` | `claude` | Claude Code 可執行檔 |
 | `cursor_agent_bin` | `CURSOR_AGENT_BIN` | `agent` | Cursor CLI 可執行檔 |
 | `cursor_sandbox` | `ENGRAM_CURSOR_SANDBOX` | `disabled` | `enabled`｜`disabled`（Cursor `--sandbox`） |
 | `codex_bin` | `CODEX_BIN` | `codex` | Codex CLI 可執行檔 |
+| `pi_bin` | `PI_BIN` | `pi` | Pi coding-agent（`pi-agent`）可執行檔 |
 
 ### 記憶庫語意
 

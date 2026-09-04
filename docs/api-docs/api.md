@@ -959,7 +959,7 @@ Agent may cite `sources[].kind` = `L1`｜`L2`｜`chain`｜**`future_sight`**（�
 
 `job_id` shape: `ask-YYYYMMDD-HHmmss-{rand6}` (ENGRAM_TZ local time; URL-safe, no encoding).
 
-`ENGRAM_AGENT`: `claude` (default) | `cursor` | `codex` | `mock-ask-ok` (ask tests). Dream also supports `mock-ok` | `mock-fail`.
+`ENGRAM_AGENT`: `claude` (default) | `cursor` | `codex` | `pi` | `mock-ask-ok` (ask tests). Dream also supports `mock-ok` | `mock-fail`.
 
 ---
 

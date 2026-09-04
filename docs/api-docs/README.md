@@ -2,7 +2,7 @@
 
 HTTP API for the Engram memory prototype: **capture → dream (draft files + report) → approve (deploy + git) → memory**.
 
-**Runtime deps:** Bun, **Git** (store must be a local repo), Agent CLI (Claude／Cursor／Codex).
+**Runtime deps:** Bun, **Git** (store must be a local repo), Agent CLI (Claude／Cursor／Codex／Pi).
 
 ## Quick start
 
@@ -58,7 +58,8 @@ See [`web/README.md`](../../web/README.md).
 | `PORT` | `8787` | HTTP listen port（綁 `127.0.0.1`） |
 | `CLAUDE_BIN` | `claude` | Claude Code binary for dream extract |
 | `CODEX_BIN` | `codex` | Codex CLI binary when `ENGRAM_AGENT=codex` |
-| `ENGRAM_AGENT` | `claude` | `claude` \| `cursor` \| `codex` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
+| `PI_BIN` | `pi` | Pi coding-agent binary when `ENGRAM_AGENT=pi` |
+| `ENGRAM_AGENT` | `claude` | `claude` \| `cursor` \| `codex` \| `pi` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
 | `ENGRAM_ALLOW_VIRTUAL_CLOCK` | (off) | `1` = allow `PUT /clock` (time replay) |
 | `ENGRAM_ATTACHMENT_MAX_BYTES` | `10485760` (10 MiB) | Max upload size per image (0.29+) |
 | `ENGRAM_ATTACHMENT_TMP_RETENTION_DAYS` | `2` | Tmp upload retention days (0.29+) |

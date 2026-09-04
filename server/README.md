@@ -8,7 +8,7 @@ Bun HTTP API for Engram MVP memory: capture → dream (draft file pipeline) → 
 |------------|--------|
 | **Bun** | Runtime |
 | **Git** | Required on PATH — each `ENGRAM_STORE_DIR` is a local git repo (0.16+); server refuses to start without it |
-| **Agent CLI** | Claude Code (default); Cursor `agent` when `ENGRAM_AGENT=cursor`; Codex `codex` when `ENGRAM_AGENT=codex` |
+| **Agent CLI** | Claude Code (default); Cursor `agent` when `ENGRAM_AGENT=cursor`; Codex `codex` when `ENGRAM_AGENT=codex`; Pi `pi` when `ENGRAM_AGENT=pi` |
 
 ## Real trial (empty store)
 
@@ -51,7 +51,8 @@ Env: copy repo-root [`.env.example`](../.env.example) → `.env`（server／web 
 | `CURSOR_AGENT_BIN` / `cursor_agent_bin` | `agent` | Cursor CLI binary (when agent=cursor) |
 | `ENGRAM_CURSOR_SANDBOX` / `cursor_sandbox` | `disabled` | Cursor `--sandbox`：`disabled`（預設）｜`enabled` |
 | `CODEX_BIN` / `codex_bin` | `codex` | Codex CLI binary (when agent=codex) |
-| `ENGRAM_AGENT` / `agent` | `claude` | `claude` \| `cursor` \| `codex` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
+| `PI_BIN` / `pi_bin` | `pi` | Pi coding-agent binary (when agent=pi) |
+| `ENGRAM_AGENT` / `agent` | `claude` | `claude` \| `cursor` \| `codex` \| `pi` \| `mock-ok` \| `mock-fail` \| `mock-ask-ok` |
 | `ENGRAM_DREAM_DEBUG` / `dream_debug` | (off) | verbose dream extract/apply logs |
 | `ENGRAM_ALLOW_VIRTUAL_CLOCK` / `allow_virtual_clock` | (off) | allow `PUT /clock` (time replay) |
 

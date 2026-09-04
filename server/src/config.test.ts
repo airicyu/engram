@@ -80,10 +80,10 @@ describe("unified config", () => {
     );
   });
 
-  test("ENGRAM_AGENT=codex resolves", async () => {
+  test("ENGRAM_AGENT=pi resolves", async () => {
     await withWorkspace("timezone: Asia/Hong_Kong\nstore_version: 0.20.0\n", (storeDir) => {
-      const c = loadConfig(storeDir, { ENGRAM_AGENT: "codex" });
-      expect(c.agentMode).toBe("codex");
+      const c = loadConfig(storeDir, { ENGRAM_AGENT: "pi" });
+      expect(c.agentMode).toBe("pi");
     });
   });
 

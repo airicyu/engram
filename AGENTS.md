@@ -53,7 +53,7 @@
 - **Runtime：** Bun（TypeScript，ESM）
 - **Server：** `Bun.serve({ routes })`
 - **Web：** Vite + React + TypeScript；Bun 服務 `dist/` + proxy（prod）
-- **Dream extract：** `AgentRunner`（預設 Claude Code；可切 `cursor`／`codex`／mock）
+- **Dream extract：** `AgentRunner`（預設 Claude Code；可切 `cursor`／`codex`／`pi`／mock）
 
 常用指令：
 
@@ -123,6 +123,7 @@ API 欄位提醒：
 
 ## 目前版本脈絡
 
+- **已出貨：** `0.46.0` — 支援 Pi（`ENGRAM_AGENT=pi`）作為第四個 live agent CLI。見 `docs/roadmap/0.46.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.40）
 - **規劃中：** `0.45.0` — 入夢少開 planner／收緊 generate、凍結 node 改 Identity 名片。見 `docs/roadmap/0.45.0/`（**in progress**；**無** store migrate；boot 仍 ≥0.40）
 - **已出貨：** `0.44.0` — 事件頁第三 tab「近期入夢報告」＋修近期釐清已答多行只見第一行。見 `docs/roadmap/0.44.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.40）
 - **已出貨：** `0.43.0` — dream run yaml／input 與 report 同步 TTL；尋問 recent ask（24h 側車＋列表回看）。見 `docs/roadmap/0.43.0/`（**shipped**；**無** store migrate；boot 仍 ≥0.40）

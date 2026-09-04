@@ -52,6 +52,7 @@ const WORKSPACE_KEYS = new Set([
   "cursor_agent_bin",
   "cursor_sandbox",
   "codex_bin",
+  "pi_bin",
   "allow_virtual_clock",
   "allow_stale_store",
   "dream_debug",
@@ -83,6 +84,7 @@ export const AGENT_MODES = [
   "claude",
   "cursor",
   "codex",
+  "pi",
   "mock-ok",
   "mock-fail",
   "mock-bad-involvement",
@@ -159,6 +161,7 @@ type WorkspaceFile = {
   cursor_agent_bin?: string;
   cursor_sandbox?: "enabled" | "disabled";
   codex_bin?: string;
+  pi_bin?: string;
   allow_virtual_clock?: boolean;
   allow_stale_store?: boolean;
   dream_debug?: boolean;
@@ -481,6 +484,14 @@ function loadWorkspaceFile(storeDir: string): WorkspaceFile | null {
     out.codex_bin = v.trim();
   }
 
+  if ("pi_bin" in obj) {
+    const v = obj.pi_bin;
+    if (typeof v !== "string" || !v.trim()) {
+      failWorkspace(`${path}: pi_bin must be a non-empty string`);
+    }
+    out.pi_bin = v.trim();
+  }
+
   if ("allow_virtual_clock" in obj) {
     const v = obj.allow_virtual_clock;
     if (!isWorkspaceBoolean(v)) {
@@ -724,6 +735,11 @@ function resolveCodexBin(workspace: WorkspaceFile | null): string {
   return pickConfig(workspace?.codex_bin, fromEnv, "codex");
 }
 
+function resolvePiBin(workspace: WorkspaceFile | null): string {
+  const fromEnv = process.env.PI_BIN?.trim() || undefined;
+  return pickConfig(workspace?.pi_bin, fromEnv, "pi");
+}
+
 function resolveAllowVirtualClock(workspace: WorkspaceFile | null): boolean {
   if (workspace?.allow_virtual_clock != null) return workspace.allow_virtual_clock;
   return resolveEnvBoolean(process.env.ENGRAM_ALLOW_VIRTUAL_CLOCK, false);
@@ -848,6 +864,8 @@ export const config = {
   cursorSandbox: resolveCursorSandbox(workspace),
   /** Codex CLI binary (when agent=codex). */
   codexBin: resolveCodexBin(workspace),
+  /** Pi coding-agent binary (when agent=pi). */
+  piBin: resolvePiBin(workspace),
   timezone: resolveTimezone(workspace),
   /** Effective write language for chain／node／ask (always one of MEMORY_LANGUAGES). */
   memoryLanguage: resolveMemoryLanguage(workspace),

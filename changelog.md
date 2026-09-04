@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.46.0 — Support Pi agent CLI（2026-09-05）
+
+第四個 live agent：`ENGRAM_AGENT=pi`（`@earendil-works/pi-coding-agent` 可執行檔 `pi`）。非互動 `pi -p`；工具 allowlist 不含 bash；不傳 `--model`。**無** store migrate；boot 仍 ≥0.40。見 `docs/roadmap/0.46.0/`。
+
+### Added
+
+- `PiInvoker`：`ENGRAM_AGENT=pi`／workspace `agent: pi`；`PI_BIN`／`pi_bin`（預設 `pi`）
+- setup-wizard 可選「Pi CLI」
+
+### Changed
+
+- 設定／API 文件列出 `pi` 與既有 `claude`｜`cursor`｜`codex` 並列
+
+### Non-goals
+
+- 預設改為 Pi、為 Pi 特製 prompt、CI 強制本機已安裝 Pi、store migrate
+
+---
 ## 0.44.0 — 事件頁近期入夢報告；釐清已答多行可見（2026-08-31）
 
 事件頁第三 tab 只讀尚未 TTL 刪除的 committed dream report。新增 `GET /dreams/reports` 與 `GET /dreams/reports/{id}`。近期輸入區釐清已答多行全文可見。沉澱 tab 與 cleanup **不變**。**無** store migrate；boot 仍 ≥0.40。見 `docs/roadmap/0.44.0/`。

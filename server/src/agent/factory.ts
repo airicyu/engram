@@ -17,6 +17,7 @@ import type { AgentInvoker } from "./flow/types";
 import { ClaudeInvoker } from "./providers/claude";
 import { CodexInvoker } from "./providers/codex";
 import { CursorInvoker } from "./providers/cursor";
+import { PiInvoker } from "./providers/pi";
 import { CliRollupAgent, MockRollupAgent } from "./rollup/agent";
 import type { RollupAgent } from "../dream/rollup/cascade";
 import {
@@ -39,13 +40,15 @@ export function resolveAgentMode(): AgentMode {
   return config.agentMode;
 }
 
-/** Shared Claude／Cursor／Codex invoker for Ask／Dream／Rollup file-deliverable jobs. */
+/** Shared Claude／Cursor／Codex／Pi invoker for Ask／Dream／Rollup file-deliverable jobs. */
 export function createAgentInvoker(): AgentInvoker {
   switch (resolveAgentMode()) {
     case "cursor":
       return new CursorInvoker();
     case "codex":
       return new CodexInvoker();
+    case "pi":
+      return new PiInvoker();
     case "claude":
       return new ClaudeInvoker();
     default:
@@ -70,6 +73,7 @@ export function createDreamRunner(): AgentRunner {
       return new MockEmptyPatchesRunner();
     case "cursor":
     case "codex":
+    case "pi":
     case "claude":
       return new DreamCliRunner(createAgentInvoker());
     default:
@@ -85,6 +89,7 @@ export function createAskRunner(): MemoryAskRunner {
       return new MockAskMaliciousLiveWriteRunner();
     case "cursor":
     case "codex":
+    case "pi":
     case "claude":
       return new MemoryAskRunnerImpl(createAgentInvoker());
     default:
@@ -96,6 +101,7 @@ export function createRollupAgent(): RollupAgent {
   switch (resolveAgentMode()) {
     case "cursor":
     case "codex":
+    case "pi":
     case "claude":
       return new CliRollupAgent(createAgentInvoker());
     default:
@@ -107,6 +113,7 @@ export function createClarifyDistillAgent(): ClarifyDistillAgent {
   switch (resolveAgentMode()) {
     case "cursor":
     case "codex":
+    case "pi":
     case "claude":
       return new CliClarifyDistillAgent(createAgentInvoker());
     default:
@@ -118,6 +125,7 @@ export function createClarifyGenerateAgent(): ClarifyGenerateAgent {
   switch (resolveAgentMode()) {
     case "cursor":
     case "codex":
+    case "pi":
     case "claude":
       return new CliClarifyGenerateAgent(createAgentInvoker());
     default:
