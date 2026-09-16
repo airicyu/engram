@@ -1,3 +1,4 @@
 # Project config (not inside the memory store).
 # Relative paths are resolved from this repository root (engram-lite/).
 store_dir: ./demo-engram-lite-data
+port: 8797

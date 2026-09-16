@@ -34,7 +34,7 @@ Chain：第一行 `##` 題材標題；分生命線、完整句子；週月年要
 
 ## Server（可選）
 
-`bun run dev` → `127.0.0.1:8797`。GET 與 **`POST /events` 同步讀寫檔**。`POST /distill`／`/ask` 立刻 **202**，背景跑 Pi skill。
+`bun run dev` → `127.0.0.1` + `ENGRAM_LITE_PORT`／`engram-lite.yaml` `port`／`8797`。GET 與 **`POST /events` 同步讀寫檔**。`POST /distill`／`/ask` 立刻 **202**，背景跑 Pi skill。
 
 Pi model：`ENGRAM_LITE_PI_MODEL`／`PI_MODEL` → 記憶庫 `workspace.yaml` `pi_model` → 預設 `deepseek/deepseek-v4.1-flash`。只影響 server SDK，不影響互動式 `pi` CLI。
 

@@ -4,25 +4,50 @@ import { isAbsolute, join, resolve } from "node:path";
 export const repoRoot = join(import.meta.dir, "..");
 
 export const defaultStoreDirRel = "./../engram-lite-data";
+export const defaultPort = 8797;
 export const defaultPiModel = "deepseek/deepseek-v4.1-flash";
 export const projectConfigPath = join(repoRoot, "engram-lite.yaml");
-
-export const port = Number(process.env.ENGRAM_LITE_PORT ?? "8797");
 
 function stripQuotes(s: string) {
   return s.replace(/^["']|["']$/g, "").trim();
 }
 
+function projectYaml(): Record<string, string> {
+  if (!existsSync(projectConfigPath)) return {};
+  const out: Record<string, string> = {};
+  for (const line of readFileSync(projectConfigPath, "utf8").split("\n")) {
+    const t = line.trim();
+    if (!t || t.startsWith("#")) continue;
+    const i = t.indexOf(":");
+    if (i <= 0) continue;
+    out[t.slice(0, i).trim()] = stripQuotes(t.slice(i + 1));
+  }
+  return out;
+}
+
 export function readStoreDirSetting(): string {
   const fromEnv = process.env.ENGRAM_LITE_STORE_DIR?.trim();
   if (fromEnv) return fromEnv;
-  if (existsSync(projectConfigPath)) {
-    const text = readFileSync(projectConfigPath, "utf8");
-    const m = text.match(/^store_dir:\s*(.+)$/m);
-    if (m?.[1]) return stripQuotes(m[1]);
-  }
+  const fromYaml = projectYaml().store_dir?.trim();
+  if (fromYaml) return fromYaml;
   return defaultStoreDirRel;
 }
+
+export function readPort(): number {
+  const fromEnv = process.env.ENGRAM_LITE_PORT?.trim();
+  if (fromEnv) {
+    const n = Number(fromEnv);
+    if (Number.isInteger(n) && n > 0 && n < 65536) return n;
+  }
+  const fromYaml = projectYaml().port?.trim();
+  if (fromYaml) {
+    const n = Number(fromYaml);
+    if (Number.isInteger(n) && n > 0 && n < 65536) return n;
+  }
+  return defaultPort;
+}
+
+export const port = readPort();
 
 export function resolveStoreDir(setting = readStoreDirSetting()): string {
   if (isAbsolute(setting)) return setting;
