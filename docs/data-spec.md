@@ -8,6 +8,8 @@
 2. 專案檔 `engram-lite.yaml` 的 `store_dir`
 3. 預設 `./../engram-lite-data`（相對 **engram-lite 倉庫根**，即與 `engram-lite/` 同層的 `engram-lite-data/`）
 
+本倉庫附帶的 `demo-engram-lite-data/` 是可提交的虛構示範庫；`engram-lite.yaml` 預設 `store_dir: ./demo-engram-lite-data`。個人資料不要寫進這個目錄。
+
 相對路徑一律相對 engram-lite 根目錄解析。記憶庫內仍是：
 
 ```

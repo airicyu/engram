@@ -15,7 +15,7 @@
 | **chain** | 日／週／月／年敘事 | `{store}/chain/days\|weeks\|months\|years/` |
 | **nodes** | 主題理解 | `{store}/nodes/{id}/{id}.md` |
 
-`{store}` 見 `engram-lite.yaml` `store_dir`（預設 `./../engram-lite-data`）。
+`{store}` 見 `engram-lite.yaml` `store_dir`（本倉庫示範為 `./demo-engram-lite-data`；未設時預設 `./../engram-lite-data`）。
 
 契約真相：[`docs/data-spec.md`](docs/data-spec.md)。HTTP：[`docs/api.md`](docs/api.md)。
 
@@ -44,7 +44,7 @@ Pi model：`ENGRAM_LITE_PI_MODEL`／`PI_MODEL` → 記憶庫 `workspace.yaml` `p
 |----|------|
 | 依 skill／規格讀寫記憶庫 `pool`、`chain`、`nodes` | 發明 Engram dream／approve／git 流程 |
 | 改契約時同步 `docs/data-spec.md` | 把記憶寫作邏輯做成 server 規則引擎 |
-| 記憶內容當 runtime（gitignore） | 把真人日記／pending 當原始碼提交 |
+| 真人記憶當 runtime（預設目錄 gitignore） | 把真人日記／pending 當原始碼提交（`demo-engram-lite-data/` 虛構示範除外） |
 
 時區：`workspace.yaml` → `ENGRAM_LITE_TZ` → `Asia/Hong_Kong`。  
 記憶語言：`memory_language` → 預設 `zh-Hant`。

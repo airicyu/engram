@@ -4,6 +4,8 @@
 
 完整 Engram 有 dream staging、approve、git、clarify。這裡沒有。資料契約見 [`docs/data-spec.md`](docs/data-spec.md)。
 
+倉庫內 [`demo-engram-lite-data/`](demo-engram-lite-data/) 是虛構 VIP 示範記憶（已 distill 的 chain／nodes／archived）。`engram-lite.yaml` 預設指這裡，clone 後可直接 `bun run dev` 看畫面。自己的記憶請改 `store_dir` 或設 `ENGRAM_LITE_STORE_DIR`。
+
 ## 不開 server（建議先這樣用）
 
 在本倉庫根目錄開 pi-agent，它會載入 `.agents/skills/`：

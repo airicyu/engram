@@ -1,0 +1,4 @@
+# Server job files are runtime, not demo memory.
+jobs/*.json
+.env
+**/.env
