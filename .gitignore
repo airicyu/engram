@@ -1,0 +1,9 @@
+node_modules/
+web/dist/
+.DS_Store
+.env
+**/.env
+*.log
+.cursor/
+demo-engram-lite-data/
+

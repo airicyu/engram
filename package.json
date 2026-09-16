@@ -1,0 +1,21 @@
+{
+  "name": "engram-lite",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "LLM-first personal memory: skills write files; Bun server is optional",
+  "scripts": {
+    "dev": "bun run server/index.ts",
+    "start": "bun run server/index.ts",
+    "reset": "bun run .agents/skills/engram-lite-reset/scripts/reset-store.ts --yes",
+    "test": "bun test"
+  },
+  "packageManager": "bun@1.3.14",
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^0.85.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.8.2"
+  }
+}
