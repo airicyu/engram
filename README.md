@@ -2,9 +2,9 @@
 
 簡化版個人記憶：**skills 寫檔是主體**，Bun server／UI 是輔件。
 
-完整 Engram 有 dream staging、approve、git、clarify。這裡沒有。資料契約見 [`docs/data-spec.md`](docs/data-spec.md)。
+完整 Engram 有 dream staging、approve、git、clarify。這裡沒有。現行 **0.2.0**（[`version.md`](version.md)）。資料契約見 [`docs/data-spec.md`](docs/data-spec.md)。版本細節見 [`changelog.md`](changelog.md)、[`docs/roadmap/`](docs/roadmap/)。
 
-倉庫內 [`demo-engram-lite-data/`](demo-engram-lite-data/) 是虛構 VIP 示範記憶（已 distill 的 chain／nodes／archived）。`engram-lite.yaml` 預設指這裡。自己的記憶請改 `store_dir` 或設 `ENGRAM_LITE_STORE_DIR`。
+倉庫內 [`demo-engram-lite-data/`](demo-engram-lite-data/) 是虛構 VIP 示範記憶（已 distill 的 chain／nodes／archived）。`engram-lite.yaml` 預設指這裡。自己的記憶請改 `store_dir` 或設 `ENGRAM_LITE_STORE_DIR`。若用 Obsidian，請開啟庫內的 **`memories/`**（不要開 store 根；`jobs/` 是派工暫存）。
 
 ## 設定
 
@@ -36,7 +36,7 @@ cd engram-lite
 pi
 ```
 
-1. **輸入事件** — 用 `engram-lite-ingest`，把原句梳理進 `{store}/pool/pending.jsonl`
+1. **輸入事件** — 用 `engram-lite-ingest`，把原句梳理進 `{store}/memories/pool/pending.jsonl`
 2. **沉澱記憶** — 用 `engram-lite-distill`，把 pending 寫進日記／週月年記與 nodes，並移到 `archived.jsonl`
 3. **查問** — 用 `engram-lite-ask`，只讀記憶鏈與 pending，不改檔
 
@@ -57,7 +57,7 @@ Pi 可能跑數十秒到數分鐘。若 POST 同步 `await session.prompt()`，�
 
 做法：
 
-1. POST 只建 `{store}/jobs/{id}.json` 並入列，**202** 立刻返回
+1. POST 只建 `{store}/jobs/{id}.json`（store 根，不進 `memories/`）並入列，**202** 立刻返回
 2. 背景單一 worker 再 `createAgentSession`＋`prompt`
 3. 客戶端 poll `GET /jobs/{id}`（本 UI 約每 1.5s）
 4. 完成後再打對應 GET 重整畫面

@@ -1,8 +1,8 @@
 import { mkdir, readdir, rm, writeFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { storeDir } from "../../../../server/paths.ts";
+import { memoriesDir, storeDir } from "../../../../server/paths.ts";
 
-const KEEP_ROOT = new Set(["workspace.yaml", ".gitignore"]);
+const KEEP_ROOT = new Set(["workspace.yaml", ".gitignore", "memories", "jobs"]);
 
 async function exists(path: string) {
   try {
@@ -41,16 +41,19 @@ await mkdir(storeDir, { recursive: true });
 const rootNames = await readdir(storeDir);
 for (const name of rootNames) {
   if (KEEP_ROOT.has(name)) continue;
-  if (name === "pool" || name === "chain" || name === "nodes" || name === "jobs") continue;
   await rm(join(storeDir, name), { recursive: true, force: true });
 }
 
-await emptyDirKeepGitkeep(join(storeDir, "pool"));
-await writeFile(join(storeDir, "pool", "pending.jsonl"), "");
-await writeFile(join(storeDir, "pool", "archived.jsonl"), "");
+const vault = memoriesDir();
+await mkdir(vault, { recursive: true });
 
-await emptyDirKeepGitkeep(join(storeDir, "chain"));
-await emptyDirKeepGitkeep(join(storeDir, "nodes"));
+await emptyDirKeepGitkeep(join(vault, "pool"));
+await writeFile(join(vault, "pool", "pending.jsonl"), "");
+await writeFile(join(vault, "pool", "archived.jsonl"), "");
+
+await emptyDirKeepGitkeep(join(vault, "chain"));
+await emptyDirKeepGitkeep(join(vault, "nodes"));
+await emptyDirKeepGitkeep(join(vault, "_attachments", "uploads"));
 await emptyDirKeepGitkeep(join(storeDir, "jobs"));
 
 if (!(await exists(join(storeDir, "workspace.yaml")))) {
@@ -61,4 +64,4 @@ if (!(await exists(join(storeDir, "workspace.yaml")))) {
 }
 
 console.log(`reset ok  store=${storeDir}`);
-console.log("kept workspace.yaml; emptied pool jsonl, chain, nodes, jobs");
+console.log("kept workspace.yaml; emptied memories pool/chain/nodes/_attachments, jobs");

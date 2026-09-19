@@ -1,11 +1,12 @@
 import { expect, test } from "bun:test";
-import { chainFile, defaultPiModel, defaultPort, defaultStoreDirRel, nodeFile, port, storeDir } from "./paths.ts";
+import { attachmentsDir, chainFile, defaultPiModel, defaultPort, defaultStoreDirRel, memoriesDir, nodeFile, port, storeDir } from "./paths.ts";
 import { readPool, readWorkspace, stampInTimezone } from "./store.ts";
 
 test("store dir default is sibling engram-lite-data", () => {
   expect(defaultStoreDirRel).toBe("./../engram-lite-data");
   if (!process.env.ENGRAM_LITE_STORE_DIR) {
-    expect(storeDir.replace(/\\/g, "/").endsWith("/engram-lite-data")).toBe(true);
+    const n = storeDir.replace(/\\/g, "/");
+    expect(n.endsWith("/demo-engram-lite-data") || n.endsWith("/engram-lite-data")).toBe(true);
   }
 });
 
@@ -16,14 +17,19 @@ test("port from yaml or default", () => {
   }
 });
 
+test("vault is memories/ under store", () => {
+  expect(memoriesDir().replace(/\\/g, "/").endsWith("/memories")).toBe(true);
+  expect(attachmentsDir().replace(/\\/g, "/").endsWith("/memories/_attachments/uploads")).toBe(true);
+});
+
 test("chain day path", () => {
   const p = chainFile("day", "2026-09-16");
-  expect(p?.endsWith("chain/days/2026-09/2026-09-16.md")).toBe(true);
+  expect(p?.endsWith("memories/chain/days/2026-09/2026-09-16.md")).toBe(true);
   expect(chainFile("day", "nope")).toBeNull();
 });
 
 test("node path", () => {
-  expect(nodeFile("acme")?.endsWith("nodes/acme/acme.md")).toBe(true);
+  expect(nodeFile("acme")?.endsWith("memories/nodes/acme/acme.md")).toBe(true);
   expect(nodeFile("Acme")).toBeNull();
 });
 

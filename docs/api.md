@@ -42,7 +42,7 @@ Pi 派工成功受理：**202** `{ job_id, status: "queued" }`，再 poll `GET /
 
 ## Job 檔
 
-`data/jobs/{id}.json`
+`{store}/jobs/{id}.json`
 
 ```json
 {

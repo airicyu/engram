@@ -11,13 +11,13 @@ description: 把 Engram Lite 暫存 pool 沉澱成日記／週記／月記／年
 
 ## 步驟
 
-1. 讀 `workspace.yaml`、`pool/pending.jsonl`。若 pending 空：說明無事可沉澱，停止。
-2. 讀相關已存在的 chain 檔與可能對上的 nodes（用 grep／讀檔）。
+1. 讀 `{store}/workspace.yaml`、`memories/pool/pending.jsonl`。若 pending 空：說明無事可沉澱，停止。
+2. 讀相關已存在的 chain 檔與可能對上的 nodes（用 grep／讀檔）。Vault＝`{store}/memories/`。
 3. 依事件 `ts` 的**當地日期**更新 chain（文體見下；**何時寫哪一層**見「升層閘門」）：
-   - **day（必做）：** `chain/days/YYYY-MM/YYYY-MM-DD.md`
+   - **day（必做）：** `memories/chain/days/YYYY-MM/YYYY-MM-DD.md`
    - **week／month／year：** 只在閘門通過時寫；路徑與 id 見 data-spec
-4. 對反覆或重要的人／專案／概念：新建或更新 `nodes/{id}/{id}.md`（Identity／Relation／Standing facts／Current situation）。瑣事不開 node。事件細節留在 chain，不要把日記抄進 node。
-5. 將**本批已處理**的 pending 列 append 到 `pool/archived.jsonl`，並重寫 `pending.jsonl` 只留未處理列。**先寫完 chain／nodes，再動 pool。**
+4. 對反覆或重要的人／專案／概念：新建或更新 `memories/nodes/{id}/{id}.md`（Identity／Relation／Standing facts／Current situation）。瑣事不開 node。事件細節留在 chain，不要把日記抄進 node。wikilink 相對 vault：`[[nodes/{id}/{id}|顯示名]]`。
+5. 將**本批已處理**的 pending 列 append 到 `memories/pool/archived.jsonl`，並重寫 `pending.jsonl` 只留未處理列。**先寫完 chain／nodes，再動 pool。**
 
 ## 升層閘門（必須，不要靠「有沒有月度意義」）
 

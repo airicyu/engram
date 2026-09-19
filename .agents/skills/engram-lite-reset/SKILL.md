@@ -16,13 +16,13 @@ description: 把 Engram Lite 記憶庫重設成初始空狀態（清空 pending�
 保留：
 
 - `workspace.yaml`（時區、語言、`pi_model` **不要重置成預設**，除非檔案不存在）
-- `data/.gitignore`
-- `pool/.gitkeep`、`chain/.gitkeep`、`nodes/.gitkeep`、`jobs/.gitkeep`
+- `{store}/.gitignore`、`workspace.yaml`
+- `memories/pool/.gitkeep`、`memories/chain/.gitkeep`、`memories/nodes/.gitkeep`、`memories/_attachments/uploads/.gitkeep`、`jobs/.gitkeep`
 
 變成空檔／空樹：
 
-- `pool/pending.jsonl`、`pool/archived.jsonl`（零位元組或僅檔案存在、無列）
-- `chain/`、`nodes/`、`jobs/` 底下除 `.gitkeep` 外全部刪除
+- `memories/pool/pending.jsonl`、`memories/pool/archived.jsonl`（零位元組或僅檔案存在、無列）
+- `memories/chain/`、`memories/nodes/`、`memories/_attachments/uploads/`、`jobs/` 底下除 `.gitkeep` 外全部刪除
 
 **不要**改 skills、server、docs。
 

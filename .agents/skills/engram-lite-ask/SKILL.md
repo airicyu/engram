@@ -11,22 +11,22 @@ description: 用 Engram Lite 的記憶鏈（day／week／month／year）加上�
 
 ## 只讀這兩處
 
-1. **`chain/`** — 已沉澱的日／週／月／年記（記憶鏈）。先近期 day，不夠再 week／month／year。
-2. **`pool/pending.jsonl`** — 還沒沉澱進鏈的事件。
+1. **`memories/chain/`** — 已沉澱的日／週／月／年記（記憶鏈）。先近期 day，不夠再 week／month／year。
+2. **`memories/pool/pending.jsonl`** — 還沒沉澱進鏈的事件。
 
-已沉澱的細節應已寫進 chain，**不要**讀 `pool/archived.jsonl`。**不要**讀 `nodes/`（提問不靠節點檔）。
+已沉澱的細節應已寫進 chain，**不要**讀 `memories/pool/archived.jsonl`。**不要**讀 `memories/nodes/`（提問不靠節點檔）。
 
 ## 步驟
 
-1. 讀 `workspace.yaml`（語言）。
-2. 在 `chain/` 與 `pool/pending.jsonl` 用 grep／find／read 找與問題有關的內容。
+1. 讀 `{store}/workspace.yaml`（語言）。Vault＝`{store}/memories/`。
+2. 在 `memories/chain/` 與 `memories/pool/pending.jsonl` 用 grep／find／read 找與問題有關的內容。
 3. 只根據這些檔回答。不知道就說不知道。
-4. 來源只列 chain 路徑或 `pool/pending.jsonl`。
+4. 來源只列 chain 路徑或 `memories/pool/pending.jsonl`。
 
 ## 禁止
 
 - 不要寫任何記憶檔
-- 不要打開 `archived.jsonl`、`nodes/`、`jobs/`
+- 不要打開 `archived.jsonl`、`memories/nodes/`、`jobs/`
 - 不要因為 pending 空就改去掃 archived
 
 ## 回覆

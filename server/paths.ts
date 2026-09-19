@@ -56,12 +56,21 @@ export function resolveStoreDir(setting = readStoreDirSetting()): string {
 
 export const storeDir = resolveStoreDir();
 
+/** Obsidian vault (chain / nodes / pool / attachments). Not jobs or workspace.yaml. */
+export function memoriesDir() {
+  return join(storeDir, "memories");
+}
+
+export function attachmentsDir() {
+  return join(memoriesDir(), "_attachments", "uploads");
+}
+
 export function poolPendingPath() {
-  return join(storeDir, "pool", "pending.jsonl");
+  return join(memoriesDir(), "pool", "pending.jsonl");
 }
 
 export function poolArchivedPath() {
-  return join(storeDir, "pool", "archived.jsonl");
+  return join(memoriesDir(), "pool", "archived.jsonl");
 }
 
 export function workspacePath() {
@@ -77,11 +86,11 @@ export function jobPath(id: string) {
 }
 
 export function chainDir() {
-  return join(storeDir, "chain");
+  return join(memoriesDir(), "chain");
 }
 
 export function nodesDir() {
-  return join(storeDir, "nodes");
+  return join(memoriesDir(), "nodes");
 }
 
 export type ChainLevel = "day" | "week" | "month" | "year";

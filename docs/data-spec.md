@@ -12,26 +12,33 @@ HTTP 埠同樣：`ENGRAM_LITE_PORT` → `engram-lite.yaml` 的 `port` → `8797`
 
 本倉庫附帶的 `demo-engram-lite-data/` 是可提交的虛構示範庫；`engram-lite.yaml` 預設 `store_dir: ./demo-engram-lite-data`、`port: 8797`。個人資料不要寫進這個目錄。
 
-相對路徑一律相對 engram-lite 根目錄解析。記憶庫內仍是：
+相對路徑一律相對 engram-lite 根目錄解析。記憶庫內：
 
 ```
-{store}/
-├── workspace.yaml
-├── pool/
-│   ├── pending.jsonl      # 尚未沉澱
-│   └── archived.jsonl     # 已沉澱（審計；可空）
-├── chain/
-│   ├── days/YYYY-MM/YYYY-MM-DD.md
-│   ├── weeks/YYYY-MM/YYYY-Www.md
-│   ├── months/YYYY/YYYY-MM.md
-│   └── years/YYYY.md
-├── nodes/
-│   └── {id}/{id}.md
-└── jobs/
-    └── {job_id}.json      # 僅 server 異步派工；skill 離線流程可不寫
+{store}/                          # ENGRAM_LITE_STORE_DIR
+├── workspace.yaml                # 不進 vault
+├── jobs/
+│   └── {job_id}.json             # 僅 server 派工；不進 vault（對齊 Engram 的 dreams/）
+└── memories/                     # Obsidian vault（開這一層，不要開 store 根）
+    ├── _attachments/
+    │   └── uploads/              # 附圖；embed 相對 vault：![[_attachments/uploads/{日}/{檔}]]
+    ├── pool/
+    │   ├── pending.jsonl         # 尚未沉澱
+    │   └── archived.jsonl        # 已沉澱（審計；可空）
+    ├── chain/
+    │   ├── days/YYYY-MM/YYYY-MM-DD.md
+    │   ├── weeks/YYYY-MM/YYYY-Www.md
+    │   ├── months/YYYY/YYYY-MM.md
+    │   └── years/YYYY.md
+    └── nodes/
+        └── {id}/{id}.md
 ```
 
 合法但無檔 → 視為空，不當作錯誤。
+
+舊庫若 `chain`／`nodes`／`pool` 仍在 `{store}/` 根下，移進 `memories/` 即可；`jobs/` 與 `workspace.yaml` 留在 store 根。
+
+Obsidian 開 `{store}/memories/`。`[[nodes/…]]` 與將來的 `![[_attachments/uploads/…]]` 都相對這一層，圖與日記同庫可見。
 
 ---
 
@@ -68,11 +75,11 @@ pi_model: deepseek/deepseek-v4.1-flash   # server 派 Pi 用；可被 ENGRAM_LIT
 | `raw` | 原輸入，不要丟 |
 | `note` | 可省略。梳理、分段、標主題時寫在這裡，不要改寫 `raw` 到認不出原句 |
 
-**ingest skill：** 把一次輸入梳理成 1～N 筆，append 到 `pending.jsonl`。不要寫 chain／nodes。
+**ingest skill：** 把一次輸入梳理成 1～N 筆，append 到 `memories/pool/pending.jsonl`。不要寫 chain／nodes。
 
-**distill skill：** 只處理 `pending.jsonl`。寫完對應 chain／nodes 後，把那些列移到 `archived.jsonl`。
+**distill skill：** 只處理 `memories/pool/pending.jsonl`。寫完對應 chain／nodes 後，把那些列移到 `archived.jsonl`。
 
-**ask skill：** 只讀 `chain/`（日週月年）＋ `pool/pending.jsonl`。不讀 `archived.jsonl`、不讀 `nodes/`。已沉澱內容以鏈上敘事為準。
+**ask skill：** 只讀 `memories/chain/`（日週月年）＋ `memories/pool/pending.jsonl`。不讀 `archived.jsonl`、不讀 `nodes/`。已沉澱內容以鏈上敘事為準。
 
 ---
 
@@ -80,10 +87,10 @@ pi_model: deepseek/deepseek-v4.1-flash   # server 派 Pi 用；可被 ENGRAM_LIT
 
 | 層 | id | 路徑 |
 |----|----|------|
-| day | `YYYY-MM-DD` | `chain/days/YYYY-MM/YYYY-MM-DD.md` |
-| week | ISO week `YYYY-Www`（週一～週日） | `chain/weeks/YYYY-MM/YYYY-Www.md`，分組鍵＝該週**週一**所在年月 |
-| month | `YYYY-MM` | `chain/months/YYYY/YYYY-MM.md` |
-| year | `YYYY` | `chain/years/YYYY.md` |
+| day | `YYYY-MM-DD` | `memories/chain/days/YYYY-MM/YYYY-MM-DD.md` |
+| week | ISO week `YYYY-Www`（週一～週日） | `memories/chain/weeks/YYYY-MM/YYYY-Www.md`，分組鍵＝該週**週一**所在年月 |
+| month | `YYYY-MM` | `memories/chain/months/YYYY/YYYY-MM.md` |
+| year | `YYYY` | `memories/chain/years/YYYY.md` |
 
 每層**一個** markdown 檔＝該期敘事（無 ledger／summary 雙檔，無 patch 註記）。
 
@@ -146,7 +153,7 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 
 ## Nodes
 
-路徑：`nodes/{id}/{id}.md`。
+路徑：`memories/nodes/{id}/{id}.md`。Vault 內 wikilink 仍寫 `[[nodes/{id}/{id}|顯示名]]`（相對 `memories/`）。
 
 `id`：小寫 kebab 或短英文／拼音，`[a-z][a-z0-9-]{0,63}`。不要用空白。
 
@@ -176,6 +183,11 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 
 ---
 
+## Attachments（目錄已定；上傳 API 尚未做）
+
+實體：`memories/_attachments/uploads/{YYYY-MM-DD}/{filename}`。  
+Chain／事件引用用精確 `![[_attachments/uploads/{日}/{檔}]]`（相對 vault；不要含 `|alias`）。各層只重複同一路徑，不複製檔案。
+
 ## Jobs（僅 server）
 
-`jobs/{job_id}.json`：HTTP 派 Pi 時的狀態。欄位見 `docs/api.md`。skills 離線操作**不必**寫這裡。
+`{store}/jobs/{job_id}.json`：HTTP 派 Pi 時的狀態。欄位見 `docs/api.md`。skills 離線操作**不必**寫這裡。不要把 jobs 放進 `memories/`。
