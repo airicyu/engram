@@ -2,6 +2,8 @@
 
 ← [GUIDELINES.md](./GUIDELINES.md)（寫什麼）· [AGENTS.md](../../AGENTS.md)
 
+執行某一版（審查閘門 → Track 實作）用技能 [`.agents/skills/roadmap-version`](../../.agents/skills/roadmap-version/SKILL.md)，不要靠聊天殘留當契約。
+
 [`GUIDELINES.md`](./GUIDELINES.md) 管文件自足；本檔管 **誰開 session、何時審查、何時出貨**。節奏對齊完整 Engram 的 `agent-workflow.md`，按 Lite 規模縮短。
 
 ---
@@ -12,7 +14,7 @@
 構想／backlog
     → 排程 INDEX（planned）
     → 寫滿已定案／需要時 docs／reasoning
-    → 【可選】新 agent：design-review
+    → 【預設】`.agents/skills/roadmap-version`：新 agent 設計審查 → 收斂 → 閘門通過才實作
     → HANDOFF.md（含 paste-ready starter）
     → 新 agent 實作（in progress）
     → 【建議】implementation-review

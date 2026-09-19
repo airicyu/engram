@@ -77,6 +77,6 @@ Roadmap 是 **跨 agent 交接文件**，不是當下對話的備忘草稿。
 ## 本專案補充
 
 - version／changelog：根目錄 `version.md`、`changelog.md`（對齊 Engram 檔名，不是 `VERSION.md`）
-- 測試：`bun test`（cwd 倉庫根；`ENGRAM_LITE_STORE_DIR` 未設時測走 yaml 的 demo 庫）
+- 執行某版：`.agents/skills/roadmap-version`（預設先設計審查閘門；測試 `bun test`）
 - 禁止把 `demo-engram-lite-data/` 以外的真人日記當例寫進 roadmap
 - Lite **不** bump 記憶庫 `store_version`、**不**做 Engram migrate hop

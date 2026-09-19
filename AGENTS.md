@@ -3,7 +3,7 @@
 **無論使用者用什麼語言說話，agent 一律以繁體中文書面語回應。**  
 用書面語；專有名詞、路徑、API、檔名可留英文。
 
-現行版本：**0.2.0**（[`version.md`](version.md)、[`changelog.md`](changelog.md)）：[Obsidian vault＝`memories/`](docs/roadmap/0.2.0/INDEX.md)（`shipped`）。上游：[0.1.0](docs/roadmap/0.1.0/INDEX.md)（`shipped`）。寫 roadmap：[GUIDELINES.md](docs/roadmap/GUIDELINES.md)。未排程：[backlog](docs/roadmap/backlog/INDEX.md)。無進行中的下一版。
+現行版本：**0.2.0**（[`version.md`](version.md)、[`changelog.md`](changelog.md)）：[Obsidian vault＝`memories/`](docs/roadmap/0.2.0/INDEX.md)（`shipped`）。下一版：[0.3.0 搜尋、釐清、附圖、節點圖、工作台殼](docs/roadmap/0.3.0/INDEX.md)（`planned`）。執行某版：`.agents/skills/roadmap-version`。上游：[0.1.0](docs/roadmap/0.1.0/INDEX.md)（`shipped`）。寫 roadmap：[GUIDELINES.md](docs/roadmap/GUIDELINES.md)。未排程：[backlog](docs/roadmap/backlog/INDEX.md)。
 
 ## 這是什麼
 
