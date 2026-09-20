@@ -7,6 +7,8 @@
 
 寫作原則對齊完整 Engram 的 `docs/roadmap/GUIDELINES.md`；路徑與出貨檔以 **本倉庫** 為準（lite **沒有** `store_version` boot gate、沒有 `docs/api-docs/`）。
 
+**架構警世（根目錄強制）：** 見 [`AGENTS.md`](../../AGENTS.md)「調度寫死在 program，把判斷還給 skill」——roadmap／Track 不得把語意判斷（文體、開 node、出釐清題）寫成 server 規則引擎；program 只准控制面與機械 I／O。控制面管線須有 WHY：見 [`docs/architecture/orchestration.md`](../architecture/orchestration.md)。
+
 ---
 
 ## 核心原則：Self-sufficient（強制）

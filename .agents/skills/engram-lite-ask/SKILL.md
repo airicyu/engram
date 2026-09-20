@@ -14,7 +14,7 @@ description: 用 Engram Lite 的記憶鏈（day／week／month／year）加上�
 1. **`memories/chain/`** — 已沉澱的日／週／月／年記（記憶鏈）。先近期 day，不夠再 week／month／year。
 2. **`memories/pool/pending.jsonl`** — 還沒沉澱進鏈的事件。
 
-已沉澱的細節應已寫進 chain，**不要**讀 `memories/pool/archived.jsonl`。**不要**讀 `memories/nodes/`（提問不靠節點檔）。
+已沉澱的細節應已寫進 chain，**不要**讀 `memories/pool/archived.jsonl`。**不要**讀 `memories/nodes/`（提問不靠節點檔）。**不要**讀 `memories/clarify/`（釐清只經 distill／郵箱）。
 
 ## 步驟
 
@@ -26,7 +26,7 @@ description: 用 Engram Lite 的記憶鏈（day／week／month／year）加上�
 ## 禁止
 
 - 不要寫任何記憶檔
-- 不要打開 `archived.jsonl`、`memories/nodes/`、`jobs/`
+- 不要打開 `archived.jsonl`、`memories/nodes/`、`jobs/`、`memories/clarify/`
 - 不要因為 pending 空就改去掃 archived
 
 ## 回覆

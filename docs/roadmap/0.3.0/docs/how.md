@@ -1,6 +1,6 @@
 # 0.3.0 HOW
 
-契約細節。產品範圍以 [INDEX](../INDEX.md) 為準。
+契約細節。產品範圍以 [INDEX](../INDEX.md) 為準。落地前與根目錄 `docs/data-spec.md`／`docs/api.md` 衝突時，**以本版 INDEX＋本檔為準**（見 INDEX「實作期間契約權威」）。
 
 ## Skills vs HTTP
 
@@ -10,11 +10,29 @@
 | append 一筆 events、存圖 bytes、submit／dismiss／aside 釐清檔、search、graph、讀 markdown | **server** 機械 |
 | distill／ask | server **只** 202＋job，prompt 仍叫現有 skill |
 
-`engram-lite-ask` 本版可讀 search 不代替：Ask 仍只讀 chain＋pending（INDEX：不讀 clarify）。UI 搜尋走 GET／search。
+UI 搜尋走 `GET /search`，**不**取代 Ask skill 的讀檔範圍。`engram-lite-ask` 仍只讀 chain＋pending（INDEX：不讀 clarify）。
+
+## 控制面調度（WHY／順序）
+
+權威短文：[`docs/architecture/orchestration.md`](../../../architecture/orchestration.md)。
+
+`POST /distill` 同一 job：**先** `engram-lite-distill`（不寫 asking），若非空庫早退再 **`engram-lite-clarify-generate`（MIN 3／MAX 5）**。Program 只保證階段順序與早退；題目內容仍由 skill 寫檔。
+
+## 釐清生題（program 兩 session）
+
+`POST /distill`（見 [`orchestration.md`](../../../architecture/orchestration.md)）：
+
+1. **Session A** `engram-lite-distill` — 吸收 pending、寫 chain／nodes、archive；**不**寫 asking
+2. 開始前有 work → **Session B** `engram-lite-clarify-generate` — `clarify/asking/` **強制 3–5** 題
+3. asking＜3 → **再開一次** generate session；仍不足 → job **failed**
+
+Server 只派工與機械 submit／delete／aside；**不**生成問題正文。調度寫死在 program。
+
 
 ## 搜尋
 
 掃描根：`memoriesDir()`。文字檔用 UTF-8。每命中 `path` 用 POSIX 相對 `memories/`。`snippet`：命中前後各約 40 字，單行。
+**刻意不掃** `clarify/`（釐清只經郵箱 UI／`GET /clarify/*`，不進 keyword search）、`pool/archived.jsonl`、`jobs/`、`_attachments` bytes。
 
 ## 釐清檔例（虛構）
 
@@ -37,7 +55,7 @@ Submit 後同一檔到 `pending/`，並在正文末加：
 （人寫的 answer）
 ```
 
-Aside 無 Question 段，frontmatter 加 `kind: aside`。
+Aside：`id`／檔名規則與 asking 相同；檔直接落在 `pending/{id}.md`；frontmatter 必含 `id`、`ts`、`kind: aside`；正文為人寫的 `raw`（可無 `## Answer`）。
 
 Distill 移 history 時可在 frontmatter 加 `absorbed_at`，**不要**改 chain 文體規則。
 

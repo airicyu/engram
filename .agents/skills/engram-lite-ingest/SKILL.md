@@ -22,7 +22,8 @@ UI／`POST /events` 是**機械寫入**（一筆、現在時間、不拆、不�
    - `id`：`evt_YYYYMMDD_` + 6 位小寫字母數字
    - `note`：一句話梳理（主題、誰、結果）；語言跟 `memory_language`
 4. **append** 到記憶庫 `memories/pool/pending.jsonl`（每筆一行 JSON）。目錄不存在就建。
-5. **不要**改 `memories/chain/`、`memories/nodes/`、`archived.jsonl`。
+5. **不要**改 `memories/chain/`、`memories/nodes/`、`archived.jsonl`。**不要**新建 `memories/clarify/` 題目（生題由 program 在 distill 之後另開 `engram-lite-clarify-generate`；本 skill 也不寫 aside）。
+6. 若輸入含已落地附圖，embed 與可選 `attachments[]` 須符合 data-spec 對稱規則；不要發明 `_attachments` path。
 
 ## 回覆使用者
 

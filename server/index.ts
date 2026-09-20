@@ -1,12 +1,48 @@
 import { failStuckRunning, listJobs, loadJob, newJobId, saveJob, type Job, type JobKind } from "./jobs.ts";
 import { runSkillJob } from "./pi.ts";
 import { port, storeDir, type ChainLevel } from "./paths.ts";
-import { listChain, listNodes, readChain, readNode, readPool, readWorkspace, appendPending } from "./store.ts";
+import {
+  listChain,
+  listNodes,
+  readChain,
+  readNode,
+  readPool,
+  readWorkspace,
+  appendPendingWithAttachments,
+  searchMemories,
+  listClarifyAsking,
+  listClarifyPending,
+  submitClarifyAnswer,
+  dismissClarify,
+  createClarifyAside,
+  isValidClarifyId,
+  saveAttachmentUpload,
+  absAttachPath,
+  mimeFromFilename,
+  ALLOWED_ATTACH_MIME,
+  MAX_ATTACH_BYTES,
+  isValidAttachPath,
+  buildNodeGraph,
+  type AttachmentRef,
+} from "./store.ts";
 
 const webRoot = `${import.meta.dir}/../web`;
 
 const queue: string[] = [];
 let pumping = false;
+
+/** Reject stacked/parallel distill — one vault writer at a time. */
+async function findActiveDistill(exceptId?: string): Promise<Job | null> {
+  const jobs = await listJobs();
+  return (
+    jobs.find(
+      (j) =>
+        j.kind === "distill" &&
+        (j.status === "queued" || j.status === "running") &&
+        j.id !== exceptId,
+    ) ?? null
+  );
+}
 
 async function enqueue(kind: JobKind, input: Record<string, string>): Promise<Job> {
   const job: Job = {
@@ -38,17 +74,23 @@ async function pump() {
       job.log.push("running");
       await saveJob(job);
       try {
+        console.log(`[job ${job.id}] start kind=${job.kind}`);
         const text = await runSkillJob(job, (line) => {
           job.log.push(line);
+          console.log(`[job ${job.id}] ${line}`);
+          // Persist mid-run so GET /jobs/:id shows progress (was only saved at end).
+          void saveJob(job);
         });
         job.status = "completed";
         job.output = { text };
         job.log.push("completed");
+        console.log(`[job ${job.id}] completed`);
         await saveJob(job);
       } catch (err) {
         job.status = "failed";
         job.error = err instanceof Error ? err.message : String(err);
         job.log.push(`failed: ${job.error}`);
+        console.error(`[job ${job.id}] failed: ${job.error}`);
         await saveJob(job);
       }
     }
@@ -110,9 +152,72 @@ const server = Bun.serve({
       return json({ nodes: await listNodes() });
     }
 
+    if (req.method === "GET" && pathname === "/nodes/graph") {
+      return json(await buildNodeGraph());
+    }
+
     const nodeOne = pathname.match(/^\/nodes\/([^/]+)$/);
     if (req.method === "GET" && nodeOne) {
       return json(await readNode(decodeURIComponent(nodeOne[1]!)));
+    }
+
+
+    if (req.method === "GET" && pathname === "/search") {
+      const q = (url.searchParams.get("q") ?? "").trim();
+      if (!q) return json({ error: "missing_q" }, 400);
+      return json({ hits: await searchMemories(q) });
+    }
+
+
+    if (req.method === "GET" && pathname === "/clarify/asking") {
+      return json({ items: await listClarifyAsking() });
+    }
+
+    if (req.method === "GET" && pathname === "/clarify/pending") {
+      return json({ items: await listClarifyPending() });
+    }
+
+    const clarifySubmit = pathname.match(/^\/clarify\/asking\/([^/]+)\/submit$/);
+    if (req.method === "POST" && clarifySubmit) {
+      const id = decodeURIComponent(clarifySubmit[1]!);
+      if (!isValidClarifyId(id)) return json({ error: "invalid_id" }, 400);
+      const body = (await req.json().catch(() => null)) as { answer?: string } | null;
+      const answer = body?.answer?.trim() ?? "";
+      if (!answer) return json({ error: "missing_answer" }, 400);
+      try {
+        return json(await submitClarifyAnswer(id, answer));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg === "invalid_id") return json({ error: "invalid_id" }, 400);
+        if (msg === "missing_answer") return json({ error: "missing_answer" }, 400);
+        throw err;
+      }
+    }
+
+    const clarifyDelete = pathname.match(/^\/clarify\/asking\/([^/]+)$/);
+    if (req.method === "DELETE" && clarifyDelete) {
+      const id = decodeURIComponent(clarifyDelete[1]!);
+      if (!isValidClarifyId(id)) return json({ error: "invalid_id" }, 400);
+      try {
+        return json(await dismissClarify(id));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg === "invalid_id") return json({ error: "invalid_id" }, 400);
+        throw err;
+      }
+    }
+
+    if (req.method === "POST" && pathname === "/clarify/aside") {
+      const body = (await req.json().catch(() => null)) as { raw?: string } | null;
+      const raw = body?.raw?.trim() ?? "";
+      if (!raw) return json({ error: "missing_raw" }, 400);
+      try {
+        return json(await createClarifyAside(raw));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg === "missing_raw") return json({ error: "missing_raw" }, 400);
+        throw err;
+      }
     }
 
     if (req.method === "GET" && pathname === "/jobs") {
@@ -124,6 +229,7 @@ const server = Bun.serve({
           status: j.status,
           created_at: j.created_at,
           error: j.error,
+          input: j.input,
         })),
       });
     }
@@ -135,16 +241,96 @@ const server = Bun.serve({
       return json(job);
     }
 
+    if (req.method === "POST" && pathname === "/attachments") {
+      let formData: FormData;
+      try {
+        formData = await req.formData();
+      } catch {
+        return json({ error: "invalid_form_data" }, 400);
+      }
+      const file = formData.get("file");
+      if (!file || !(file instanceof Blob)) return json({ error: "missing_file" }, 400);
+      const mime = (file as File).type || "";
+      if (!ALLOWED_ATTACH_MIME.has(mime)) return json({ error: "invalid_mime" }, 400);
+      if (file.size > MAX_ATTACH_BYTES) return json({ error: "file_too_large" }, 400);
+      const candidate =
+        file instanceof File && file.name?.trim() ? file.name.trim() : `upload`;
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      try {
+        const result = await saveAttachmentUpload(bytes, candidate, mime);
+        return json(result, 201);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (
+          msg === "invalid_mime" ||
+          msg === "file_too_large" ||
+          msg === "empty_file"
+        ) {
+          return json({ error: msg }, 400);
+        }
+        throw err;
+      }
+    }
+
+    if (req.method === "GET" && pathname === "/attachments/file") {
+      const rel = (url.searchParams.get("path") ?? "").trim();
+      if (!rel || !isValidAttachPath(rel)) return json({ error: "invalid_path" }, 400);
+      const abs = absAttachPath(rel);
+      if (!abs) return json({ error: "invalid_path" }, 400);
+      const f = Bun.file(abs);
+      if (!(await f.exists())) return json({ error: "not_found" }, 404);
+      const filename = rel.split("/").pop()!;
+      return new Response(f, {
+        headers: {
+          "Content-Type": mimeFromFilename(filename),
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
     if (req.method === "POST" && pathname === "/events") {
-      const body = (await req.json().catch(() => null)) as { raw?: string } | null;
+      const body = (await req.json().catch(() => null)) as {
+        raw?: string;
+        attachments?: AttachmentRef[];
+      } | null;
       const raw = body?.raw?.trim() ?? "";
       if (!raw) return json({ error: "missing_raw" }, 400);
-      const event = await appendPending(raw);
-      return json({ event }, 200);
+      try {
+        const event = await appendPendingWithAttachments(raw, body?.attachments ?? null);
+        return json({ event }, 200);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const client = new Set([
+          "missing_raw",
+          "embed_alias",
+          "invalid_embed",
+          "invalid_attach_path",
+          "missing_relationship",
+          "asymmetric_attachments",
+          "missing_file",
+        ]);
+        if (client.has(msg)) return json({ error: msg }, 400);
+        throw err;
+      }
     }
 
     if (req.method === "POST" && pathname === "/distill") {
+      const active = await findActiveDistill();
+      if (active) {
+        console.warn(`[distill] rejected: active ${active.id} status=${active.status}`);
+        return json(
+          {
+            error: "distill_already_active",
+            job_id: active.id,
+            status: active.status,
+            message:
+              "A distill job is already queued or running; refuse parallel/stacked distill to protect the vault.",
+          },
+          409,
+        );
+      }
       const job = await enqueue("distill", {});
+      console.log(`[distill] accepted ${job.id}`);
       return json({ job_id: job.id, status: job.status }, 202);
     }
 

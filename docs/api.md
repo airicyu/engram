@@ -3,10 +3,12 @@
 預設 `http://127.0.0.1:8797`（`ENGRAM_LITE_PORT` 覆蓋 `engram-lite.yaml` 的 `port`）。無 auth。
 
 讀取型 GET **同步讀檔**，毫秒級。  
-`POST /events` **同步寫 pending**（不經 Pi）。  
+機械寫入（`POST /events`、上傳附圖、釐清 submit／delete／aside）**同步落檔**（不經 Pi）。  
 會跑 Pi skill 的操作（`/distill`、`/ask`）**一律 202 + job**。
 
-空集合回 **200** + `[]`／`null`／`present: false`。404 只給未知路徑。
+**空讀：** 列表／搜尋／釐清／圖等「無資料」→ **200**＋該端點既定 JSON envelope，其集合欄為空陣列（如 `{ hits: [] }`、`{ items: [] }`、`{ nodes: [], edges: [] }`）。404 只給未知路由，或附件 path 消毒後檔不存在。釐清缺題 submit／delete → 200＋`present: false`（冪等，不是 404）。
+
+契約細節以 [`docs/roadmap/0.3.0/INDEX.md`](roadmap/0.3.0/INDEX.md) 與 [`docs/data-spec.md`](data-spec.md) 為準（`version.md` 出貨前仍可能標 0.2.0）。
 
 ---
 
@@ -18,8 +20,13 @@
 | `GET /pool` | `{ pending, archived }` 各為事件陣列（新→舊） |
 | `GET /chain?level=day\|week\|month\|year` | 該層 id 列表（新→舊） |
 | `GET /chain/{level}/{id}` | `{ id, present, markdown }` |
-| `GET /nodes` | `{ id, title }[]` |
+| `GET /nodes` | `{ nodes: [{ id, title }] }` |
 | `GET /nodes/{id}` | `{ id, present, markdown }` |
+| `GET /nodes/graph` | `{ nodes: [{ id, title }], edges: [{ from, to }] }`。點＝現有 node；邊＝掃描 node 檔 wikilink，只保留兩邊都存在的點；無向去重（字典序小的當 `from`）。空庫 `{ nodes: [], edges: [] }`。**不**經 Pi |
+| `GET /search?q=` | `{ hits: [{ path, snippet }] }`。`q` trim 後不可空否則 **400**。掃 `memories/chain/**/*.md`、`memories/nodes/**/*.md`、`memories/pool/pending.jsonl`；**不**掃 archived／jobs／clarify／`_attachments` bytes。大小寫不敏感子字串；最多 50 筆；空 hits 仍 200。`path` 相對 vault。**不**經 Pi |
+| `GET /clarify/asking` | `{ items: [{ id, ts, markdown }] }`，新→舊；無題 200＋`items: []` |
+| `GET /clarify/pending` | 同上 |
+| `GET /attachments/file?path=` | 僅允許 `_attachments/uploads/{day}/{filename}`；正式檔 200＋對應 Content-Type；缺檔 **404** |
 | `GET /jobs` | 近 50 筆 job 摘要 |
 | `GET /jobs/{id}` | 完整 job |
 
@@ -29,14 +36,20 @@
 
 | 方法 | body | 行為 |
 |------|------|------|
-| `POST /events` | `{ "raw": "…" }` | **同步** append 一筆到 pending（機械：現在時間、原句當 `raw`、不拆筆、不寫 `note`）。**200** `{ event }` |
-| `POST /distill` | `{}` | 202 job → `engram-lite-distill` |
+| `POST /events` | `{ "raw": "…", "attachments"?: [{ "path", "relationship" }] }` | **同步** append 一筆到 pending（機械：現在時間、原句當 `raw`、不拆筆、不寫 `note`）。`raw` 必非空。若有 embed 或非空 `attachments`，兩邊 path 集合須相等（見 data-spec）；否則 **400**。無圖 → 與 0.2 相同。**200** `{ event }` |
+| `POST /attachments` | multipart 欄位 `file` | MIME 僅 jpeg／png／webp／gif；上限 10 MiB；寫入 `memories/_attachments/uploads/{當地日}/`（無 tmp）。**201** `{ path, day, filename }` |
+| `POST /clarify/asking/{id}/submit` | `{ "answer": "…" }` | 寫答案、移到 `clarify/pending/`。缺檔 → 200＋`present: false`。非法 id → 400 |
+| `DELETE /clarify/asking/{id}` | — | 移到 `history` 並標 dismissed。缺檔 → 200＋`present: false`。非法 id → 400 |
+| `POST /clarify/aside` | `{ "raw": "…" }` | 在 `clarify/pending/` 新建 aside（`kind: aside`）；**不是** pool 事件。**200** `{ id, present: true }` |
+| `POST /distill` | `{}` | 202 job → `engram-lite-distill`（與 UI 按鈕、crontab 同一 worker） |
 | `POST /ask` | `{ "q": "…" }` | 202 job → `engram-lite-ask` |
 
 Pi 派工成功受理：**202** `{ job_id, status: "queued" }`，再 poll `GET /jobs/{id}`。  
 要拆筆或寫 `note` 請用 pi-agent 的 **engram-lite-ingest** skill。
 
 同時只跑 **一個** Pi job。避免兩場 distill 搶寫同一批檔。
+
+定時沉澱：**不要**在 process 內建 cron；系統 crontab 對 `POST /distill` 即可（與按鈕同一 worker）。
 
 ---
 
@@ -60,4 +73,4 @@ Pi 派工成功受理：**202** `{ job_id, status: "queued" }`，再 poll `GET /
 
 `kind`：`distill`｜`ask`。  
 `status`：`queued`｜`running`｜`completed`｜`failed`。  
-`ask` 完成時 `output.text`＝回答正文。
+`ask` 完成時 `output.text`＝回答正文。尋問 UI 可列近 20 筆 `kind===ask` 且終態的摘要（題目用 `input.q`），點選展示 `output.text`，**不**重跑。

@@ -50,7 +50,7 @@
 - day `{id}.md` ledger + `{id}.summary.md`；week id 帶週一日期
 - `activities/events.jsonl` 與 `short-term-memory/pool.jsonl`
 - 改名 `engram.workspace.yaml`、stamp `store_version`、store git、`dreams/`
-- 立繪／場景圖（那是 vibe-gameverse）
+- 立繪／場景圖（本產品非目標）
 
 後續上傳見 [backlog／附圖捕捉](../backlog/INDEX.md)。
 

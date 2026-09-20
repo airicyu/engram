@@ -93,6 +93,18 @@ export function nodesDir() {
   return join(memoriesDir(), "nodes");
 }
 
+export function clarifyDir() {
+  return join(memoriesDir(), "clarify");
+}
+
+export function clarifyBucketDir(bucket: "asking" | "pending" | "history") {
+  return join(clarifyDir(), bucket);
+}
+
+export function clarifyFile(bucket: "asking" | "pending" | "history", id: string) {
+  return join(clarifyBucketDir(bucket), `${id}.md`);
+}
+
 export type ChainLevel = "day" | "week" | "month" | "year";
 
 export function chainFile(level: ChainLevel, id: string): string | null {

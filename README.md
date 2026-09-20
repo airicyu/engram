@@ -2,7 +2,7 @@
 
 簡化版個人記憶：**skills 寫檔是主體**，Bun server／UI 是輔件。
 
-完整 Engram 有 dream staging、approve、git、clarify。這裡沒有。現行 **0.2.0**（[`version.md`](version.md)）。資料契約見 [`docs/data-spec.md`](docs/data-spec.md)。版本細節見 [`changelog.md`](changelog.md)、[`docs/roadmap/`](docs/roadmap/)。
+完整 Engram 有 dream staging、approve、git。Lite **沒有**那些；釐清是輕量郵箱（distill 出題、HTTP 落答案），無 dream report。`version.md` 現行仍 **0.2.0**（出貨才 bump）；**0.3.0**（搜尋／釐清／附圖／節點圖／左欄殼）契約見 [`docs/roadmap/0.3.0/INDEX.md`](docs/roadmap/0.3.0/INDEX.md) 與 [`docs/data-spec.md`](docs/data-spec.md)。版本細節見 [`changelog.md`](changelog.md)、[`docs/roadmap/`](docs/roadmap/)。
 
 倉庫內 [`demo-engram-lite-data/`](demo-engram-lite-data/) 是虛構 VIP 示範記憶（已 distill 的 chain／nodes／archived）。`engram-lite.yaml` 預設指這裡。自己的記憶請改 `store_dir` 或設 `ENGRAM_LITE_STORE_DIR`。若用 Obsidian，請開啟庫內的 **`memories/`**（不要開 store 根；`jobs/` 是派工暫存）。
 
@@ -48,6 +48,8 @@ bun run dev
 ```
 
 瀏覽器開 `http://127.0.0.1:8797`。記入 pool 同步寫檔；沉澱／提問仍 **202** 並輪詢 job。
+
+定時沉澱：系統 crontab 對 `POST /distill` 打一槍即可（與 UI 沉澱按鈕同一 worker；**不**內建 cron daemon）。
 
 環境變數：`ENGRAM_LITE_STORE_DIR`（覆蓋 `engram-lite.yaml` 的 `store_dir`，預設 `./../engram-lite-data`）、`ENGRAM_LITE_PORT`（覆蓋 yaml 的 `port`，預設 `8797`）、`ENGRAM_LITE_TZ`、`ENGRAM_LITE_PI_MODEL` 或 `PI_MODEL`（覆蓋記憶庫 `workspace.yaml` 的 `pi_model`，預設 `deepseek/deepseek-v4.1-flash`）。
 

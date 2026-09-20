@@ -10,7 +10,7 @@
 
 HTTP 埠同樣：`ENGRAM_LITE_PORT` → `engram-lite.yaml` 的 `port` → `8797`。
 
-本倉庫附帶的 `demo-engram-lite-data/` 是可提交的虛構示範庫；`engram-lite.yaml` 預設 `store_dir: ./demo-engram-lite-data`、`port: 8797`。個人資料不要寫進這個目錄。
+本倉庫附帶的 `demo-engram-lite-data/` 是可提交的**虛構**示範庫；`engram-lite.yaml` 預設 `store_dir: ./demo-engram-lite-data`、`port: 8797`。**VIP：** 嚴禁把 personal private 真人真事寫進此目錄或任何 testing／fixture（對齊 Engram；見根目錄 `AGENTS.md` VIP 規則）。
 
 相對路徑一律相對 engram-lite 根目錄解析。記憶庫內：
 
@@ -21,7 +21,11 @@ HTTP 埠同樣：`ENGRAM_LITE_PORT` → `engram-lite.yaml` 的 `port` → `8797`
 │   └── {job_id}.json             # 僅 server 派工；不進 vault（對齊 Engram 的 dreams/）
 └── memories/                     # Obsidian vault（開這一層，不要開 store 根）
     ├── _attachments/
-    │   └── uploads/              # 附圖；embed 相對 vault：![[_attachments/uploads/{日}/{檔}]]
+    │   └── uploads/YYYY-MM-DD/   # 附圖；embed：![[_attachments/uploads/{日}/{檔}]]
+    ├── clarify/
+    │   ├── asking/               # 待人答（clarify-generate 新建；distill 不寫）
+    │   ├── pending/              # 已答／aside，等下次 distill 吸收
+    │   └── history/              # 已吸收或 dismissed
     ├── pool/
     │   ├── pending.jsonl         # 尚未沉澱
     │   └── archived.jsonl        # 已沉澱（審計；可空）
@@ -38,7 +42,7 @@ HTTP 埠同樣：`ENGRAM_LITE_PORT` → `engram-lite.yaml` 的 `port` → `8797`
 
 舊庫若 `chain`／`nodes`／`pool` 仍在 `{store}/` 根下，移進 `memories/` 即可；`jobs/` 與 `workspace.yaml` 留在 store 根。
 
-Obsidian 開 `{store}/memories/`。`[[nodes/…]]` 與將來的 `![[_attachments/uploads/…]]` 都相對這一層，圖與日記同庫可見。
+Obsidian 開 `{store}/memories/`。`[[nodes/…]]` 與 `![[_attachments/uploads/…]]` 都相對這一層，圖與日記同庫可見。
 
 ---
 
@@ -64,7 +68,13 @@ pi_model: deepseek/deepseek-v4.1-flash   # server 派 Pi 用；可被 ENGRAM_LIT
   "id": "evt_20260916_a1b2c3",
   "ts": "2026-09-16T22:10:00+08:00",
   "raw": "使用者原句",
-  "note": "可選：skill 梳理後的一句話"
+  "note": "可選：skill 梳理後的一句話",
+  "attachments": [
+    {
+      "path": "_attachments/uploads/2026-09-16/menu.png",
+      "relationship": "當日菜單"
+    }
+  ]
 }
 ```
 
@@ -72,14 +82,15 @@ pi_model: deepseek/deepseek-v4.1-flash   # server 派 Pi 用；可被 ENGRAM_LIT
 |------|------|
 | `id` | `evt_` + 日曆日 `YYYYMMDD` + `_` + 6 位小寫字母數字。同檔內唯一 |
 | `ts` | RFC3339，含 timezone offset |
-| `raw` | 原輸入，不要丟 |
+| `raw` | 原輸入，不要丟。可含精確 `![[_attachments/uploads/{日}/{檔}]]`（禁 `|alias`） |
 | `note` | 可省略。梳理、分段、標主題時寫在這裡，不要改寫 `raw` 到認不出原句 |
+| `attachments` | 可省略或空陣列（與無圖的 0.2 相同）。非空時每項 `path`（vault 相對、形如 `_attachments/uploads/{日}/{檔}`）＋`relationship`（trim 後非空）。**對稱：** 若 `raw` 含任一合法 embed，或本陣列非空，則 embed path 集合與 `attachments[].path` 集合必須相等（順序不論；重複先集合正規化）。缺漏、缺檔、`|alias`、非法 path → 寫入端拒絕 |
 
-**ingest skill：** 把一次輸入梳理成 1～N 筆，append 到 `memories/pool/pending.jsonl`。不要寫 chain／nodes。
+**ingest skill：** 把一次輸入梳理成 1～N 筆，append 到 `memories/pool/pending.jsonl`。不要寫 chain／nodes。**不要**新建釐清題（生題由 program 在 distill 之後另開 session 跑 `engram-lite-clarify-generate`）。
 
-**distill skill：** 只處理 `memories/pool/pending.jsonl`。寫完對應 chain／nodes 後，把那些列移到 `archived.jsonl`。
+**distill skill：** 每次先讀 `memories/clarify/pending/`，把答案／aside 寫進相關 chain／nodes，再移到 `clarify/history/`（可加 `absorbed_at`）。然後處理 `memories/pool/pending.jsonl`：寫完對應 chain／nodes 後，把那些列移到 `archived.jsonl`。**不要**在本 skill 寫 `clarify/asking/`。讀事件 `attachments[].relationship`（無則當「本則附圖」）；day 相關則插入**同一**精確 embed；禁止發明 path、禁止當自己看得見像素。
 
-**ask skill：** 只讀 `memories/chain/`（日週月年）＋ `memories/pool/pending.jsonl`。不讀 `archived.jsonl`、不讀 `nodes/`。已沉澱內容以鏈上敘事為準。
+**ask skill：** 只讀 `memories/chain/`（日週月年）＋ `memories/pool/pending.jsonl`。不讀 `archived.jsonl`、不讀 `nodes/`、**不讀 `clarify/`**。已沉澱內容以鏈上敘事為準。
 
 ---
 
@@ -96,14 +107,14 @@ pi_model: deepseek/deepseek-v4.1-flash   # server 派 Pi 用；可被 ENGRAM_LIT
 
 - **已存在：** 讀舊稿，吸收新事件後**整份取代**（不是檔尾 append 流水帳，也不是把舊文與新句拼接成合訂本）。
 - **不存在：** 新建完整敘事。
-- 正文語言跟 `memory_language`（`zh-Hant`＝繁體中文書面語）。
+- 正文語言跟 `memory_language`。`zh-Hant`＝**繁體中文書面語**（完整句子、自然日記散文）；**禁止**口語粵語、聊天腔、網路梗寫進 chain 正文。
 - **第一行必須是 `##` 題材標題**。不要用日期／週號當頁脊（禁止 `# 2026-09-16`、禁止週一→週日目錄）。
 
 ### 分題材、寫成文（對齊 Engram chain 敘事）
 
 **外層＝生命線**（一個 `##`＝一條線或同一主題的弧）。標題由內容長出，約 2–8 字；禁止固定套 `工作`／`家庭`，禁止用逗號把無關線併進同一標題。
 
-**內層＝自然段落。** 預設一事（或同一時間弧的一拍）一段；同一 `##` 下可多段。只把**同一條弧**熔成連續散文。禁止用分號／逗號把無關小事接成一段牆。完整句子，不是專名清單。
+**內層＝自然段落。** 預設一事（或同一時間弧的一拍）一段；同一 `##` 下可多段。只把**同一條弧**熔成連續散文。禁止用分號／逗號把無關小事接成一段牆。完整句子，不是專名清單。寫 chain 時**不要**寫過程旁白（例如「已寫入」「Writing the summary」）。
 
 日有 ≥2 條有內容的線 → ≥2 個 `##`。週／月／年常見 2–4 節（薄時段可 1 節）；**節的排序＝對該時段的重要性**，不是日曆順序。節內才按時間早→晚。
 
@@ -183,10 +194,34 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 
 ---
 
-## Attachments（目錄已定；上傳 API 尚未做）
+## Clarify（釐清）
 
-實體：`memories/_attachments/uploads/{YYYY-MM-DD}/{filename}`。  
-Chain／事件引用用精確 `![[_attachments/uploads/{日}/{檔}]]`（相對 vault；不要含 `|alias`）。各層只重複同一路徑，不複製檔案。
+路徑：`memories/clarify/{asking,pending,history}/{id}.md`。
+
+| 規則 | 說明 |
+|------|------|
+| `id` | `cla_`＋當地 `YYYYMMDD`＋`_`＋6 位小寫字母數字；檔名＝`{id}.md` |
+| frontmatter | 至少 `id`、`ts`（RFC3339）。aside 另必含 `kind: aside` |
+| asking | 待人答；**只** `engram-lite-clarify-generate` skill（program 在 distill 之後另開 session）新建 3–5 題（一事一問）。distill **不**寫 asking |
+| pending | 已答（submit 寫入 `## Answer` 後移入）或 aside 直接新建；等下次 distill 吸收。aside **不是** pool 事件 |
+| history | 已吸收，或 DELETE asking 時標 dismissed 後移入 |
+
+Ingest／`POST /events`／server **不**生成問題。Ask **不**讀本目錄。Keyword `GET /search` **不**掃 `clarify/`。
+
+## Attachments
+
+實體：`memories/_attachments/uploads/{YYYY-MM-DD}/{filename}`（**無 tmp**）。  
+上傳：`POST /attachments` multipart `file`；MIME 僅 `image/jpeg`｜`image/png`｜`image/webp`｜`image/gif`；上限 10 MiB；檔名單一段、禁 `..`／`/`；衝突則 `{stem}-{HHmmss}-{rand6}.ext`。  
+讀取：`GET /attachments/file?path=` 僅允許上款 path 形。  
+Chain／事件引用用精確 `![[_attachments/uploads/{日}/{檔}]]`（相對 vault；不要含 `|alias`）。各層只重複同一路徑，不複製檔案。Server **不**組 Engram 式 appendix；關係只存在事件 `attachments[]`。
+
+## 搜尋範圍（機械 `GET /search`）
+
+掃 `memories/chain/**/*.md`、`memories/nodes/**/*.md`、`memories/pool/pending.jsonl`（正文／`raw`／`note`）。**不**掃 `archived.jsonl`、`jobs/`、`clarify/`、`_attachments` bytes。詳見 `docs/api.md`。
+
+## 節點圖（機械 `GET /nodes/graph`）
+
+點＝現有 node id；邊＝各 `nodes/{id}/{id}.md` 內指向其他現存 node 的 wikilink（無向去重）。**不**經 Pi、**不**用 score。詳見 `docs/api.md`。
 
 ## Jobs（僅 server）
 

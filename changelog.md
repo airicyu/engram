@@ -4,6 +4,21 @@
 
 ---
 
+## 0.3.1 — Chain 日記文體質感（2026-09-21）
+
+沉澱後的 day／week chain 契約補強：distill skill 獨立「Chain 文體」小節（書面語禁令、虛構 Day／Week 好壞例）、`docs/data-spec.md` 同義對齊、字串契約測。不改 server 文風引擎、不搬 dream 雙檔。見 `docs/roadmap/0.3.1/`。
+
+### Changed
+
+- `engram-lite-distill` skill：文體規則與好／壞例
+- `docs/data-spec.md`：書面語禁令；clarify asking 歸 clarify-generate（與 0.3.0 編排一致）
+
+### Added
+
+- `server/chain-prose-contract.test.ts`（skill／data-spec 字串契約）
+
+---
+
 ## 0.2.0 — Obsidian vault＝`memories/`（2026-09-20）
 
 記憶敘事與附圖目錄改到 `{store}/memories/`。Obsidian 開這一層。`jobs/` 與 `workspace.yaml` 留在 store 根。**不做**上傳 API、vision、完整 Engram store。見 `docs/roadmap/0.2.0/`。

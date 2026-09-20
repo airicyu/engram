@@ -29,3 +29,17 @@ Server 組 `## Attachment relationships` 是為了沒有結構化 `attachments[]
 ## 釐清為何仍直接寫 live
 
 Engram 的 asking 要等 approve 才進 L2。Lite 的產品句是 distill 直接改 vault。人答進 `clarify/pending/`，**下一場 distill** 吸收——中間沒有 report。這是刻意的，不是漏做 approve。
+
+## 為何生題與沉澱拆開，且強制 3–5
+
+可選「缺事實才問／無把握就不要問」在 flash 模型上常變成 **0 題**（實測：沉澱成功但 asking 空）。Engram 以獨立 generate＋MIN／MAX 配額保證郵箱有題。Lite 對齊該產品預期，但生題仍走 **skill 寫檔**，不把出題搬進 server。
+
+## 為何 distill 與 clarify-generate 的順序寫死在 program
+
+見 [`docs/architecture/orchestration.md`](../../../architecture/orchestration.md)。
+
+摘要：配額與「有沉澱才生題」是產品不變量，交給單一 soft prompt「記得跑第二步」會漏（實測過可選出題 → 0 題）。Program 只鎖順序與早退；**問什麼**仍在 skill。這符合「調度寫死、判斷還給 skill」，且調度有獨立 WHY，不是只有 `pi.ts` 字串。
+
+## 為何生題必須是獨立 session（不是單 prompt 兩 phase）
+
+可選「缺事實才問」或「同一 session 寫 Phase 1 then Phase 2」在 flash 模型上常變成 **distill 後停、asking＝0**。Engram 以獨立 `runClarifyGenerate`＋MIN／MAX 配額保證郵箱有題。Lite 對齊：program **兩次** `createAgentSession`；skill 只判斷問題內容；＜3 再試一次，仍不足則 fail——禁止 silent complete with 0。

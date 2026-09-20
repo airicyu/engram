@@ -54,6 +54,9 @@ await writeFile(join(vault, "pool", "archived.jsonl"), "");
 await emptyDirKeepGitkeep(join(vault, "chain"));
 await emptyDirKeepGitkeep(join(vault, "nodes"));
 await emptyDirKeepGitkeep(join(vault, "_attachments", "uploads"));
+await emptyDirKeepGitkeep(join(vault, "clarify", "asking"));
+await emptyDirKeepGitkeep(join(vault, "clarify", "pending"));
+await emptyDirKeepGitkeep(join(vault, "clarify", "history"));
 await emptyDirKeepGitkeep(join(storeDir, "jobs"));
 
 if (!(await exists(join(storeDir, "workspace.yaml")))) {
@@ -64,4 +67,4 @@ if (!(await exists(join(storeDir, "workspace.yaml")))) {
 }
 
 console.log(`reset ok  store=${storeDir}`);
-console.log("kept workspace.yaml; emptied memories pool/chain/nodes/_attachments, jobs");
+console.log("kept workspace.yaml; emptied memories pool/chain/nodes/_attachments/clarify, jobs");
