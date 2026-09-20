@@ -3,24 +3,25 @@ import { isAbsolute, join, resolve } from "node:path";
 
 export const repoRoot = join(import.meta.dir, "..");
 
-export const defaultStoreDirRel = "./../engram-lite-data";
+export const defaultStoreDirRel = "./demo-engram-lite-data";
 export const defaultPort = 8797;
 export const defaultPiModel = "deepseek/deepseek-v4.1-flash";
-export const projectConfigPath = join(repoRoot, "engram-lite.yaml");
+export const projectEnvPath = join(repoRoot, ".env");
 
 function stripQuotes(s: string) {
   return s.replace(/^["']|["']$/g, "").trim();
 }
 
-function projectYaml(): Record<string, string> {
-  if (!existsSync(projectConfigPath)) return {};
+function projectEnv(): Record<string, string> {
+  if (!existsSync(projectEnvPath)) return {};
   const out: Record<string, string> = {};
-  for (const line of readFileSync(projectConfigPath, "utf8").split("\n")) {
+  for (const line of readFileSync(projectEnvPath, "utf8").split("\n")) {
     const t = line.trim();
     if (!t || t.startsWith("#")) continue;
-    const i = t.indexOf(":");
+    const body = t.startsWith("export ") ? t.slice("export ".length).trim() : t;
+    const i = body.indexOf("=");
     if (i <= 0) continue;
-    out[t.slice(0, i).trim()] = stripQuotes(t.slice(i + 1));
+    out[body.slice(0, i).trim()] = stripQuotes(body.slice(i + 1).trim());
   }
   return out;
 }
@@ -28,8 +29,8 @@ function projectYaml(): Record<string, string> {
 export function readStoreDirSetting(): string {
   const fromEnv = process.env.ENGRAM_LITE_STORE_DIR?.trim();
   if (fromEnv) return fromEnv;
-  const fromYaml = projectYaml().store_dir?.trim();
-  if (fromYaml) return fromYaml;
+  const fromFile = projectEnv().ENGRAM_LITE_STORE_DIR?.trim();
+  if (fromFile) return fromFile;
   return defaultStoreDirRel;
 }
 
@@ -39,9 +40,9 @@ export function readPort(): number {
     const n = Number(fromEnv);
     if (Number.isInteger(n) && n > 0 && n < 65536) return n;
   }
-  const fromYaml = projectYaml().port?.trim();
-  if (fromYaml) {
-    const n = Number(fromYaml);
+  const fromFile = projectEnv().ENGRAM_LITE_PORT?.trim();
+  if (fromFile) {
+    const n = Number(fromFile);
     if (Number.isInteger(n) && n > 0 && n < 65536) return n;
   }
   return defaultPort;

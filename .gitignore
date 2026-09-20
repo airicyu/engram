@@ -1,6 +1,7 @@
 node_modules/
 web/dist/
 .DS_Store
+# Local project config (ENGRAM_LITE_STORE_DIR, ENGRAM_LITE_PORT)
 .env
 **/.env
 *.log

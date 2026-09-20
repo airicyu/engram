@@ -7,7 +7,7 @@ description: 把 Engram Lite 記憶庫重設成初始空狀態（清空 pending�
 
 契約：[`docs/data-spec.md`](../../../docs/data-spec.md)
 
-記憶庫：`engram-lite.yaml` 的 `store_dir` 或 `ENGRAM_LITE_STORE_DIR`（預設 `./../engram-lite-data`）。不要用倉庫內舊的 `engram-lite/data/`。
+記憶庫：`ENGRAM_LITE_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-lite-data`）。不要用倉庫內舊的 `engram-lite/data/`。
 
 這是**破壞性**操作。先向使用者確認要清空目前所有事件、日記、節點、釐清檔、附圖、job。沒有明確同意就停止。
 

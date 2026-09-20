@@ -143,7 +143,7 @@ disable-model-invocation: true
 
 Web UI 有改動：用瀏覽器把該流程點一遍，不要只截靜態圖。
 
-Runtime 是 Bun。熱改 server 後確認仍在 `engram-lite.yaml`／`ENGRAM_LITE_PORT` 的埠。
+Runtime 是 Bun。熱改 server 後確認仍在 `ENGRAM_LITE_PORT`（`.env` 或環境變數，預設 `8797`）的埠。
 
 ---
 

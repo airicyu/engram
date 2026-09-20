@@ -5,12 +5,12 @@
 優先序：
 
 1. 環境變數 `ENGRAM_LITE_STORE_DIR`
-2. 專案檔 `engram-lite.yaml` 的 `store_dir`
-3. 預設 `./../engram-lite-data`（相對 **engram-lite 倉庫根**，即與 `engram-lite/` 同層的 `engram-lite-data/`）
+2. 倉庫根 `.env` 的 `ENGRAM_LITE_STORE_DIR`（gitignored；見 `.env.example`）
+3. 預設 `./demo-engram-lite-data`（相對 **engram-lite 倉庫根**）
 
-HTTP 埠同樣：`ENGRAM_LITE_PORT` → `engram-lite.yaml` 的 `port` → `8797`。
+HTTP 埠同樣：`ENGRAM_LITE_PORT` → `.env` 的 `ENGRAM_LITE_PORT` → `8797`。
 
-本倉庫附帶的 `demo-engram-lite-data/` 是可提交的**虛構**示範庫；`engram-lite.yaml` 預設 `store_dir: ./demo-engram-lite-data`、`port: 8797`。**VIP：** 嚴禁把 personal private 真人真事寫進此目錄或任何 testing／fixture（對齊 Engram；見根目錄 `AGENTS.md` VIP 規則）。
+本倉庫附帶的 `demo-engram-lite-data/` 是可提交的**虛構**示範庫；未設時即用此路徑。自己的記憶請在 `.env` 或環境變數把 `ENGRAM_LITE_STORE_DIR` 指到倉庫外（例如 `./../engram-lite-data`）。**VIP：** 嚴禁把 personal private 真人真事寫進 `demo-engram-lite-data/` 或任何 testing／fixture（對齊 Engram；見根目錄 `AGENTS.md` VIP 規則）。
 
 相對路徑一律相對 engram-lite 根目錄解析。記憶庫內：
 

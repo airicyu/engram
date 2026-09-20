@@ -8,7 +8,7 @@ description: 把 Engram Lite 的釐清 pending 與暫存 pool 沉澱成日記／
 契約：[`docs/data-spec.md`](../../../docs/data-spec.md)（含 chain 分題／文體／海拔）。  
 調度：[`docs/architecture/orchestration.md`](../../../docs/architecture/orchestration.md)——**program 開兩次獨立 Pi session**；本 skill 只負責 Session A。
 
-記憶庫：`engram-lite.yaml` 的 `store_dir` 或 `ENGRAM_LITE_STORE_DIR`（預設 `./../engram-lite-data`）。
+記憶庫：`ENGRAM_LITE_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-lite-data`）。
 
 ## 步驟
 

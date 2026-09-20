@@ -9,7 +9,7 @@ UI／`POST /events` 是**機械寫入**（一筆、現在時間、不拆、不�
 
 契約：[`docs/data-spec.md`](../../../docs/data-spec.md)
 
-記憶庫：讀倉庫根目錄 `engram-lite.yaml` 的 `store_dir`（相對路徑以 engram-lite 為準），或環境變數 `ENGRAM_LITE_STORE_DIR`。預設 `./../engram-lite-data`。
+記憶庫：環境變數 `ENGRAM_LITE_STORE_DIR`，或倉庫根 `.env` 同名鍵（相對路徑以 engram-lite 為準）。預設 `./demo-engram-lite-data`。
 
 ## 步驟
 

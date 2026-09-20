@@ -35,7 +35,7 @@
 | **attachments** | 附圖（一步寫正式目錄） | `{store}/memories/_attachments/uploads/{日}/` |
 | **jobs** | server 派工狀態 | `{store}/jobs/`（不進 vault） |
 
-`{store}` 見 `engram-lite.yaml` `store_dir`（本倉庫示範為 `./demo-engram-lite-data`；未設時預設 `./../engram-lite-data`）。
+`{store}` 見 `ENGRAM_LITE_STORE_DIR`（倉庫根 `.env` 或環境變數；未設時預設 `./demo-engram-lite-data`）。
 
 契約真相：[`docs/data-spec.md`](docs/data-spec.md)。HTTP：[`docs/api.md`](docs/api.md)。版本：[`version.md`](version.md)。0.3.0 範圍與定案：[`docs/roadmap/0.3.0/INDEX.md`](docs/roadmap/0.3.0/INDEX.md)。
 
@@ -68,7 +68,7 @@ Chain：第一行 `##` 題材標題；分生命線、完整句子；週月年要
 
 ## Server（可選）
 
-`bun run dev` → `127.0.0.1` + `ENGRAM_LITE_PORT`／`engram-lite.yaml` `port`／`8797`。
+`bun run dev` → `127.0.0.1` + `ENGRAM_LITE_PORT`（`.env` 或環境變數）／`8797`。
 
 - **同步讀檔：** `GET /search`、`/clarify/*`、`/nodes/graph`、`/attachments/file`、chain／nodes／pool／jobs 等。
 - **機械寫入：** `POST /events`（可帶圖對稱校驗）、`POST /attachments`、釐清 submit／delete／aside。

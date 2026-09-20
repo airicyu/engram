@@ -8,7 +8,7 @@ description: 在 distill 沉澱之後，於 memories/clarify/asking/ 強制新�
 契約：[`docs/roadmap/0.3.0/INDEX.md`](../../../docs/roadmap/0.3.0/INDEX.md) 已定案 #5。  
 調度：[`docs/architecture/orchestration.md`](../../../docs/architecture/orchestration.md)——**program 開獨立 session**；本 skill 只負責判斷「問什麼」。
 
-記憶庫：`engram-lite.yaml` 的 `store_dir` 或 `ENGRAM_LITE_STORE_DIR`。
+記憶庫：`ENGRAM_LITE_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-lite-data`）。
 
 ## 何時跑
 

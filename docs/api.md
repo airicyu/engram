@@ -1,6 +1,6 @@
 # HTTP API
 
-預設 `http://127.0.0.1:8797`（`ENGRAM_LITE_PORT` 覆蓋 `engram-lite.yaml` 的 `port`）。無 auth。
+預設 `http://127.0.0.1:8797`（`ENGRAM_LITE_PORT` 覆蓋 `.env` 的同名鍵，再落到 `8797`）。無 auth。
 
 讀取型 GET **同步讀檔**，毫秒級。  
 機械寫入（`POST /events`、上傳附圖、釐清 submit／delete／aside）**同步落檔**（不經 Pi）。  

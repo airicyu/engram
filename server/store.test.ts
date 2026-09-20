@@ -2,15 +2,15 @@ import { expect, test } from "bun:test";
 import { attachmentsDir, chainFile, defaultPiModel, defaultPort, defaultStoreDirRel, memoriesDir, nodeFile, port, storeDir } from "./paths.ts";
 import { readPool, readWorkspace, stampInTimezone } from "./store.ts";
 
-test("store dir default is sibling engram-lite-data", () => {
-  expect(defaultStoreDirRel).toBe("./../engram-lite-data");
+test("store dir default is demo-engram-lite-data", () => {
+  expect(defaultStoreDirRel).toBe("./demo-engram-lite-data");
   if (!process.env.ENGRAM_LITE_STORE_DIR) {
     const n = storeDir.replace(/\\/g, "/");
-    expect(n.endsWith("/demo-engram-lite-data") || n.endsWith("/engram-lite-data")).toBe(true);
+    expect(n.endsWith("/demo-engram-lite-data")).toBe(true);
   }
 });
 
-test("port from yaml or default", () => {
+test("port from env or default", () => {
   expect(defaultPort).toBe(8797);
   if (!process.env.ENGRAM_LITE_PORT) {
     expect(port).toBe(8797);

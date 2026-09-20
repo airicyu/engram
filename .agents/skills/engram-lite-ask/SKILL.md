@@ -7,7 +7,7 @@ description: 用 Engram Lite 的記憶鏈（day／week／month／year）加上�
 
 契約：[`docs/data-spec.md`](../../../docs/data-spec.md)
 
-記憶庫：`engram-lite.yaml` 的 `store_dir` 或 `ENGRAM_LITE_STORE_DIR`（預設 `./../engram-lite-data`）。
+記憶庫：`ENGRAM_LITE_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-lite-data`）。
 
 ## 只讀這兩處
 

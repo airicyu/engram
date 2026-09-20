@@ -4,7 +4,7 @@
 
 完整 Engram 有 dream staging、approve、git。Lite **沒有**那些；釐清是輕量郵箱（distill 出題、HTTP 落答案），無 dream report。`version.md` 現行仍 **0.2.0**（出貨才 bump）；**0.3.0**（搜尋／釐清／附圖／節點圖／左欄殼）契約見 [`docs/roadmap/0.3.0/INDEX.md`](docs/roadmap/0.3.0/INDEX.md) 與 [`docs/data-spec.md`](docs/data-spec.md)。版本細節見 [`changelog.md`](changelog.md)、[`docs/roadmap/`](docs/roadmap/)。
 
-倉庫內 [`demo-engram-lite-data/`](demo-engram-lite-data/) 是虛構 VIP 示範記憶（已 distill 的 chain／nodes／archived）。`engram-lite.yaml` 預設指這裡。自己的記憶請改 `store_dir` 或設 `ENGRAM_LITE_STORE_DIR`。若用 Obsidian，請開啟庫內的 **`memories/`**（不要開 store 根；`jobs/` 是派工暫存）。
+倉庫內 [`demo-engram-lite-data/`](demo-engram-lite-data/) 是虛構 VIP 示範記憶（已 distill 的 chain／nodes／archived）。未設 `ENGRAM_LITE_STORE_DIR` 時預設指這裡。自己的記憶請複製 [`.env.example`](.env.example) 為 `.env` 並改路徑，或設環境變數。若用 Obsidian，請開啟庫內的 **`memories/`**（不要開 store 根；`jobs/` 是派工暫存）。
 
 ## 設定
 
@@ -14,6 +14,7 @@
 |------|------|
 | [Pi](https://pi.dev) | 互動式 ingest／distill／ask；憑證在 `~/.pi/agent/auth.json`，或環境變數如 `OPENROUTER_API_KEY`、`DEEPSEEK_API_KEY` |
 | [Bun](https://bun.sh) | 可選：跑 UI／`POST /events`。沒裝 Bun 仍可用 `pi` |
+| `.env`（可選） | 複製 [`.env.example`](.env.example)；只放 `ENGRAM_LITE_STORE_DIR`／`ENGRAM_LITE_PORT`。未設則用示範庫與埠 `8797`。已 gitignore |
 
 首次把 Pi 登入好即可（擇一）：
 
@@ -23,7 +24,7 @@ pi          # 互動裡 /login openrouter（或選 API key）
 export OPENROUTER_API_KEY=sk-or-...
 ```
 
-之後在**本倉庫根目錄**開 `pi`，它會載入 `.agents/skills/`。Server 用同一套 `ModelRuntime.create()`（預設讀 `~/.pi/agent/` 與上述 env），**不會**讀 engram-lite 的 `.env`。
+之後在**本倉庫根目錄**開 `pi`，它會載入 `.agents/skills/`。Server 用同一套 `ModelRuntime.create()`（預設讀 `~/.pi/agent/` 與上述 API key env）。倉庫根 `.env` 只給 `ENGRAM_LITE_STORE_DIR`／`ENGRAM_LITE_PORT`，**不要**把模型 token 寫進去。
 
 預設模型 `deepseek/deepseek-v4.1-flash`（`workspace.yaml` 的 `pi_model`）。只影響 Bun server 的 SDK；你在終端機跑 `pi` 仍用 `~/.pi/agent/settings.json`。
 
@@ -51,7 +52,7 @@ bun run dev
 
 定時沉澱：系統 crontab 對 `POST /distill` 打一槍即可（與 UI 沉澱按鈕同一 worker；**不**內建 cron daemon）。
 
-環境變數：`ENGRAM_LITE_STORE_DIR`（覆蓋 `engram-lite.yaml` 的 `store_dir`，預設 `./../engram-lite-data`）、`ENGRAM_LITE_PORT`（覆蓋 yaml 的 `port`，預設 `8797`）、`ENGRAM_LITE_TZ`、`ENGRAM_LITE_PI_MODEL` 或 `PI_MODEL`（覆蓋記憶庫 `workspace.yaml` 的 `pi_model`，預設 `deepseek/deepseek-v4.1-flash`）。
+設定：`ENGRAM_LITE_STORE_DIR`（環境變數覆蓋 `.env`，未設預設 `./demo-engram-lite-data`）、`ENGRAM_LITE_PORT`（同樣，預設 `8797`）、`ENGRAM_LITE_TZ`、`ENGRAM_LITE_PI_MODEL` 或 `PI_MODEL`（覆蓋記憶庫 `workspace.yaml` 的 `pi_model`，預設 `deepseek/deepseek-v4.1-flash`）。
 
 ## 為什麼 API 不會等 Pi 等到 timeout
 
