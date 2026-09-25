@@ -4,6 +4,7 @@ import { isValidWeekId } from "./chain/time.ts";
 import { countFutureSightAnchors, readFutureSightSettings, sweepFutureSight } from "./future-sight/index.ts";
 import { port, storeDir, type ChainLevel } from "./config/paths.ts";
 import { commitStore } from "./git/store-git.ts";
+import { validateCreateMentionsInRaw } from "./nodes/mentions.ts";
 import {
   listChain,
   listChainIndex,
@@ -346,6 +347,14 @@ const server = Bun.serve({
       } | null;
       const raw = body?.raw?.trim() ?? "";
       if (!raw) return json({ error: "missing_raw" }, 400);
+      const liveIds = (await listNodes()).map((n) => n.id);
+      const mentionCheck = validateCreateMentionsInRaw(raw, liveIds);
+      if (!mentionCheck.ok) {
+        if (mentionCheck.error === "mention_create_exists") {
+          return json({ error: "mention_create_exists", id: mentionCheck.id }, 400);
+        }
+        return json({ error: "invalid_mention_id", bad_id: mentionCheck.bad_id }, 400);
+      }
       try {
         const event = await appendPendingWithAttachments(raw, body?.attachments ?? null);
         await commitStore(storeDir, { op: "event", id: event.id });

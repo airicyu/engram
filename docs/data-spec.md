@@ -89,13 +89,13 @@ future_sight_upcoming_days: 30  # 可省略；可被 ENGRAM_LITE_FUTURE_SIGHT_UP
 |------|------|
 | `id` | `evt_` + 日曆日 `YYYYMMDD` + `_` + 6 位小寫字母數字。同檔內唯一 |
 | `ts` | RFC3339，含 timezone offset |
-| `raw` | 原輸入，不要丟。可含精確 `![[_attachments/uploads/{日}/{檔}]]`（禁 `|alias`） |
+| `raw` | 原輸入，不要丟。可含精確 `![[_attachments/uploads/{日}/{檔}]]`（禁 `|alias`）。**提及：** 既有節點用 `[[nodes/{id}/{id}\|顯示名]]`；使用者明確要新建的用 `[@label](node-create:{id})`（`id` 允許 Unicode 字母數字與 `._-`；禁空白／`/`／`\`）。裸 `@文字` 不算提及。 |
 | `note` | 可省略。梳理、分段、標主題時寫在這裡，不要改寫 `raw` 到認不出原句 |
 | `attachments` | 可省略或空陣列（與無圖的 0.2 相同）。非空時每項 `path`（vault 相對、形如 `_attachments/uploads/{日}/{檔}`）＋`relationship`（trim 後非空）。**對稱：** 若 `raw` 含任一合法 embed，或本陣列非空，則 embed path 集合與 `attachments[].path` 集合必須相等（順序不論；重複先集合正規化）。缺漏、缺檔、`|alias`、非法 path → 寫入端拒絕 |
 
 **ingest skill：** 把一次輸入梳理成 1～N 筆，append 到 `memories/pool/pending.jsonl`。不要寫 chain／nodes。**不要**新建釐清題（生題由 program 在 distill 之後另開 session 跑 `engram-lite-clarify-generate`）。
 
-**distill skill：** 每次先讀 `memories/clarify/pending/`，把答案／aside 寫進相關 chain／nodes，再移到 `clarify/history/`（可加 `absorbed_at`）。然後處理 `memories/pool/pending.jsonl`：寫完對應 chain／nodes 後，把那些列移到 `archived.jsonl`。**不要**在本 skill 寫 `clarify/asking/`。讀事件 `attachments[].relationship`（無則當「本則附圖」）；day 相關則插入**同一**精確 embed；禁止發明 path、禁止當自己看得見像素。
+**distill skill：** 每次先讀 `memories/clarify/pending/`，把答案／aside 寫進相關 chain／nodes，再移到 `clarify/history/`（可加 `absorbed_at`）。然後處理 `memories/pool/pending.jsonl`：寫完對應 chain／nodes 後，把那些列移到 `archived.jsonl`。**不要**在本 skill 寫 `clarify/asking/`。讀事件 `attachments[].relationship`（無則當「本則附圖」）；day 相關則插入**同一**精確 embed；禁止發明 path、禁止當自己看得見像素。**Create mentions（0.6.1）：** 本批 pending `raw` 內每個 `[@…](node-create:{id})` **必須**建立（若尚無）對應 node 主檔；寫 chain 時改為 P1 wikilink，不得略過。
 
 **ask skill：** 只讀 `memories/chain/`（日週月年）＋ `memories/pool/pending.jsonl`。不讀 `archived.jsonl`、不讀 `nodes/`、**不讀 `clarify/`**。已沉澱內容以鏈上敘事為準。
 

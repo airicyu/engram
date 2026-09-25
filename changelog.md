@@ -4,6 +4,18 @@
 
 ---
 
+## 0.6.1 — `@` 新建節點意圖（2026-09-26）
+
+見 [0.6.1](docs/roadmap/0.6.1/INDEX.md)。
+
+### Added
+
+- Mention composer：**新建節點**列 → `[@label](node-create:{id})` create chip（既有仍用 wikilink）
+- `POST /events` 機械校驗：`invalid_mention_id`／`mention_create_exists`
+- Distill／data-spec：create mentions **必須**建 node 主檔
+
+---
+
 ## 0.6.0 — 殼收口、活躍分、匯入指引（2026-09-25）
 
 見 [0.6.0](docs/roadmap/0.6.0/INDEX.md)。

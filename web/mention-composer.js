@@ -8,16 +8,31 @@
       .replace(/>/g, "&gt;");
   }
 
+  function sanitizeMentionId(rawId) {
+    const id = String(rawId || "").trim();
+    if (!id || id === "." || id === "..") return null;
+    if (/[\s/\x00-\x1f\x7f\\]/.test(id)) return null;
+    if (!/^[\p{L}\p{N}._-]+$/u.test(id)) return null;
+    return id;
+  }
+
   function nodeWikilink(id, title) {
     const label = title || id;
     return `[[nodes/${id}/${id}|${label}]]`;
   }
 
-  function createMentionChip(wikilink, label) {
+  function formatCreateToken(id, label) {
+    const lbl = (label || id).trim() || id;
+    return `[@${lbl}](node-create:${id})`;
+  }
+
+  /** @param {"ref"|"create"} mode */
+  function createMentionChip(token, label, mode) {
     const chip = document.createElement("span");
-    chip.className = "mention-chip";
+    chip.className = mode === "create" ? "mention-chip mention-chip--create" : "mention-chip";
     chip.contentEditable = "false";
-    chip.setAttribute("data-wikilink", wikilink);
+    chip.setAttribute("data-mention-token", token);
+    chip.setAttribute("data-mention-mode", mode);
     chip.textContent = "@" + (label || "");
     return chip;
   }
@@ -33,7 +48,7 @@
       if (node.nodeType !== Node.ELEMENT_NODE) return;
       const el = node;
       if (el.classList.contains("mention-chip")) {
-        out += el.getAttribute("data-wikilink") || "";
+        out += el.getAttribute("data-mention-token") || el.getAttribute("data-wikilink") || "";
         return;
       }
       if (el.tagName === "BR") {
@@ -53,12 +68,14 @@
     if (!s) return;
     const parts = [];
     let i = 0;
-    const tokenRe = /(\[\[nodes\/[^|\]]+\|[^\]]+\]\]|!\[\[[^\]]+\]\])/g;
+    const tokenRe =
+      /(\[\[nodes\/[^|\]]+\|[^\]]+\]\]|!\[\[[^\]]+\]\]|\[@[^\]]*\]\(node-create:[^)]+\))/g;
     let m;
     while ((m = tokenRe.exec(s)) !== null) {
       if (m.index > i) parts.push({ type: "text", value: s.slice(i, m.index) });
       const tok = m[1];
       if (tok.startsWith("![[")) parts.push({ type: "embed", value: tok });
+      else if (tok.startsWith("[@")) parts.push({ type: "create", value: tok });
       else parts.push({ type: "mention", value: tok });
       i = m.index + tok.length;
     }
@@ -70,10 +87,20 @@
         appendTextWithNewlines(editor, p.value);
       } else if (p.type === "embed") {
         editor.appendChild(document.createTextNode(p.value));
+      } else if (p.type === "create") {
+        const cm = /^\[@([^\]]*)\]\(node-create:([^)]+)\)$/.exec(p.value);
+        if (cm) {
+          const id = cm[2];
+          const label = cm[1] || id;
+          editor.appendChild(createMentionChip(p.value, label, "create"));
+          editor.appendChild(document.createTextNode(" " + ZWSP));
+        } else {
+          editor.appendChild(document.createTextNode(p.value));
+        }
       } else {
         const mm = /^\[\[nodes\/([^|\]]+)\|([^\]]+)\]\]$/.exec(p.value);
         if (mm) {
-          editor.appendChild(createMentionChip(p.value, mm[2]));
+          editor.appendChild(createMentionChip(p.value, mm[2], "ref"));
           editor.appendChild(document.createTextNode(" " + ZWSP));
         } else {
           editor.appendChild(document.createTextNode(p.value));
@@ -172,6 +199,14 @@
       .slice(0, 12);
   }
 
+  function liveIdSet(nodes) {
+    const s = new Set();
+    for (const n of Array.isArray(nodes) ? nodes : []) {
+      if (n && n.id) s.add(String(n.id));
+    }
+    return s;
+  }
+
   function deleteMentionQueryBeforeCaret(editor, queryLen) {
     const sel = window.getSelection();
     if (!sel || !sel.rangeCount) return false;
@@ -266,9 +301,13 @@
     return null;
   }
 
-  function insertMentionChipAtCaret(editor, node) {
-    const wikilink = nodeWikilink(node.id, node.title || node.id);
-    const chip = createMentionChip(wikilink, node.title || node.id);
+  /** @param {{ kind: "ref"|"create", id: string, title?: string }} item */
+  function insertMentionChipAtCaret(editor, item) {
+    const mode = item.kind;
+    const id = item.id;
+    const label = item.title || id;
+    const token = mode === "create" ? formatCreateToken(id, label) : nodeWikilink(id, label);
+    const chip = createMentionChip(token, label, mode);
     const tail = document.createTextNode(" " + ZWSP);
     const sel = window.getSelection();
     if (!sel || !sel.rangeCount) {
@@ -330,14 +369,19 @@
 
   /**
    * @param {HTMLElement} editor contenteditable compose field
-   * @param {{ nodes: { id: string, title: string }[], labels?: { empty?: string } }} opts
+   * @param {{ nodes: { id: string, title: string }[], labels?: { empty?: string, create?: string, createExists?: string, emptyCreate?: string } }} opts
    */
   function bindMentionComposer(editor, opts) {
     const nodes = opts.nodes || [];
-    const emptyLabel = (opts.labels && opts.labels.empty) || "—";
+    const labels = opts.labels || {};
+    const emptyLabel = labels.empty || "—";
+    const createLabel = labels.create || "新建";
+    const createExistsLabel = labels.createExists || "節點已存在";
+    const emptyCreateLabel = labels.emptyCreate || "無法新建此名稱";
     let menu = null;
     let activeIdx = 0;
     let openCtx = null;
+    let hint = "";
 
     const host = editor.closest(".compose-card") || editor.parentElement;
     if (host) host.classList.add("mention-host");
@@ -355,48 +399,83 @@
     function close() {
       openCtx = null;
       activeIdx = 0;
+      hint = "";
       if (menu) menu.hidden = true;
     }
 
-    function currentMatches() {
+    function menuItems() {
       if (!openCtx) return [];
-      return filterNodes(nodes, openCtx.query);
+      const matches = filterNodes(nodes, openCtx.query);
+      const items = matches.map((n) => ({
+        kind: "ref",
+        id: n.id,
+        title: n.title || n.id,
+      }));
+      const createId = sanitizeMentionId(openCtx.query);
+      const live = liveIdSet(nodes);
+      if (createId && !live.has(createId)) {
+        items.push({ kind: "create", id: createId, title: createId });
+      }
+      return items;
     }
 
-    function renderMenu(matches) {
+    function renderMenu(items) {
       const m = ensureMenu();
-      if (!matches.length) {
-        m.innerHTML = `<div class="mention-menu-empty">${escapeHtml(emptyLabel)}</div>`;
+      const createId = openCtx ? sanitizeMentionId(openCtx.query) : null;
+      const live = liveIdSet(nodes);
+      const createBlocked = !!(createId && live.has(createId) && items.length === 0);
+
+      if (!items.length) {
+        let msg = emptyLabel;
+        if (openCtx && openCtx.query) {
+          if (createBlocked) msg = createExistsLabel;
+          else if (!createId) msg = emptyCreateLabel;
+        }
+        m.innerHTML = `<div class="mention-menu-empty">${escapeHtml(msg)}</div>`;
+        if (hint) {
+          m.innerHTML += `<p class="mention-menu-hint">${escapeHtml(hint)}</p>`;
+        }
         m.hidden = false;
         return;
       }
-      m.innerHTML = matches
-        .map(
-          (n, i) =>
-            `<button type="button" class="mention-menu-item${i === activeIdx ? " is-active" : ""}" role="option" aria-selected="${i === activeIdx}" data-idx="${i}">
-              <span class="mention-menu-title">${escapeHtml(n.title || n.id)}</span>
-              <span class="mention-menu-id">${escapeHtml(n.id)}</span>
-            </button>`,
-        )
-        .join("");
+      m.innerHTML =
+        items
+          .map((item, i) => {
+            if (item.kind === "create") {
+              return `<button type="button" class="mention-menu-item mention-menu-item--create${i === activeIdx ? " is-active" : ""}" role="option" aria-selected="${i === activeIdx}" data-idx="${i}">
+              <span class="mention-menu-title">${escapeHtml(createLabel)}：${escapeHtml(item.id)}</span>
+              <span class="mention-menu-id">node-create</span>
+            </button>`;
+            }
+            return `<button type="button" class="mention-menu-item${i === activeIdx ? " is-active" : ""}" role="option" aria-selected="${i === activeIdx}" data-idx="${i}">
+              <span class="mention-menu-title">${escapeHtml(item.title || item.id)}</span>
+              <span class="mention-menu-id">${escapeHtml(item.id)}</span>
+            </button>`;
+          })
+          .join("") + (hint ? `<p class="mention-menu-hint">${escapeHtml(hint)}</p>` : "");
       m.hidden = false;
       m.querySelectorAll(".mention-menu-item").forEach((btn) => {
         btn.addEventListener("mousedown", (ev) => {
           ev.preventDefault();
           const idx = Number(btn.getAttribute("data-idx"));
-          pick(currentMatches()[idx]);
+          pick(menuItems()[idx]);
         });
       });
     }
 
-    function pick(node) {
-      if (!openCtx || !node) {
+    function pick(item) {
+      if (!openCtx || !item) {
         close();
+        return;
+      }
+      if (item.kind === "create" && liveIdSet(nodes).has(item.id)) {
+        hint = createExistsLabel;
+        renderMenu(menuItems());
         return;
       }
       const q = openCtx.query;
       deleteMentionQueryBeforeCaret(editor, q.length);
-      insertMentionChipAtCaret(editor, node);
+      insertMentionChipAtCaret(editor, item);
       close();
       editor.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -410,13 +489,14 @@
         return;
       }
       openCtx = ctx;
-      const matches = filterNodes(nodes, ctx.query);
-      if (activeIdx >= matches.length) activeIdx = 0;
-      renderMenu(matches);
+      hint = "";
+      const items = menuItems();
+      if (activeIdx >= items.length) activeIdx = 0;
+      renderMenu(items);
     }
 
-    function menuOpenWithMatches() {
-      return Boolean(openCtx && menu && !menu.hidden && currentMatches().length > 0);
+    function menuOpenWithItems() {
+      return Boolean(openCtx && menu && !menu.hidden && menuItems().length > 0);
     }
 
     editor.addEventListener("input", refresh);
@@ -455,23 +535,23 @@
         }
         return;
       }
-      if (!menuOpenWithMatches()) return;
-      const matches = currentMatches();
+      if (!menuOpenWithItems()) return;
+      const items = menuItems();
       if (ev.key === "ArrowDown") {
         ev.preventDefault();
-        activeIdx = (activeIdx + 1) % matches.length;
-        renderMenu(matches);
+        activeIdx = (activeIdx + 1) % items.length;
+        renderMenu(items);
         return;
       }
       if (ev.key === "ArrowUp") {
         ev.preventDefault();
-        activeIdx = (activeIdx - 1 + matches.length) % matches.length;
-        renderMenu(matches);
+        activeIdx = (activeIdx - 1 + items.length) % items.length;
+        renderMenu(items);
         return;
       }
       if (ev.key === "Enter" || ev.key === "Tab") {
         ev.preventDefault();
-        pick(matches[activeIdx]);
+        pick(items[activeIdx]);
       }
     });
 

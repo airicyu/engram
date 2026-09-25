@@ -93,6 +93,9 @@ describe("UI refresh smoke (i18n / compose / tabs / locale)", () => {
     expect(js).toContain("compose-editor");
     expect(mentionJs).toContain("composeEditorToRaw");
     expect(mentionJs).toContain("mention-chip");
+    expect(mentionJs).toContain("node-create");
+    expect(mentionJs).toContain("mention-chip--create");
+    expect(i18n).toContain("activities.mention_create");
     expect(js).toContain("events-tab");
     expect(js).toContain("events.tab_recent");
     expect(js).toContain("events.tab_consolidate");
@@ -121,6 +124,7 @@ describe("UI refresh smoke (i18n / compose / tabs / locale)", () => {
     expect(html).toContain("繁體中文");
     expect(css).toContain("--accent: #1f6b63");
     expect(css).toContain(".mention-menu");
+    expect(css).toContain(".mention-chip--create");
     expect(css).toContain(".mode-btn");
     expect(css).toContain(".inbox-layout");
     expect(css).toContain(".browse-layout");

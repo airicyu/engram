@@ -11,6 +11,13 @@ let lastDistillResult = "";
 let seekMode = "ask";
 /** @type {string|null} */
 let clarifySelectedId = null;
+/** @type {{ destroy?: Function } | null} */
+let liveGraphApi = null;
+
+function disposeLiveGraph() {
+  if (liveGraphApi && typeof liveGraphApi.destroy === "function") liveGraphApi.destroy();
+  liveGraphApi = null;
+}
 
 function t(key, vars) {
   if (window.EngramI18n && typeof window.EngramI18n.t === "function") {
@@ -150,6 +157,7 @@ function syncLocaleButtons() {
 }
 
 function route() {
+  disposeLiveGraph();
   syncNav();
   syncLocaleButtons();
   void refreshStatusLight();
@@ -535,7 +543,12 @@ async function renderEvents() {
   if (typeof window.bindMentionComposer === "function") {
     window.bindMentionComposer(rawEl, {
       nodes: mentionNodes,
-      labels: { empty: t("activities.mention_empty") },
+      labels: {
+        empty: t("activities.mention_empty"),
+        create: t("activities.mention_create"),
+        createExists: t("activities.mention_create_exists"),
+        emptyCreate: t("activities.mention_empty_create"),
+      },
     });
   }
 
@@ -1390,6 +1403,7 @@ async function renderGraph() {
     graphApi = mountForceGraph(document.getElementById("graph-svg"), allNodes, allEdges, {
       onSelect: (id) => loadNodeDetail(id),
     });
+    liveGraphApi = graphApi;
     applyGraphFilter();
     if (preselect && allNodes.some((n) => n.id === preselect)) await loadNodeDetail(preselect);
   } catch (err) {
@@ -1416,6 +1430,7 @@ function mountForceGraph(svg, nodes, edges, opts) {
       y: H / 2 + Math.sin(ang) * Math.min(W, H) * 0.28,
       vx: 0,
       vy: 0,
+      pinned: false,
     };
   });
   const byId = Object.fromEntries(pts.map((p) => [p.id, p]));
@@ -1429,10 +1444,13 @@ function mountForceGraph(svg, nodes, edges, opts) {
     .filter((l) => l.a && l.b);
 
   while (svg.firstChild) svg.removeChild(svg.firstChild);
+  const gWorld = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  gWorld.setAttribute("class", "node-graph-world");
   const gLines = document.createElementNS("http://www.w3.org/2000/svg", "g");
   const gNodes = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  svg.appendChild(gLines);
-  svg.appendChild(gNodes);
+  gWorld.appendChild(gLines);
+  gWorld.appendChild(gNodes);
+  svg.appendChild(gWorld);
 
   const lineEls = links.map((l) => {
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -1447,7 +1465,6 @@ function mountForceGraph(svg, nodes, edges, opts) {
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     g.setAttribute("class", "graph-node node-graph-node");
     g.dataset.id = p.id;
-    g.style.cursor = "pointer";
     const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     c.setAttribute("r", "10");
     const tx = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -1457,16 +1474,17 @@ function mountForceGraph(svg, nodes, edges, opts) {
     tx.textContent = label;
     g.appendChild(c);
     g.appendChild(tx);
-    g.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      if (typeof opts.onSelect === "function") opts.onSelect(p.id);
-    });
     gNodes.appendChild(g);
     return g;
   });
 
   let hits = new Set(pts.map((p) => p.id));
   let selectedId = null;
+  let transform = { k: 1, x: 0, y: 0 };
+  /** @type {{ kind: "pan" | "node", id?: string, sx: number, sy: number, ox: number, oy: number } | null} */
+  let drag = null;
+  let raf = 0;
+  let alive = true;
 
   function paintFilter() {
     const filtering = hits.size !== pts.length;
@@ -1484,64 +1502,202 @@ function mountForceGraph(svg, nodes, edges, opts) {
   }
 
   const N = pts.length;
-  let tick = 0;
-  const maxTick = 180;
+  // Match the legacy graph: soft springs, light center pull, no viewport walls.
+  // Solve off-screen, then fit once so the first paint is already settled.
+  const K_REP = 2200;
+  const K_SPRING = 0.012;
+  const REST = 90;
+  const DAMP = 0.82;
+  const CENTER = 0.004;
 
-  function step() {
-    tick++;
+  function integrate() {
     for (let i = 0; i < N; i++) {
       for (let j = i + 1; j < N; j++) {
         const a = pts[i];
         const b = pts[j];
-        let dx = a.x - b.x;
-        let dy = a.y - b.y;
-        let dist2 = dx * dx + dy * dy || 0.01;
-        const dist = Math.sqrt(dist2);
-        const force = 1200 / dist2;
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-        a.vx += fx;
-        a.vy += fy;
-        b.vx -= fx;
-        b.vy -= fy;
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy) || 0.01;
+        const f = K_REP / (dist * dist);
+        dx /= dist;
+        dy /= dist;
+        if (!a.pinned) {
+          a.vx -= dx * f;
+          a.vy -= dy * f;
+        }
+        if (!b.pinned) {
+          b.vx += dx * f;
+          b.vy += dy * f;
+        }
       }
     }
     for (const l of links) {
       let dx = l.b.x - l.a.x;
       let dy = l.b.y - l.a.y;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
-      const target = 90;
-      const force = (dist - target) * 0.05;
-      const fx = (dx / dist) * force;
-      const fy = (dy / dist) * force;
-      l.a.vx += fx;
-      l.a.vy += fy;
-      l.b.vx -= fx;
-      l.b.vy -= fy;
+      const dist = Math.hypot(dx, dy) || 0.01;
+      const stretch = (dist - REST) * K_SPRING;
+      const fx = (dx / dist) * stretch;
+      const fy = (dy / dist) * stretch;
+      if (!l.a.pinned) {
+        l.a.vx += fx;
+        l.a.vy += fy;
+      }
+      if (!l.b.pinned) {
+        l.b.vx -= fx;
+        l.b.vy -= fy;
+      }
     }
+    let energy = 0;
     for (const p of pts) {
-      p.vx += (W / 2 - p.x) * 0.01;
-      p.vy += (H / 2 - p.y) * 0.01;
-      p.vx *= 0.85;
-      p.vy *= 0.85;
-      p.x = Math.max(24, Math.min(W - 24, p.x + p.vx));
-      p.y = Math.max(24, Math.min(H - 24, p.y + p.vy));
+      if (p.pinned) continue;
+      p.vx += (W / 2 - p.x) * CENTER;
+      p.vy += (H / 2 - p.y) * CENTER;
+      p.vx *= DAMP;
+      p.vy *= DAMP;
+      p.x += p.vx;
+      p.y += p.vy;
+      energy += p.vx * p.vx + p.vy * p.vy;
     }
+    return N ? energy / N : 0;
+  }
+
+  function fitToView() {
+    if (!N) return;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const p of pts) {
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    }
+    const pad = 36;
+    const bw = Math.max(maxX - minX, 1);
+    const bh = Math.max(maxY - minY, 1);
+    const scale = Math.min((W - pad * 2) / bw, (H - pad * 2) / bh, 1.6);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    for (const p of pts) {
+      p.x = W / 2 + (p.x - cx) * scale;
+      p.y = H / 2 + (p.y - cy) * scale;
+      p.vx = 0;
+      p.vy = 0;
+    }
+  }
+
+  function paint() {
+    gWorld.setAttribute("transform", `translate(${transform.x} ${transform.y}) scale(${transform.k})`);
     for (let i = 0; i < links.length; i++) {
       const l = links[i];
       const el = lineEls[i];
-      el.setAttribute("x1", l.a.x);
-      el.setAttribute("y1", l.a.y);
-      el.setAttribute("x2", l.b.x);
-      el.setAttribute("y2", l.b.y);
+      el.setAttribute("x1", String(l.a.x));
+      el.setAttribute("y1", String(l.a.y));
+      el.setAttribute("x2", String(l.b.x));
+      el.setAttribute("y2", String(l.b.y));
     }
     for (let i = 0; i < N; i++) {
       nodeEls[i].setAttribute("transform", `translate(${pts[i].x},${pts[i].y})`);
     }
     paintFilter();
-    if (tick < maxTick) requestAnimationFrame(step);
   }
-  step();
+
+  function clientToWorld(clientX, clientY) {
+    const rect = svg.getBoundingClientRect();
+    const sx = ((clientX - rect.left) / Math.max(rect.width, 1)) * W;
+    const sy = ((clientY - rect.top) / Math.max(rect.height, 1)) * H;
+    return {
+      x: (sx - transform.x) / transform.k,
+      y: (sy - transform.y) / transform.k,
+    };
+  }
+
+  for (let tick = 0; tick < 240; tick++) {
+    const energy = integrate();
+    if (tick > 40 && energy < 0.04) break;
+  }
+  fitToView();
+  paint();
+
+  // Soft continuous tick so dragged nodes gently tug neighbors (legacy behaviour).
+  function loop() {
+    if (!alive) return;
+    integrate();
+    paint();
+    raf = requestAnimationFrame(loop);
+  }
+  raf = requestAnimationFrame(loop);
+
+  const onWheel = (e) => {
+    e.preventDefault();
+    const { k, x, y } = transform;
+    const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+    const nk = Math.min(4, Math.max(0.35, k * factor));
+    const rect = svg.getBoundingClientRect();
+    const sx = ((e.clientX - rect.left) / Math.max(rect.width, 1)) * W;
+    const sy = ((e.clientY - rect.top) / Math.max(rect.height, 1)) * H;
+    const wx = (sx - x) / k;
+    const wy = (sy - y) / k;
+    transform = { k: nk, x: sx - wx * nk, y: sy - wy * nk };
+  };
+  svg.addEventListener("wheel", onWheel, { passive: false });
+
+  svg.addEventListener("pointerdown", (e) => {
+    const target = e.target;
+    const g =
+      target && typeof target.closest === "function"
+        ? target.closest("g.node-graph-node")
+        : null;
+    if (g && g.dataset.id) {
+      const id = g.dataset.id;
+      const node = byId[id];
+      if (!node) return;
+      node.pinned = true;
+      node.vx = 0;
+      node.vy = 0;
+      drag = { kind: "node", id, sx: e.clientX, sy: e.clientY, ox: node.x, oy: node.y };
+      svg.setPointerCapture(e.pointerId);
+      return;
+    }
+    drag = { kind: "pan", sx: e.clientX, sy: e.clientY, ox: transform.x, oy: transform.y };
+    svg.setPointerCapture(e.pointerId);
+  });
+
+  svg.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    if (drag.kind === "pan") {
+      const rect = svg.getBoundingClientRect();
+      const dx = ((e.clientX - drag.sx) / Math.max(rect.width, 1)) * W;
+      const dy = ((e.clientY - drag.sy) / Math.max(rect.height, 1)) * H;
+      transform = { ...transform, x: drag.ox + dx, y: drag.oy + dy };
+      return;
+    }
+    const node = byId[drag.id];
+    if (!node) return;
+    const w = clientToWorld(e.clientX, e.clientY);
+    node.x = w.x;
+    node.y = w.y;
+    node.vx = 0;
+    node.vy = 0;
+  });
+
+  svg.addEventListener("pointerup", (e) => {
+    const d = drag;
+    drag = null;
+    if (!d) return;
+    if (d.kind === "node" && d.id) {
+      const node = byId[d.id];
+      if (node) node.pinned = false;
+      const moved = Math.hypot(e.clientX - d.sx, e.clientY - d.sy);
+      if (moved < 6 && typeof opts.onSelect === "function") opts.onSelect(d.id);
+    }
+  });
+
+  svg.addEventListener("pointercancel", () => {
+    if (drag?.kind === "node" && drag.id && byId[drag.id]) byId[drag.id].pinned = false;
+    drag = null;
+  });
 
   return {
     setHits(next) {
@@ -1551,6 +1707,11 @@ function mountForceGraph(svg, nodes, edges, opts) {
     setSelected(id) {
       selectedId = id || null;
       paintFilter();
+    },
+    destroy() {
+      alive = false;
+      cancelAnimationFrame(raf);
+      svg.removeEventListener("wheel", onWheel);
     },
   };
 }

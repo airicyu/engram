@@ -11,4 +11,6 @@ test("distill skill teaches attachment relationship / embed (no pixels)", async 
   expect(md).toContain("![[_attachments/uploads/");
   expect(md).toMatch(/不要.*像素|看不見/);
   expect(md).toContain("禁止發明 path");
+  expect(md).toContain("node-create");
+  expect(md).toMatch(/強制新建/);
 });

@@ -494,6 +494,22 @@ textarea:disabled {
   cursor: default;
 }
 
+.mention-chip--create {
+  color: #5a4a1a;
+  background: rgba(196, 160, 48, 0.18);
+  border-color: rgba(156, 120, 24, 0.35);
+}
+
+.mention-menu-item--create .mention-menu-title {
+  color: #5a4a1a;
+}
+
+.mention-menu-hint {
+  margin: 0.25rem 0.75rem 0.35rem;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
 .compose-toolbar {
   display: flex;
   align-items: center;
@@ -1434,6 +1450,9 @@ button.danger { background: var(--bad); }
   background: color-mix(in srgb, var(--paper-deep) 28%, #fff);
   font: inherit;
   color: inherit;
+  outline: none;
+  box-shadow: none;
+  transition: border-color 0.15s;
 }
 
 .browse-filter::placeholder {
@@ -1441,9 +1460,9 @@ button.danger { background: var(--bad); }
 }
 
 .browse-filter:focus {
-  outline: 2px solid rgba(31, 107, 99, 0.35);
-  outline-offset: 1px;
-  border-color: rgba(31, 107, 99, 0.45);
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  box-shadow: none;
 }
 
 .browse-filter::-webkit-search-decoration,
@@ -1551,8 +1570,13 @@ button.node-search-mode-opt:focus-visible,
   min-height: 22rem;
   background: color-mix(in srgb, var(--paper) 70%, #fff);
   border-radius: var(--radius);
-  cursor: default;
+  cursor: grab;
   touch-action: none;
+}
+
+.graph-svg:active,
+.node-graph-svg:active {
+  cursor: grabbing;
 }
 
 .graph-edge,

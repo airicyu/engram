@@ -39,7 +39,7 @@
 
 | 方法 | body | 行為 |
 |------|------|------|
-| `POST /events` | `{ "raw": "…", "attachments"?: [{ "path", "relationship" }] }` | **同步** append 一筆到 pending（機械：現在時間、原句當 `raw`、不拆筆、不寫 `note`）。`raw` 必非空。若有 embed 或非空 `attachments`，兩邊 path 集合須相等（見 data-spec）；否則 **400**。無圖 → 與 0.2 相同。**200** `{ event }` |
+| `POST /events` | `{ "raw": "…", "attachments"?: [{ "path", "relationship" }] }` | **同步** append 一筆到 pending（機械：現在時間、原句當 `raw`、不拆筆、不寫 `note`）。`raw` 必非空。若有 embed 或非空 `attachments`，兩邊 path 集合須相等（見 data-spec）；否則 **400**。`raw` 內 `[@…](node-create:{id})`：id 非法 → **400** `invalid_mention_id`；id 已有 live node → **400** `mention_create_exists`。無圖 → 與 0.2 相同。**200** `{ event }` |
 | `POST /attachments` | multipart 欄位 `file` | MIME 僅 jpeg／png／webp／gif；上限 10 MiB；寫入 `memories/_attachments/uploads/{當地日}/`（無 tmp）。**201** `{ path, day, filename }` |
 | `POST /clarify/asking/{id}/submit` | `{ "answer": "…" }` | 寫答案、移到 `clarify/pending/`。缺檔 → 200＋`present: false`。非法 id → 400 |
 | `DELETE /clarify/asking/{id}` | — | 移到 `history` 並標 dismissed。缺檔 → 200＋`present: false`。非法 id → 400 |

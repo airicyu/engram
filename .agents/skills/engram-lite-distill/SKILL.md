@@ -26,7 +26,8 @@ Vault＝`{store}/memories/`。釐清目錄：`memories/clarify/{asking,pending,h
    - **day（必做）：** `memories/chain/days/YYYY-MM/YYYY-MM-DD.md`
    - **week／month／year：** 只在閘門通過時寫；週記 id＝`YYYY-Www-MMDD`（`MMDD`＝該週週一），檔 `memories/chain/weeks/YYYY-MM/{id}.md`；月／年見 data-spec
    - 讀事件 `attachments[].relationship`（無則當「本則附圖」）；與 day 相關則在 chain 插入**同一**精確 `![[_attachments/uploads/{日}/{檔}]]`；**禁止**寫 `![](/api/attachments/file?path=…)` 等 HTTP URL（Obsidian 只認 wikilink）；禁止發明 path；不要當自己看得見像素
-6. 對反覆或重要的人／專案／概念：新建或更新 `memories/nodes/{id}/{id}.md`（Identity／Relation／Standing facts／Current situation）。瑣事不開 node。事件細節留在 chain，不要把日記抄進 node。wikilink 相對 vault：`[[nodes/{id}/{id}|顯示名]]`。
+6. **強制新建（create mentions，0.6.1）：** 掃本批 `pool/pending.jsonl` 每則 `raw` 內的 `[@label](node-create:{id})`。對每個去重後的 `id`：**必須**建立（若尚無）`memories/nodes/{id}/{id}.md`（Identity／Relation／Standing facts／Current situation；資訊不足可寫短骨架）。**不得**以「瑣事不開 node」略過 create 意圖。寫入 chain 時，該人物／主題的**第一次**提及用 `[[nodes/{id}/{id}|顯示名]]`（顯示名可用 token 的 label）；不要把 `node-create:` token 原樣抄進 chain。
+6a. 此外，對反覆或重要、但**沒有** create token 的人／專案／概念：仍可新建或更新 node（同結構）。純路過、無 create 意圖的瑣事不開 node。事件細節留在 chain，不要把日記抄進 node。wikilink 相對 vault：`[[nodes/{id}/{id}|顯示名]]`。
 6b. 若本輪事件影響**近端／長期規劃**：讀寫 `memories/future-sight/upcoming.md` 與／或 `longTerm.md`（整檔 zone 格式，見 data-spec「Future-sight」）。無關則不要動。
 7. **不要**在本 skill 寫 `clarify/asking/`。生題由 **另一次** Pi session 跑 `engram-lite-clarify-generate`（program 編排；MIN 3／MAX 5）。若因無事可沉澱而早退，回報即可（program 應跳過 generate）。
 8. 將**本批已處理**的 pool pending 列 append 到 `memories/pool/archived.jsonl`，並重寫 `pending.jsonl` 只留未處理列。**先寫完 chain／nodes（與釐清吸收），再動 pool。**
