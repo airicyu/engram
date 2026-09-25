@@ -49,7 +49,7 @@
 - 看圖／OCR ingest
 - day `{id}.md` ledger + `{id}.summary.md`；week id 帶週一日期
 - `activities/events.jsonl` 與 `short-term-memory/pool.jsonl`
-- 改名 `engram.workspace.yaml`、stamp `store_version`、store git、`dreams/`
+- 改名 `engram.workspace.yaml`、stamp `store_version`、`dreams/`（**store git** 見 [0.3.2](../0.3.2/INDEX.md)）
 - 立繪／場景圖（本產品非目標）
 
 後續上傳見 [backlog／附圖捕捉](../backlog/INDEX.md)。

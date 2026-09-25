@@ -85,7 +85,7 @@ function promptAsk(job: Job): string {
   return [
     `Follow the skill engram-lite-ask.`,
     `Memory store directory (absolute): ${store}`,
-    `Read only memories/chain/ (day/week/month/year) and memories/pool/pending.jsonl. Do not read archived.jsonl or memories/nodes/.`,
+    `Read memories/chain/ (day/week/month/year), memories/pool/pending.jsonl, and memories/future-sight/ (upcoming.md + longTerm.md). Do not read archived.jsonl or memories/nodes/.`,
     `Question:`,
     job.input.q ?? "",
   ].join("\n\n");

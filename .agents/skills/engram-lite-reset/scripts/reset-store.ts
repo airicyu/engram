@@ -1,6 +1,7 @@
 import { mkdir, readdir, rm, writeFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { memoriesDir, storeDir } from "../../../../server/paths.ts";
+import { commitStore } from "../../../../server/store-git.ts";
 
 const KEEP_ROOT = new Set(["workspace.yaml", ".gitignore", "memories", "jobs"]);
 
@@ -68,3 +69,4 @@ if (!(await exists(join(storeDir, "workspace.yaml")))) {
 
 console.log(`reset ok  store=${storeDir}`);
 console.log("kept workspace.yaml; emptied memories pool/chain/nodes/_attachments/clarify, jobs");
+await commitStore(storeDir, { op: "reset" });

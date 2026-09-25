@@ -68,7 +68,7 @@
 - Future-sight（`upcoming.md`／`longTerm.md`）
 - Node `score.yaml`／打分 UI
 - Capture `@` mention token
-- 虛擬時鐘、store git、day ledger／`.summary.md`、L0＋STM 雙 jsonl
+- 虛擬時鐘、day ledger／`.summary.md`、L0＋STM 雙 jsonl（**store git** 見 [0.3.2](../0.3.2/INDEX.md)）
 - 與 `engram-data` 共用庫；vision／OCR／HEIC
 - 上傳 tmp 目錄、Engram appendix 標題區塊
 - 內建排程 daemon、Claude／Cursor／Codex agent 後端

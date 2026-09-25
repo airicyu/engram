@@ -9,19 +9,20 @@ description: 用 Engram Lite 的記憶鏈（day／week／month／year）加上�
 
 記憶庫：`ENGRAM_LITE_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-lite-data`）。
 
-## 只讀這兩處
+## 只讀這三處
 
 1. **`memories/chain/`** — 已沉澱的日／週／月／年記（記憶鏈）。先近期 day，不夠再 week／month／year。
 2. **`memories/pool/pending.jsonl`** — 還沒沉澱進鏈的事件。
+3. **`memories/future-sight/upcoming.md`** 與 **`longTerm.md`** — 未來視錨點（對齊 Engram zone 檔）。
 
 已沉澱的細節應已寫進 chain，**不要**讀 `memories/pool/archived.jsonl`。**不要**讀 `memories/nodes/`（提問不靠節點檔）。**不要**讀 `memories/clarify/`（釐清只經 distill／郵箱）。
 
 ## 步驟
 
 1. 讀 `{store}/workspace.yaml`（語言）。Vault＝`{store}/memories/`。
-2. 在 `memories/chain/` 與 `memories/pool/pending.jsonl` 用 grep／find／read 找與問題有關的內容。
+2. 在 chain、pending、future-sight 用 grep／find／read 找與問題有關的內容。
 3. 只根據這些檔回答。不知道就說不知道。
-4. 來源只列 chain 路徑或 `memories/pool/pending.jsonl`。
+4. 來源可列 chain、pending、future-sight 路徑。
 
 ## 禁止
 

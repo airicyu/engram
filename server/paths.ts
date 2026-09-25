@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
+import { isValidWeekId, weekMonthKey } from "./chain-time.ts";
+import { isValidNodeId } from "./node-id.ts";
 
 export const repoRoot = join(import.meta.dir, "..");
 
@@ -115,8 +117,9 @@ export function chainFile(level: ChainLevel, id: string): string | null {
     return join(chainDir(), "days", ym, `${id}.md`);
   }
   if (level === "week") {
-    if (!/^\d{4}-W\d{2}$/.test(id)) return null;
-    return null;
+    if (!isValidWeekId(id)) return null;
+    const ym = weekMonthKey(id);
+    return join(chainDir(), "weeks", ym, `${id}.md`);
   }
   if (level === "month") {
     if (!/^\d{4}-\d{2}$/.test(id)) return null;
@@ -130,6 +133,6 @@ export function chainFile(level: ChainLevel, id: string): string | null {
 }
 
 export function nodeFile(id: string): string | null {
-  if (!/^[a-z][a-z0-9-]{0,63}$/.test(id)) return null;
+  if (!isValidNodeId(id)) return null;
   return join(nodesDir(), id, `${id}.md`);
 }

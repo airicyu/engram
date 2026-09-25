@@ -4,6 +4,22 @@
 
 ---
 
+## 0.3.2 — Store git（2026-09-21）
+
+記憶庫根維護 local-only git：server 列舉之成功寫入（events、附件、釐清、distill job 完成、reset）後自動 commit；`jobs/` 不追蹤；git 失敗只 log。見 `docs/roadmap/0.3.2/`。
+
+### Added
+
+- `server/store-git.ts`（ensureRepo、commitStore、gitignore 合併）
+- HTTP／job／reset 成功路徑掛鉤
+- `server/store-git.test.ts`
+
+### Changed
+
+- `AGENTS.md`、`docs/data-spec.md`、`docs/api.md`：store git 行為
+
+---
+
 ## 0.3.1 — Chain 日記文體質感（2026-09-21）
 
 沉澱後的 day／week chain 契約補強：distill skill 獨立「Chain 文體」小節（書面語禁令、虛構 Day／Week 好壞例）、`docs/data-spec.md` 同義對齊、字串契約測。不改 server 文風引擎、不搬 dream 雙檔。見 `docs/roadmap/0.3.1/`。

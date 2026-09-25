@@ -64,6 +64,28 @@ test("buildNodeGraph: mutual + one-way wikilinks; dead links ignored; undirected
   }
 });
 
+test("buildNodeGraph: Unicode node id and wikilinks", async () => {
+  const root = await mkdtemp(join(tmpdir(), "engram-lite-graph-unicode-"));
+  const vault = join(root, "memories");
+  const id = "虛構乙";
+  await mkdir(join(vault, "nodes", id), { recursive: true });
+  await mkdir(join(vault, "nodes", "虛構丙"), { recursive: true });
+  await writeFile(
+    join(vault, "nodes", id, `${id}.md`),
+    `# 虛構乙\n\n見 [[nodes/虛構丙/虛構丙|虛構丙]]。\n`,
+    "utf8",
+  );
+  await writeFile(join(vault, "nodes", "虛構丙", "虛構丙.md"), "# 虛構丙\n\n", "utf8");
+  try {
+    const g = await buildNodeGraph(vault);
+    expect(g.nodes.map((n) => n.id).sort()).toEqual(["虛構丙", "虛構乙"]);
+    expect(g.edges).toHaveLength(1);
+    expect(g.edges[0]!.from).not.toBe(g.edges[0]!.to);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("buildNodeGraph: title falls back to id when no # heading", async () => {
   const root = await mkdtemp(join(tmpdir(), "engram-lite-graph-title-"));
   const vault = join(root, "memories");

@@ -13,6 +13,8 @@ import {
   workspacePath,
   type ChainLevel,
 } from "./paths.ts";
+import { isValidWeekId, weekDateRange } from "./chain-time.ts";
+import { isValidNodeId } from "./node-id.ts";
 
 
 export type AttachmentRef = { path: string; relationship: string };
@@ -169,25 +171,33 @@ export async function listChain(level: ChainLevel): Promise<string[]> {
           ? join(chainDir(), "months")
           : join(chainDir(), "years");
   const files = await walkMd(sub);
-  const ids = files.map((f) => idFromChainPath(level, f));
+  let ids = files.map((f) => idFromChainPath(level, f));
+  if (level === "week") ids = ids.filter((id) => isValidWeekId(id));
   return [...new Set(ids)].sort().reverse();
 }
 
-export async function readChain(level: ChainLevel, id: string): Promise<{ id: string; present: boolean; markdown: string | null; path: string | null }> {
-  if (level === "week") {
-    const files = await walkMd(join(chainDir(), "weeks"));
-    const hit = files.find((f) => f.endsWith(`/${id}.md`));
-    if (!hit) return { id, present: false, markdown: null, path: null };
-    const markdown = await readFile(hit, "utf8");
-    return { id, present: true, markdown, path: hit };
-  }
+export type ChainReadResult = {
+  id: string;
+  present: boolean;
+  markdown: string | null;
+  path: string | null;
+  start?: string;
+  end?: string;
+};
+
+export async function readChain(level: ChainLevel, id: string): Promise<ChainReadResult> {
   const path = chainFile(level, id);
   if (!path) return { id, present: false, markdown: null, path: null };
+  const weekRange = level === "week" ? weekDateRange(id) : null;
   try {
     const markdown = await readFile(path, "utf8");
-    return { id, present: true, markdown, path };
+    return weekRange
+      ? { id, present: true, markdown, path, start: weekRange.start, end: weekRange.end }
+      : { id, present: true, markdown, path };
   } catch {
-    return { id, present: false, markdown: null, path };
+    return weekRange
+      ? { id, present: false, markdown: null, path, start: weekRange.start, end: weekRange.end }
+      : { id, present: false, markdown: null, path };
   }
 }
 
@@ -249,7 +259,7 @@ function vaultRel(absPath: string, vaultRoot: string): string {
   return relative(vaultRoot, absPath).split("\\").join("/");
 }
 
-/** Keyword search over chain + nodes + pending.jsonl. Does not scan archived/jobs/attachments/clarify. */
+/** Keyword search over chain + nodes + future-sight + pending.jsonl. Does not scan archived/jobs/attachments/clarify. */
 export async function searchMemories(q: string, vaultRoot = memoriesDir()): Promise<SearchHit[]> {
   const query = q.trim();
   if (!query) return [];
@@ -275,6 +285,15 @@ export async function searchMemories(q: string, vaultRoot = memoriesDir()): Prom
   for (const abs of await walkMd(join(vaultRoot, "nodes"))) {
     await pushMd(abs);
     if (hits.length >= SEARCH_LIMIT) return hits;
+  }
+  const fsDir = join(vaultRoot, "future-sight");
+  try {
+    for (const abs of await walkMd(fsDir)) {
+      await pushMd(abs);
+      if (hits.length >= SEARCH_LIMIT) return hits;
+    }
+  } catch {
+    /* no future-sight dir */
   }
 
   const pendingPath = join(vaultRoot, "pool", "pending.jsonl");
@@ -723,9 +742,8 @@ export type GraphNode = { id: string; title: string };
 export type GraphEdge = { from: string; to: string };
 export type NodeGraph = { nodes: GraphNode[]; edges: GraphEdge[] };
 
-/** Wikilink `[[nodes/{id}/{id}]]` or `[[nodes/{id}/{id}|alias]]` — both path segments must match. */
-export const NODE_WIKILINK_RE =
-  /\[\[nodes\/([a-z][a-z0-9-]{0,63})\/([a-z][a-z0-9-]{0,63})(?:\|[^\]]*)?\]\]/g;
+/** P1: `[[nodes/{id}/{id}|label]]` — both path segments must match (id may be Unicode). */
+export const NODE_WIKILINK_RE = /\[\[nodes\/([^/\]]+)\/\1(?:\|[^\]]*)?\]\]/g;
 
 /** Extract target node ids from markdown body. Ignores mismatched path segments. */
 export function extractNodeWikilinks(md: string): string[] {
@@ -733,9 +751,8 @@ export function extractNodeWikilinks(md: string): string[] {
   const re = new RegExp(NODE_WIKILINK_RE.source, "g");
   let m: RegExpExecArray | null;
   while ((m = re.exec(md))) {
-    const a = m[1]!;
-    const b = m[2]!;
-    if (a === b) out.push(a);
+    const id = m[1]!;
+    if (isValidNodeId(id)) out.push(id);
   }
   return out;
 }
@@ -759,7 +776,7 @@ export async function buildNodeGraph(vaultRoot = memoriesDir()): Promise<NodeGra
   const mdById = new Map<string, string>();
 
   for (const id of ids.sort()) {
-    if (!/^[a-z][a-z0-9-]{0,63}$/.test(id)) continue;
+    if (!isValidNodeId(id)) continue;
     const p = join(nodesRoot, id, `${id}.md`);
     let md: string;
     try {

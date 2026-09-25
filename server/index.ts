@@ -1,6 +1,8 @@
 import { failStuckRunning, listJobs, loadJob, newJobId, saveJob, type Job, type JobKind } from "./jobs.ts";
 import { runSkillJob } from "./pi.ts";
+import { isValidWeekId } from "./chain-time.ts";
 import { port, storeDir, type ChainLevel } from "./paths.ts";
+import { commitStore } from "./store-git.ts";
 import {
   listChain,
   listNodes,
@@ -8,6 +10,7 @@ import {
   readNode,
   readPool,
   readWorkspace,
+  appendPending,
   appendPendingWithAttachments,
   searchMemories,
   listClarifyAsking,
@@ -86,6 +89,13 @@ async function pump() {
         job.log.push("completed");
         console.log(`[job ${job.id}] completed`);
         await saveJob(job);
+        if (job.kind === "distill") {
+          const git = await commitStore(storeDir, { op: "distill", id: job.id });
+          if (git.warn) {
+            job.log.push(git.warn);
+            await saveJob(job);
+          }
+        }
       } catch (err) {
         job.status = "failed";
         job.error = err instanceof Error ? err.message : String(err);
@@ -121,13 +131,40 @@ const server = Bun.serve({
       const ws = await readWorkspace();
       const jobs = await listJobs();
       const active = jobs.find((j) => j.status === "running" || j.status === "queued") ?? null;
+      const { countFutureSightAnchors, readFutureSightSettings } = await import("./future-sight.ts");
+      const fsCounts = await countFutureSightAnchors();
+      const fsSettings = await readFutureSightSettings();
       return json({
         ok: true,
         store_dir: storeDir,
         timezone: ws.timezone,
         memory_language: ws.memory_language,
         pi_model: ws.pi_model,
+        future_sight_active_count: fsCounts.total,
+        future_sight_upcoming_count: fsCounts.upcoming,
+        future_sight_long_term_count: fsCounts.longTerm,
+        future_sight_window_days: fsSettings.windowDays,
+        future_sight_upcoming_days: fsSettings.upcomingDays,
         queue: active ? { job_id: active.id, kind: active.kind, status: active.status } : null,
+      });
+    }
+
+    if (req.method === "GET" && pathname === "/future-sight") {
+      const result = await sweepFutureSight(async (raw) => {
+        await appendPending(raw);
+      });
+      if (result.changed) await commitStore(storeDir, { op: "future-sight" });
+      return json({
+        anchors: result.anchors.map((a) => ({
+          id: a.id,
+          zone: a.zone,
+          anchor_start: a.anchor_start,
+          anchor_end: a.anchor_end,
+          content: a.content,
+        })),
+        swept_expired: result.swept_expired,
+        future_sight_window_days: result.future_sight_window_days,
+        future_sight_upcoming_days: result.future_sight_upcoming_days,
       });
     }
 
@@ -145,6 +182,7 @@ const server = Bun.serve({
     if (req.method === "GET" && chainOne) {
       const level = chainOne[1] as ChainLevel;
       const id = decodeURIComponent(chainOne[2]!);
+      if (level === "week" && !isValidWeekId(id)) return json({ error: "invalid_week_id" }, 400);
       return json(await readChain(level, id));
     }
 
@@ -185,7 +223,11 @@ const server = Bun.serve({
       const answer = body?.answer?.trim() ?? "";
       if (!answer) return json({ error: "missing_answer" }, 400);
       try {
-        return json(await submitClarifyAnswer(id, answer));
+        const result = await submitClarifyAnswer(id, answer);
+        if (result.present) {
+          await commitStore(storeDir, { op: "clarify-submit", id: result.id });
+        }
+        return json(result);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg === "invalid_id") return json({ error: "invalid_id" }, 400);
@@ -199,7 +241,11 @@ const server = Bun.serve({
       const id = decodeURIComponent(clarifyDelete[1]!);
       if (!isValidClarifyId(id)) return json({ error: "invalid_id" }, 400);
       try {
-        return json(await dismissClarify(id));
+        const result = await dismissClarify(id);
+        if (result.present) {
+          await commitStore(storeDir, { op: "clarify-dismiss", id: result.id });
+        }
+        return json(result);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg === "invalid_id") return json({ error: "invalid_id" }, 400);
@@ -212,7 +258,9 @@ const server = Bun.serve({
       const raw = body?.raw?.trim() ?? "";
       if (!raw) return json({ error: "missing_raw" }, 400);
       try {
-        return json(await createClarifyAside(raw));
+        const result = await createClarifyAside(raw);
+        await commitStore(storeDir, { op: "clarify-aside", id: result.id });
+        return json(result);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg === "missing_raw") return json({ error: "missing_raw" }, 400);
@@ -258,6 +306,7 @@ const server = Bun.serve({
       const bytes = new Uint8Array(await file.arrayBuffer());
       try {
         const result = await saveAttachmentUpload(bytes, candidate, mime);
+        await commitStore(storeDir, { op: "attachment", id: result.path });
         return json(result, 201);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -297,6 +346,7 @@ const server = Bun.serve({
       if (!raw) return json({ error: "missing_raw" }, 400);
       try {
         const event = await appendPendingWithAttachments(raw, body?.attachments ?? null);
+        await commitStore(storeDir, { op: "event", id: event.id });
         return json({ event }, 200);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { searchMemories, snippetAround } from "./store.ts";
-import { memoriesDir } from "./paths.ts";
+import { defaultStoreDirRel, memoriesDir, resolveStoreDir } from "./paths.ts";
 
 test("snippetAround keeps ~40 chars each side, single line", () => {
   const text = "aaa " + "x".repeat(10) + " HITME " + "y".repeat(10) + " bbb";
@@ -113,7 +113,8 @@ test("searchMemories caps at 50", async () => {
 });
 
 test("demo vault search finds known day substring", async () => {
-  const hits = await searchMemories("燈塔照片紀律", memoriesDir());
+  const demoVault = join(resolveStoreDir(defaultStoreDirRel), "memories");
+  const hits = await searchMemories("燈塔照片紀律", demoVault);
   expect(hits.length).toBeGreaterThan(0);
   expect(hits.some((h) => h.path.includes("chain/"))).toBe(true);
 });

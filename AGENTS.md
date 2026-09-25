@@ -3,7 +3,7 @@
 **無論使用者用什麼語言說話，agent 一律以繁體中文書面語回應。**  
 用書面語；專有名詞、路徑、API、檔名可留英文。
 
-`version.md` 現行仍為 **0.2.0**（出貨才 bump）。下一版／落地中：[0.3.0 搜尋、釐清、附圖、節點圖、工作台殼](docs/roadmap/0.3.0/INDEX.md)（`planned`；根目錄 `docs/data-spec.md`／`docs/api.md` 已對齊該 INDEX）。執行某版：`.agents/skills/roadmap-version`。上游：[0.2.0](docs/roadmap/0.2.0/INDEX.md)（`shipped`）、[0.1.0](docs/roadmap/0.1.0/INDEX.md)（`shipped`）。寫 roadmap：[GUIDELINES.md](docs/roadmap/GUIDELINES.md)。未排程：[backlog](docs/roadmap/backlog/INDEX.md)。
+`version.md` 現行 **0.3.2**。近期出貨：[0.3.1](docs/roadmap/0.3.1/INDEX.md)、[0.3.2 Store git](docs/roadmap/0.3.2/INDEX.md)（`shipped`）。落地中／契約延伸：[0.3.0](docs/roadmap/0.3.0/INDEX.md)（`planned`；根目錄 `docs/data-spec.md`／`docs/api.md` 已對齊該 INDEX）。執行某版：`.agents/skills/roadmap-version`。上游：[0.2.0](docs/roadmap/0.2.0/INDEX.md)（`shipped`）、[0.1.0](docs/roadmap/0.1.0/INDEX.md)（`shipped`）。寫 roadmap：[GUIDELINES.md](docs/roadmap/GUIDELINES.md)。未排程：[backlog](docs/roadmap/backlog/INDEX.md)。
 
 ## VIP 規則：測試／demo／fixture 嚴禁真人真事
 
@@ -23,7 +23,7 @@
 
 個人記憶原型：**LLM／skills 寫檔是主體**，Bun server／UI 只是讀檔、機械寫入與派工。不必開 server：在倉庫根目錄用 **pi-agent** 跑 skills 即可。
 
-對照完整 Engram：**沒有** dream staging、approve／discard、store git、future-sight、activities／short-term 雙軌、內建 cron daemon。Lite **有** 釐清郵箱（`clarify/{asking,pending,history}`；`POST /distill` program **兩次獨立 session**（distill → clarify-generate 強制 3–5）；HTTP 只落答案；無 dream report）。
+對照完整 Engram：**沒有** dream staging、approve／discard、activities／short-term 雙軌、內建 cron daemon。Lite **有** **future-sight**（`upcoming.md`／`longTerm.md`；`GET /future-sight` expire→pending）、**store git**（記憶庫根 local-only git：server 列舉之成功寫入後自動 commit；無 push／無 approve）與釐清郵箱（`clarify/{asking,pending,history}`；`POST /distill` program **兩次獨立 session**（distill → clarify-generate 強制 3–5）；HTTP 只落答案；無 dream report）。純 pi-agent 直跑 skill 寫 vault **不**自動 commit。
 
 | 層 | 角色 | 路徑 |
 |----|------|------|
@@ -33,7 +33,7 @@
 | **chain** | 日／週／月／年敘事 | `{store}/memories/chain/days\|weeks\|months\|years/` |
 | **nodes** | 主題理解 | `{store}/memories/nodes/{id}/{id}.md` |
 | **attachments** | 附圖（一步寫正式目錄） | `{store}/memories/_attachments/uploads/{日}/` |
-| **jobs** | server 派工狀態 | `{store}/jobs/`（不進 vault） |
+| **jobs** | server 派工狀態 | `{store}/jobs/`（不進 vault；store git 亦忽略） |
 
 `{store}` 見 `ENGRAM_LITE_STORE_DIR`（倉庫根 `.env` 或環境變數；未設時預設 `./demo-engram-lite-data`）。
 

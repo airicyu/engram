@@ -31,9 +31,12 @@ HTTP 埠同樣：`ENGRAM_LITE_PORT` → `.env` 的 `ENGRAM_LITE_PORT` → `8797`
     │   └── archived.jsonl        # 已沉澱（審計；可空）
     ├── chain/
     │   ├── days/YYYY-MM/YYYY-MM-DD.md
-    │   ├── weeks/YYYY-MM/YYYY-Www.md
+    │   ├── weeks/YYYY-MM/YYYY-Www-MMDD.md
     │   ├── months/YYYY/YYYY-MM.md
     │   └── years/YYYY.md
+    ├── future-sight/
+    │   ├── upcoming.md              # 近端錨點（zone 檔，見下）
+    │   └── longTerm.md
     └── nodes/
         └── {id}/{id}.md
 ```
@@ -52,6 +55,8 @@ Obsidian 開 `{store}/memories/`。`[[nodes/…]]` 與 `![[_attachments/uploads/
 timezone: Asia/Hong_Kong
 memory_language: zh-Hant   # zh-Hant | zh-Hans | en
 pi_model: deepseek/deepseek-v4.1-flash   # server 派 Pi 用；可被 ENGRAM_LITE_PI_MODEL／PI_MODEL 覆蓋
+future_sight_window_days: 365   # 可省略；可被 ENGRAM_LITE_FUTURE_SIGHT_WINDOW_DAYS 覆蓋
+future_sight_upcoming_days: 30  # 可省略；可被 ENGRAM_LITE_FUTURE_SIGHT_UPCOMING_DAYS 覆蓋
 ```
 
 發生日時一律用此 timezone 解讀／寫入 offset。  
@@ -99,7 +104,7 @@ pi_model: deepseek/deepseek-v4.1-flash   # server 派 Pi 用；可被 ENGRAM_LIT
 | 層 | id | 路徑 |
 |----|----|------|
 | day | `YYYY-MM-DD` | `memories/chain/days/YYYY-MM/YYYY-MM-DD.md` |
-| week | ISO week `YYYY-Www`（週一～週日） | `memories/chain/weeks/YYYY-MM/YYYY-Www.md`，分組鍵＝該週**週一**所在年月 |
+| week | ISO week id `YYYY-Www-MMDD`（`Www`＝ISO 週序；`MMDD`＝該週**週一**月日，無連字號；週一～週日） | `memories/chain/weeks/YYYY-MM/{week_id}.md`；`{YYYY-MM}`＝週一所在日曆月。`MMDD` 與 ISO 週一不符 → 非法 id（對齊 Engram） |
 | month | `YYYY-MM` | `memories/chain/months/YYYY/YYYY-MM.md` |
 | year | `YYYY` | `memories/chain/years/YYYY.md` |
 
@@ -166,7 +171,7 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 
 路徑：`memories/nodes/{id}/{id}.md`。Vault 內 wikilink 仍寫 `[[nodes/{id}/{id}|顯示名]]`（相對 `memories/`）。
 
-`id`：小寫 kebab 或短英文／拼音，`[a-z][a-z0-9-]{0,63}`。不要用空白。
+`id`：目錄名＝主檔名＝wikilink 兩段 path。**允許 Unicode**（含中文）；禁止 `/`、`\`、`..`、空字串（對齊 Engram）。新建時仍建議英文 kebab／拼音以利 URL，非硬性。
 
 主檔建議四段（可缺，但新建時盡量齊）：
 
@@ -194,6 +199,24 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 
 ---
 
+## Future-sight（未來視）
+
+路徑：`memories/future-sight/upcoming.md`、`memories/future-sight/longTerm.md`（對齊 Engram 0.40+；**無** per-id `active/` 檔）。
+
+每檔＝zone frontmatter＋多個 `## {id}` 區塊。每區塊：`## {id}` → fenced `yaml`（`anchor_start`／`anchor_end`）→ 正文段落。例 id：`fs-example-deadline`。
+
+| 規則 | 說明 |
+|------|------|
+| `id` | `[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}` |
+| `anchor_start`／`anchor_end` | `YYYY-MM-DD`，含起迄；`anchor_end`＜當地今日 → 過期 |
+| zone | `upcoming`＝近端檔；`longTerm`＝較遠檔（**不**在 GET 時自動重分桶；distill／skill 依事件改寫整檔） |
+
+**`GET /future-sight`：** expire-only——移除過期項、各寫一筆敘述事件到 `pool/pending.jsonl`（機械文字，非 Pi）；成功後可 store git commit。詳見 `docs/api.md`。
+
+**ask skill：** 可讀兩個 zone 檔（與 chain、pending 並用）。**distill：** 本輪事件影響近端規劃時，可整檔改寫 `upcoming.md`／`longTerm.md`（勿發明過窗 anchor；窗長見 workspace）。
+
+---
+
 ## Clarify（釐清）
 
 路徑：`memories/clarify/{asking,pending,history}/{id}.md`。
@@ -217,11 +240,19 @@ Chain／事件引用用精確 `![[_attachments/uploads/{日}/{檔}]]`（相對 v
 
 ## 搜尋範圍（機械 `GET /search`）
 
-掃 `memories/chain/**/*.md`、`memories/nodes/**/*.md`、`memories/pool/pending.jsonl`（正文／`raw`／`note`）。**不**掃 `archived.jsonl`、`jobs/`、`clarify/`、`_attachments` bytes。詳見 `docs/api.md`。
+掃 `memories/chain/**/*.md`、`memories/nodes/**/*.md`、`memories/future-sight/*.md`、`memories/pool/pending.jsonl`（正文／`raw`／`note`）。**不**掃 `archived.jsonl`、`jobs/`、`clarify/`、`_attachments` bytes。詳見 `docs/api.md`。
 
 ## 節點圖（機械 `GET /nodes/graph`）
 
 點＝現有 node id；邊＝各 `nodes/{id}/{id}.md` 內指向其他現存 node 的 wikilink（無向去重）。**不**經 Pi、**不**用 score。詳見 `docs/api.md`。
+
+## Store git（0.3.2）
+
+- Git 根＝**store 根**（`ENGRAM_LITE_STORE_DIR`），**local only**（預設無 remote；文件不建議 push 私人 store）。
+- **觸發：** server 機械寫入或 distill job **成功終態**、reset skill 成功清空後，program 呼叫 `commitStore`（skills **不**負責 git）。純 pi-agent 直寫 vault 不在範圍。
+- **追蹤：** `memories/`、`workspace.yaml`（若存在）。**忽略：** `jobs/`、OS 垃圾（store 根 `.gitignore`）。
+- **失敗：** 業務已成功則不回滾；git 失敗只 log。
+- Message 形如 `engram-lite: event evt_…`（禁止正文）。
 
 ## Jobs（僅 server）
 

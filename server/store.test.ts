@@ -28,9 +28,15 @@ test("chain day path", () => {
   expect(chainFile("day", "nope")).toBeNull();
 });
 
+test("chain week path", () => {
+  const p = chainFile("week", "2026-W30-0720");
+  expect(p?.endsWith("memories/chain/weeks/2026-07/2026-W30-0720.md")).toBe(true);
+  expect(chainFile("week", "2026-W30")).toBeNull();
+});
+
 test("node path", () => {
   expect(nodeFile("acme")?.endsWith("memories/nodes/acme/acme.md")).toBe(true);
-  expect(nodeFile("Acme")).toBeNull();
+  expect(nodeFile("../escape")).toBeNull();
 });
 
 test("read demo pool", async () => {

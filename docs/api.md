@@ -6,9 +6,11 @@
 機械寫入（`POST /events`、上傳附圖、釐清 submit／delete／aside）**同步落檔**（不經 Pi）。  
 會跑 Pi skill 的操作（`/distill`、`/ask`）**一律 202 + job**。
 
+**Store git（0.3.2）：** 下列操作**成功**結束後，server 可能在 `{store}` 根自動 `git init`（若尚無）並 **local commit**（單行 message `engram-lite: …`；不含正文）。失敗只記 log，不改已成功 HTTP。**不** push。**不**含純 skill CLI 直寫 vault 或唯讀 GET。
+
 **空讀：** 列表／搜尋／釐清／圖等「無資料」→ **200**＋該端點既定 JSON envelope，其集合欄為空陣列（如 `{ hits: [] }`、`{ items: [] }`、`{ nodes: [], edges: [] }`）。404 只給未知路由，或附件 path 消毒後檔不存在。釐清缺題 submit／delete → 200＋`present: false`（冪等，不是 404）。
 
-契約細節以 [`docs/roadmap/0.3.0/INDEX.md`](roadmap/0.3.0/INDEX.md) 與 [`docs/data-spec.md`](data-spec.md) 為準（`version.md` 出貨前仍可能標 0.2.0）。
+契約細節以 [`docs/data-spec.md`](data-spec.md) 與各版 `docs/roadmap/X.Y.Z/INDEX.md` 為準（現行見 [`version.md`](../version.md)）。
 
 ---
 
@@ -19,7 +21,8 @@
 | `GET /status` | `store_dir`、`timezone`、`pi_model`、`queue` |
 | `GET /pool` | `{ pending, archived }` 各為事件陣列（新→舊） |
 | `GET /chain?level=day\|week\|month\|year` | 該層 id 列表（新→舊） |
-| `GET /chain/{level}/{id}` | `{ id, present, markdown }` |
+| `GET /chain/{level}/{id}` | `{ id, present, markdown, path? }`。`level=week` 時 `id` 須為 `YYYY-Www-MMDD`（`MMDD`＝該 ISO 週週一）；非法 → **400** `invalid_week_id`。週詳情另回 `start`／`end`（`YYYY-MM-DD`，週一～週日），即使 `present: false` |
+| `GET /future-sight` | `{ anchors: [{ id, zone, anchor_start, anchor_end, content }], swept_expired, future_sight_window_days, future_sight_upcoming_days }`。每次 **expire-only** 維護（過期項移除並 append 機械事件到 pending）；檔有變更時 store git commit |
 | `GET /nodes` | `{ nodes: [{ id, title }] }` |
 | `GET /nodes/{id}` | `{ id, present, markdown }` |
 | `GET /nodes/graph` | `{ nodes: [{ id, title }], edges: [{ from, to }] }`。點＝現有 node；邊＝掃描 node 檔 wikilink，只保留兩邊都存在的點；無向去重（字典序小的當 `from`）。空庫 `{ nodes: [], edges: [] }`。**不**經 Pi |
