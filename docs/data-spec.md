@@ -45,7 +45,7 @@ HTTP 埠同樣：`ENGRAM_LITE_PORT` → `.env` 的 `ENGRAM_LITE_PORT` → `8797`
 
 舊庫若 `chain`／`nodes`／`pool` 仍在 `{store}/` 根下，移進 `memories/` 即可；`jobs/` 與 `workspace.yaml` 留在 store 根。
 
-**自完整 Engram 匯入（0.4.0）：** 離線 `bun run scripts/import-from-engram.ts --from <engram-store> --to <lite-store>`（預設 dry-run；`--yes` 寫入）。來源唯讀；**禁止** `--to` 指到 Engram 的 `engram-data` 或與 Engram 共用一庫。轉換細節見 `docs/roadmap/0.4.0/docs/how.md`。
+**自完整 Engram 匯入（0.4.0+）：** 離線 `bun run import:engram --from <engram-store> --to <lite-store>`（預設 dry-run；`--yes` 寫入；目標已有記憶內容需 `--force`）。來源唯讀；**禁止** `--to` 指到 Engram 本庫或與 Engram 共用一庫。**檢查清單：** 新空 `--to` 目錄 → dry-run 看 log → `--yes` 寫入 → 設定 `ENGRAM_LITE_STORE_DIR`（或 `.env`）→ 開 UI 驗 chain／nodes／pool／附圖；`nodes/*/score.yaml` 會合併為主檔 `activity_score` frontmatter。轉換細節見 `docs/roadmap/0.4.0/docs/how.md`。
 
 Obsidian 開 `{store}/memories/`。`[[nodes/…]]` 與 `![[_attachments/uploads/…]]` 都相對這一層，圖與日記同庫可見。
 
@@ -172,6 +172,8 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 ## Nodes
 
 路徑：`memories/nodes/{id}/{id}.md`。Vault 內 wikilink 仍寫 `[[nodes/{id}/{id}|顯示名]]`（相對 `memories/`）。
+
+可選 YAML frontmatter 欄位 **`activity_score`**（整數 0–100）：供 UI 顯示活躍分；**distill 不維護**。自 Engram 匯入時，若來源有 `nodes/{id}/score.yaml`（`score:` 或 `activity_score:`），import 腳本機械合併進主檔 frontmatter。
 
 `id`：目錄名＝主檔名＝wikilink 兩段 path。**允許 Unicode**（含中文）；禁止 `/`、`\`、`..`、空字串（對齊 Engram）。新建時仍建議英文 kebab／拼音以利 URL，非硬性。
 

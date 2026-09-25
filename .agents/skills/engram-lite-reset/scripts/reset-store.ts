@@ -1,7 +1,7 @@
 import { mkdir, readdir, rm, writeFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { memoriesDir, storeDir } from "../../../../server/paths.ts";
-import { commitStore } from "../../../../server/store-git.ts";
+import { memoriesDir, storeDir } from "../../../../server/config/paths.ts";
+import { commitStore } from "../../../../server/git/store-git.ts";
 
 const KEEP_ROOT = new Set(["workspace.yaml", ".gitignore", "memories", "jobs"]);
 

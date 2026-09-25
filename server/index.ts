@@ -1,9 +1,9 @@
-import { failStuckRunning, listJobs, loadJob, newJobId, saveJob, type Job, type JobKind } from "./jobs.ts";
-import { runSkillJob } from "./pi.ts";
-import { isValidWeekId } from "./chain-time.ts";
-import { countFutureSightAnchors, readFutureSightSettings, sweepFutureSight } from "./future-sight.ts";
-import { port, storeDir, type ChainLevel } from "./paths.ts";
-import { commitStore } from "./store-git.ts";
+import { failStuckRunning, listJobs, loadJob, newJobId, saveJob, type Job, type JobKind } from "./jobs/index.ts";
+import { runSkillJob } from "./worker/pi.ts";
+import { isValidWeekId } from "./chain/time.ts";
+import { countFutureSightAnchors, readFutureSightSettings, sweepFutureSight } from "./future-sight/index.ts";
+import { port, storeDir, type ChainLevel } from "./config/paths.ts";
+import { commitStore } from "./git/store-git.ts";
 import {
   listChain,
   listChainIndex,
@@ -29,7 +29,7 @@ import {
   isValidAttachPath,
   buildNodeGraph,
   type AttachmentRef,
-} from "./store.ts";
+} from "./vault/index.ts";
 
 const webRoot = `${import.meta.dir}/../web`;
 

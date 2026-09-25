@@ -4,7 +4,7 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { poolPendingPath } from "../server/paths.ts";
+import { poolPendingPath } from "../server/config/paths.ts";
 
 const START = "2026-07-16";
 const END = "2026-09-16";

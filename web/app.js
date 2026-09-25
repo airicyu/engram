@@ -50,6 +50,38 @@ function clearJob() {
   sessionStorage.removeItem("engramLiteJob");
 }
 
+function syncStageLocked() {
+  const ws = document.querySelector(".workspace");
+  if (!ws) return;
+  ws.classList.toggle("stage-locked", Boolean(actionLock || activeJobId));
+}
+
+async function refreshStatusLight() {
+  const dot = document.querySelector(".status-light");
+  const label = document.querySelector(".status-label");
+  if (!dot || !label) return;
+  try {
+    const st = await api("/status");
+    const busy = Boolean(st.queue && st.queue.job_id);
+    dot.classList.toggle("is-busy", busy);
+    dot.classList.toggle("is-ready", !busy);
+    label.textContent = busy
+      ? t("status.busy_kind", { kind: st.queue.kind || "job" })
+      : t("status.ready");
+  } catch {
+    dot.classList.add("is-ready");
+    dot.classList.remove("is-busy");
+    label.textContent = t("status.ready");
+  }
+}
+
+function formatNodeActivityMeta(activity_score) {
+  if (activity_score == null || activity_score === "") return t("memory.score_none");
+  const n = Number(activity_score);
+  if (!Number.isFinite(n)) return t("memory.score_none");
+  return t("memory.score_display", { n: Math.trunc(n) });
+}
+
 function setControlsBusy(kind) {
   const busy = Boolean(actionLock);
   document.querySelectorAll("[data-action]").forEach((el) => {
@@ -60,8 +92,10 @@ function setControlsBusy(kind) {
     else el.textContent = el.dataset.label;
   });
   document.querySelectorAll("[data-lock]").forEach((el) => {
-    el.disabled = busy;
+    if (el.isContentEditable) el.contentEditable = busy ? "false" : "true";
+    else el.disabled = busy;
   });
+  syncStageLocked();
 }
 
 function navKeyFromHash() {
@@ -118,6 +152,7 @@ function syncLocaleButtons() {
 function route() {
   syncNav();
   syncLocaleButtons();
+  void refreshStatusLight();
   const h = location.hash.slice(2) || "events";
   if (h.startsWith("memory/future")) return renderFuture();
   if (h.startsWith("memory/graph") || h === "memory/graph" || h.startsWith("memory/nodes") || h === "nodes")
@@ -342,7 +377,8 @@ function tabIconDistill() {
 }
 
 async function renderEvents() {
-  const pool = await api("/pool");
+  const [pool, nodesPayload] = await Promise.all([api("/pool"), api("/nodes")]);
+  const mentionNodes = nodesPayload.nodes || [];
   let statusText = t("distill.idle");
   try {
     const st = await api("/status");
@@ -357,7 +393,8 @@ async function renderEvents() {
     <p class="scene-lead">${escapeHtml(t("activities.lead"))}</p>
     <div class="compose-card">
       <label class="sr-only" for="raw">${escapeHtml(t("activities.placeholder"))}</label>
-      <textarea id="raw" rows="5" placeholder="${escapeHtml(t("activities.placeholder"))}" data-lock></textarea>
+      <div id="raw" class="compose-editor" contenteditable="true" role="textbox" aria-multiline="true"
+        data-placeholder="${escapeHtml(t("activities.placeholder"))}" data-lock></div>
       <div id="attach-preview" class="attachments-list"></div>
       <div class="compose-toolbar">
         <div class="compose-toolbar-tools">
@@ -424,29 +461,44 @@ async function renderEvents() {
     });
   }
 
+  function getComposeRaw() {
+    if (typeof window.composeEditorToRaw === "function") {
+      return window.composeEditorToRaw(rawEl).trim();
+    }
+    return String(rawEl.value || "").trim();
+  }
+
+  function setComposeRaw(text) {
+    if (typeof window.setComposeEditorFromRaw === "function") {
+      window.setComposeEditorFromRaw(rawEl, text);
+    } else {
+      rawEl.value = text;
+    }
+  }
+
   function removeAttach(index) {
     const item = pendingAttach[index];
     if (!item) return;
     const embed = `![[${item.path}]]`;
-    const cleaned = rawEl.value
+    const cleaned = getComposeRaw()
       .split(embed)
       .join("")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
-    rawEl.value = cleaned ? cleaned + (cleaned.endsWith("\n") ? "" : "") : "";
+    setComposeRaw(cleaned);
     pendingAttach = pendingAttach.filter((_, i) => i !== index);
     refreshAttachPreview();
   }
 
   function insertEmbed(path) {
     const embed = `![[${path}]]`;
-    const start = rawEl.selectionStart ?? rawEl.value.length;
-    const end = rawEl.selectionEnd ?? start;
-    const before = rawEl.value.slice(0, start);
-    const after = rawEl.value.slice(end);
-    const padBefore = before && !before.endsWith("\n") && before.length ? "\n\n" : before.length ? "" : "";
-    const padAfter = after && !after.startsWith("\n") ? "\n" : "";
-    rawEl.value = before + padBefore + embed + padAfter + after;
+    const cur = getComposeRaw();
+    const pad = cur && !cur.endsWith("\n") ? "\n\n" : "";
+    if (typeof window.insertTextAtCaret === "function" && document.activeElement === rawEl) {
+      window.insertTextAtCaret(rawEl, pad + embed + "\n");
+    } else {
+      setComposeRaw(cur ? cur + pad + embed + "\n" : embed + "\n");
+    }
     if (!pendingAttach.some((a) => a.path === path)) {
       pendingAttach.push({ path, relationship: t("activities.attachment_default_rel") });
     }
@@ -479,6 +531,13 @@ async function renderEvents() {
       banner.textContent = err instanceof Error ? err.message : String(err);
     }
   };
+
+  if (typeof window.bindMentionComposer === "function") {
+    window.bindMentionComposer(rawEl, {
+      nodes: mentionNodes,
+      labels: { empty: t("activities.mention_empty") },
+    });
+  }
 
   rawEl.addEventListener("paste", async (ev) => {
     const items = ev.clipboardData && ev.clipboardData.items;
@@ -574,7 +633,7 @@ async function renderEvents() {
   });
 
   document.querySelector("[data-action=ingest]").onclick = async () => {
-    const raw = document.getElementById("raw").value.trim();
+    const raw = getComposeRaw();
     if (!raw) {
       banner.hidden = false;
       banner.textContent = t("activities.empty_input");
@@ -601,7 +660,8 @@ async function renderEvents() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      document.getElementById("raw").value = "";
+      if (typeof window.clearComposeEditor === "function") window.clearComposeEditor(rawEl);
+      else rawEl.value = "";
       pendingAttach = [];
       refreshAttachPreview();
       banner.hidden = false;
@@ -1257,8 +1317,10 @@ async function renderGraph() {
     try {
       const d = await api("/nodes/" + encodeURIComponent(id));
       if (!d.present) {
+        document.getElementById("detail-meta").textContent = "";
         setMdBlock(bodyEl, t("memory.missing"), { empty: true, emptyText: t("memory.missing") });
       } else {
+        document.getElementById("detail-meta").textContent = formatNodeActivityMeta(d.activity_score);
         setMdBlock(bodyEl, d.markdown);
         const node = allNodes.find((n) => n.id === id);
         if (node && !node.summary && d.markdown) {

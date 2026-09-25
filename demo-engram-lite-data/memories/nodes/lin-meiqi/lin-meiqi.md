@@ -1,3 +1,7 @@
+---
+activity_score: 68
+---
+
 # 林美琪
 
 ## Identity

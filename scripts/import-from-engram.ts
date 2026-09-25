@@ -18,9 +18,13 @@ import {
   canonicalWeekIdFromLegacy,
   isValidWeekId,
   weekMonthKey,
-} from "../server/chain-time.ts";
-import { normalizeAttachmentEmbedsInMarkdown } from "../server/vault-embeds.ts";
-import { randomEventSuffix } from "../server/store.ts";
+} from "../server/chain/time.ts";
+import { normalizeAttachmentEmbedsInMarkdown } from "../server/markdown/embeds.ts";
+import {
+  mergeActivityScoreIntoMarkdown,
+  parseActivityScoreFromYaml,
+} from "../server/nodes/score.ts";
+import { randomEventSuffix } from "../server/vault/index.ts";
 
 export type ImportScope = {
   chain: boolean;
@@ -127,6 +131,26 @@ function liteChainPath(vault: string, id: string): string | null {
     return join(vault, "chain", "years", `${id}.md`);
   }
   return null;
+}
+
+async function mergeNodeActivityScoresFromSidecars(nodesRoot: string): Promise<void> {
+  let ids: string[];
+  try {
+    ids = await readdir(nodesRoot);
+  } catch {
+    return;
+  }
+  for (const id of ids) {
+    const mdPath = join(nodesRoot, id, `${id}.md`);
+    const scorePath = join(nodesRoot, id, "score.yaml");
+    if (!(await exists(mdPath)) || !(await exists(scorePath))) continue;
+    const yaml = await readFile(scorePath, "utf8");
+    const score = parseActivityScoreFromYaml(yaml);
+    if (score == null) continue;
+    const md = await readFile(mdPath, "utf8");
+    const next = mergeActivityScoreIntoMarkdown(md, score);
+    if (next !== md) await writeFile(mdPath, next, "utf8");
+  }
 }
 
 async function copyTreeIfMissing(
@@ -238,6 +262,7 @@ export async function runImport(opts: ImportOptions): Promise<ImportStats> {
         const next = normalizeAttachmentEmbedsInMarkdown(text);
         if (next !== text) await writeFile(mdPath, next, "utf8");
       }
+      await mergeNodeActivityScoresFromSidecars(destNodes);
     }
   }
 

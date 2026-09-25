@@ -2,7 +2,7 @@
 
 ← [changelog](../../../changelog.md) · 上游：[0.4.0](../0.4.0/INDEX.md) · current: [version.md](../../../version.md) · [GUIDELINES](../GUIDELINES.md) · HOW：[docs/how.md](./docs/how.md) · WHY：[docs/reasoning.md](./docs/reasoning.md)
 
-> **狀態：** **shipped**（2026-09-25；記憶 UI 與 import 一併出貨；殼層剩餘見 [backlog/ui-shell-remainder.md](../backlog/ui-shell-remainder.md)）  
+> **狀態：** **shipped**（2026-09-25；記憶 UI 與 import 一併出貨；殼層剩餘見 [0.6.0](../0.6.0/INDEX.md)）  
 > **產品句：** 靜態 `web/` 殼層與四景（事件／尋問／提問郵箱／記憶）在**視覺與互動**上對齊完整 Engram；**不**引入 React／Vite；**不**還原入夢報告 tab 與 dream review 流程。
 
 ## 文件地圖
@@ -41,7 +41,7 @@
 - [x] 記憶殼：僅 scene-lead、卡片網格、未來視 preview／長遠分組；鏈點選委派修復
 - [x] `docs/data-spec.md` 附圖與匯入指標
 - [x] `version.md`＝`0.5.0`（出貨時）
-- [ ] 側欄狀態燈、`@` mention、`.atmosphere` → [ui-shell-remainder](../backlog/ui-shell-remainder.md)
+- [x] 側欄狀態燈、`@` mention、`.atmosphere` → [0.6.0](../0.6.0/INDEX.md)
 - [ ] 完整 GFM（表格等）→ 按需 backlog
 
 ## 錨點

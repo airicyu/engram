@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { validateEventAttachments } from "../server/store.ts";
-import { isValidWeekId } from "../server/chain-time.ts";
+import { isValidWeekId } from "../server/chain/time.ts";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -66,6 +66,7 @@ test("import fixture → lite store (chain, nodes, pool, workspace)", async () =
 
     const node = await readFile(join(to, "memories/nodes/fict-a/fict-a.md"), "utf8");
     expect(node).toContain("虛構角色甲");
+    expect(node).toContain("activity_score: 77");
 
     const pending = await readFile(join(to, "memories/pool/pending.jsonl"), "utf8");
     expect(pending).toContain("evt_");

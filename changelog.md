@@ -4,6 +4,27 @@
 
 ---
 
+## 0.6.0 — 殼收口、活躍分、匯入指引（2026-09-25）
+
+見 [0.6.0](docs/roadmap/0.6.0/INDEX.md)。
+
+### Added
+
+- 側欄 **狀態燈**（`GET /status.queue`）、`.atmosphere`、job 時 `.stage-locked`
+- `web/mention-composer.js`：`@` 節點 wikilink 發帖
+- Node **`activity_score`** frontmatter（0–100）；`GET /nodes`／`GET /nodes/{id}`；節點詳情 UI
+- Import：`nodes/{id}/score.yaml` → 合併 frontmatter
+
+### Changed
+
+- `docs/data-spec.md`、`docs/api.md`：活躍分與真人匯入檢查清單
+
+### Deferred
+
+- 尋問 scope 細節、distill 自動維護活躍分
+
+---
+
 ## 0.5.0 — Import ＋ 記憶 UI 還原（2026-09-25）
 
 離線 Engram → Lite 匯入（原 [0.4.0](docs/roadmap/0.4.0/INDEX.md) 範圍）與工作台記憶場景對齊 Engram（原 [0.5.0](docs/roadmap/0.5.0/INDEX.md) 範圍）。見各版 INDEX。
@@ -21,8 +42,8 @@
 
 ### Deferred
 
-- 側欄狀態燈、`@` mention、`.atmosphere` → [backlog/ui-shell-remainder.md](docs/roadmap/backlog/ui-shell-remainder.md)
-- 節點活躍分 → [backlog/node-activity-score.md](docs/roadmap/backlog/node-activity-score.md)
+- 側欄狀態燈、`@` mention、`.atmosphere` → **0.6.0**
+- 節點活躍分 → **0.6.0**
 - 入夢報告／dream review UI（非目標）
 
 ---
