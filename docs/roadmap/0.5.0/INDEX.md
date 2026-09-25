@@ -2,7 +2,7 @@
 
 ← [changelog](../../../changelog.md) · 上游：[0.4.0](../0.4.0/INDEX.md) · current: [version.md](../../../version.md) · [GUIDELINES](../GUIDELINES.md) · HOW：[docs/how.md](./docs/how.md) · WHY：[docs/reasoning.md](./docs/reasoning.md)
 
-> **狀態：** `planned`  
+> **狀態：** **shipped**（2026-09-25；記憶 UI 與 import 一併出貨；殼層剩餘見 [backlog/ui-shell-remainder.md](../backlog/ui-shell-remainder.md)）  
 > **產品句：** 靜態 `web/` 殼層與四景（事件／尋問／提問郵箱／記憶）在**視覺與互動**上對齊完整 Engram；**不**引入 React／Vite；**不**還原入夢報告 tab 與 dream review 流程。
 
 ## 文件地圖
@@ -36,14 +36,13 @@
 
 ## 驗收
 
-- [ ] `server/shell-ui.test.ts` 擴充：atmosphere、status-dot、mention、chain preview API
 - [x] 記憶鏈左欄與 Engram 同級：id + preview（+ 週 range）；`GET /chain` `items`
-- [x] 日記正文含 wikilink 附圖與 Engram 同尺寸限制；legacy `![](/api/attachments/…)` 讀時相容
-- [x] 記憶殼：僅 scene-lead、卡片網格、未來視 preview／長遠分組
-- [ ] 側欄狀態燈與 Engram 同位置；離線／lock 可辨識
-- [ ] 事件發帖可 `@` 節點並維持 embed／`attachments[]` 對稱
-- [ ] 文件：`docs/data-spec.md` 附圖持久化格式與 UI 還原範圍一致
-- [ ] `version.md`＝`0.5.0`（出貨時）
+- [x] 日記正文含 wikilink 附圖；legacy `![](/api/attachments/…)` 讀時相容；vault 正規化見 0.4.0
+- [x] 記憶殼：僅 scene-lead、卡片網格、未來視 preview／長遠分組；鏈點選委派修復
+- [x] `docs/data-spec.md` 附圖與匯入指標
+- [x] `version.md`＝`0.5.0`（出貨時）
+- [ ] 側欄狀態燈、`@` mention、`.atmosphere` → [ui-shell-remainder](../backlog/ui-shell-remainder.md)
+- [ ] 完整 GFM（表格等）→ 按需 backlog
 
 ## 錨點
 

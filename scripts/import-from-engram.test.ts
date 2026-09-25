@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
-import { access, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { validateEventAttachments } from "../server/store.ts";
+import { isValidWeekId } from "../server/chain-time.ts";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -70,6 +72,10 @@ test("import fixture → lite store (chain, nodes, pool, workspace)", async () =
     expect(pending).toContain("虛構未沉澱事件甲");
     expect(pending).not.toContain("e9001");
 
+    const poolRow = JSON.parse(pending.trim().split("\n")[0]!);
+    const check = await validateEventAttachments(poolRow.raw, poolRow.attachments, join(to, "memories"));
+    expect(check.ok).toBe(true);
+
     const ws = await readFile(join(to, "workspace.yaml"), "utf8");
     expect(ws).toContain("timezone: Asia/Hong_Kong");
     expect(ws).not.toContain("store_version");
@@ -77,6 +83,45 @@ test("import fixture → lite store (chain, nodes, pool, workspace)", async () =
     expect(await targetVaultHasContent(to)).toBe(true);
     expect(await looksLikeEngramStore(fixtureFrom)).toBe(true);
   } finally {
+    await rm(to, { recursive: true, force: true });
+  }
+});
+
+test("legacy YYYY-Www summary upgrades to YYYY-Www-MMDD path", async () => {
+  const from = await mkdtemp(join(tmpdir(), "engram-lite-import-legacy-from-"));
+  const to = await mkdtemp(join(tmpdir(), "engram-lite-import-legacy-to-"));
+  try {
+    await writeFile(join(from, "engram.workspace.yaml"), "timezone: Asia/Hong_Kong\n");
+    const weekDir = join(from, "memories/chain/weeks/2026-03");
+    await mkdir(weekDir, { recursive: true });
+    await writeFile(
+      join(weekDir, "2026-W14.summary.md"),
+      "## 虛構 legacy 週\n僅測試檔名升級。\n",
+      "utf8",
+    );
+    const stats = await runImport({
+      from,
+      to,
+      dryRun: false,
+      force: false,
+      scope: {
+        chain: true,
+        nodes: false,
+        attachments: false,
+        futureSight: false,
+        pool: false,
+        workspace: false,
+      },
+    });
+    expect(stats.chainWritten).toBe(1);
+    const outDir = join(to, "memories/chain/weeks/2026-03");
+    const files = await readdir(outDir);
+    expect(files).toEqual(["2026-W14-0330.md"]);
+    expect(isValidWeekId("2026-W14-0330")).toBe(true);
+    const body = await readFile(join(outDir, "2026-W14-0330.md"), "utf8");
+    expect(body).toContain("legacy");
+  } finally {
+    await rm(from, { recursive: true, force: true });
     await rm(to, { recursive: true, force: true });
   }
 });

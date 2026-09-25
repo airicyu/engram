@@ -2,7 +2,7 @@
 
 ← [changelog](../../../changelog.md) · 上游：[0.3.3](../0.3.3/INDEX.md)（`shipped`）· current: [version.md](../../../version.md) · 寫法：[GUIDELINES](../GUIDELINES.md) · HOW：[docs/how.md](./docs/how.md) · WHY：[docs/reasoning.md](./docs/reasoning.md)
 
-> **狀態：** `in progress`  
+> **狀態：** **shipped**（2026-09-25；產品字串見 [0.5.0](../0.5.0/INDEX.md) 一併出貨）  
 > **產品句：** 用**離線腳本**把既有 Engram 記憶庫**複製並轉形**到新的 Lite store（唯讀來源、只寫目標），讓使用者可切 `ENGRAM_LITE_STORE_DIR` 日常用 Lite，而不共用 `engram-data`。
 
 ## 文件地圖
@@ -42,10 +42,10 @@
 
 - [x] `--dry-run` 印出將複製／轉換的檔案數與範例路徑（無寫入）
 - [x] 虛構 fixture 跑 `--yes` 後 Lite store 路徑與 pool `evt_*` 符合契約（`scripts/import-from-engram.test.ts`）
-- [ ] Week 檔名為 `YYYY-Www-MMDD.md`；非法 legacy `YYYY-Www` 在 import 時升級
-- [ ] Pool 列在 Lite `pending.jsonl` 可被 `POST /events` 對稱規則接受（或 document 跳過行）
-- [ ] 文件：`docs/data-spec.md` 加「自 Engram 匯入」一節或指向本版 HOW
-- [ ] `version.md`＝`0.4.0`（出貨時）
+- [x] Week 檔名為 `YYYY-Www-MMDD.md`；非法 legacy `YYYY-Www` 在 import 時升級（`import-from-engram.test.ts`）
+- [x] Pool 列在 Lite `pending.jsonl` 可被 `POST /events` 對稱規則接受（import 測試 `validateEventAttachments`）
+- [x] 文件：`docs/data-spec.md` 指向本版 HOW
+- [x] 與 [0.5.0](../0.5.0/INDEX.md) 同次出貨（`version.md`＝`0.5.0`）
 
 ## 已定案（匯入策略，2026-09-25）
 

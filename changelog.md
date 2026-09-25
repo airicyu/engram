@@ -4,6 +4,29 @@
 
 ---
 
+## 0.5.0 — Import ＋ 記憶 UI 還原（2026-09-25）
+
+離線 Engram → Lite 匯入（原 [0.4.0](docs/roadmap/0.4.0/INDEX.md) 範圍）與工作台記憶場景對齊 Engram（原 [0.5.0](docs/roadmap/0.5.0/INDEX.md) 範圍）。見各版 INDEX。
+
+### Added
+
+- `scripts/import-from-engram.ts`（`bun run import:engram`）、虛構 fixture／測試；`server/vault-embeds.ts` 匯入時 wikilink 正規化
+- `GET /chain` 回 `items[]`（preview、週 `start`／`end`）；`listChainIndex`
+- 記憶 UI：記憶鏈｜節點｜未來視、卡片列表、未來視分組、markdown 附圖（含 legacy `/api/attachments` 讀時）
+
+### Changed
+
+- `web/app.js`／`style.css`／`i18n.js`：記憶殼與鏈點選；日記圖 `max-width` 上限加大
+- `docs/data-spec.md`、`docs/api.md`：匯入與附圖契約
+
+### Deferred
+
+- 側欄狀態燈、`@` mention、`.atmosphere` → [backlog/ui-shell-remainder.md](docs/roadmap/backlog/ui-shell-remainder.md)
+- 節點活躍分 → [backlog/node-activity-score.md](docs/roadmap/backlog/node-activity-score.md)
+- 入夢報告／dream review UI（非目標）
+
+---
+
 ## 0.3.3 — Engram 對齊（讀寫契約）（2026-09-25）
 
 週記 id、Unicode node、future-sight 與 Engram 0.40+ 同形；**無**離線 import。見 `docs/roadmap/0.3.3/`。
