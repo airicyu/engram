@@ -45,6 +45,8 @@ HTTP 埠同樣：`ENGRAM_LITE_PORT` → `.env` 的 `ENGRAM_LITE_PORT` → `8797`
 
 舊庫若 `chain`／`nodes`／`pool` 仍在 `{store}/` 根下，移進 `memories/` 即可；`jobs/` 與 `workspace.yaml` 留在 store 根。
 
+**自完整 Engram 匯入（0.4.0）：** 離線 `bun run scripts/import-from-engram.ts --from <engram-store> --to <lite-store>`（預設 dry-run；`--yes` 寫入）。來源唯讀；**禁止** `--to` 指到 Engram 的 `engram-data` 或與 Engram 共用一庫。轉換細節見 `docs/roadmap/0.4.0/docs/how.md`。
+
 Obsidian 開 `{store}/memories/`。`[[nodes/…]]` 與 `![[_attachments/uploads/…]]` 都相對這一層，圖與日記同庫可見。
 
 ---
@@ -236,7 +238,9 @@ Ingest／`POST /events`／server **不**生成問題。Ask **不**讀本目錄�
 實體：`memories/_attachments/uploads/{YYYY-MM-DD}/{filename}`（**無 tmp**）。  
 上傳：`POST /attachments` multipart `file`；MIME 僅 `image/jpeg`｜`image/png`｜`image/webp`｜`image/gif`；上限 10 MiB；檔名單一段、禁 `..`／`/`；衝突則 `{stem}-{HHmmss}-{rand6}.ext`。  
 讀取：`GET /attachments/file?path=` 僅允許上款 path 形。  
-Chain／事件引用用精確 `![[_attachments/uploads/{日}/{檔}]]`（相對 vault；不要含 `|alias`）。各層只重複同一路徑，不複製檔案。Server **不**組 Engram 式 appendix；關係只存在事件 `attachments[]`。
+Chain／事件／node 正文引用附圖時，**持久化**只用精確 `![[_attachments/uploads/{日}/{檔}]]`（相對 `memories/`；不要含 `|alias`），以便 Obsidian 與 Engram 同形。各層只重複同一路徑，不複製檔案。Server **不**組 Engram 式 appendix；關係只存在事件 `attachments[]`。
+
+**禁止**把 `![](/api/attachments/file?path=…)` 或 `![](/attachments/file?path=…)` 寫進 vault（那是 Engram UI 讀時轉換）。Distill／ingest 只寫 wikilink；自 Engram 匯入時腳本會機械轉回 wikilink（`server/vault-embeds.ts`）。Web UI 讀正文時可暫時相容 legacy URL，但出檔應正規化。
 
 ## 搜尋範圍（機械 `GET /search`）
 

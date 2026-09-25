@@ -50,7 +50,9 @@ describe("Track E shell (static left rail)", () => {
     expect(js).toContain("function syncNav");
     expect(js).toContain("data-nav");
     expect(js).toContain("#/memory/nodes");
-    expect(js).toContain("#/memory/graph");
+    expect(js).toContain('startsWith("memory/graph")');
+    expect(js).toContain("#/memory/future");
+    expect(js).toContain("renderFuture");
     expect(js).toContain("renderSeek");
     expect(js).toContain("renderClarify");
     expect(js).toContain("renderGraph");
@@ -98,7 +100,7 @@ describe("UI refresh smoke (i18n / compose / tabs / locale)", () => {
     expect(i18n).toContain("這張圖與記憶的關係…");
   });
 
-  test("locale switcher + memory List/Graph mode-btn + Engram scenes", () => {
+  test("locale switcher + memory domain tabs + Engram scenes", () => {
     expect(html).toContain("locale-switch");
     expect(html).toContain('data-locale="zh-Hant"');
     expect(html).toContain('data-locale="en"');
@@ -108,14 +110,18 @@ describe("UI refresh smoke (i18n / compose / tabs / locale)", () => {
     expect(css).toContain(".inbox-layout");
     expect(css).toContain(".browse-layout");
     expect(css).toContain(".packet-block");
-    expect(js).toContain("memory.list");
-    expect(js).toContain("memory.graph");
+    expect(js).toContain("memory.lead");
+    expect(js).toContain("memoryDomainModes");
+    expect(js).toContain("bindMemoryDomainModes");
+    expect(js).toContain("resolveAttachmentImageSrc");
+    expect(js).toContain("browse-group-label");
+    expect(js).toContain("memory.future");
     expect(js).toContain("data-seek-mode");
     expect(js).toContain("inbox-layout");
     expect(js).toContain("browse-layout");
     expect(js).toContain("seek.mode_ask");
-    expect(i18n).toContain("列表");
-    expect(i18n).toContain('"List"');
+    expect(i18n).toContain("記憶鏈");
+    expect(i18n).toContain("翻閱記憶鏈");
     expect(i18n).toContain("seek.mode_ask");
     expect(js).toContain("setLocale");
   });
@@ -136,8 +142,8 @@ describe("UI refresh smoke (i18n / compose / tabs / locale)", () => {
     expect(i18n).toContain("memory.nodes_filter");
     expect(i18n).toContain("標題＋摘要");
     expect(i18n).toContain("Title + summary");
-    // Chain index stays ID-only (no preview grid markup in renderChain)
     expect(js).toContain("browse-item-chain");
-    expect(js).not.toContain("browse-item-preview");
+    expect(js).toContain("browse-item-preview");
+    expect(js).toContain("browse-group-label");
   });
 });

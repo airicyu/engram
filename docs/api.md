@@ -20,9 +20,9 @@
 |------|------|
 | `GET /status` | `store_dir`、`timezone`、`pi_model`、`queue` |
 | `GET /pool` | `{ pending, archived }` 各為事件陣列（新→舊） |
-| `GET /chain?level=day\|week\|month\|year` | 該層 id 列表（新→舊） |
+| `GET /chain?level=day\|week\|month\|year` | `{ level, ids, items: [{ id, preview?, start?, end? }] }`（新→舊；`preview` 機械截取正文；週項含 `start`／`end`） |
 | `GET /chain/{level}/{id}` | `{ id, present, markdown, path? }`。`level=week` 時 `id` 須為 `YYYY-Www-MMDD`（`MMDD`＝該 ISO 週週一）；非法 → **400** `invalid_week_id`。週詳情另回 `start`／`end`（`YYYY-MM-DD`，週一～週日），即使 `present: false` |
-| `GET /future-sight` | `{ anchors: [{ id, zone, anchor_start, anchor_end, content }], swept_expired, future_sight_window_days, future_sight_upcoming_days }`。每次 **expire-only** 維護（過期項移除並 append 機械事件到 pending）；檔有變更時 store git commit |
+| `GET /future-sight` | `{ anchors: [{ id, zone, anchor_start, anchor_end, content }], swept_expired, future_sight_window_days, future_sight_upcoming_days }`。每次 **expire-only** 維護（過期項移除並 append 機械事件到 pending）；檔有變更時 store git commit。UI：`#/memory/future` |
 | `GET /nodes` | `{ nodes: [{ id, title }] }` |
 | `GET /nodes/{id}` | `{ id, present, markdown }` |
 | `GET /nodes/graph` | `{ nodes: [{ id, title }], edges: [{ from, to }] }`。點＝現有 node；邊＝掃描 node 檔 wikilink，只保留兩邊都存在的點；無向去重（字典序小的當 `from`）。空庫 `{ nodes: [], edges: [] }`。**不**經 Pi |

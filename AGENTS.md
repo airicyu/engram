@@ -3,7 +3,7 @@
 **無論使用者用什麼語言說話，agent 一律以繁體中文書面語回應。**  
 用書面語；專有名詞、路徑、API、檔名可留英文。
 
-`version.md` 現行 **0.3.2**。近期出貨：[0.3.1](docs/roadmap/0.3.1/INDEX.md)、[0.3.2 Store git](docs/roadmap/0.3.2/INDEX.md)（`shipped`）。落地中／契約延伸：[0.3.0](docs/roadmap/0.3.0/INDEX.md)（`planned`；根目錄 `docs/data-spec.md`／`docs/api.md` 已對齊該 INDEX）。執行某版：`.agents/skills/roadmap-version`。上游：[0.2.0](docs/roadmap/0.2.0/INDEX.md)（`shipped`）、[0.1.0](docs/roadmap/0.1.0/INDEX.md)（`shipped`）。寫 roadmap：[GUIDELINES.md](docs/roadmap/GUIDELINES.md)。未排程：[backlog](docs/roadmap/backlog/INDEX.md)。
+`version.md` 現行 **0.3.3**。近期出貨：[0.3.1](docs/roadmap/0.3.1/INDEX.md)、[0.3.2 Store git](docs/roadmap/0.3.2/INDEX.md)、[0.3.3 Engram 對齊](docs/roadmap/0.3.3/INDEX.md)（`shipped`）。規劃中：[0.4.0 Import](docs/roadmap/0.4.0/INDEX.md)（`in progress`）、[0.5.0 UI 還原](docs/roadmap/0.5.0/INDEX.md)（`planned`）。契約延伸：[0.3.0](docs/roadmap/0.3.0/INDEX.md)（`planned`；根目錄 `docs/data-spec.md`／`docs/api.md` 已對齊該 INDEX）。執行某版：`.agents/skills/roadmap-version`。上游：[0.2.0](docs/roadmap/0.2.0/INDEX.md)（`shipped`）、[0.1.0](docs/roadmap/0.1.0/INDEX.md)（`shipped`）。寫 roadmap：[GUIDELINES.md](docs/roadmap/GUIDELINES.md)。未排程：[backlog](docs/roadmap/backlog/INDEX.md)。
 
 ## VIP 規則：測試／demo／fixture 嚴禁真人真事
 

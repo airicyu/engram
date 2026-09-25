@@ -8,6 +8,7 @@
     "dev": "bun run server/index.ts",
     "start": "bun run server/index.ts",
     "reset": "bun run .agents/skills/engram-lite-reset/scripts/reset-store.ts --yes",
+    "import:engram": "bun run scripts/import-from-engram.ts",
     "test": "bun test"
   },
   "packageManager": "bun@1.3.14",

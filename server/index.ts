@@ -1,10 +1,12 @@
 import { failStuckRunning, listJobs, loadJob, newJobId, saveJob, type Job, type JobKind } from "./jobs.ts";
 import { runSkillJob } from "./pi.ts";
 import { isValidWeekId } from "./chain-time.ts";
+import { countFutureSightAnchors, readFutureSightSettings, sweepFutureSight } from "./future-sight.ts";
 import { port, storeDir, type ChainLevel } from "./paths.ts";
 import { commitStore } from "./store-git.ts";
 import {
   listChain,
+  listChainIndex,
   listNodes,
   readChain,
   readNode,
@@ -131,7 +133,6 @@ const server = Bun.serve({
       const ws = await readWorkspace();
       const jobs = await listJobs();
       const active = jobs.find((j) => j.status === "running" || j.status === "queued") ?? null;
-      const { countFutureSightAnchors, readFutureSightSettings } = await import("./future-sight.ts");
       const fsCounts = await countFutureSightAnchors();
       const fsSettings = await readFutureSightSettings();
       return json({
@@ -175,7 +176,8 @@ const server = Bun.serve({
     if (req.method === "GET" && pathname === "/chain") {
       const level = url.searchParams.get("level") ?? "day";
       if (!isLevel(level)) return json({ error: "invalid_level" }, 400);
-      return json({ level, ids: await listChain(level) });
+      const items = await listChainIndex(level);
+      return json({ level, ids: items.map((i) => i.id), items });
     }
 
     const chainOne = pathname.match(/^\/chain\/(day|week|month|year)\/([^/]+)$/);

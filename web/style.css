@@ -503,7 +503,7 @@ textarea:disabled {
   padding: 6px;
 }
 
-.attach-thumb img, img.embed-img {
+.attach-thumb img {
   display: block;
   max-width: 100%;
   max-height: 240px;
@@ -1002,11 +1002,44 @@ button.danger { background: var(--bad); }
   align-items: center;
 }
 
+.memory-scene-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  font-family: var(--font-brand);
+}
+
+.memory-scene-lead {
+  margin: 0 0 0.75rem;
+}
+
 .memory-list-modes {
   display: flex;
   gap: 0.35rem;
   margin: 0 0 12px;
   flex-shrink: 0;
+}
+
+.memory-chain-levels {
+  margin-bottom: 12px;
+}
+
+.future-zone-group {
+  margin-bottom: 1rem;
+}
+
+.future-zone-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.future-zone-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .scene-fill {
@@ -1043,9 +1076,8 @@ button.danger { background: var(--bad); }
     align-items: stretch;
   }
 
-  /* Chain: narrow ID list + detail — not Engram preview grid */
   .browse-layout-chain {
-    grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+    grid-template-columns: minmax(30rem, 39rem) minmax(0, 1fr);
   }
 
   /* List→nodes: index + detail */
@@ -1112,13 +1144,55 @@ button.danger { background: var(--bad); }
 .browse-index-card {
   box-sizing: border-box;
   display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  padding: 0.85rem 0.75rem;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: stretch;
+  gap: 1.1rem;
+  padding: 1rem 0.75rem 1rem 1rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--paper-deep) 55%, #fff);
   box-shadow: var(--shadow);
+}
+
+.browse-index-card .browse-empty {
+  flex: 1 1 100%;
+}
+
+.browse-index-card .browse-group-label {
+  flex: 0 0 100%;
+  width: 100%;
+  margin: 0.15rem 0 0;
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.browse-index-card .browse-group-label + .browse-group-label {
+  margin-top: 0.35rem;
+}
+
+.browse-index-card .browse-item-chain {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: auto;
+  flex: 0 0 calc((100% - 2.2rem) / 3);
+  max-width: calc((100% - 2.2rem) / 3);
+  min-width: 0;
+  margin-bottom: 0;
+  padding: 1.275rem 1.05rem;
+  text-align: left;
+}
+
+.browse-index-card .browse-item-chain .browse-item-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
 }
 
 .browse-item {
@@ -1140,6 +1214,29 @@ button.danger { background: var(--bad); }
   background: rgba(31, 107, 99, 0.08);
 }
 
+.browse-item-future {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.browse-item-sub {
+  font-size: 0.78rem;
+  color: var(--muted, #5c6773);
+  font-weight: 400;
+}
+
+.future-sweep-note {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  color: var(--accent, #1f6b63);
+}
+
+.future-settings-meta {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
 .browse-item-id {
   font-size: 0.85rem;
   font-weight: 600;
@@ -1149,10 +1246,12 @@ button.danger { background: var(--bad); }
 .browse-item-preview {
   font-size: 0.8rem;
   color: var(--ink-muted);
-  margin-top: 0.15rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-top: 0.35rem;
+  line-height: 1.35;
+}
+
+.browse-item-chain .browse-item-id {
+  font-weight: 600;
 }
 
 .browse-detail.packet-block {
@@ -1163,7 +1262,14 @@ button.danger { background: var(--bad); }
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--paper-deep) 55%, #fff);
   box-shadow: var(--shadow);
-  border-top: 1px solid var(--line);
+}
+
+.browse-detail .md-block {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .browse-detail h2 {
@@ -1482,7 +1588,7 @@ button.node-search-mode-opt:focus-visible,
 .md-block img,
 .md-block-img,
 .md-block .embed-img {
-  max-width: min(100%, 36rem);
+  max-width: min(100%, 72rem);
   height: auto;
   display: block;
   margin: 0.85rem 0;

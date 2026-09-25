@@ -4,6 +4,31 @@
 
 ---
 
+## 0.3.3 — Engram 對齊（讀寫契約）（2026-09-25）
+
+週記 id、Unicode node、future-sight 與 Engram 0.40+ 同形；**無**離線 import。見 `docs/roadmap/0.3.3/`。
+
+### Added
+
+- `server/chain-time.ts`：week id `YYYY-Www-MMDD`；`GET /chain/week/{id}` 回 `start`／`end`；非法 id → `400 invalid_week_id`
+- `server/node-id.ts`：node id 路徑安全（允許 Unicode）
+- `server/future-sight.ts`：`GET /future-sight`（expire-only → `pending.jsonl`）；`/status` 計數
+- UI：`#/memory/future`；記憶列表「未來視」分頁
+- 測試：`chain-time`、`node-id`、`future-sight`、`graph` Unicode
+
+### Changed
+
+- Week 檔名：`memories/chain/weeks/…/YYYY-Www-MMDD.md`（demo 週檔已改名）
+- `NODE_WIKILINK_RE`：`\1` 反照（alias 不污染 id）
+- `docs/data-spec.md`、`docs/api.md`；ask／distill skills 讀寫 future-sight
+- `AGENTS.md`：Lite 具 future-sight（仍無 dream／STM 雙軌）
+
+### Non-goals
+
+- Engram → Lite import script；clarify／dream 搬移；GET 時 upcoming↔longTerm 重分桶
+
+---
+
 ## 0.3.2 — Store git（2026-09-21）
 
 記憶庫根維護 local-only git：server 列舉之成功寫入（events、附件、釐清、distill job 完成、reset）後自動 commit；`jobs/` 不追蹤；git 失敗只 log。見 `docs/roadmap/0.3.2/`。

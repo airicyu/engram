@@ -74,4 +74,4 @@
 
 `server/store.ts`、`server/index.ts`、`server/jobs.ts`／`server/pi.ts`（distill 成功）、clarify／attachments 寫入函式、`AGENTS.md`、`docs/data-spec.md`、`.agents/skills/roadmap-version`
 
-← [0.3.1](../0.3.1/INDEX.md) · [backlog](../backlog/INDEX.md) · [GUIDELINES](../GUIDELINES.md)
+← [0.3.3](../0.3.3/INDEX.md) · [0.3.1](../0.3.1/INDEX.md) · [backlog](../backlog/INDEX.md) · [GUIDELINES](../GUIDELINES.md)

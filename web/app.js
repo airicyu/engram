@@ -119,8 +119,9 @@ function route() {
   syncNav();
   syncLocaleButtons();
   const h = location.hash.slice(2) || "events";
-  if (h.startsWith("memory/graph") || h === "memory/graph") return renderGraph();
-  if (h.startsWith("memory/nodes") || h === "nodes") return renderNodes();
+  if (h.startsWith("memory/future")) return renderFuture();
+  if (h.startsWith("memory/graph") || h === "memory/graph" || h.startsWith("memory/nodes") || h === "nodes")
+    return renderGraph();
   if (h === "memory" || h.startsWith("memory?") || h.startsWith("memory/") || h.startsWith("chain"))
     return renderChain();
   if (h.startsWith("seek") || h.startsWith("ask")) return renderSeek();
@@ -128,20 +129,73 @@ function route() {
   return renderEvents();
 }
 
-function memorySubnav(which) {
-  const listOn = which === "list" || which === "chain" || which === "nodes";
-  const graphOn = which === "graph";
-  return `<div class="memory-modes memory-subnav" role="tablist" aria-label="${escapeHtml(t("memory.title"))}">
-    <a class="mode-btn${listOn ? " is-active" : ""}" href="#/memory" role="tab" aria-selected="${listOn}">${escapeHtml(t("memory.list"))}</a>
-    <a class="mode-btn${graphOn ? " is-active" : ""}" href="#/memory/graph" role="tab" aria-selected="${graphOn}">${escapeHtml(t("memory.graph"))}</a>
+function memoryDomainModes(active) {
+  const tabs = [
+    { key: "chain", href: "#/memory", label: t("memory.chain") },
+    { key: "nodes", href: "#/memory/nodes", label: t("memory.nodes") },
+    { key: "future", href: "#/memory/future", label: t("memory.future") },
+  ];
+  return `<div class="memory-modes memory-list-modes" role="tablist" aria-label="${escapeHtml(t("memory.lead"))}">
+    ${tabs
+      .map(
+        ({ key, href, label }) =>
+          `<button type="button" class="mode-btn${active === key ? " is-active" : ""}" data-memory-href="${href}" role="tab" aria-selected="${active === key}">${escapeHtml(label)}</button>`,
+      )
+      .join("")}
   </div>`;
 }
 
-function memoryListModes(active) {
-  return `<div class="memory-modes memory-list-modes" role="tablist">
-    <a class="mode-btn${active === "chain" ? " is-active" : ""}" href="#/memory" role="tab" aria-selected="${active === "chain"}">${escapeHtml(t("memory.chain"))}</a>
-    <a class="mode-btn${active === "nodes" ? " is-active" : ""}" href="#/memory/nodes" role="tab" aria-selected="${active === "nodes"}">${escapeHtml(t("memory.nodes"))}</a>
+function bindMemoryDomainModes() {
+  app.querySelectorAll("[data-memory-href]").forEach((btn) => {
+    btn.onclick = () => {
+      location.hash = btn.getAttribute("data-memory-href") || "#/memory";
+    };
+  });
+}
+
+function memorySceneIntro() {
+  return `<p class="scene-lead memory-scene-lead">${escapeHtml(t("memory.lead"))}</p>`;
+}
+
+function wikilinksToPlainText(text) {
+  return String(text).replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, id, label) => {
+    const bit = label != null ? String(label) : String(id).split("/").pop() || String(id);
+    return bit.trim();
+  });
+}
+
+function previewContent(content) {
+  const collapsed = wikilinksToPlainText(content).replace(/\s+/g, " ").trim();
+  if (collapsed.length <= 80) return collapsed;
+  return `${collapsed.slice(0, 80)}…`;
+}
+
+function formatAnchorRange(start, end) {
+  if (!start) return "";
+  if (!end || end === start) return start;
+  return `${start} – ${end}`;
+}
+
+const CHAIN_LEVELS = ["day", "week", "month", "year"];
+
+function chainLevelLabel(level) {
+  const key = { day: "memory.chain_day", week: "memory.chain_week", month: "memory.chain_month", year: "memory.chain_year" }[
+    level
+  ];
+  return key ? t(key) : level;
+}
+
+function memoryChainLevelRow(level) {
+  return `<div class="browse-level-row memory-modes memory-chain-levels" role="tablist" aria-label="${escapeHtml(t("memory.chain"))}">
+    ${CHAIN_LEVELS.map(
+      (l) =>
+        `<button type="button" class="mode-btn${l === level ? " is-active" : ""}" data-l="${l}" role="tab" aria-selected="${l === level}">${escapeHtml(chainLevelLabel(l))}</button>`,
+    ).join("")}
   </div>`;
+}
+
+function futureZoneLabel(zone) {
+  return zone === "longTerm" ? t("memory.future_zone_long") : t("memory.future_zone_upcoming");
 }
 
 function seekModeIcon(mode) {
@@ -565,119 +619,84 @@ async function renderEvents() {
 }
 
 async function renderChain() {
-  const level = new URLSearchParams(location.hash.split("?")[1] || "").get("level") || "day";
+  const qs = new URLSearchParams(location.hash.split("?")[1] || "");
+  const level = qs.get("level") || "day";
+  let preselect = qs.get("id") || "";
   const idx = await api("/chain?level=" + encodeURIComponent(level));
-  const ids = idx.ids || [];
+  const items = idx.items || (idx.ids || []).map((id) => ({ id }));
   app.innerHTML = `
     <div class="scene-fill memory-scene">
-      <div class="memory-header">
-        <h1>${escapeHtml(t("memory.title"))}</h1>
-        ${memorySubnav("list")}
-      </div>
-      ${memoryListModes("chain")}
-      <div class="browse-level-row memory-modes" role="tablist" aria-label="chain level">
-        ${["day", "week", "month", "year"]
-          .map(
-            (l) =>
-              `<button type="button" class="mode-btn${l === level ? " is-active" : ""}" data-l="${l}" role="tab" aria-selected="${l === level}">${l}</button>`,
-          )
-          .join("")}
-      </div>
+      ${memorySceneIntro()}
+      ${memoryDomainModes("chain")}
+      ${memoryChainLevelRow(level)}
       <div class="browse-layout browse-layout-chain">
-        <div class="browse-index browse-index-card" id="ids" role="listbox"></div>
+        <div class="browse-index browse-index-card" id="ids" role="listbox" aria-label="${escapeHtml(chainLevelLabel(level))}"></div>
         <article class="browse-detail packet-block">
-          <h2 id="detail-title">${escapeHtml(t("memory.pick_chain"))}</h2>
+          <h2 id="detail-title">—</h2>
           <p class="browse-meta" id="detail-meta"></p>
           <div class="md md-block is-empty" id="body"><p class="md-block-empty">${escapeHtml(t("memory.pick_chain"))}</p></div>
         </article>
       </div>
     </div>
   `;
+  bindMemoryDomainModes();
   const idsEl = document.getElementById("ids");
-  idsEl.innerHTML = ids.length
-    ? ids
-        .map(
-          (id) =>
-            `<button type="button" class="browse-item browse-item-chain" data-id="${escapeHtml(id)}" role="option"><span class="browse-item-id">${escapeHtml(id)}</span></button>`,
-        )
-        .join("")
-    : `<p class="browse-empty">${escapeHtml(t("empty"))}</p>`;
+
+  function chainItemHtml(item, selectedId) {
+    const range =
+      item.start && item.end ? formatAnchorRange(item.start, item.end) : "";
+    const sel = item.id === selectedId;
+    return `<button type="button" class="browse-item browse-item-chain${sel ? " is-selected" : ""}" data-id="${escapeHtml(item.id)}" role="option"${sel ? ' aria-current="true"' : ""}>
+      <span class="browse-item-id">${escapeHtml(item.id)}</span>
+      ${range ? `<div class="browse-item-preview">${escapeHtml(range)}</div>` : ""}
+      ${item.preview ? `<div class="browse-item-preview">${escapeHtml(item.preview)}</div>` : ""}
+    </button>`;
+  }
+
+  idsEl.innerHTML = items.length
+    ? items.map((item) => chainItemHtml(item, preselect)).join("")
+    : `<p class="browse-empty">${escapeHtml(t("memory.chain_empty"))}</p>`;
+
   app.querySelectorAll("[data-l]").forEach((b) => {
     b.onclick = () => {
       location.hash = "#/memory?level=" + b.dataset.l;
     };
   });
-  app.querySelectorAll("#ids [data-id]").forEach((b) => {
-    b.onclick = async () => {
-      app.querySelectorAll("#ids [data-id]").forEach((x) => x.classList.remove("is-selected"));
-      b.classList.add("is-selected");
-      const title = document.getElementById("detail-title");
-      const meta = document.getElementById("detail-meta");
-      const bodyEl = document.getElementById("body");
-      title.textContent = b.dataset.id;
-      meta.textContent = level;
-      setMdBlock(bodyEl, t("loading"), { empty: true, emptyText: t("loading") });
-      const d = await api(`/chain/${level}/${encodeURIComponent(b.dataset.id)}`);
-      if (!d.present) {
-        setMdBlock(bodyEl, t("memory.missing"), { empty: true, emptyText: t("memory.missing") });
-      } else {
-        setMdBlock(bodyEl, d.markdown);
-      }
-    };
-  });
-}
 
-async function renderNodes() {
-  const hashPath = location.hash.replace(/^#\/?/, "");
-  const parts = hashPath.split("/");
-  let preselect = "";
-  if (parts[0] === "memory" && parts[1] === "nodes" && parts.length > 2) {
-    preselect = normalizeNodeId(decodeURIComponent(parts.slice(2).join("/")));
-  }
-  const { nodes } = await api("/nodes");
-  const list = nodes || [];
-  app.innerHTML = `
-    <div class="scene-fill memory-scene">
-      <div class="memory-header">
-        <h1>${escapeHtml(t("memory.title"))}</h1>
-        ${memorySubnav("list")}
-      </div>
-      ${memoryListModes("nodes")}
-      <div class="browse-layout browse-layout-nodes-list">
-        <div class="browse-index browse-index-card" id="list" role="listbox"></div>
-        <article class="browse-detail packet-block">
-          <h2 id="detail-title">${escapeHtml(t("memory.pick_node"))}</h2>
-          <p class="browse-meta" id="detail-meta"></p>
-          <div class="md md-block is-empty" id="body"><p class="md-block-empty">${escapeHtml(t("memory.pick_node"))}</p></div>
-        </article>
-      </div>
-    </div>
-  `;
-  document.getElementById("list").innerHTML =
-    list
-      .map(
-        (n) =>
-          `<button type="button" class="browse-item" data-id="${escapeHtml(n.id)}" role="option"><span class="browse-item-id">${escapeHtml(n.title || n.id)}</span></button>`,
-      )
-      .join("") || `<p class="browse-empty">${escapeHtml(t("empty"))}</p>`;
-
-  async function selectNode(id) {
-    id = normalizeNodeId(id);
-    if (id) {
-      const want = "#/memory/nodes/" + encodeURIComponent(id);
-      if (location.hash !== want) history.replaceState(null, "", want);
-    }
-    let btn = null;
-    app.querySelectorAll("#list [data-id]").forEach((x) => {
-      x.classList.remove("is-selected");
-      if (x.getAttribute("data-id") === id) btn = x;
+  function paintChainSelection(id) {
+    idsEl.querySelectorAll("[data-id]").forEach((b) => {
+      const on = b.getAttribute("data-id") === id;
+      b.classList.toggle("is-selected", on);
+      if (on) b.setAttribute("aria-current", "true");
+      else b.removeAttribute("aria-current");
     });
-    if (btn) btn.classList.add("is-selected");
-    document.getElementById("detail-title").textContent = id;
-    document.getElementById("detail-meta").textContent = "";
+  }
+
+  idsEl.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("button[data-id]");
+    if (!btn || !idsEl.contains(btn)) return;
+    void selectChain(btn.getAttribute("data-id"), "push");
+  });
+
+  async function selectChain(id, historyMode) {
+    if (!id) return;
+    preselect = id;
+    const want = `#/memory?level=${encodeURIComponent(level)}&id=${encodeURIComponent(id)}`;
+    if (location.hash !== want) {
+      if (historyMode === "replace") history.replaceState(null, "", want);
+      else location.hash = want;
+    }
+    paintChainSelection(id);
+    const title = document.getElementById("detail-title");
+    const meta = document.getElementById("detail-meta");
     const bodyEl = document.getElementById("body");
+    title.textContent = id;
+    meta.textContent = "";
     setMdBlock(bodyEl, t("loading"), { empty: true, emptyText: t("loading") });
-    const d = await api("/nodes/" + encodeURIComponent(id));
+    const d = await api(`/chain/${level}/${encodeURIComponent(id)}`);
+    if (level === "week" && d.start && d.end) {
+      meta.textContent = `${d.start} – ${d.end}`;
+    }
     if (!d.present) {
       setMdBlock(bodyEl, t("memory.missing"), { empty: true, emptyText: t("memory.missing") });
     } else {
@@ -685,10 +704,114 @@ async function renderNodes() {
     }
   }
 
-  app.querySelectorAll("#list [data-id]").forEach((b) => {
-    b.onclick = () => selectNode(b.getAttribute("data-id"));
+  if (preselect && items.some((i) => i.id === preselect)) await selectChain(preselect, "replace");
+  else if (items[0]) await selectChain(items[0].id, "replace");
+}
+
+async function renderFuture() {
+  const hashPath = location.hash.replace(/^#\/?/, "");
+  const parts = hashPath.split("/");
+  let preselect = "";
+  if (parts[0] === "memory" && parts[1] === "future" && parts.length > 2) {
+    preselect = decodeURIComponent(parts.slice(2).join("/"));
+  }
+
+  const data = await api("/future-sight");
+  const anchors = data.anchors || [];
+  const swept = data.swept_expired || [];
+  const windowDays = data.future_sight_window_days;
+  const upcomingDays = data.future_sight_upcoming_days;
+
+  app.innerHTML = `
+    <div class="scene-fill memory-scene">
+      ${memorySceneIntro()}
+      ${memoryDomainModes("future")}
+      <p class="sr-only">${escapeHtml(t("memory.future_lead"))}</p>
+      ${
+        swept.length
+          ? `<p class="future-sweep-note" role="status">${escapeHtml(t("memory.future_swept", { count: swept.length }))}</p>`
+          : ""
+      }
+      <p class="sr-only">${escapeHtml(
+        t("memory.future_meta", {
+          window: windowDays != null ? String(windowDays) : "—",
+          upcoming: upcomingDays != null ? String(upcomingDays) : "—",
+        }),
+      )}</p>
+      <div class="browse-layout browse-layout-chain">
+        <div class="browse-index browse-index-card" id="future-list" role="listbox"></div>
+        <article class="browse-detail packet-block">
+          <h2 id="detail-title">${escapeHtml(t("memory.pick_future"))}</h2>
+          <p class="browse-meta" id="detail-meta"></p>
+          <div class="md md-block is-empty" id="body"><p class="md-block-empty">${escapeHtml(t("memory.pick_future"))}</p></div>
+        </article>
+      </div>
+    </div>
+  `;
+
+  bindMemoryDomainModes();
+  const listEl = document.getElementById("future-list");
+
+  function futureItemHtml(a, selectedId) {
+    const range = formatAnchorRange(a.anchor_start, a.anchor_end) || a.id;
+    const sel = a.id === selectedId;
+    const prev = (a.content || "").trim() ? previewContent(a.content) : "";
+    return `<button type="button" class="browse-item browse-item-chain${sel ? " is-selected" : ""}" data-id="${escapeHtml(a.id)}" role="option"${sel ? ' aria-current="true"' : ""}>
+      <span class="browse-item-id">${escapeHtml(range)}</span>
+      ${prev ? `<div class="browse-item-preview">${escapeHtml(prev)}</div>` : ""}
+    </button>`;
+  }
+
+  function renderFutureList(selectedId) {
+    if (!anchors.length) {
+      listEl.innerHTML = `<p class="browse-empty">${escapeHtml(t("memory.future_empty"))}</p>`;
+      return;
+    }
+    const chunks = [];
+    const upcoming = anchors.filter((a) => a.zone !== "longTerm");
+    const longTerm = anchors.filter((a) => a.zone === "longTerm");
+    if (upcoming.length) {
+      chunks.push(`<p class="browse-group-label">${escapeHtml(futureZoneLabel("upcoming"))}</p>`);
+      chunks.push(...upcoming.map((a) => futureItemHtml(a, selectedId)));
+    }
+    if (longTerm.length) {
+      chunks.push(`<p class="browse-group-label">${escapeHtml(futureZoneLabel("longTerm"))}</p>`);
+      chunks.push(...longTerm.map((a) => futureItemHtml(a, selectedId)));
+    }
+    listEl.innerHTML = chunks.join("");
+  }
+
+  listEl.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("button[data-id]");
+    if (!btn || !listEl.contains(btn)) return;
+    selectAnchor(btn.getAttribute("data-id"));
   });
-  if (preselect) await selectNode(preselect);
+
+  renderFutureList(preselect);
+
+  function selectAnchor(id) {
+    const a = anchors.find((x) => x.id === id);
+    if (!a) return;
+    const want = "#/memory/future/" + encodeURIComponent(id);
+    if (location.hash !== want) history.replaceState(null, "", want);
+    renderFutureList(id);
+    const title = document.getElementById("detail-title");
+    const meta = document.getElementById("detail-meta");
+    const bodyEl = document.getElementById("body");
+    title.textContent = a.id;
+    const range =
+      a.anchor_start === a.anchor_end ? a.anchor_start : `${a.anchor_start} – ${a.anchor_end}`;
+    meta.textContent = `${a.id} · ${futureZoneLabel(a.zone)} · ${range}`;
+    const body = (a.content || "").trim();
+    if (!body) {
+      setMdBlock(bodyEl, t("memory.future_no_body"), { empty: true, emptyText: t("memory.future_no_body") });
+    } else {
+      setMdBlock(bodyEl, body);
+    }
+  }
+
+  if (preselect && anchors.some((a) => a.id === preselect)) selectAnchor(preselect);
+  else if (anchors[0]) selectAnchor(anchors[0].id);
 }
 
 async function renderSeek() {
@@ -1029,6 +1152,12 @@ async function renderClarify() {
 }
 
 async function renderGraph() {
+  const hashPath = location.hash.replace(/^#\/?/, "");
+  const parts = hashPath.split("/");
+  let preselect = "";
+  if (parts[0] === "memory" && (parts[1] === "nodes" || parts[1] === "graph") && parts.length > 2) {
+    preselect = normalizeNodeId(decodeURIComponent(parts.slice(2).join("/")));
+  }
   /** @type {"title"|"title_summary"} */
   let searchMode = "title";
   let filterQ = "";
@@ -1041,11 +1170,9 @@ async function renderGraph() {
 
   app.innerHTML = `
     <div class="scene-fill memory-scene">
-      <div class="memory-header">
-        <h1>${escapeHtml(t("memory.title"))}</h1>
-        ${memorySubnav("graph")}
-      </div>
-      <p class="scene-lead">${escapeHtml(t("memory.graph_lead"))}</p>
+      ${memorySceneIntro()}
+      ${memoryDomainModes("nodes")}
+      <p class="sr-only">${escapeHtml(t("memory.graph_lead"))}</p>
       <div class="browse-layout browse-layout-nodes">
         <div class="browse-sidebar node-graph-sidebar">
           <label class="sr-only" for="memory-nodes-filter">${escapeHtml(t("memory.nodes_filter"))}</label>
@@ -1068,6 +1195,7 @@ async function renderGraph() {
       </div>
     </div>
   `;
+  bindMemoryDomainModes();
 
   const wrap = document.getElementById("graph-wrap");
   const filterInput = document.getElementById("memory-nodes-filter");
@@ -1116,6 +1244,11 @@ async function renderGraph() {
   }
 
   async function loadNodeDetail(id) {
+    id = normalizeNodeId(id);
+    if (id) {
+      const want = "#/memory/nodes/" + encodeURIComponent(id);
+      if (location.hash !== want) history.replaceState(null, "", want);
+    }
     if (graphApi) graphApi.setSelected(id);
     document.getElementById("detail-title").textContent = id;
     document.getElementById("detail-meta").textContent = "";
@@ -1196,6 +1329,7 @@ async function renderGraph() {
       onSelect: (id) => loadNodeDetail(id),
     });
     applyGraphFilter();
+    if (preselect && allNodes.some((n) => n.id === preselect)) await loadNodeDetail(preselect);
   } catch (err) {
     wrap.innerHTML = `<p class="browse-empty">${escapeHtml(err instanceof Error ? err.message : String(err))}</p>`;
   }
@@ -1364,6 +1498,25 @@ function stripFm(md) {
   return (m ? m[1] : md).trim();
 }
 
+function attachmentFileSrc(vaultPath) {
+  return `/attachments/file?path=${encodeURIComponent(vaultPath)}`;
+}
+
+function resolveAttachmentImageSrc(url) {
+  const u = String(url || "").trim();
+  const m = u.match(/^(?:\/api)?\/attachments\/file\?path=([^&)\s]+)/i);
+  if (m) {
+    try {
+      const path = decodeURIComponent(m[1]);
+      if (path.startsWith("_attachments/uploads/")) return attachmentFileSrc(path);
+    } catch {
+      /* ignore */
+    }
+  }
+  if (u.startsWith("_attachments/uploads/")) return attachmentFileSrc(u);
+  return u;
+}
+
 function extractEmbedPaths(raw) {
   const re = /!\[\[(_attachments\/uploads\/\d{4}-\d{2}-\d{2}\/[^|/\]\n]+)\]\]/g;
   const out = [];
@@ -1416,9 +1569,16 @@ function renderMarkdownHtml(md) {
     /!\[\[(_attachments\/uploads\/[^\]|]+?)\]\]/g,
     (_, path) =>
       tok(
-        `<img class="md-block-img embed-img" src="/attachments/file?path=${encodeURIComponent(path)}" alt="${escapeHtml(path)}" loading="lazy" />`,
+        `<img class="md-block-img embed-img" src="${attachmentFileSrc(path)}" alt="${escapeHtml(path)}" loading="lazy" onerror="this.style.display='none'" />`,
       ),
   );
+  // Markdown images (incl. Engram-baked /api/attachments/file URLs)
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+    const src = resolveAttachmentImageSrc(url);
+    return tok(
+      `<img class="md-block-img embed-img" src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" onerror="this.style.display='none'" />`,
+    );
+  });
   // Wikilinks: [[id|label]] or [[id]]
   // Wikilinks: [[id|label]] or [[id]] — vault paths like nodes/x/x normalize to lite id
   s = s.replace(/\[\[([^\]|\n]+)(?:\|([^\]]+))?\]\]/g, (_, id, label) => {

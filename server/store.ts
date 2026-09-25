@@ -201,6 +201,56 @@ export async function readChain(level: ChainLevel, id: string): Promise<ChainRea
   }
 }
 
+export type ChainIndexItem = {
+  id: string;
+  preview?: string;
+  start?: string;
+  end?: string;
+};
+
+function stripMarkdownFrontmatter(md: string): string {
+  const m = String(md).match(/^---[\s\S]*?---\s*([\s\S]*)$/);
+  return (m ? m[1] : md).trim();
+}
+
+/** Plain text for list previews (wikilink labels, no markdown). */
+export function wikilinksToPlainText(text: string): string {
+  return String(text).replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, id, label) => {
+    const bit = label != null ? String(label) : String(id).split("/").pop() || String(id);
+    return bit.trim();
+  });
+}
+
+export function chainPreviewFromMarkdown(markdown: string): string {
+  let text = wikilinksToPlainText(stripMarkdownFrontmatter(markdown));
+  text = text.replace(/!\[\[[^\]]+\]\]/g, " ");
+  text = text.replace(/!\[[^\]]*\]\([^)]+\)/g, " ");
+  text = text.replace(/^#{1,6}\s+/gm, "");
+  text = text.replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  if (text.length <= 80) return text;
+  return `${text.slice(0, 80)}…`;
+}
+
+export async function listChainIndex(level: ChainLevel): Promise<ChainIndexItem[]> {
+  const ids = await listChain(level);
+  const items: ChainIndexItem[] = [];
+  for (const id of ids) {
+    const row = await readChain(level, id);
+    const item: ChainIndexItem = { id };
+    if (row.start && row.end) {
+      item.start = row.start;
+      item.end = row.end;
+    }
+    if (row.present && row.markdown) {
+      const preview = chainPreviewFromMarkdown(row.markdown);
+      if (preview) item.preview = preview;
+    }
+    items.push(item);
+  }
+  return items;
+}
+
 export async function listNodes(): Promise<{ id: string; title: string }[]> {
   let ids: string[];
   try {
