@@ -13,10 +13,38 @@ let seekMode = "ask";
 let clarifySelectedId = null;
 /** @type {{ destroy?: Function } | null} */
 let liveGraphApi = null;
+/** Bumped whenever the nodes scene is torn down, so an in-flight render cannot write back. */
+let graphEpoch = 0;
+/** @type {{ loadNode: (id: string) => void } | null} */
+let graphSession = null;
 
 function disposeLiveGraph() {
   if (liveGraphApi && typeof liveGraphApi.destroy === "function") liveGraphApi.destroy();
   liveGraphApi = null;
+}
+
+function hashPath() {
+  return location.hash.replace(/^#\/?/, "") || "events";
+}
+
+function isNodesHash(h) {
+  return h.startsWith("memory/graph") || h === "memory/graph" || h.startsWith("memory/nodes") || h === "nodes";
+}
+
+function nodeIdFromHash(h) {
+  const parts = String(h || "").split("/");
+  let raw = "";
+  if (parts[0] === "memory" && (parts[1] === "nodes" || parts[1] === "graph") && parts.length > 2) {
+    raw = parts.slice(2).join("/");
+  } else if (parts[0] === "nodes" && parts.length > 1) {
+    raw = parts.slice(1).join("/");
+  }
+  if (!raw) return "";
+  try {
+    return normalizeNodeId(decodeURIComponent(raw));
+  } catch {
+    return normalizeNodeId(raw);
+  }
 }
 
 function t(key, vars) {
@@ -156,12 +184,21 @@ function syncLocaleButtons() {
   if (group) group.setAttribute("aria-label", t("locale.switch"));
 }
 
-function route() {
+function route(reason) {
+  const h = hashPath();
+  if (reason === "hash" && graphSession && isNodesHash(h) && app.querySelector("[data-graph-live]")) {
+    syncNav();
+    syncLocaleButtons();
+    void refreshStatusLight();
+    graphSession.loadNode(nodeIdFromHash(h));
+    return;
+  }
+  graphEpoch++;
+  graphSession = null;
   disposeLiveGraph();
   syncNav();
   syncLocaleButtons();
   void refreshStatusLight();
-  const h = location.hash.slice(2) || "events";
   if (h.startsWith("memory/future")) return renderFuture();
   if (h.startsWith("memory/graph") || h === "memory/graph" || h.startsWith("memory/nodes") || h === "nodes")
     return renderGraph();
@@ -205,6 +242,30 @@ function wikilinksToPlainText(text) {
     const bit = label != null ? String(label) : String(id).split("/").pop() || String(id);
     return bit.trim();
   });
+}
+
+/** Inline prose with wikilinks as node chips. Non-link text stays escaped. */
+function renderTextWithNodeTags(text) {
+  const src = String(text ?? "");
+  const re = /\[\[([^\]|\n]+)(?:\|([^\]]+))?\]\]/g;
+  const parts = [];
+  let last = 0;
+  let m;
+  while ((m = re.exec(src))) {
+    parts.push(escapeHtml(src.slice(last, m.index)));
+    parts.push(nodeTagHtml(m[1], m[2]));
+    last = m.index + m[0].length;
+  }
+  parts.push(escapeHtml(src.slice(last)));
+  return parts.join("");
+}
+
+function nodeTagHtml(rawTarget, label) {
+  const target = String(rawTarget || "").trim();
+  const nodeId = normalizeNodeId(target);
+  const text = (label != null ? String(label) : target.split("/").filter(Boolean).pop() || target).trim();
+  const href = nodeId ? `#/memory/nodes/${encodeURIComponent(nodeId)}` : "#/memory/nodes";
+  return `<a class="node-tag" href="${escapeHtml(href)}">${escapeHtml(text || nodeId || target)}</a>`;
 }
 
 function previewContent(content) {
@@ -498,15 +559,22 @@ async function renderEvents() {
     refreshAttachPreview();
   }
 
+  function selectionInEditor(editor) {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return false;
+    const node = sel.getRangeAt(0).startContainer;
+    return node === editor || editor.contains(node);
+  }
+
   function insertEmbed(path) {
     const embed = `![[${path}]]`;
     const cur = getComposeRaw();
     const pad = cur && !cur.endsWith("\n") ? "\n\n" : "";
-    if (typeof window.insertTextAtCaret === "function" && document.activeElement === rawEl) {
+    const withEmbed = cur.includes(embed) ? cur : cur ? cur + pad + embed + "\n" : embed + "\n";
+    if (!cur.includes(embed) && typeof window.insertTextAtCaret === "function" && selectionInEditor(rawEl)) {
       window.insertTextAtCaret(rawEl, pad + embed + "\n");
-    } else {
-      setComposeRaw(cur ? cur + pad + embed + "\n" : embed + "\n");
     }
+    if (!getComposeRaw().includes(embed)) setComposeRaw(withEmbed);
     if (!pendingAttach.some((a) => a.path === path)) {
       pendingAttach.push({ path, relationship: t("activities.attachment_default_rel") });
     }
@@ -647,7 +715,8 @@ async function renderEvents() {
 
   document.querySelector("[data-action=ingest]").onclick = async () => {
     const raw = getComposeRaw();
-    if (!raw) {
+    const body = buildIngestPayload(raw, pendingAttach, t("activities.attachment_default_rel"));
+    if (!body.raw) {
       banner.hidden = false;
       banner.textContent = t("activities.empty_input");
       return;
@@ -655,19 +724,6 @@ async function renderEvents() {
     const btn = document.querySelector("[data-action=ingest]");
     btn.disabled = true;
     try {
-      const embeds = extractEmbedPaths(raw);
-      const attachments =
-        embeds.length || pendingAttach.length
-          ? embeds.map((path) => {
-              const hit = pendingAttach.find((a) => a.path === path);
-              return {
-                path,
-                relationship:
-                  (hit && hit.relationship) || t("activities.attachment_default_rel"),
-              };
-            })
-          : undefined;
-      const body = attachments && attachments.length ? { raw, attachments } : { raw };
       await api("/events", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1109,10 +1165,10 @@ async function renderClarify() {
             const preview = stripFm(it.markdown);
             const on = it.id === clarifySelectedId;
             return `<li>
-              <button type="button" class="inbox-thread${on ? " is-active" : ""}" data-cla="${escapeHtml(it.id)}">
+              <div class="inbox-thread${on ? " is-active" : ""}" role="button" tabindex="0" data-cla="${escapeHtml(it.id)}">
                 ${it.ts ? `<time class="inbox-thread-time">${escapeHtml(it.ts)}</time>` : ""}
-                <span class="inbox-thread-preview">${escapeHtml(preview)}</span>
-              </button>
+                <span class="inbox-thread-preview">${renderTextWithNodeTags(preview)}</span>
+              </div>
             </li>`;
           })
           .join("");
@@ -1126,7 +1182,7 @@ async function renderClarify() {
             <div class="inbox-pane">
               <div class="inbox-message">
                 ${selected.ts ? `<time class="clarify-post-time">${escapeHtml(selected.ts)}</time>` : ""}
-                <p class="clarify-post-body">${escapeHtml(body)}</p>
+                <p class="clarify-post-body">${renderTextWithNodeTags(body)}</p>
               </div>
               <label class="sr-only" for="inbox-reply">${escapeHtml(t("clarify.answer_placeholder"))}</label>
               <textarea id="inbox-reply" class="clarify-answer" rows="5" placeholder="${escapeHtml(t("clarify.answer_placeholder"))}" data-lock></textarea>
@@ -1138,9 +1194,19 @@ async function renderClarify() {
           </div>`;
 
         inboxEl.querySelectorAll("[data-cla]").forEach((btn) => {
-          btn.onclick = () => {
+          const selectThread = () => {
             clarifySelectedId = btn.getAttribute("data-cla");
             loadLists();
+          };
+          btn.onclick = (ev) => {
+            if (ev.target.closest("a")) return;
+            selectThread();
+          };
+          btn.onkeydown = (ev) => {
+            if (ev.target.closest("a")) return;
+            if (ev.key !== "Enter" && ev.key !== " ") return;
+            ev.preventDefault();
+            selectThread();
           };
         });
 
@@ -1225,12 +1291,7 @@ async function renderClarify() {
 }
 
 async function renderGraph() {
-  const hashPath = location.hash.replace(/^#\/?/, "");
-  const parts = hashPath.split("/");
-  let preselect = "";
-  if (parts[0] === "memory" && (parts[1] === "nodes" || parts[1] === "graph") && parts.length > 2) {
-    preselect = normalizeNodeId(decodeURIComponent(parts.slice(2).join("/")));
-  }
+  const epoch = graphEpoch;
   /** @type {"title"|"title_summary"} */
   let searchMode = "title";
   let filterQ = "";
@@ -1242,7 +1303,7 @@ async function renderGraph() {
   let graphApi = null;
 
   app.innerHTML = `
-    <div class="scene-fill memory-scene">
+    <div class="scene-fill memory-scene" data-graph-live>
       ${memorySceneIntro()}
       ${memoryDomainModes("nodes")}
       <p class="sr-only">${escapeHtml(t("memory.graph_lead"))}</p>
@@ -1316,12 +1377,28 @@ async function renderGraph() {
     }
   }
 
+  let detailSeq = 0;
+
+  function showPickNode() {
+    if (graphApi) graphApi.setSelected(null);
+    const title = document.getElementById("detail-title");
+    const meta = document.getElementById("detail-meta");
+    const bodyEl = document.getElementById("body");
+    if (title) title.textContent = t("memory.pick_node");
+    if (meta) meta.textContent = "";
+    if (bodyEl) setMdBlock(bodyEl, t("memory.pick_node"), { empty: true, emptyText: t("memory.pick_node") });
+  }
+
   async function loadNodeDetail(id) {
+    if (epoch !== graphEpoch) return;
     id = normalizeNodeId(id);
-    if (id) {
-      const want = "#/memory/nodes/" + encodeURIComponent(id);
-      if (location.hash !== want) history.replaceState(null, "", want);
+    if (!id) {
+      showPickNode();
+      return;
     }
+    const seq = ++detailSeq;
+    const want = "#/memory/nodes/" + encodeURIComponent(id);
+    if (location.hash !== want) history.replaceState(null, "", want);
     if (graphApi) graphApi.setSelected(id);
     document.getElementById("detail-title").textContent = id;
     document.getElementById("detail-meta").textContent = "";
@@ -1329,6 +1406,7 @@ async function renderGraph() {
     setMdBlock(bodyEl, t("loading"), { empty: true, emptyText: t("loading") });
     try {
       const d = await api("/nodes/" + encodeURIComponent(id));
+      if (epoch !== graphEpoch || seq !== detailSeq) return;
       if (!d.present) {
         document.getElementById("detail-meta").textContent = "";
         setMdBlock(bodyEl, t("memory.missing"), { empty: true, emptyText: t("memory.missing") });
@@ -1343,10 +1421,18 @@ async function renderGraph() {
         }
       }
     } catch (err) {
+      if (epoch !== graphEpoch || seq !== detailSeq) return;
       const msg = err instanceof Error ? err.message : String(err);
       setMdBlock(bodyEl, msg, { empty: true, emptyText: msg });
     }
   }
+
+  graphSession = {
+    loadNode(id) {
+      if (epoch !== graphEpoch) return;
+      void loadNodeDetail(id);
+    },
+  };
 
   filterInput.oninput = () => {
     filterQ = filterInput.value || "";
@@ -1367,6 +1453,7 @@ async function renderGraph() {
 
   try {
     const data = await api("/nodes/graph");
+    if (epoch !== graphEpoch) return;
     allNodes = (data.nodes || []).map((n) => ({
       id: n.id || n.node,
       title: n.title || n.id || n.node || "",
@@ -1380,6 +1467,7 @@ async function renderGraph() {
       level: e.level || 1,
     }));
     if (!allNodes.length) {
+      if (epoch !== graphEpoch) return;
       wrap.innerHTML = `<p class="browse-empty">${escapeHtml(t("memory.graph_empty"))}</p>`;
       if (metaEl) metaEl.textContent = "";
       return;
@@ -1387,6 +1475,7 @@ async function renderGraph() {
 
     try {
       const idx = await api("/nodes");
+      if (epoch !== graphEpoch) return;
       const byId = Object.fromEntries((idx.nodes || []).map((n) => [n.id, n]));
       for (const n of allNodes) {
         const hit = byId[n.id];
@@ -1399,14 +1488,17 @@ async function renderGraph() {
       /* index optional */
     }
 
+    if (epoch !== graphEpoch) return;
     wrap.innerHTML = `<svg id="graph-svg" class="graph-svg node-graph-svg" role="img" aria-label="${escapeHtml(t("memory.graph_aria"))}"></svg>`;
     graphApi = mountForceGraph(document.getElementById("graph-svg"), allNodes, allEdges, {
       onSelect: (id) => loadNodeDetail(id),
     });
     liveGraphApi = graphApi;
     applyGraphFilter();
-    if (preselect && allNodes.some((n) => n.id === preselect)) await loadNodeDetail(preselect);
+    const idNow = nodeIdFromHash(hashPath());
+    if (idNow) await loadNodeDetail(idNow);
   } catch (err) {
+    if (epoch !== graphEpoch) return;
     wrap.innerHTML = `<p class="browse-empty">${escapeHtml(err instanceof Error ? err.message : String(err))}</p>`;
   }
 }
@@ -1740,14 +1832,6 @@ function resolveAttachmentImageSrc(url) {
   return u;
 }
 
-function extractEmbedPaths(raw) {
-  const re = /!\[\[(_attachments\/uploads\/\d{4}-\d{2}-\d{2}\/[^|/\]\n]+)\]\]/g;
-  const out = [];
-  let m;
-  while ((m = re.exec(String(raw)))) out.push(m[1]);
-  return out;
-}
-
 function setMdBlock(el, text, opts) {
   opts = opts || {};
   if (!el) return;
@@ -1915,7 +1999,7 @@ if (window.EngramI18n && window.EngramI18n.onLocaleChange) {
   });
 }
 
-window.addEventListener("hashchange", route);
+window.addEventListener("hashchange", () => route("hash"));
 syncLocaleButtons();
 route();
 pollJob();

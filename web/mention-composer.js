@@ -123,15 +123,19 @@
 
   function insertTextAtCaret(editor, text) {
     editor.focus();
+    const node = document.createTextNode(text);
     const sel = window.getSelection();
-    if (!sel) return;
-    if (!sel.rangeCount) {
-      editor.appendChild(document.createTextNode(text));
+    const range =
+      sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+    const inside =
+      range &&
+      (range.startContainer === editor || editor.contains(range.startContainer));
+    if (!inside) {
+      editor.appendChild(node);
       return;
     }
-    const range = sel.getRangeAt(0);
     range.deleteContents();
-    range.insertNode(document.createTextNode(text));
+    range.insertNode(node);
     range.collapse(false);
     sel.removeAllRanges();
     sel.addRange(range);

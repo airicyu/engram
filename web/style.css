@@ -1063,6 +1063,37 @@ a.mode-btn {
   overflow: hidden;
 }
 
+.node-tag {
+  display: inline;
+  margin: 0 0.08em;
+  padding: 0.05em 0.42em 0.08em;
+  border-radius: 0.35rem;
+  font-weight: 550;
+  line-height: 1.35;
+  color: var(--accent-hover);
+  background: rgba(31, 107, 99, 0.12);
+  border: 1px solid rgba(31, 107, 99, 0.22);
+  text-decoration: none;
+  cursor: pointer;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.node-tag:hover {
+  color: var(--accent-hover);
+  background: rgba(31, 107, 99, 0.2);
+}
+
+.node-tag:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.inbox-thread:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .inbox-pane {
   display: flex;
   flex-direction: column;

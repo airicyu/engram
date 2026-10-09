@@ -64,6 +64,8 @@ describe("Track E shell (static left rail)", () => {
     expect(js).toContain("renderSeek");
     expect(js).toContain("renderClarify");
     expect(js).toContain("renderGraph");
+    expect(js).toContain("data-graph-live");
+    expect(js).toContain("graphSession");
   });
 
   test("no Vite/React toolchain introduced", () => {
@@ -86,7 +88,9 @@ describe("UI refresh smoke (i18n / compose / tabs / locale)", () => {
       });
 
   test("events page has compose-card, post button, two tabs", () => {
+    expect(html).toContain("ingest-payload.js");
     expect(html).toContain("mention-composer.js");
+    expect(js).toContain("buildIngestPayload");
     expect(mentionJs).toContain("bindMentionComposer");
     expect(js).toContain("bindMentionComposer");
     expect(js).toContain("compose-card");
@@ -137,6 +141,9 @@ describe("UI refresh smoke (i18n / compose / tabs / locale)", () => {
     expect(js).toContain("memory.future");
     expect(js).toContain("data-seek-mode");
     expect(js).toContain("inbox-layout");
+    expect(js).toContain("renderTextWithNodeTags");
+    expect(js).toContain("node-tag");
+    expect(css).toContain(".node-tag");
     expect(js).toContain("browse-layout");
     expect(js).toContain("seek.mode_ask");
     expect(i18n).toContain("記憶鏈");
