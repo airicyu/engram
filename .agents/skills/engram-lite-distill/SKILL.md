@@ -30,7 +30,7 @@ Vault＝`{store}/memories/`。釐清目錄：`memories/clarify/{asking,pending,h
 6a. 此外，對反覆或重要、但**沒有** create token 的人／專案／概念：仍可新建或更新 node（同結構）。純路過、無 create 意圖的瑣事不開 node。事件細節留在 chain，不要把日記抄進 node。wikilink 相對 vault：`[[nodes/{id}/{id}|顯示名]]`。
 6b. 若本輪事件影響**近端／長期規劃**：讀寫 `memories/future-sight/upcoming.md` 與／或 `longTerm.md`（整檔 zone 格式，見 data-spec「Future-sight」）。無關則不要動。
 7. **不要**在本 skill 寫 `clarify/asking/`。生題由 **另一次** Pi session 跑 `engram-lite-clarify-generate`（program 編排；MIN 3／MAX 5）。若因無事可沉澱而早退，回報即可（program 應跳過 generate）。
-8. 將**本批已處理**的 pool pending 列 append 到 `memories/pool/archived.jsonl`，並重寫 `pending.jsonl` 只留未處理列。**先寫完 chain／nodes（與釐清吸收），再動 pool。**
+8. 將**本批已處理**的 pool pending 列 append 到 `memories/pool/archived.jsonl`，並重寫 `pending.jsonl` 只留未處理列。**先寫完 chain／nodes（與釐清吸收），再動 pool。** 這一步必須寫檔；在回覆裡宣稱已清空不算完成。已吸收的釐清檔要移進 `clarify/history/`，不能只在 `pending/` 加上 `absorbed_at`。
 
 ### 釐清 asking 檔格式（僅供 clarify-generate；本 skill 不要新建）
 
@@ -49,7 +49,7 @@ ts: <RFC3339 當地>
 
 ## 升層閘門（必須，不要靠「有沒有月度意義」）
 
-「現在」＝`workspace.yaml` timezone 的當地**今天**（真實日期）。
+「現在」＝ prompt 給的當地今天；沒有該行時，用 `workspace.yaml` timezone 的真實今天。不要用事件 `ts` 或內文裡的日期當作今天。
 
 | 層 | 寫的條件（滿足任一即可） | 不要寫 |
 |----|--------------------------|--------|
