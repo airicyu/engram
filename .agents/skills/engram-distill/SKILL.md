@@ -29,6 +29,11 @@ Vault＝`{store}/memories/`。釐清目錄：`memories/clarify/{asking,pending,h
    - 讀事件 `attachments[].relationship`（無則當「本則附圖」）；與 day 相關則在 chain 插入**同一**精確 `![[_attachments/uploads/{日}/{檔}]]`；**禁止**寫 `![](/api/attachments/file?path=…)` 等 HTTP URL（Obsidian 只認 wikilink）；禁止發明 path；不要當自己看得見像素
 6. **強制新建（create mentions，0.6.1）：** 掃本批 `pool/pending.jsonl` 每則 `raw` 內的 `[@label](node-create:{id})`。對每個去重後的 `id`：**必須**建立（若尚無）`memories/nodes/{id}/{id}.md`（Identity／Relation／Standing facts／Current situation；資訊不足可寫短骨架）。**不得**以「瑣事不開 node」略過 create 意圖。寫入 chain 時，該人物／主題的**第一次**提及用 `[[nodes/{id}/{id}|顯示名]]`（顯示名可用 token 的 label）；不要把 `node-create:` token 原樣抄進 chain。
 6a. 此外，對反覆或重要、但**沒有** create token 的人／專案／概念：仍可新建或更新 node（同結構）。純路過、無 create 意圖的瑣事不開 node。事件細節留在 chain，不要把日記抄進 node。wikilink 相對 vault：`[[nodes/{id}/{id}|顯示名]]`。
+6e. **改寫（0.10.0）：** 本輪有建立或更新的 node，Standing facts 與 Current situation **整段換掉**，不要在舊文下面再加一段「截至某日」。本輪沒有建立或更新的 node 不要為了這條另開、也不要再存檔；為了判斷要不要更新而讀檔仍然照舊。
+   - **Current situation：** 收成一幅現在，完整句子，不是多段日期快照。一次性事件、版本號、菜單可以離開這段，不必先被推翻，細節留在 day。仍描述現在的句子留著，除非被這份 node 裡較晚的主張、本輪 pool 事件、或本輪吸收的釐清推翻。不要拿另一份日檔單獨證明這句現在已經不成立。
+   - **Standing facts：** 只留仍成立的事實，一條事實一個 bullet。同一事實合併成一條。只有這份 node 裡較晚的主張、本輪 pool 事件、或本輪吸收的釐清推翻了某條，才刪掉它。不要拿另一份日檔單獨刪掉仍成立的 bullet。不要在 bullet 後面留「截至某日」的日記尾巴。不要只為了變短而刪掉仍成立的事實。
+   - **Identity／Relation：** 只在本輪改變「是誰或是什麼」或與其他 node 的關係時才改。不要把事件散文搬進去。
+   - 不要寫入既有檔案、本輪事件、本輪已吸收釐清以外的事實。改寫後句子仍需要的 wikilink 保留。frontmatter 維持原樣，除了 0.7.0 的別名規則。
 6c. **別名（0.7.0）：** 寫 chain 或新建／更新 node 前，讀已存在主檔的 frontmatter `aliases` 與第一個 H1。已知 id、別名或 H1 顯示名指向該主檔，**不開第二份**。本次使用的顯示名若不在 `aliases`，寫回該主檔。
 6d. **空殼：** 只針對**本批開始前就已存在**的 node。Standing facts 與 Current situation 皆空或只有佔位句，本批又出現該 id，仍寫不出可引用事實 → 呼叫刪除腳本（改成純文字並刪目錄）：`bun run .agents/skills/engram-node/scripts/rewrite-links.ts delete --store "{store}" --id "{id}"`。本批 `node-create` 強制建立的骨架**同一輪不得刪**，即使事實區仍空。不要把這條做成程式分類器；由本 skill 判斷。
 6b. **未來視（0.9.0）：** 讀 `upcoming.md` 與 `longTerm.md`。每條 yaml 可有 `kind: dated` 或 `kind: intent`。沒有 `kind` 時，`anchor_start` 等於 `anchor_end` 視為 `dated`，否則視為 `intent`；改寫時把 `kind` 寫回去。`anchor_end` 早於當地今天的每一條都要改寫，pool 與 clarify 都空時也要做：

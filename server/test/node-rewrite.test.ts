@@ -67,6 +67,19 @@ test("0.7.0 skills state alias, empty shell, and ask match rules", async () => {
   expect(ask).toContain("沒有對上的節點");
 });
 
+test("0.10.0 distill replaces standing facts and current situation", async () => {
+  const root = join(import.meta.dir, "../..");
+  const distill = await readFile(join(root, ".agents/skills/engram-distill/SKILL.md"), "utf8");
+  expect(distill).toContain("整段換掉");
+  expect(distill).toContain("一幅現在");
+  expect(distill).toContain("仍成立");
+  expect(distill).toContain("是誰或是什麼");
+  expect(distill).toContain("本輪沒有建立或更新的 node");
+  const spec = await readFile(join(root, "docs/data-spec.md"), "utf8");
+  expect(spec).toContain("整段換掉");
+  expect(spec).toContain("本輪沒寫的 node 不動");
+});
+
 test("delete unwraps label and removes the node directory", async () => {
   const store = await fixture();
   try {
