@@ -13,7 +13,7 @@
 ## Paste-ready
 
 ```text
-實作 engram-lite 0.3.2（Store git：每次成功改 vault 就 local commit）。
+實作 engram 0.3.2（Store git：每次成功改 vault 就 local commit）。
 讀 docs/roadmap/0.3.2/INDEX.md、docs/how.md、docs/reasoning.md。
 用 .agents/skills/roadmap-version：先設計審查閘門，通過後實作。
 做 server/store-git.ts（或等價）：ensureRepo＋commitOp；gitignore 排除 jobs/；掛在 events／attachments／clarify／distill completed／reset 成功路徑。

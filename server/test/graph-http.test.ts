@@ -5,14 +5,14 @@ import { join } from "node:path";
 import { buildNodeGraph } from "../vault/index.ts";
 
 test("GET /nodes/graph contract via live Bun.serve", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-graph-http-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-graph-http-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "nodes", "a"), { recursive: true });
   await mkdir(join(vault, "nodes", "b"), { recursive: true });
   await writeFile(join(vault, "nodes", "a", "a.md"), "# A\n\n[[nodes/b/b]]\n", "utf8");
   await writeFile(join(vault, "nodes", "b", "b.md"), "# B\n\n[[nodes/missing/missing]]\n", "utf8");
 
-  const emptyRoot = await mkdtemp(join(tmpdir(), "engram-lite-graph-http-empty-"));
+  const emptyRoot = await mkdtemp(join(tmpdir(), "engram-graph-http-empty-"));
   const emptyVault = join(emptyRoot, "memories");
   await mkdir(emptyVault, { recursive: true });
 

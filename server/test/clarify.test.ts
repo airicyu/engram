@@ -20,7 +20,7 @@ test("isValidClarifyId", () => {
 });
 
 test("list asking/pending empty → []", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-cla-empty-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-cla-empty-"));
   const vault = join(root, "memories");
   try {
     expect(await listClarifyAsking(vault)).toEqual([]);
@@ -31,7 +31,7 @@ test("list asking/pending empty → []", async () => {
 });
 
 test("submit moves asking→pending with Answer; dismiss→history; aside not pool", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-cla-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-cla-"));
   const vault = join(root, "memories");
   const id = "cla_20260920_ab12cd";
   await mkdir(join(vault, "clarify", "asking"), { recursive: true });
@@ -88,7 +88,7 @@ test("submit moves asking→pending with Answer; dismiss→history; aside not po
 });
 
 test("createClarifyAside writes pending with kind aside; not pool", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-aside-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-aside-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "clarify", "pending"), { recursive: true });
   await mkdir(join(vault, "pool"), { recursive: true });
@@ -112,7 +112,7 @@ test("createClarifyAside writes pending with kind aside; not pool", async () => 
 });
 
 test("invalid id throws / dismiss missing present false", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-cla-bad-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-cla-bad-"));
   const vault = join(root, "memories");
   try {
     await expect(submitClarifyAnswer("bad_id", "x", vault)).rejects.toThrow("invalid_id");
@@ -126,7 +126,7 @@ test("invalid id throws / dismiss missing present false", async () => {
 
 
 test("absorb criterion: pending→history with absorbed_at + day keyword", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-absorb-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-absorb-"));
   const vault = join(root, "memories");
   try {
     await mkdir(join(vault, "clarify", "pending"), { recursive: true });

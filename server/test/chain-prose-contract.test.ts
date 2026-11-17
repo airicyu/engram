@@ -5,7 +5,7 @@ import { join } from "node:path";
 const root = join(import.meta.dir, "../..");
 
 test("distill skill: independent Chain 文體 section with zh-Hant bans and examples", async () => {
-  const md = await readFile(join(root, ".agents/skills/engram-lite-distill/SKILL.md"), "utf8");
+  const md = await readFile(join(root, ".agents/skills/engram-distill/SKILL.md"), "utf8");
   expect(md).toMatch(/## Chain 文體/);
   expect(md).toMatch(/禁止.*口語粵語|口語粵語.*禁止/);
   expect(md).toMatch(/聊天|網路/);

@@ -24,7 +24,7 @@ test("parse and render zone file", () => {
 });
 
 test("sweepFutureSight removes expired and appends pool lines", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-fs-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-fs-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "pool"), { recursive: true });
   await mkdir(join(vault, "future-sight"), { recursive: true });

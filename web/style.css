@@ -83,15 +83,6 @@ body {
   gap: 0.4rem;
 }
 
-.brand-lite {
-  font-family: var(--font-ui);
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
 .side-nav {
   display: flex;
   flex-direction: column;

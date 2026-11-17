@@ -38,7 +38,7 @@
 
 | 步驟 | 內容 |
 |------|------|
-| E1 | `docs/data-spec.md` 匯入段補 **檢查清單**：(1) 新空目錄 `--to`；(2) `bun run import:engram --from <engram-store> --to <lite-store>` dry-run；(3) `--yes` 寫入；目標已有內容用 `--force`；(4) 設定 `ENGRAM_LITE_STORE_DIR` 或 `.env`；(5) `bun run dev` 驗收 chain／nodes／pool／附圖 |
+| E1 | `docs/data-spec.md` 匯入段補 **檢查清單**：(1) 新空目錄 `--to`；(2) `bun run import:engram --from <engram-store> --to <lite-store>` dry-run；(3) `--yes` 寫入；目標已有內容用 `--force`；(4) 設定 `ENGRAM_STORE_DIR` 或 `.env`；(5) `bun run dev` 驗收 chain／nodes／pool／附圖 |
 | E2 | 勿 `--to` 指 Engram 本庫；勿把匯出目錄 commit；真人正文勿寫進測試／fixture |
 
 ## 順序

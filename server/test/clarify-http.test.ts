@@ -12,7 +12,7 @@ import {
 } from "../vault/index.ts";
 
 test("clarify HTTP main path via live Bun.serve", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-cla-http-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-cla-http-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "clarify", "asking"), { recursive: true });
   await mkdir(join(vault, "clarify", "pending"), { recursive: true });

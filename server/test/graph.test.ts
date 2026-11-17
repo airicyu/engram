@@ -14,7 +14,7 @@ Dead-looking [[nodes/gamma/gamma]] still extracted (existence checked later).
 });
 
 test("buildNodeGraph: empty vault → empty envelope", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-graph-empty-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-graph-empty-"));
   const vault = join(root, "memories");
   await mkdir(vault, { recursive: true });
   try {
@@ -25,7 +25,7 @@ test("buildNodeGraph: empty vault → empty envelope", async () => {
 });
 
 test("buildNodeGraph: mutual + one-way wikilinks; dead links ignored; undirected dedup", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-graph-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-graph-"));
   const vault = join(root, "memories");
   const nodes = join(vault, "nodes");
   await mkdir(join(nodes, "alpha"), { recursive: true });
@@ -65,7 +65,7 @@ test("buildNodeGraph: mutual + one-way wikilinks; dead links ignored; undirected
 });
 
 test("buildNodeGraph: Unicode node id and wikilinks", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-graph-unicode-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-graph-unicode-"));
   const vault = join(root, "memories");
   const id = "虛構乙";
   await mkdir(join(vault, "nodes", id), { recursive: true });
@@ -87,7 +87,7 @@ test("buildNodeGraph: Unicode node id and wikilinks", async () => {
 });
 
 test("buildNodeGraph: title falls back to id when no # heading", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-graph-title-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-graph-title-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "nodes", "solo"), { recursive: true });
   await writeFile(join(vault, "nodes", "solo", "solo.md"), "no heading here\n", "utf8");

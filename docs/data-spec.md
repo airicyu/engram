@@ -4,18 +4,18 @@
 
 優先序：
 
-1. 環境變數 `ENGRAM_LITE_STORE_DIR`
-2. 倉庫根 `.env` 的 `ENGRAM_LITE_STORE_DIR`（gitignored；見 `.env.example`）
-3. 預設 `./demo-engram-lite-data`（相對 **engram-lite 倉庫根**）
+1. 環境變數 `ENGRAM_STORE_DIR`
+2. 倉庫根 `.env` 的 `ENGRAM_STORE_DIR`（gitignored；見 `.env.example`）
+3. 預設 `./demo-engram-data`（相對本倉庫根）
 
-HTTP 埠同樣：`ENGRAM_LITE_PORT` → `.env` 的 `ENGRAM_LITE_PORT` → `8797`。
+HTTP 埠同樣：`ENGRAM_PORT` → `.env` 的 `ENGRAM_PORT` → `8797`。
 
-本倉庫附帶的 `demo-engram-lite-data/` 是可提交的**虛構**示範庫；未設時即用此路徑。自己的記憶請在 `.env` 或環境變數把 `ENGRAM_LITE_STORE_DIR` 指到倉庫外（例如 `./../engram-lite-data`）。**VIP：** 嚴禁把 personal private 真人真事寫進 `demo-engram-lite-data/` 或任何 testing／fixture（對齊 Engram；見根目錄 `AGENTS.md` VIP 規則）。
+本倉庫附帶的 `demo-engram-data/` 是可提交的**虛構**示範庫；未設時即用此路徑。自己的記憶請在 `.env` 或環境變數把 `ENGRAM_STORE_DIR` 指到倉庫外（例如 `./../engram-data`）。**VIP：** 嚴禁把 personal private 真人真事寫進 `demo-engram-data/` 或任何 testing／fixture（見根目錄 `AGENTS.md`）。
 
-相對路徑一律相對 engram-lite 根目錄解析。記憶庫內：
+相對路徑一律相對本倉庫根目錄解析。記憶庫內：
 
 ```
-{store}/                          # ENGRAM_LITE_STORE_DIR
+{store}/                          # ENGRAM_STORE_DIR
 ├── workspace.yaml                # 不進 vault
 ├── jobs/
 │   └── {job_id}.json             # 僅 server 派工；不進 vault（對齊 Engram 的 dreams/）
@@ -45,7 +45,7 @@ HTTP 埠同樣：`ENGRAM_LITE_PORT` → `.env` 的 `ENGRAM_LITE_PORT` → `8797`
 
 舊庫若 `chain`／`nodes`／`pool` 仍在 `{store}/` 根下，移進 `memories/` 即可；`jobs/` 與 `workspace.yaml` 留在 store 根。
 
-**自完整 Engram 匯入（0.4.0+）：** 離線 `bun run import:engram --from <engram-store> --to <lite-store>`（預設 dry-run；`--yes` 寫入；目標已有記憶內容需 `--force`）。來源唯讀；**禁止** `--to` 指到 Engram 本庫或與 Engram 共用一庫。**檢查清單：** 新空 `--to` 目錄 → dry-run 看 log → `--yes` 寫入 → 設定 `ENGRAM_LITE_STORE_DIR`（或 `.env`）→ 開 UI 驗 chain／nodes／pool／附圖；`nodes/*/score.yaml` 會合併為主檔 `activity_score` frontmatter。轉換細節見 `docs/roadmap/0.4.0/docs/how.md`。
+**自舊記憶庫匯入（0.4.0+）：** 離線 `bun run import:engram --from <source-store> --to <store>`（預設 dry-run；`--yes` 寫入；目標已有記憶內容需 `--force`）。來源唯讀；**禁止** `--to` 指到來源庫或與來源共用一庫。**檢查清單：** 新空 `--to` 目錄 → dry-run 看 log → `--yes` 寫入 → 設定 `ENGRAM_STORE_DIR`（或 `.env`）→ 開 UI 驗 chain／nodes／pool／附圖；`nodes/*/score.yaml` 會合併為主檔 `activity_score` frontmatter。轉換細節見 `docs/roadmap/0.4.0/docs/how.md`。
 
 Obsidian 開 `{store}/memories/`。`[[nodes/…]]` 與 `![[_attachments/uploads/…]]` 都相對這一層，圖與日記同庫可見。
 
@@ -56,9 +56,9 @@ Obsidian 開 `{store}/memories/`。`[[nodes/…]]` 與 `![[_attachments/uploads/
 ```yaml
 timezone: Asia/Hong_Kong
 memory_language: zh-Hant   # zh-Hant | zh-Hans | en
-pi_model: deepseek/deepseek-v4.1-flash   # server 派 Pi 用；可被 ENGRAM_LITE_PI_MODEL／PI_MODEL 覆蓋
-future_sight_window_days: 365   # 可省略；可被 ENGRAM_LITE_FUTURE_SIGHT_WINDOW_DAYS 覆蓋
-future_sight_upcoming_days: 30  # 可省略；可被 ENGRAM_LITE_FUTURE_SIGHT_UPCOMING_DAYS 覆蓋
+pi_model: deepseek/deepseek-v4.1-flash   # server 派 Pi 用；可被 ENGRAM_PI_MODEL／PI_MODEL 覆蓋
+future_sight_window_days: 365   # 可省略；可被 ENGRAM_FUTURE_SIGHT_WINDOW_DAYS 覆蓋
+future_sight_upcoming_days: 30  # 可省略；可被 ENGRAM_FUTURE_SIGHT_UPCOMING_DAYS 覆蓋
 ```
 
 發生日時一律用此 timezone 解讀／寫入 offset。  
@@ -93,11 +93,11 @@ future_sight_upcoming_days: 30  # 可省略；可被 ENGRAM_LITE_FUTURE_SIGHT_UP
 | `note` | 可省略。梳理、分段、標主題時寫在這裡，不要改寫 `raw` 到認不出原句 |
 | `attachments` | 可省略或空陣列（與無圖的 0.2 相同）。非空時每項 `path`（vault 相對、形如 `_attachments/uploads/{日}/{檔}`）＋`relationship`（trim 後非空）。**對稱：** 若 `raw` 含任一合法 embed，或本陣列非空，則 embed path 集合與 `attachments[].path` 集合必須相等（順序不論；重複先集合正規化）。缺漏、缺檔、`|alias`、非法 path → 寫入端拒絕 |
 
-**ingest skill：** 把一次輸入梳理成 1～N 筆，append 到 `memories/pool/pending.jsonl`。不要寫 chain／nodes。**不要**新建釐清題（生題由 program 在 distill 之後另開 session 跑 `engram-lite-clarify-generate`）。
+**ingest skill：** 把一次輸入梳理成 1～N 筆，append 到 `memories/pool/pending.jsonl`。不要寫 chain／nodes。**不要**新建釐清題（生題由 program 在 distill 之後另開 session 跑 `engram-clarify-generate`）。
 
 **distill skill：** 每次先讀 `memories/clarify/pending/`，把答案／aside 寫進相關 chain／nodes，再移到 `clarify/history/`（可加 `absorbed_at`）。然後處理 `memories/pool/pending.jsonl`：寫完對應 chain／nodes 後，把那些列移到 `archived.jsonl`。**不要**在本 skill 寫 `clarify/asking/`。讀事件 `attachments[].relationship`（無則當「本則附圖」）；day 相關則插入**同一**精確 embed；禁止發明 path、禁止當自己看得見像素。**Create mentions（0.6.1）：** 本批 pending `raw` 內每個 `[@…](node-create:{id})` **必須**建立（若尚無）對應 node 主檔；寫 chain 時改為 P1 wikilink，不得略過。
 
-**ask skill：** 只讀 `memories/chain/`（日週月年）＋ `memories/pool/pending.jsonl`。不讀 `archived.jsonl`、不讀 `nodes/`、**不讀 `clarify/`**。已沉澱內容以鏈上敘事為準。
+**ask skill：** 讀 `memories/chain/`（日週月年）、`memories/pool/pending.jsonl`、`memories/future-sight/upcoming.md` 與 `longTerm.md`。問題點名節點時，只比對各 node 的 id、frontmatter `aliases` 與第一個 H1：**唯一命中**才讀該主檔全文；多名命中只列 id 並詢問；零命中則說明沒有對上的節點。不讀未命中的 node 正文，不讀 `archived.jsonl`，**不讀 `clarify/`**。已沉澱敘事以鏈為準；被點名的主檔補上鏈會壓掉的穩定事實。
 
 ---
 
@@ -150,7 +150,7 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 
 ### 何時寫 day／week／month／year
 
-「現在」＝`workspace.yaml` 的 timezone 下的**當地日曆日**（真實時鐘；Lite 無虛擬鐘）。
+「現在」＝`workspace.yaml` 的 timezone 下的**當地日曆日**（真實時鐘；無虛擬鐘）。
 
 | 層 | 何時寫／整份更新 |
 |----|------------------|
@@ -173,7 +173,12 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 
 路徑：`memories/nodes/{id}/{id}.md`。Vault 內 wikilink 仍寫 `[[nodes/{id}/{id}|顯示名]]`（相對 `memories/`）。
 
-可選 YAML frontmatter 欄位 **`activity_score`**（整數 0–100）：供 UI 顯示活躍分；**distill 不維護**。自 Engram 匯入時，若來源有 `nodes/{id}/score.yaml`（`score:` 或 `activity_score:`），import 腳本機械合併進主檔 frontmatter。
+可選 YAML frontmatter：
+
+- **`activity_score`**（整數 0–100）：供 UI 顯示活躍分；**distill 不維護**。自 Engram 匯入時，若來源有 `nodes/{id}/score.yaml`（`score:` 或 `activity_score:`），import 腳本機械合併進主檔 frontmatter。
+- **`aliases`**（字串清單）：其他 id 或顯示名。同一實體只留一份主檔。合併由 pi-agent skill `engram-node` 在使用者指名後寫入，並用腳本改寫 wikilink（`memories/chain/`、其他 node、`future-sight/`、`pending.jsonl`）。不改 `clarify/`，不改寫 `archived.jsonl`。不留 `merged_into` 指針。
+
+**刪除／空殼：** 使用者指名刪除，或 distill 判定「本批開始前已存在、Standing facts 與 Current situation 仍空或只有佔位、本批仍寫不出事實」時，同一腳本把 wikilink 改成純文字並刪目錄。本批 `node-create` 新建的骨架同一輪不刪。
 
 `id`：目錄名＝主檔名＝wikilink 兩段 path。**允許 Unicode**（含中文）；禁止 `/`、`\`、`..`、空字串（對齊 Engram）。新建時仍建議英文 kebab／拼音以利 URL，非硬性。
 
@@ -229,7 +234,7 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 |------|------|
 | `id` | `cla_`＋當地 `YYYYMMDD`＋`_`＋6 位小寫字母數字；檔名＝`{id}.md` |
 | frontmatter | 至少 `id`、`ts`（RFC3339）。aside 另必含 `kind: aside` |
-| asking | 待人答；**只** `engram-lite-clarify-generate` skill（program 在 distill 之後另開 session）新建 3–5 題（一事一問）。distill **不**寫 asking |
+| asking | 待人答；**只** `engram-clarify-generate` skill（program 在 distill 之後另開 session）新建 3–5 題（一事一問）。distill **不**寫 asking |
 | pending | 已答（submit 寫入 `## Answer` 後移入）或 aside 直接新建；等下次 distill 吸收。aside **不是** pool 事件 |
 | history | 已吸收，或 DELETE asking 時標 dismissed 後移入 |
 
@@ -254,11 +259,11 @@ Chain／事件／node 正文引用附圖時，**持久化**只用精確 `![[_att
 
 ## Store git（0.3.2）
 
-- Git 根＝**store 根**（`ENGRAM_LITE_STORE_DIR`），**local only**（預設無 remote；文件不建議 push 私人 store）。
+- Git 根＝**store 根**（`ENGRAM_STORE_DIR`），**local only**（預設無 remote；文件不建議 push 私人 store）。
 - **觸發：** server 機械寫入或 distill job **成功終態**、reset skill 成功清空後，program 呼叫 `commitStore`（skills **不**負責 git）。純 pi-agent 直寫 vault 不在範圍。
 - **追蹤：** `memories/`、`workspace.yaml`（若存在）。**忽略：** `jobs/`、OS 垃圾（store 根 `.gitignore`）。
 - **失敗：** 業務已成功則不回滾；git 失敗只 log。
-- Message 形如 `engram-lite: event evt_…`（禁止正文）。
+- Message 形如 `engram: event evt_…`（禁止正文）。
 
 ## Jobs（僅 server）
 

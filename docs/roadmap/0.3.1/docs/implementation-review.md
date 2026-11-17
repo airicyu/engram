@@ -4,7 +4,7 @@
 - 輪次：**初審**
 - 角色：實作審查（只認檔案；不改產品碼、不 commit、不貼真人記憶正文）
 - 對照基準：[`../INDEX.md`](../INDEX.md) 已定案＋驗收；[`how.md`](./how.md)、[`reasoning.md`](./reasoning.md)、[`../HANDOFF.md`](../HANDOFF.md)；契約 [`../../../data-spec.md`](../../../data-spec.md)；根 [`../../../../AGENTS.md`](../../../../AGENTS.md)
-- 抽樣錨點：`.agents/skills/engram-lite-distill/SKILL.md`、`docs/data-spec.md`（`## Memory chain`／`### 分題材、寫成文`）、`server/chain-prose-contract.test.ts`、`server/clarify-skill.test.ts`（distill 不寫 asking）、`version.md`、`changelog.md`
+- 抽樣錨點：`.agents/skills/engram-distill/SKILL.md`、`docs/data-spec.md`（`## Memory chain`／`### 分題材、寫成文`）、`server/chain-prose-contract.test.ts`、`server/clarify-skill.test.ts`（distill 不寫 asking）、`version.md`、`changelog.md`
 - **工作樹註記：** 與 `origin/main` 相比含大量 **0.3.0** 產品碼（server／web／demo）同批未提交；**本報告範圍僅 0.3.1 INDEX**（文案／契約／字串測／出貨文件）。0.3.1 新增檔（含本檔、`chain-prose-contract.test.ts`、roadmap 0.3.1 目錄）目前多為 **untracked**，內容已在磁碟可審。
 
 ---
@@ -67,7 +67,7 @@ Ran 49 tests across 13 files. [237.00ms]
 ### data-spec — 同義與 clarify 編排
 
 - Memory chain 正文語言句與 skill 語言小節同向。
-- Skills 小節：`distill` **不要** `clarify/asking/`；ingest／events 不生題；clarify 表 `asking` 只由 `engram-lite-clarify-generate` 新建。
+- Skills 小節：`distill` **不要** `clarify/asking/`；ingest／events 不生題；clarify 表 `asking` 只由 `engram-clarify-generate` 新建。
 - 測試：`chain-prose-contract.test.ts` 第二測＋ `expect(md).not.toMatch(/釐清只由 distill 出題/)`。
 
 ### `chain-prose-contract.test.ts`
@@ -102,7 +102,7 @@ Ran 49 tests across 13 files. [237.00ms]
 
 #### IR031-M2 — README 釐清一句與 clarify 編排矛盾 — **仍開**
 
-- **現象：** `README.md` L5「釐清是輕量郵箱（**distill 出題**、HTTP 落答案）」；契約真相為 program 第二 session **`engram-lite-clarify-generate`** 寫 `asking`，distill **不**出題（`data-spec`、`distill` SKILL、`clarify-skill.test.ts`）。
+- **現象：** `README.md` L5「釐清是輕量郵箱（**distill 出題**、HTTP 落答案）」；契約真相為 program 第二 session **`engram-clarify-generate`** 寫 `asking`，distill **不**出題（`data-spec`、`distill` SKILL、`clarify-skill.test.ts`）。
 - **為何 MEDIUM：** 與 0.3.0／0.3.1 已定案編排衝突，易誤導運維／文件讀者；**非** data-spec／distill skill 本體錯誤。
 - **建議：** 改為「distill 後 clarify-generate 出題」或同等句。**非本審查修改範圍。**
 

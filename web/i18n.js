@@ -1,9 +1,8 @@
-/** Engram Lite UI i18n (zh-Hant | en). */
+/** Engram UI i18n (zh-Hant | en). */
 (function (global) {
-  const STORAGE_KEY = "engram-lite.locale";
+  const STORAGE_KEY = "engram.locale";
 
   const zh = {
-    "brand.lite": "Lite",
     "nav.scenes": "主選單",
     "nav.events": "事件",
     "nav.seek": "尋問",
@@ -42,7 +41,7 @@
     "activities.recent_events_heading": "近期輸入的事件",
     "activities.recent_events_empty": "（尚無近期事件）",
     "distill.title": "沉澱入夢",
-    "distill.lead": "背景執行 distill：吸收已答釐清、寫記憶鏈與節點、archive pool。Lite 無 dream report，僅看 job 狀態。",
+    "distill.lead": "背景執行 distill：吸收已答釐清、寫記憶鏈與節點、archive pool。沒有 dream report，只看 job 狀態。",
     "distill.action": "開始沉澱",
     "distill.busy_conflict": "已有沉澱在進行或排隊，已拒絕重複啟動（避免並行寫庫）",
     "distill.status": "狀態",
@@ -125,7 +124,6 @@
   };
 
   const en = {
-    "brand.lite": "Lite",
     "nav.scenes": "Main menu",
     "nav.events": "Events",
     "nav.seek": "Seek",
@@ -164,7 +162,7 @@
     "activities.recent_events_heading": "Recent events",
     "activities.recent_events_empty": "(no recent events)",
     "distill.title": "Consolidate",
-    "distill.lead": "Runs distill in the background: absorb answered clarify items, write chain/nodes, archive pool. No dream report in Lite—watch job status.",
+    "distill.lead": "Runs distill in the background: absorb answered clarify items, write chain/nodes, archive pool. No dream report—watch job status.",
     "distill.action": "Start distill",
     "distill.busy_conflict": "A distill is already queued or running; refused duplicate start to protect the vault",
     "distill.status": "Status",

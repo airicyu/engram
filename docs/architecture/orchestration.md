@@ -29,14 +29,14 @@ POST /distill
   → worker：
        計算 work = pending.jsonl 非空行數 + clarify/pending/*.md（不含 .gitkeep）
        若 work == 0 → early-exit，跳過 generate，job completed
-       Session A（新 Pi session）：engram-lite-distill only
+       Session A（新 Pi session）：engram-distill only
          · prompt 帶入當地今天（workspace timezone）
          · 吸收 clarify/pending · 寫 chain／nodes · archive pool
          · 禁止寫 clarify/asking
-         · 模型停筆後，程式核對本輪產物：開跑時的 pool 列已入 archived 且離開 pending；開跑時的 clarify/pending 檔已在 history/；本輪新建或改寫的日檔若落在已結束 ISO 週（今天晚於該週日），週記檔必須存在且新於那些日檔
+         · 模型停筆後，程式核對本輪產物：開跑時的 pool 列已入 archived 且離開 pending；開跑時的 clarify/pending 檔已在 history/；本輪新建或改寫的日檔若落在已結束 ISO 週（今天晚於該週日），週記檔必須存在且新於那些日檔；若日檔落在已結束月份（今天的 YYYY-MM 晚於該月），或本輪重寫的已結束週與該月重疊，月記檔必須存在且新於那些日檔與週記；若本輪碰到已結束的年份（今天的年份晚於該年），年記檔必須存在且新於該年的日檔、週記與月記
          · 有缺：同一 session 再 prompt 一次，列出缺的檔，從中間繼續
          · 續跑後仍缺 → job failed，不進入 Session B
-       Session B（新 Pi session）：engram-lite-clarify-generate only
+       Session B（新 Pi session）：engram-clarify-generate only
          · clarify/asking/ 強制 MIN 3、MAX 5
        若 asking < 3 → Session B′ retry generate（強調至少 3）
        若仍 < 3 → job failed（明確錯誤，不 silent complete）
@@ -58,7 +58,7 @@ POST /distill
 
 | 想改的行為 | 改 |
 |------------|-----|
-| 題目怎麼問、問什麼 | `.agents/skills/engram-lite-clarify-generate` |
-| 日記／node 怎麼寫 | `.agents/skills/engram-lite-distill` |
+| 題目怎麼問、問什麼 | `.agents/skills/engram-clarify-generate` |
+| 日記／node 怎麼寫 | `.agents/skills/engram-distill` |
 | 是否兩 session、配額、早退、Session A 續跑／fail、retry／fail | `server/worker/pi.ts`、`server/worker/distill-gate.ts`＋本檔 |
 | 機械 HTTP 形狀 | `docs/api.md`＋server 路由 |

@@ -1,11 +1,11 @@
-# Roadmap 寫作指南（engram-lite）
+# Roadmap 寫作指南（Engram）
 
 ← [AGENTS.md](../../AGENTS.md) · 節奏：[agent-workflow.md](./agent-workflow.md)
 
 本檔規範如何寫 `docs/roadmap/`，讓 **另一個沒有對話紀錄的 agent** 也能正確開工。  
 寫 roadmap 的 agent 與實作的 agent 常常不是同一個；**對話裡談過但沒寫進檔案的內容，對實作 agent 等於不存在。**
 
-寫作原則對齊完整 Engram 的 `docs/roadmap/GUIDELINES.md`；路徑與出貨檔以 **本倉庫** 為準（lite **沒有** `store_version` boot gate、沒有 `docs/api-docs/`）。
+路徑與出貨檔以 **本倉庫** 為準（沒有 `store_version` boot gate、沒有 `docs/api-docs/`）。
 
 **架構警世（根目錄強制）：** 見 [`AGENTS.md`](../../AGENTS.md)「調度寫死在 program，把判斷還給 skill」——roadmap／Track 不得把語意判斷（文體、開 node、出釐清題）寫成 server 規則引擎；program 只准控制面與機械 I／O。控制面管線須有 WHY：見 [`docs/architecture/orchestration.md`](../architecture/orchestration.md)。
 
@@ -80,5 +80,5 @@ Roadmap 是 **跨 agent 交接文件**，不是當下對話的備忘草稿。
 
 - version／changelog：根目錄 `version.md`、`changelog.md`（對齊 Engram 檔名，不是 `VERSION.md`）
 - 執行某版：`.agents/skills/roadmap-version`（預設先設計審查閘門；測試 `bun test`）
-- 禁止把 `demo-engram-lite-data/` 以外的真人日記當例寫進 roadmap
-- Lite **不** bump 記憶庫 `store_version`、**不**做 Engram migrate hop
+- 禁止把 `demo-engram-data/` 以外的真人日記當例寫進 roadmap
+- **不** bump 記憶庫 `store_version`、**不**做 migrate hop

@@ -12,17 +12,17 @@ import {
 } from "../config/paths.ts";
 import { readPool, readWorkspace, stampInTimezone } from "./memories.ts";
 
-test("store dir default is demo-engram-lite-data", () => {
-  expect(defaultStoreDirRel).toBe("./demo-engram-lite-data");
-  if (!process.env.ENGRAM_LITE_STORE_DIR) {
+test("store dir default is demo-engram-data", () => {
+  expect(defaultStoreDirRel).toBe("./demo-engram-data");
+  if (!process.env.ENGRAM_STORE_DIR && !process.env.ENGRAM_LITE_STORE_DIR) {
     const n = storeDir.replace(/\\/g, "/");
-    expect(n.endsWith("/demo-engram-lite-data")).toBe(true);
+    expect(n.endsWith("/demo-engram-data")).toBe(true);
   }
 });
 
 test("port from env or default", () => {
   expect(defaultPort).toBe(8797);
-  if (!process.env.ENGRAM_LITE_PORT) {
+  if (!process.env.ENGRAM_PORT && !process.env.ENGRAM_LITE_PORT) {
     expect(port).toBe(8797);
   }
 });
@@ -65,7 +65,7 @@ test("stampInTimezone Hong Kong", () => {
 test("pi_model default or workspace", async () => {
   const ws = await readWorkspace();
   expect(ws.pi_model.length).toBeGreaterThan(0);
-  if (!process.env.ENGRAM_LITE_PI_MODEL && !process.env.PI_MODEL) {
+  if (!process.env.ENGRAM_PI_MODEL && !process.env.ENGRAM_LITE_PI_MODEL && !process.env.PI_MODEL) {
     expect(ws.pi_model).toBe("deepseek/deepseek-v4.1-flash");
   }
   expect(defaultPiModel).toBe("deepseek/deepseek-v4.1-flash");

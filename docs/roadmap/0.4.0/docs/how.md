@@ -7,7 +7,7 @@
 ```bash
 bun run scripts/import-from-engram.ts \
   --from /path/to/engram-data \
-  --to /path/to/engram-lite-data \
+  --to /path/to/engram-data \
   [--dry-run] [--yes] [--force] \
   [--chain] [--nodes] [--attachments] [--future-sight] [--pool] [--workspace] \
 ```

@@ -13,7 +13,7 @@ import {
 const fixtureFrom = join(import.meta.dir, "fixtures/import-engram-mini");
 
 test("refuses import into Engram-shaped store", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-import-refuse-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-import-refuse-"));
   try {
     await Bun.write(join(root, "engram.workspace.yaml"), "timezone: Asia/Hong_Kong\n");
     await Bun.write(join(root, "dreams", ".gitkeep"), "");
@@ -32,7 +32,7 @@ test("refuses import into Engram-shaped store", async () => {
 });
 
 test("import fixture → lite store (chain, nodes, pool, workspace)", async () => {
-  const to = await mkdtemp(join(tmpdir(), "engram-lite-import-ok-"));
+  const to = await mkdtemp(join(tmpdir(), "engram-import-ok-"));
   try {
     const stats = await runImport({
       from: fixtureFrom,
@@ -89,8 +89,8 @@ test("import fixture → lite store (chain, nodes, pool, workspace)", async () =
 });
 
 test("legacy YYYY-Www summary upgrades to YYYY-Www-MMDD path", async () => {
-  const from = await mkdtemp(join(tmpdir(), "engram-lite-import-legacy-from-"));
-  const to = await mkdtemp(join(tmpdir(), "engram-lite-import-legacy-to-"));
+  const from = await mkdtemp(join(tmpdir(), "engram-import-legacy-from-"));
+  const to = await mkdtemp(join(tmpdir(), "engram-import-legacy-to-"));
   try {
     await writeFile(join(from, "engram.workspace.yaml"), "timezone: Asia/Hong_Kong\n");
     const weekDir = join(from, "memories/chain/weeks/2026-03");
@@ -128,7 +128,7 @@ test("legacy YYYY-Www summary upgrades to YYYY-Www-MMDD path", async () => {
 });
 
 test("dry-run does not write files", async () => {
-  const to = await mkdtemp(join(tmpdir(), "engram-lite-import-dry-"));
+  const to = await mkdtemp(join(tmpdir(), "engram-import-dry-"));
   try {
     await runImport({
       from: fixtureFrom,

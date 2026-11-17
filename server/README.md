@@ -7,7 +7,7 @@ server/
   index.ts              # routes + static web
   store.ts              # barrel → vault (scripts/tests)
   config/
-    paths.ts            # ENGRAM_LITE_STORE_DIR, port, vault path helpers
+    paths.ts            # ENGRAM_STORE_DIR, port, vault path helpers
   vault/
     memories.ts         # pool, chain, nodes, clarify, attachments, search, graph
     index.ts            # public vault API

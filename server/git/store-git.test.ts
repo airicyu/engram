@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 test("store git: init on first commit and second write adds commit", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-sgit-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-sgit-"));
   try {
     await scaffoldStore(root);
     const vault = join(root, "memories");
@@ -64,7 +64,7 @@ test("store git: init on first commit and second write adds commit", async () =>
 });
 
 test("store git: jobs/ ignored in git ls-files", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-sgit-jobs-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-sgit-jobs-"));
   try {
     await scaffoldStore(root);
     await mkdir(join(root, "jobs"), { recursive: true });
@@ -81,7 +81,7 @@ test("store git: jobs/ ignored in git ls-files", async () => {
 });
 
 test("store git: merges existing gitignore without dropping user lines", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-sgit-merge-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-sgit-merge-"));
   try {
     await writeFile(join(root, ".gitignore"), "custom-secret/\n", "utf8");
     await ensureStoreGit(root);
@@ -94,7 +94,7 @@ test("store git: merges existing gitignore without dropping user lines", async (
 });
 
 test("store git: git commit failure does not throw; vault write already done", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-sgit-fail-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-sgit-fail-"));
   try {
     await scaffoldStore(root);
     const vault = join(root, "memories");
@@ -118,20 +118,20 @@ test("store git: git commit failure does not throw; vault write already done", a
   }
 });
 
-test("store git: commit message prefix engram-lite", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-sgit-msg-"));
+test("store git: commit message prefix engram", async () => {
+  const root = await mkdtemp(join(tmpdir(), "engram-sgit-msg-"));
   try {
     await scaffoldStore(root);
     await commitStore(root, { op: "reset" });
     const r = spawnSync("git", ["log", "-1", "--format=%s"], { cwd: root, encoding: "utf8" });
-    expect(r.stdout.trim()).toBe("engram-lite: reset");
+    expect(r.stdout.trim()).toBe("engram: reset");
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 });
 
 test("store git: POST /events handler path creates repo commit", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-sgit-http-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-sgit-http-"));
   const vault = join(root, "memories");
   try {
     await scaffoldStore(root);
@@ -159,7 +159,7 @@ test("store git: POST /events handler path creates repo commit", async () => {
     server.stop();
     expect(gitRevCount(root)).toBe(1);
     const log = spawnSync("git", ["log", "-1", "--format=%s"], { cwd: root, encoding: "utf8" });
-    expect(log.stdout.trim().startsWith("engram-lite: event evt_")).toBe(true);
+    expect(log.stdout.trim().startsWith("engram: event evt_")).toBe(true);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

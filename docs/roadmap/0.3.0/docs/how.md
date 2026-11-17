@@ -10,20 +10,20 @@
 | append 一筆 events、存圖 bytes、submit／dismiss／aside 釐清檔、search、graph、讀 markdown | **server** 機械 |
 | distill／ask | server **只** 202＋job，prompt 仍叫現有 skill |
 
-UI 搜尋走 `GET /search`，**不**取代 Ask skill 的讀檔範圍。`engram-lite-ask` 仍只讀 chain＋pending（INDEX：不讀 clarify）。
+UI 搜尋走 `GET /search`，**不**取代 Ask skill 的讀檔範圍。`engram-ask` 仍只讀 chain＋pending（INDEX：不讀 clarify）。
 
 ## 控制面調度（WHY／順序）
 
 權威短文：[`docs/architecture/orchestration.md`](../../../architecture/orchestration.md)。
 
-`POST /distill` 同一 job：**先** `engram-lite-distill`（不寫 asking），若非空庫早退再 **`engram-lite-clarify-generate`（MIN 3／MAX 5）**。Program 只保證階段順序與早退；題目內容仍由 skill 寫檔。
+`POST /distill` 同一 job：**先** `engram-distill`（不寫 asking），若非空庫早退再 **`engram-clarify-generate`（MIN 3／MAX 5）**。Program 只保證階段順序與早退；題目內容仍由 skill 寫檔。
 
 ## 釐清生題（program 兩 session）
 
 `POST /distill`（見 [`orchestration.md`](../../../architecture/orchestration.md)）：
 
-1. **Session A** `engram-lite-distill` — 吸收 pending、寫 chain／nodes、archive；**不**寫 asking
-2. 開始前有 work → **Session B** `engram-lite-clarify-generate` — `clarify/asking/` **強制 3–5** 題
+1. **Session A** `engram-distill` — 吸收 pending、寫 chain／nodes、archive；**不**寫 asking
+2. 開始前有 work → **Session B** `engram-clarify-generate` — `clarify/asking/` **強制 3–5** 題
 3. asking＜3 → **再開一次** generate session；仍不足 → job **failed**
 
 Server 只派工與機械 submit／delete／aside；**不**生成問題正文。調度寫死在 program。

@@ -3,7 +3,7 @@
 ← [changelog](../../../changelog.md) · 上游：[0.3.1](../0.3.1/INDEX.md)（`shipped`）· current: [version.md](../../../version.md) · 寫法：[GUIDELINES.md](../GUIDELINES.md) · 節奏：[agent-workflow.md](../agent-workflow.md) · HOW：[docs/how.md](./docs/how.md) · WHY：[docs/reasoning.md](./docs/reasoning.md)
 
 > **狀態：** **shipped**（2026-09-21）  
-> 範圍：記憶庫目錄（`ENGRAM_LITE_STORE_DIR`）維護 **local-only git**；凡 **成功**寫入 vault 的操作結束後自動 `git commit`。  
+> 範圍：記憶庫目錄（`ENGRAM_STORE_DIR`）維護 **local-only git**；凡 **成功**寫入 vault 的操作結束後自動 `git commit`。  
 > **不**引入 dream staging／approve；**不**推 GitHub；**不**把其他產品倉庫當依賴。  
 > **開工前仍須拍板：無。** 執行走 `.agents/skills/roadmap-version`。
 
@@ -26,9 +26,9 @@
 |---|-----|------|
 | 1 | 觸發時機 | **操作成功結束後** commit 一次。至少涵蓋：`POST /events`（含附圖事件）、附件上傳落地、`POST /distill` job **成功終態**（含同 job 內 clarify-generate）、釐清 `submit`／`DELETE`（dismiss）／`aside`、以及 reset skill **成功清空後**（reset 可一次 commit，message 標明 reset）。**讀取**（search／ask／graph／GET）不 commit。**範圍外：** 使用者僅用 pi-agent 直跑 skill（ingest／distill 等、不經 server 列舉路徑）時 **不**自動 commit；skills 不負責 git。 |
 | 2 | 失敗語意 | 業務操作失敗 → **不** commit。git 本身失敗（未裝 git、lock、無權）→ **只記 server／job log**，**不**回滾已寫入的記憶檔、不把 HTTP 改成 5xx（除非該操作尚未回成功；若已回 200／202 完成，git 失敗不得改寫既有成功回應）。 |
-| 3 | 倉庫根與追蹤範圍 | git 根＝**store 根**（`ENGRAM_LITE_STORE_DIR`）。追蹤：`memories/`（及 store 根上必要的 `workspace.yaml` 若存在）。**不追蹤：** `jobs/`、暫存／lock／log、OS 垃圾（`.DS_Store`）。以 store 根 `.gitignore` 寫死；若檔已存在則**合併**必要條目（必保 `jobs/` 整目錄被忽略），保留使用者自加行。 |
+| 3 | 倉庫根與追蹤範圍 | git 根＝**store 根**（`ENGRAM_STORE_DIR`）。追蹤：`memories/`（及 store 根上必要的 `workspace.yaml` 若存在）。**不追蹤：** `jobs/`、暫存／lock／log、OS 垃圾（`.DS_Store`）。以 store 根 `.gitignore` 寫死；若檔已存在則**合併**必要條目（必保 `jobs/` 整目錄被忽略），保留使用者自加行。 |
 | 4 | init | store 若尚非 git repo：第一次需要 commit 時 **自動 `git init`**（local only；不設 remote）。 |
-| 5 | commit message | 單行、可機器掃：`engram-lite: {op} {id?}`。例：`engram-lite: event evt_…`、`engram-lite: distill job_…`、`engram-lite: clarify-submit cla_…`、`engram-lite: attachment …`、`engram-lite: reset`。禁止把事件／日記**正文**寫進 message（隱私）。 |
+| 5 | commit message | 單行、可機器掃：`engram: {op} {id?}`。例：`engram: event evt_…`、`engram: distill job_…`、`engram: clarify-submit cla_…`、`engram: attachment …`、`engram: reset`。禁止把事件／日記**正文**寫進 message（隱私）。 |
 | 6 | 實作位置 | **Program／server（或極薄 `store-git.ts` helper）** 在機械寫入成功路徑呼叫；skills **不**負責 git。符合「調度在 program」。 |
 | 7 | 與 0.3.0／0.3.1 | 可並行；不依賴搜尋／圖 UI／文體文案。若同檔衝突以合併為準，不得拿掉既有「distill 兩 session／不寫 asking」契約。 |
 | 8 | 文件／契約 | 更新 `AGENTS.md`（Lite **有** store git：**預設恆常啟用**、無 env 關閉；每次 server 列舉成功寫入後 local commit；仍無 dream approve）、`docs/data-spec.md`（store git 行為小節）、**必**更新 `docs/api.md` 一句「副作用：成功寫入後可能 local commit」。自 0.2／0.3.0 **非目標**清單移除「store git」或改為「本版已做」。 |
@@ -51,7 +51,7 @@
 
 ## 驗收
 
-- [x] 空 store：首次成功 `POST /events`（或等價機械寫入）後，store 根有 `.git`，`git log -1` message 符合 `engram-lite: …`
+- [x] 空 store：首次成功 `POST /events`（或等價機械寫入）後，store 根有 `.git`，`git log -1` message 符合 `engram: …`
 - [x] 再一次成功寫入 → 新 commit（hash／log 筆數增加）
 - [x] `jobs/` 下檔案不出現在 `git ls-files`
 - [x] distill job 成功終態後有對應 commit（可與事件分屬不同 commit）

@@ -9,7 +9,7 @@
 ## 設計審查
 
 ```text
-你是 Engram Lite 設計審查 agent。只認檔案，不認 chat history。
+你是 Engram 設計審查 agent。只認檔案，不認 chat history。
 
 先讀：
 1. AGENTS.md
@@ -43,11 +43,11 @@ Findings 分級：
 ## 實作審查
 
 ```text
-你是 Engram Lite 實作審查 agent。只認檔案，不認 chat history。
+你是 Engram 實作審查 agent。只認檔案，不認 chat history。
 
 先讀：AGENTS.md → docs/roadmap/<VER>/INDEX.md（已定案＋驗收）→ HANDOFF → 相關 docs。
 對照 working tree／diff 寫或更新同一份 docs/roadmap/<VER>/docs/implementation-review.md。
-分 H/M/L、穩定 ID、含 bun test 結果。跑：bun test（cwd 倉庫根；PATH 含 bun）。禁止未經同意 reset 真人 ENGRAM_LITE_STORE_DIR。
+分 H/M/L、穩定 ID、含 bun test 結果。跑：bun test（cwd 倉庫根；PATH 含 bun）。禁止未經同意 reset 真人 ENGRAM_STORE_DIR。
 
 不要改程式、不要加功能、不要 commit。
 對照基準＝INDEX。

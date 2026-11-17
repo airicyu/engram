@@ -1,7 +1,7 @@
 ---
 name: roadmap-version
 description: >-
-  Runs an Engram Lite roadmap version through design-review rounds then
+  Runs an Engram roadmap version through design-review rounds then
   Track-based implementation. Spawns a fresh design reviewer, merges findings
   into INDEX/docs/HANDOFF, repeats until the design gate passes, or stops if
   the proposal is not feasible. Then implements Track by Track with bun test.
@@ -13,7 +13,7 @@ disable-model-invocation: true
 
 # Roadmap version（設計審查閘門 → Track 實作）
 
-本技能執行一份 **Engram Lite roadmap 版本**。規範來源：[`docs/roadmap/agent-workflow.md`](../../../docs/roadmap/agent-workflow.md)、[`docs/roadmap/GUIDELINES.md`](../../../docs/roadmap/GUIDELINES.md)、根目錄 `AGENTS.md`。
+本技能執行一份 **Engram roadmap 版本**。規範來源：[`docs/roadmap/agent-workflow.md`](../../../docs/roadmap/agent-workflow.md)、[`docs/roadmap/GUIDELINES.md`](../../../docs/roadmap/GUIDELINES.md)、根目錄 `AGENTS.md`。
 
 對使用者：**繁體中文書面語**。**Do not commit unless the user asks.**
 
@@ -60,13 +60,13 @@ disable-model-invocation: true
 
 若 INDEX 過短、已定案不是完整句子、驗收無法客觀判斷：本 agent **先補文件到可審**，再進步驟 1。補的是把已寫意圖寫清楚，不是發明新品語意。需要產品抉擇則問使用者。
 
-預檢禁區（Engram Lite）：
+預檢禁區（Engram）：
 
 - 勿把定案只留在 chat
-- 勿把 **真人記憶庫**（`ENGRAM_LITE_STORE_DIR`、旁鄰 `engram-lite-data/`）正文寫進 INDEX／docs／reasoning／HANDOFF／審查報告。`demo-engram-lite-data/` 虛構示範可作結構例，不要當真人日記抄
+- 勿把 **真人記憶庫**（`ENGRAM_STORE_DIR`、旁鄰 `engram-data/`）正文寫進 INDEX／docs／reasoning／HANDOFF／審查報告。`demo-engram-data/` 虛構示範可作結構例，不要當真人日記抄
 - 主幹是 **skills 寫 live `memories/`**。Server 只讀檔、機械寫入（例如 append pending、落地圖檔）、以及 202 派 Pi。**禁止**把寫作規則做成 server 規則引擎，禁止搬 Engram dream staging／approve／lock
 - 勿在未同意前改 `docs/data-spec.md` 當「先做再說」
-- Lite **沒有** `store_version` boot gate、**沒有** `docs/api-docs/`、**沒有** `bun run test:phases`。契約在 `docs/data-spec.md`、`docs/api.md`；測試指令 **`bun test`**
+- **沒有** `store_version` boot gate、**沒有** `docs/api-docs/`、**沒有** `bun run test:phases`。契約在 `docs/data-spec.md`、`docs/api.md`；測試指令 **`bun test`**
 - 本版若無目錄搬家：不要發明 migrate hop
 
 ---
@@ -131,7 +131,7 @@ disable-model-invocation: true
 
 嚴格跟 INDEX／HANDOFF 的 Track 順序。禁非目標。INDEX 已定案不要再問；**沉默才提問**。
 
-測試：倉庫根 **`bun test`**。**禁止**未經同意對真人 `ENGRAM_LITE_STORE_DIR` 跑 reset。Skills 離線寫檔可以；不要手改真人日記「幫忙改對」。
+測試：倉庫根 **`bun test`**。**禁止**未經同意對真人 `ENGRAM_STORE_DIR` 跑 reset。Skills 離線寫檔可以；不要手改真人日記「幫忙改對」。
 
 | 時機 | 測試期望 |
 |------|----------|
@@ -143,7 +143,7 @@ disable-model-invocation: true
 
 Web UI 有改動：用瀏覽器把該流程點一遍，不要只截靜態圖。
 
-Runtime 是 Bun。熱改 server 後確認仍在 `ENGRAM_LITE_PORT`（`.env` 或環境變數，預設 `8797`）的埠。
+Runtime 是 Bun。熱改 server 後確認仍在 `ENGRAM_PORT`（`.env` 或環境變數，預設 `8797`）的埠。
 
 ---
 

@@ -31,9 +31,9 @@
 - [x] `@不存在名` 下拉可選「新建」並插入 create chip；發帖後 `pending.jsonl` 的 `raw` 含 `[@…](node-create:…)`
 - [x] `@已存在` 只出現 ref（wikilink），不出現同 id 的新建列
 - [x] `POST /events` 對 create→已存在／非法 id 回 400
-- [x] `engram-lite-distill` SKILL／data-spec 寫明 create **必須**建檔
+- [x] `engram-distill` SKILL／data-spec 寫明 create **必須**建檔
 - [x] `bun test` 通過（含 mentions 單元測＋ shell 字串契約）
 
 ## 錨點檔案
 
-`web/mention-composer.js`、`web/app.js`、`web/i18n.js`、`web/style.css`、`server/nodes/mentions.ts`、`server/index.ts`、`.agents/skills/engram-lite-distill/SKILL.md`、`docs/data-spec.md`、`docs/api.md`
+`web/mention-composer.js`、`web/app.js`、`web/i18n.js`、`web/style.css`、`server/nodes/mentions.ts`、`server/index.ts`、`.agents/skills/engram-distill/SKILL.md`、`docs/data-spec.md`、`docs/api.md`

@@ -9,6 +9,7 @@ import {
   nodesDir,
   poolArchivedPath,
   poolPendingPath,
+  readSetting,
   storeDir,
   workspacePath,
   type ChainLevel,
@@ -35,7 +36,7 @@ export type Workspace = {
 };
 
 export async function readWorkspace(): Promise<Workspace> {
-  const fromEnv = process.env.ENGRAM_LITE_PI_MODEL?.trim() || process.env.PI_MODEL?.trim();
+  const fromEnv = readSetting("ENGRAM_PI_MODEL") || process.env.PI_MODEL?.trim();
   try {
     const text = await readFile(workspacePath(), "utf8");
     const tz = text.match(/^timezone:\s*(.+)$/m)?.[1]?.trim() ?? "Asia/Hong_Kong";
@@ -48,7 +49,7 @@ export async function readWorkspace(): Promise<Workspace> {
     };
   } catch {
     return {
-      timezone: process.env.ENGRAM_LITE_TZ ?? "Asia/Hong_Kong",
+      timezone: readSetting("ENGRAM_TZ") ?? "Asia/Hong_Kong",
       memory_language: "zh-Hant",
       pi_model: fromEnv || defaultPiModel,
     };

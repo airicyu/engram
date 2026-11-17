@@ -4,8 +4,8 @@
 - 輪次：**初審**
 - 角色：實作審查（只認檔案；不改產品碼、不 commit、不貼真人記憶正文）
 - 對照基準：[`../INDEX.md`](../INDEX.md) 已定案＋驗收；[`how.md`](./how.md)、[`reasoning.md`](./reasoning.md)、[`../HANDOFF.md`](../HANDOFF.md)；契約 [`../../../data-spec.md`](../../../data-spec.md)、[`../../../api.md`](../../../api.md)；根 [`../../../../AGENTS.md`](../../../../AGENTS.md)
-- 抽樣錨點：`server/store-git.ts`、`server/store-git.test.ts`、`server/index.ts`（掛鉤）、`.agents/skills/engram-lite-reset/scripts/reset-store.ts`、`version.md`、`changelog.md`
-- **工作樹註記：** `main` 上相對 `origin/main` 有未提交變更；新增 `server/store-git.ts`、`server/store-git.test.ts`、`docs/roadmap/0.3.2/`（含本檔）。未對真人 `ENGRAM_LITE_STORE_DIR` 執行 reset 或寫入。
+- 抽樣錨點：`server/store-git.ts`、`server/store-git.test.ts`、`server/index.ts`（掛鉤）、`.agents/skills/engram-reset/scripts/reset-store.ts`、`version.md`、`changelog.md`
+- **工作樹註記：** `main` 上相對 `origin/main` 有未提交變更；新增 `server/store-git.ts`、`server/store-git.test.ts`、`docs/roadmap/0.3.2/`（含本檔）。未對真人 `ENGRAM_STORE_DIR` 執行 reset 或寫入。
 
 **複審（同 session 修復）：** IR032-H1／M2–M4／L2 **已關**；M1 標非阻擋（已加 events HTTP 薄測）。INDEX **`shipped`**、驗收全勾。`bun test` **55 pass／0 fail**。
 
@@ -35,7 +35,7 @@ server/store-git.test.ts:
 (pass) store git: merges existing gitignore without dropping user lines [9.90ms]
 [store-git] git commit failed: simulated commit failure
 (pass) store git: git commit failure does not throw; vault write already done [13.14ms]
-(pass) store git: commit message prefix engram-lite [17.96ms]
+(pass) store git: commit message prefix engram [17.96ms]
 
 …（其餘 13 files，含既有 0.3.0／0.3.1 軌道測試）
 
@@ -45,7 +45,7 @@ server/store-git.test.ts:
 Ran 54 tests across 14 files. [354.00ms]
 ```
 
-本版新增：`server/store-git.test.ts` 五測全過。`server/search.test.ts` 新增 `ENGRAM_LITE_STORE_DIR` 時跳過 demo vault 測（避免污染／路徑歧義）。
+本版新增：`server/store-git.test.ts` 五測全過。`server/search.test.ts` 新增 `ENGRAM_STORE_DIR` 時跳過 demo vault 測（避免污染／路徑歧義）。
 
 ---
 
@@ -53,7 +53,7 @@ Ran 54 tests across 14 files. [354.00ms]
 
 | # | INDEX 驗收句 | 結果 | 證據 |
 |---|--------------|------|------|
-| 1 | 空 store 首次成功 `POST /events` 後 `.git`＋`engram-lite: …` message | **部分** | `server/index.ts` 在 `appendPendingWithAttachments` 成功後 `commitStore(..., event)`；`store-git.test.ts` 以 **直接** `commitStore`＋`appendPendingWithAttachments` 證 init／message，**無** live `POST /events` 測 |
+| 1 | 空 store 首次成功 `POST /events` 後 `.git`＋`engram: …` message | **部分** | `server/index.ts` 在 `appendPendingWithAttachments` 成功後 `commitStore(..., event)`；`store-git.test.ts` 以 **直接** `commitStore`＋`appendPendingWithAttachments` 證 init／message，**無** live `POST /events` 測 |
 | 2 | 再一次成功寫入 → 新 commit | **通過** | `store-git.test.ts` 連續兩次 event commit → `rev-list --count`＝2 |
 | 3 | `jobs/` 不在 `git ls-files` | **通過** | 同測寫 `jobs/job_test.json` 後 commit；`ls-files` 無 `jobs/`；`.gitignore` 含 `jobs/` |
 | 4 | distill job 成功終態 → commit | **程式可推定、測未覆蓋** | `pump()` 在 `job.status === "completed"` 且 `kind === "distill"` 後 `commitStore`；失敗路徑無 `commitStore`。無 mock distill job 單測 |
@@ -72,7 +72,7 @@ Ran 54 tests across 14 files. [354.00ms]
 
 - `ensureStoreGit`：`git init`、合併 `.gitignore`（必保 `jobs/`）、local `user.email`／`user.name`。
 - `commitStore`：`git add -A` → 無 staged 則 no-op → `git commit -m`；錯誤只 log、不 throw。
-- Message：`engram-lite: event|attachment|clarify-*|distill|reset`；無正文。
+- Message：`engram: event|attachment|clarify-*|distill|reset`；無正文。
 - 測試注入：`setStoreGitRunnerForTests`（INDEX #9 (d)）。
 
 ### 掛鉤（Track B）
@@ -114,7 +114,7 @@ Ran 54 tests across 14 files. [354.00ms]
 
 - **現象：** INDEX 驗收首句指 `POST /events`；distill／clarify 驗收亦列 job／三類操作。現僅 `store-git.test.ts` 呼叫 `commitStore` 與 pool 寫入，**未**經 `Bun.serve` 或 distill job pump。
 - **風險：** `index.ts` 掛鉤 regress 時 CI 可能仍綠。
-- **建議：** temp store + `ENGRAM_LITE_STORE_DIR` 覆寫下跑既有 HTTP 測或新增薄 E2E（events 後 `stat(.git)`、`git log -1`；可選 mock `runSkillJob` 完成 distill）。
+- **建議：** temp store + `ENGRAM_STORE_DIR` 覆寫下跑既有 HTTP 測或新增薄 E2E（events 後 `stat(.git)`、`git log -1`；可選 mock `runSkillJob` 完成 distill）。
 
 #### IR032-M2 — `docs/roadmap/backlog/INDEX.md` 與 AGENTS 0.3.2 狀態不一致 — **仍開**
 

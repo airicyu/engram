@@ -12,7 +12,7 @@
 
 | 檔 | 動作 |
 |----|------|
-| `.agents/skills/engram-lite-distill/SKILL.md` | **必改**：新增或抽離「Chain 文體」獨立小節；移入／寫明 INDEX 已定案 #3；加入虛構 Day／Week 好壞例 |
+| `.agents/skills/engram-distill/SKILL.md` | **必改**：新增或抽離「Chain 文體」獨立小節；移入／寫明 INDEX 已定案 #3；加入虛構 Day／Week 好壞例 |
 | `docs/data-spec.md` | **必對齊**：Memory chain「分題材、寫成文」與 skill 同義；補書面語禁令若仍弱 |
 | `server/**/*.test.ts` 或既有 skills 測試 | **必加**：字串契約（獨立小節標題、書面語／禁粵語或等價句、好例／壞例標題存在） |
 | `docs/architecture/chain-prose.md` | 可選短文，只做索引 |

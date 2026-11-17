@@ -416,4 +416,4 @@ const server = Bun.serve({
   },
 });
 
-console.log(`engram-lite  http://127.0.0.1:${server.port}  store=${storeDir}`);
+console.log(`engram  http://127.0.0.1:${server.port}  store=${storeDir}`);

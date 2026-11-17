@@ -25,6 +25,8 @@ export const CLARIFY_GENERATE_MIN = 3;
 export const CLARIFY_GENERATE_MAX = 5;
 
 const WRITE_TOOLS = ["read", "grep", "find", "ls", "edit", "write"] as const;
+/** Distill must delete `clarify/pending` after copying into history. write/edit cannot remove a file. */
+const DISTILL_TOOLS = [...WRITE_TOOLS, "bash"] as const;
 const READ_TOOLS = ["read", "grep", "find", "ls"] as const;
 
 function lastAssistantText(s: AgentSession): string {
@@ -75,7 +77,7 @@ export async function countDistillWork(): Promise<{
 function promptIngest(job: Job): string {
   const store = storeDir;
   return [
-    `Follow the skill engram-lite-ingest.`,
+    `Follow the skill engram-ingest.`,
     `Memory store directory (absolute): ${store}`,
     `User event to capture:`,
     job.input.raw ?? "",
@@ -85,7 +87,7 @@ function promptIngest(job: Job): string {
 function promptAsk(job: Job): string {
   const store = storeDir;
   return [
-    `Follow the skill engram-lite-ask.`,
+    `Follow the skill engram-ask.`,
     `Memory store directory (absolute): ${store}`,
     `Read memories/chain/ (day/week/month/year), memories/pool/pending.jsonl, and memories/future-sight/ (upcoming.md + longTerm.md). Do not read archived.jsonl or memories/nodes/.`,
     `Question:`,
@@ -97,12 +99,15 @@ function promptAsk(job: Job): string {
 function promptDistillOnly(today: string): string {
   const store = storeDir;
   return [
-    `Follow the skill engram-lite-distill.`,
+    `Follow the skill engram-distill.`,
     `Memory store directory (absolute): ${store}`,
     `Local today is ${today} (workspace timezone). Do not treat an event timestamp or a date inside the note as today.`,
     `A week is closed when ${today} is after that week's Sunday. If you create or update a day file in a closed week, write that week's chain file before you stop.`,
+    `A month is closed when ${today.slice(0, 7)} is after that month. If you create or update a day in a closed month, or a week file that overlaps a closed month, write that month's chain file after the week file and before you stop.`,
+    `A year is closed when ${today.slice(0, 4)} is after that year. If this run touches a closed year, write that year's chain file after its month file and before you stop.`,
     `Absorb clarify/pending, write chain + nodes, archive pool.`,
     `Archive means appending processed lines to memories/pool/archived.jsonl and removing them from pending.jsonl. Move absorbed clarify files from clarify/pending/ to clarify/history/. Saying so in the reply is not enough.`,
+    `write and edit cannot delete a file. After the history copy exists, use bash to mv or rm the pending original. Leaving both copies is not done.`,
     `Do NOT create or edit any files under memories/clarify/asking/. Asking generation is a separate program-orchestrated session.`,
   ].join("\n\n");
 }
@@ -113,14 +118,21 @@ function promptDistillContinue(today: string, gaps: DistillGap[]): string {
     if (gap.kind === "clarify") {
       return `- clarify file still not moved to history/: ${gap.id}.md`;
     }
-    return `- week file missing or older than the day files: ${gap.weekId} (days ${gap.days.join(", ")}; this week is closed)`;
+    if (gap.kind === "week") {
+      return `- week file missing or older than the day files: ${gap.weekId} (days ${gap.days.join(", ")}; this week is closed)`;
+    }
+    if (gap.kind === "month") {
+      return `- month file missing or older than the day/week files: ${gap.monthId} (days ${gap.days.join(", ")}; this month is closed). Write it after the week file.`;
+    }
+    return `- year file missing or older than the day/week/month files: ${gap.yearId} (days ${gap.days.join(", ")}; this year is closed). Write it after the month file.`;
   });
   return [
-    `You stopped before engram-lite-distill finished. Continue in this same session.`,
+    `You stopped before engram-distill finished. Continue in this same session.`,
     `Local today is ${today}. Do not treat an event timestamp as today.`,
     `These artifacts are still missing on disk. Write them, then stop:`,
     ...lines,
-    `Do not rewrite chain files that are already correct. Finish the missing archive, clarify moves, and closed-week files.`,
+    `Do not rewrite chain files that are already correct. Finish the missing archive, clarify moves, and closed week, month, and year files. Write a month file after its week files, and a year file after its month files.`,
+    `write and edit cannot delete a file. Use bash mv or rm so each listed clarify id is gone from clarify/pending/.`,
     `Do NOT create or edit any files under memories/clarify/asking/.`,
   ].join("\n\n");
 }
@@ -129,7 +141,7 @@ function promptDistillContinue(today: string, gaps: DistillGap[]): string {
 function promptClarifyGenerate(opts: { retry: boolean; askingCount: number }): string {
   const store = storeDir;
   const lines = [
-    `Follow the skill engram-lite-clarify-generate.`,
+    `Follow the skill engram-clarify-generate.`,
     `Memory store directory (absolute): ${store}`,
     `Create NEW files under memories/clarify/asking/ only.`,
     `Quota (hard): MIN ${CLARIFY_GENERATE_MIN}, MAX ${CLARIFY_GENERATE_MAX} new asking files this session (one question per file).`,
@@ -179,7 +191,7 @@ async function openPiSession(opts: {
     agentDir,
     tools: [...opts.tools],
     model: cliModel.model,
-    thinkingLevel: cliModel.thinkingLevel ?? "off",
+    thinkingLevel: cliModel.thinkingLevel ?? "low",
     modelRuntime,
     resourceLoader: loader,
     sessionManager: SessionManager.inMemory(),
@@ -226,7 +238,7 @@ async function runDistillSession(onLog: (line: string) => void, today: string): 
   const memories = memoriesDir();
   const before = await snapshotDistill(memories);
   const session = await openPiSession({
-    tools: WRITE_TOOLS,
+    tools: DISTILL_TOOLS,
     onLog,
     label: "distill",
   });
@@ -275,7 +287,7 @@ async function runDistillOrchestrated(onLog: (line: string) => void): Promise<st
   }
 
   const today = stampInTimezone((await readWorkspace()).timezone).ts.slice(0, 10);
-  onLog(`distill… (session A: engram-lite-distill; today=${today})`);
+  onLog(`distill… (session A: engram-distill; today=${today})`);
   const distillText = await runDistillSession(onLog, today);
 
   const after = await countDistillWork();
@@ -286,7 +298,7 @@ async function runDistillOrchestrated(onLog: (line: string) => void): Promise<st
   // before.total > 0 (else early-exit above) → always run Session B
   const askingBeforeGenerate = await countAskingFiles();
 
-  onLog("clarify-generate… (session B: engram-lite-clarify-generate)");
+  onLog("clarify-generate… (session B: engram-clarify-generate)");
   const genText1 = await runOnePiSession({
     tools: WRITE_TOOLS,
     prompt: promptClarifyGenerate({ retry: false, askingCount: 0 }),

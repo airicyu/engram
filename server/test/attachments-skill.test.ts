@@ -5,7 +5,7 @@ import { join } from "node:path";
 const root = join(import.meta.dir, "../..");
 
 test("distill skill teaches attachment relationship / embed (no pixels)", async () => {
-  const md = await readFile(join(root, ".agents/skills/engram-lite-distill/SKILL.md"), "utf8");
+  const md = await readFile(join(root, ".agents/skills/engram-distill/SKILL.md"), "utf8");
   expect(md).toContain("attachments");
   expect(md).toContain("relationship");
   expect(md).toContain("![[_attachments/uploads/");

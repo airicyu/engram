@@ -18,7 +18,7 @@ test("GET /search contract: empty/blank q → 400", () => {
 });
 
 test("GET /search contract: hits envelope via live Bun.serve", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-search-http-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-search-http-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "chain", "days", "2026-09"), { recursive: true });
   await writeFile(

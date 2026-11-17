@@ -19,7 +19,7 @@ const PNG_1X1 = Buffer.from(
 );
 
 test("attachments HTTP: upload 201, file GET, events symmetry", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-att-http-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-att-http-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "pool"), { recursive: true });
   await writeFile(join(vault, "pool", "pending.jsonl"), "", "utf8");

@@ -1,12 +1,12 @@
 # HTTP API
 
-預設 `http://127.0.0.1:8797`（`ENGRAM_LITE_PORT` 覆蓋 `.env` 的同名鍵，再落到 `8797`）。無 auth。
+預設 `http://127.0.0.1:8797`（`ENGRAM_PORT` 覆蓋 `.env` 的同名鍵，再落到 `8797`）。無 auth。
 
 讀取型 GET **同步讀檔**，毫秒級。  
 機械寫入（`POST /events`、上傳附圖、釐清 submit／delete／aside）**同步落檔**（不經 Pi）。  
 會跑 Pi skill 的操作（`/distill`、`/ask`）**一律 202 + job**。
 
-**Store git（0.3.2）：** 下列操作**成功**結束後，server 可能在 `{store}` 根自動 `git init`（若尚無）並 **local commit**（單行 message `engram-lite: …`；不含正文）。失敗只記 log，不改已成功 HTTP。**不** push。**不**含純 skill CLI 直寫 vault 或唯讀 GET。
+**Store git（0.3.2）：** 下列操作**成功**結束後，server 可能在 `{store}` 根自動 `git init`（若尚無）並 **local commit**（單行 message `engram: …`；不含正文）。失敗只記 log，不改已成功 HTTP。**不** push。**不**含純 skill CLI 直寫 vault 或唯讀 GET。
 
 **空讀：** 列表／搜尋／釐清／圖等「無資料」→ **200**＋該端點既定 JSON envelope，其集合欄為空陣列（如 `{ hits: [] }`、`{ items: [] }`、`{ nodes: [], edges: [] }`）。404 只給未知路由，或附件 path 消毒後檔不存在。釐清缺題 submit／delete → 200＋`present: false`（冪等，不是 404）。
 
@@ -44,11 +44,11 @@
 | `POST /clarify/asking/{id}/submit` | `{ "answer": "…" }` | 寫答案、移到 `clarify/pending/`。缺檔 → 200＋`present: false`。非法 id → 400 |
 | `DELETE /clarify/asking/{id}` | — | 移到 `history` 並標 dismissed。缺檔 → 200＋`present: false`。非法 id → 400 |
 | `POST /clarify/aside` | `{ "raw": "…" }` | 在 `clarify/pending/` 新建 aside（`kind: aside`）；**不是** pool 事件。**200** `{ id, present: true }` |
-| `POST /distill` | `{}` | 202 job → `engram-lite-distill`（與 UI 按鈕、crontab 同一 worker） |
-| `POST /ask` | `{ "q": "…" }` | 202 job → `engram-lite-ask` |
+| `POST /distill` | `{}` | 202 job → `engram-distill`（與 UI 按鈕、crontab 同一 worker） |
+| `POST /ask` | `{ "q": "…" }` | 202 job → `engram-ask` |
 
 Pi 派工成功受理：**202** `{ job_id, status: "queued" }`，再 poll `GET /jobs/{id}`。  
-要拆筆或寫 `note` 請用 pi-agent 的 **engram-lite-ingest** skill。
+要拆筆或寫 `note` 請用 pi-agent 的 **engram-ingest** skill。
 
 同時只跑 **一個** Pi job。避免兩場 distill 搶寫同一批檔。
 

@@ -4,8 +4,8 @@
 - 輪次：**初審**
 - 角色：實作審查（只認檔案；不改產品碼、不 commit、不 bump `version.md`、不貼真人記憶正文）
 - 對照基準：[`../INDEX.md`](../INDEX.md) 已定案＋驗收；[`how.md`](./how.md)、[`design-review.md`](./design-review.md)、[`../HANDOFF.md`](../HANDOFF.md)；根契約 [`../../../api.md`](../../../api.md)、[`../../../data-spec.md`](../../../data-spec.md)、[`../../../../AGENTS.md`](../../../../AGENTS.md)
-- 抽樣錨點：`server/index.ts`、`server/store.ts`、`server/paths.ts`、`web/app.js`、`web/index.html`、`web/style.css`、`.agents/skills/engram-lite-distill/SKILL.md`、`.agents/skills/engram-lite-ask/SKILL.md`；相關 `server/*-*.test.ts`
-- **環境註記：`NEEDS_WSL_SYNC`** — 本輪無法以 `wsl -e bash -lc`／machineId `3929bdcd-0321-4b22-ad86-a9fa7253f3c3` 讀使用者 WSL；審查與本檔寫在 box 路徑 `/home/airic/airwave/engram-lite`。Parent 請同步回 WSL 工作樹後再當正式閘門檔。
+- 抽樣錨點：`server/index.ts`、`server/store.ts`、`server/paths.ts`、`web/app.js`、`web/index.html`、`web/style.css`、`.agents/skills/engram-distill/SKILL.md`、`.agents/skills/engram-ask/SKILL.md`；相關 `server/*-*.test.ts`
+- **環境註記：`NEEDS_WSL_SYNC`** — 本輪無法以 `wsl -e bash -lc`／machineId `3929bdcd-0321-4b22-ad86-a9fa7253f3c3` 讀使用者 WSL；審查與本檔寫在 box 路徑 `/home/airic/airwave/engram`。Parent 請同步回 WSL 工作樹後再當正式閘門檔。
 
 ---
 
@@ -37,7 +37,7 @@ Ran 39 tests across 12 files. [66.00ms]
 ```
 
 涵蓋：`search`／`search-http`、`clarify`／`clarify-http`／`clarify-skill`、`attachments`／`attachments-http`／`attachments-skill`、`graph`／`graph-http`、`shell-ui`、`store`。  
-測試一律用 `mkdtemp`／demo 路徑；未指向真人 `ENGRAM_LITE_STORE_DIR` 寫入。
+測試一律用 `mkdtemp`／demo 路徑；未指向真人 `ENGRAM_STORE_DIR` 寫入。
 
 ---
 
@@ -47,7 +47,7 @@ Ran 39 tests across 12 files. [66.00ms]
 |---|--------------|------|------|
 | 1 | `GET /search?q=` 命中 fixture；空 q→400；無命中→200 `{ hits: [] }` | **通過** | `server/search.test.ts`（日檔＋pending、略 archived／clarify、cap 50）；`server/search-http.test.ts`（live Bun.serve：空 q 400、無命中 envelope、命中 path `chain/days/…`）；`server/index.ts` L146–149；`store.searchMemories` |
 | 2 | 尋問頁可搜、可 ask、可看近 ask job 不重跑 | **通過**（靜態） | `web/app.js` `renderSeek`：`/search`、`POST /ask`、`GET /jobs` 濾 `kind==="ask"` 終態 `.slice(0,20)`，點選 `GET /jobs/{id}` 展示 `output.text`；`shell-ui.test.ts` 斷言 `renderSeek`；**無**瀏覽器 e2e（見 IR-L1） |
-| 3 | Distill→asking→submit→pending→再 distill→history＋客觀吸收 | **部分／未測完整** | 機械：`clarify.test.ts`／`clarify-http.test.ts` submit→pending、dismiss→history、aside；skill：`clarify-skill.test.ts`＋`engram-lite-distill/SKILL.md` 含 asking／`absorbed_at`／先 pending 後 pool。**缺**：無自動化測「模擬 distill 寫 `absorbed_at` 移 history」或「fixture 關鍵字入 day／node」（INDEX 明寫擇一寫進測試）→ **IR-M1** |
+| 3 | Distill→asking→submit→pending→再 distill→history＋客觀吸收 | **部分／未測完整** | 機械：`clarify.test.ts`／`clarify-http.test.ts` submit→pending、dismiss→history、aside；skill：`clarify-skill.test.ts`＋`engram-distill/SKILL.md` 含 asking／`absorbed_at`／先 pending 後 pool。**缺**：無自動化測「模擬 distill 寫 `absorbed_at` 移 history」或「fixture 關鍵字入 day／node」（INDEX 明寫擇一寫進測試）→ **IR-M1** |
 | 4 | aside 不進 `pool/pending.jsonl` | **通過** | `clarify.test.ts`（`createClarifyAside`／submit 路徑斷言 pending.jsonl 不含 aside 正文）；aside `kind: aside` 落 `clarify/pending/` |
 | 5 | 上傳 png 201；events 對稱／單邊／缺檔／alias→400；無圖＝0.2 | **通過** | `attachments.test.ts`、`attachments-http.test.ts`（1×1 png、正式 `_attachments/uploads/{day}/`、對稱 200、單邊／缺檔／alias 400）；`store.validateEventAttachments`／`appendPendingWithAttachments`；`index.ts` `POST /attachments`／`/events` |
 | 6 | Day 稿可含同一 `![[…]]`；mock 不必真看圖 | **通過**（契約） | `attachments-skill.test.ts`＋distill SKILL「Day 相關才插入同一精確 embed／不要像素／禁止發明 path」；server 不組圖敘事 |
@@ -105,7 +105,7 @@ Ran 39 tests across 12 files. [66.00ms]
 | 檢查 | 結果 |
 |------|------|
 | Skills 寫 live；server 機械讀寫＋202 派 Pi | 符合（`index.ts` enqueue distill／ask；clarify／attachments／events 同步） |
-| Ask 不讀 clarify | `engram-lite-ask/SKILL.md`＋`clarify-skill.test.ts` |
+| Ask 不讀 clarify | `engram-ask/SKILL.md`＋`clarify-skill.test.ts` |
 | 搜尋不掃 clarify／archived／attachments bytes | `searchMemories`＋`search.test.ts` |
 | 無 tmp 上傳 | `saveAttachmentUpload`→正式 `uploads/{day}/` |
 | 無 dreams／approve／React／內建 cron | 抽樣符合；README／AGENTS crontab 一句 |

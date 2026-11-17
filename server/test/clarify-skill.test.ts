@@ -5,13 +5,13 @@ import { join } from "node:path";
 const root = join(import.meta.dir, "../..");
 
 test("distill skill does not own asking generation", async () => {
-  const md = await readFile(join(root, ".agents/skills/engram-lite-distill/SKILL.md"), "utf8");
+  const md = await readFile(join(root, ".agents/skills/engram-distill/SKILL.md"), "utf8");
   expect(md).toContain("clarify/pending");
-  expect(md).toMatch(/不寫 asking|不要.*clarify\/asking|engram-lite-clarify-generate/);
+  expect(md).toMatch(/不寫 asking|不要.*clarify\/asking|engram-clarify-generate/);
 });
 
 test("clarify-generate skill enforces MIN 3 MAX 5", async () => {
-  const md = await readFile(join(root, ".agents/skills/engram-lite-clarify-generate/SKILL.md"), "utf8");
+  const md = await readFile(join(root, ".agents/skills/engram-clarify-generate/SKILL.md"), "utf8");
   expect(md).toContain("clarify/asking");
   expect(md).toMatch(/MIN 3/);
   expect(md).toMatch(/MAX 5/);
@@ -19,8 +19,8 @@ test("clarify-generate skill enforces MIN 3 MAX 5", async () => {
 
 test("pi.ts program-orchestrates two independent sessions", async () => {
   const md = await readFile(join(root, "server/worker/pi.ts"), "utf8");
-  expect(md).toContain("engram-lite-distill");
-  expect(md).toContain("engram-lite-clarify-generate");
+  expect(md).toContain("engram-distill");
+  expect(md).toContain("engram-clarify-generate");
   expect(md).toContain("CLARIFY_GENERATE_MIN");
   expect(md).toContain("runDistillOrchestrated");
   expect(md).toContain("createAgentSession");

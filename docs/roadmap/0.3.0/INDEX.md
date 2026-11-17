@@ -2,9 +2,8 @@
 
 ← [changelog](../../../changelog.md) · 上游：[0.2.0](../0.2.0/INDEX.md)（`shipped`）· current: [version.md](../../../version.md) · 寫法：[GUIDELINES.md](../GUIDELINES.md) · 節奏：[agent-workflow.md](../agent-workflow.md) · HOW：[docs/how.md](./docs/how.md) · WHY：[docs/reasoning.md](./docs/reasoning.md)
 
-> **狀態：** **planned**（2026-09-20）  
-> 對齊 Engram 工作台**用得到的面**，但主幹仍是 skills 寫 live `memories/`；server 只讀檔、機械寫入、202 派 Pi。  
-> **開工前仍須拍板：無。** 設計審查走 `.agents/skills/roadmap-version`；閘門未過不要實作。
+> **狀態：** **shipped**（2026-09-20）  
+> 對齊 Engram 工作台**用得到的面**，但主幹仍是 skills 寫 live `memories/`；server 只讀檔、機械寫入、202 派 Pi。
 
 ## 產品句
 
@@ -18,7 +17,7 @@
 | 1 | **本檔 INDEX** | 範圍、定案、驗收 |
 | 2 | [docs/how.md](./docs/how.md) | 路徑、HTTP、skill 誰寫什麼 |
 | 3 | [docs/reasoning.md](./docs/reasoning.md) | 為何不做 tmp／future-sight／打分／React |
-| 4 | 上游 [0.2.0](../0.2.0/INDEX.md)；構想 [backlog/image-attachments.md](../backlog/image-attachments.md)（不得蓋過本 INDEX） |
+| 4 | 上游 [0.2.0](../0.2.0/INDEX.md) |
 
 ## 與上一版對照
 
@@ -43,7 +42,7 @@
 | 2 | 搜尋 | `GET /search?q=`，`q` trim 後不可空否則 400。掃 `memories/chain/**/*.md`、`memories/nodes/**/*.md`、`memories/pool/pending.jsonl`（正文／`raw`／`note`）。**不**掃 `archived.jsonl`、`jobs/`、`_attachments` bytes。大小寫不敏感子字串。回 200 `{ hits: [{ path, snippet }] }`，`path` 相對 vault（如 `chain/days/2026-09/2026-09-16.md`）。最多 50 筆。空 hits 仍 200。**不**經 Pi。 |
 | 3 | Ask | 既有 `POST /ask`。UI 尋問頁分「搜尋／提問」。`GET /jobs` 已有：尋問頁列出近 20 筆 `kind===ask` 且終態的摘要（題目用 `input.q`、狀態、時間），點選展示 `output.text`，**不**重跑。 |
 | 4 | 釐清目錄 | `{store}/memories/clarify/asking/`、`pending/`、`history/`。檔名 `{id}.md`。`id`＝`cla_`＋當地 `YYYYMMDD`＋`_`＋6 位小寫字母數字。正文 Markdown；YAML frontmatter 至少 `id`、`ts`（RFC3339）。asking＝待人答；pending＝已答、等下次 distill；history＝已吸收。 |
-| 5 | 誰寫釐清／何時生題 | **禁止** server／ingest／`POST /events` 生題。`POST /distill` **program 編排兩次獨立 Pi session**（對齊 Engram `runClarifyGenerate`）：(1) Session A `engram-lite-distill`：吸收 `clarify/pending/`、寫 chain／nodes、archive pool；**不寫 asking**；(2) Session B `engram-lite-clarify-generate`：在 `clarify/asking/` **強制新建 MIN 3、MAX 5**。開始前 work（pending.jsonl 非空行＋clarify/pending/*.md）為 0 → **跳過** generate。Session B 後 asking＜3 → program **再跑一次** generate；仍＜3 → job **failed**（禁止 silent 0 題完成）。Skill 只負責判斷問題內容；調度寫死在 `server/pi.ts`。 |
+| 5 | 誰寫釐清／何時生題 | **禁止** server／ingest／`POST /events` 生題。`POST /distill` **program 編排兩次獨立 Pi session**（對齊 Engram `runClarifyGenerate`）：(1) Session A `engram-distill`：吸收 `clarify/pending/`、寫 chain／nodes、archive pool；**不寫 asking**；(2) Session B `engram-clarify-generate`：在 `clarify/asking/` **強制新建 MIN 3、MAX 5**。開始前 work（pending.jsonl 非空行＋clarify/pending/*.md）為 0 → **跳過** generate。Session B 後 asking＜3 → program **再跑一次** generate；仍＜3 → job **failed**（禁止 silent 0 題完成）。Skill 只負責判斷問題內容；調度寫死在 `server/pi.ts`。 |
 | 6 | 人怎麼答 | 機械：`POST /clarify/asking/{id}/submit` body `{ "answer": "…" }` → 把答案寫進該檔、**移到** `pending/`。`DELETE /clarify/asking/{id}` 丟到 history 並標 dismissed，不再問。`POST /clarify/aside` body `{ "raw": "…" }` 直接在 `pending/` **新建**一筆順帶補充（**不是** pool 事件）：`id`／檔名規則與 #4 相同；frontmatter 必含 `id`、`ts`，且 **`kind: aside`**；正文為 `raw`（可無 `## Answer`）。缺檔 submit／delete → 200＋`present: false` 或等價空成功（冪等），不要 404 當「沒這題」。非法 id → 400。 |
 | 6b | 釐清列表讀取 | `GET /clarify/asking`、`GET /clarify/pending` → `{ items: [{ id, ts, markdown }] }`，新→舊。無題 **200**＋空陣列。UI 提問郵箱只靠這兩支；**不**經 Pi。 |
 | 7 | Distill 消化釐清 | 每次 distill：**先**讀 `clarify/pending/` 寫進相關 chain／nodes（與 pending.jsonl 同一場），再把那些檔移到 `history/`。然後照舊處理 `pool/pending.jsonl`。Ask skill **不**讀 clarify。 |
@@ -77,16 +76,16 @@
 
 ## 驗收
 
-- [ ] `GET /search?q=` 能命中 fixture 日檔或 pending 子字串；空 q → 400；無命中 → 200 `{ hits: [] }`
-- [ ] 尋問頁可搜、可 ask、可看到最近 ask job 而不重跑
-- [ ] 有 pending 可沉澱的 distill job：Session A 寫 chain／nodes 後，Session B 在 `clarify/asking/` **新建 3–5** 題；空庫早退則 asking 可不增；＜3 時 retry 一次，仍不足則 job failed。submit 後檔在 `clarify/pending/`；再 distill 後該檔在 `history/`，且滿足**客觀吸收判準（擇一寫進測試即可）**：(1) fixture 約定關鍵字出現在對應 day 或相關 node 正文；或 (2) 該檔 frontmatter 含 `absorbed_at`（RFC3339）且已在 `history/`。fixture 題目／答案用虛構字串，勿用真人記憶正文
-- [ ] aside 不進 `pool/pending.jsonl`
-- [ ] 上傳 png 201 且磁碟在 `_attachments/uploads/{day}/`；`POST /events`：僅 embed、僅 `attachments[]`、或缺邊對稱 → 400；兩邊 path 集合相同 → 200；無圖 → 與 0.2 相同；缺檔或 alias embed → 400
-- [ ] Day 稿可含同一 `![[…]]`；mock／測不必真 Pi 看圖
-- [ ] `GET /nodes/graph` 兩邊都存在的 wikilink 成邊；死連忽略
-- [ ] 左欄四景可切；圖頁能畫出 ≥2 點的邊；事件頁圖片預覽走 file GET
-- [ ] 無 React／Vite 新工具鏈；無 `dreams/` 目錄
-- [ ] `bun test` 全綠；測試不碰真人 `ENGRAM_LITE_STORE_DIR`
+- [x] `GET /search?q=` 能命中 fixture 日檔或 pending 子字串；空 q → 400；無命中 → 200 `{ hits: [] }`
+- [x] 尋問頁可搜、可 ask、可看到最近 ask job 而不重跑
+- [x] 有 pending 可沉澱的 distill job：Session A 寫 chain／nodes 後，Session B 在 `clarify/asking/` **新建 3–5** 題；空庫早退則 asking 可不增；＜3 時 retry 一次，仍不足則 job failed。submit 後檔在 `clarify/pending/`；再 distill 後該檔在 `history/`，且滿足**客觀吸收判準（擇一寫進測試即可）**：(1) fixture 約定關鍵字出現在對應 day 或相關 node 正文；或 (2) 該檔 frontmatter 含 `absorbed_at`（RFC3339）且已在 `history/`。fixture 題目／答案用虛構字串，勿用真人記憶正文
+- [x] aside 不進 `pool/pending.jsonl`
+- [x] 上傳 png 201 且磁碟在 `_attachments/uploads/{day}/`；`POST /events`：僅 embed、僅 `attachments[]`、或缺邊對稱 → 400；兩邊 path 集合相同 → 200；無圖 → 與 0.2 相同；缺檔或 alias embed → 400
+- [x] Day 稿可含同一 `![[…]]`；mock／測不必真 Pi 看圖
+- [x] `GET /nodes/graph` 兩邊都存在的 wikilink 成邊；死連忽略
+- [x] 左欄四景可切；圖頁能畫出 ≥2 點的邊；事件頁圖片預覽走 file GET
+- [x] 無 React／Vite 新工具鏈；無 `dreams/` 目錄
+- [x] `bun test` 全綠；測試不碰真人 `ENGRAM_STORE_DIR`
 
 ## 實作軌道
 
@@ -101,6 +100,6 @@
 
 ## 錨點
 
-`server/index.ts`、`server/store.ts`、`server/paths.ts`、`web/app.js`、`web/style.css`、`.agents/skills/engram-lite-distill/SKILL.md`、`.agents/skills/engram-lite-ask/SKILL.md`、`docs/data-spec.md`、`docs/api.md`。
+`server/index.ts`、`server/store.ts`、`server/paths.ts`、`web/app.js`、`web/style.css`、`.agents/skills/engram-distill/SKILL.md`、`.agents/skills/engram-ask/SKILL.md`、`docs/data-spec.md`、`docs/api.md`。
 
 ← [0.2.0](../0.2.0/INDEX.md) · [backlog](../backlog/INDEX.md) · [GUIDELINES](../GUIDELINES.md)

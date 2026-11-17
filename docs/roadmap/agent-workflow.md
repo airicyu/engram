@@ -1,10 +1,10 @@
-# Roadmap 開發節奏（engram-lite）
+# Roadmap 開發節奏（engram）
 
 ← [GUIDELINES.md](./GUIDELINES.md)（寫什麼）· [AGENTS.md](../../AGENTS.md)
 
 執行某一版（審查閘門 → Track 實作）用技能 [`.agents/skills/roadmap-version`](../../.agents/skills/roadmap-version/SKILL.md)，不要靠聊天殘留當契約。
 
-[`GUIDELINES.md`](./GUIDELINES.md) 管文件自足；本檔管 **誰開 session、何時審查、何時出貨**。節奏對齊完整 Engram 的 `agent-workflow.md`，按 Lite 規模縮短。
+[`GUIDELINES.md`](./GUIDELINES.md) 管文件自足；本檔管 **誰開 session、何時審查、何時出貨**。
 
 ---
 
@@ -43,8 +43,8 @@
 ## 本專案測試
 
 ```bash
-cd engram-lite
+cd engram
 bun test
 ```
 
-禁止 `rm` 使用者真實 `ENGRAM_LITE_STORE_DIR`。Demo 庫可改；不要把真人 pending 提交進 git。
+禁止 `rm` 使用者真實 `ENGRAM_STORE_DIR`。Demo 庫可改；不要把真人 pending 提交進 git。

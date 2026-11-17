@@ -5,7 +5,7 @@ import { isValidNodeId } from "../nodes/id.ts";
 
 export const repoRoot = join(import.meta.dir, "../..");
 
-export const defaultStoreDirRel = "./demo-engram-lite-data";
+export const defaultStoreDirRel = "./demo-engram-data";
 export const defaultPort = 8797;
 export const defaultPiModel = "deepseek/deepseek-v4.1-flash";
 export const projectEnvPath = join(repoRoot, ".env");
@@ -28,23 +28,27 @@ function projectEnv(): Record<string, string> {
   return out;
 }
 
+/** New name, then the previous `ENGRAM_LITE_*` name, from the environment or `.env`. */
+export function readSetting(name: string): string | undefined {
+  const legacy = `ENGRAM_LITE_${name.slice("ENGRAM_".length)}`;
+  const file = projectEnv();
+  return (
+    process.env[name]?.trim() ||
+    process.env[legacy]?.trim() ||
+    file[name]?.trim() ||
+    file[legacy]?.trim() ||
+    undefined
+  );
+}
+
 export function readStoreDirSetting(): string {
-  const fromEnv = process.env.ENGRAM_LITE_STORE_DIR?.trim();
-  if (fromEnv) return fromEnv;
-  const fromFile = projectEnv().ENGRAM_LITE_STORE_DIR?.trim();
-  if (fromFile) return fromFile;
-  return defaultStoreDirRel;
+  return readSetting("ENGRAM_STORE_DIR") || defaultStoreDirRel;
 }
 
 export function readPort(): number {
-  const fromEnv = process.env.ENGRAM_LITE_PORT?.trim();
-  if (fromEnv) {
-    const n = Number(fromEnv);
-    if (Number.isInteger(n) && n > 0 && n < 65536) return n;
-  }
-  const fromFile = projectEnv().ENGRAM_LITE_PORT?.trim();
-  if (fromFile) {
-    const n = Number(fromFile);
+  const raw = readSetting("ENGRAM_PORT");
+  if (raw) {
+    const n = Number(raw);
     if (Number.isInteger(n) && n > 0 && n < 65536) return n;
   }
   return defaultPort;

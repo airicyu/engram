@@ -79,10 +79,10 @@ describe("Track E shell (static left rail)", () => {
 });
 
 describe("UI refresh smoke (i18n / compose / tabs / locale)", () => {
-  test("i18n.js loaded with engram-lite.locale key", () => {
+  test("i18n.js loaded with engram.locale key", () => {
     expect(existsSync(i18nPath)).toBe(true);
     expect(html).toContain("i18n.js");
-    expect(i18n).toContain("engram-lite.locale");
+    expect(i18n).toContain("engram.locale");
     expect(i18n).toContain("zh-Hant");
     expect(i18n).toContain('"en"');
       });

@@ -4,7 +4,7 @@
 - 輪次：**初審**＋**複審**（本檔為累積審查紀錄；穩定 ID 不重編號）
 - 角色：設計審查（不改 INDEX／HOW／reasoning／HANDOFF／程式；不以本檔當已定案）
 - 對照基準：[`../INDEX.md`](../INDEX.md) 已定案＋驗收；[`how.md`](./how.md)、[`reasoning.md`](./reasoning.md)、[`../HANDOFF.md`](../HANDOFF.md)；上游 [`../../0.2.0/INDEX.md`](../../0.2.0/INDEX.md)；構想 [`../../backlog/image-attachments.md`](../../backlog/image-attachments.md)（不得蓋過本版）
-- 現行程式抽樣：`server/index.ts`、`server/store.ts`、`server/paths.ts`、`web/app.js`、`web/style.css`、`.agents/skills/engram-lite-distill/SKILL.md`、`.agents/skills/engram-lite-ask/SKILL.md`；契約現況 `docs/data-spec.md`、`docs/api.md`（皆為 **0.2.0 shipped** 語意）
+- 現行程式抽樣：`server/index.ts`、`server/store.ts`、`server/paths.ts`、`web/app.js`、`web/style.css`、`.agents/skills/engram-distill/SKILL.md`、`.agents/skills/engram-ask/SKILL.md`；契約現況 `docs/data-spec.md`、`docs/api.md`（皆為 **0.2.0 shipped** 語意）
 - **總評（複審）：無未關閉 HIGH；M1–M6／L1–L3 均已在 INDEX／HOW／HANDOFF 落地並核對關閉；設計閘門通過；無仍開且應修的 MEDIUM。** 本檔仍非產品已定案（已定案以 INDEX 為準）；出貨前 Track F 同步根契約。
 
 ---
@@ -68,7 +68,7 @@
 
 | ID | 狀態 | 說明 |
 |----|------|------|
-| L1 | **已關閉** | HOW：UI 搜尋走 `GET /search`，**不**取代 Ask skill 讀檔範圍；`engram-lite-ask` 仍只讀 chain＋pending。 |
+| L1 | **已關閉** | HOW：UI 搜尋走 `GET /search`，**不**取代 Ask skill 讀檔範圍；`engram-ask` 仍只讀 chain＋pending。 |
 | L2 | **已關閉** | HANDOFF paste-ready 已含 `GET /clarify/asking|pending`（隨 M1）。 |
 | L3 | **已關閉** | HOW 搜尋節註明 **刻意不掃** `clarify/`（僅郵箱 UI／`GET /clarify/*`）。 |
 

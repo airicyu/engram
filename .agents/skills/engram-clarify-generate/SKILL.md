@@ -1,5 +1,5 @@
 ---
-name: engram-lite-clarify-generate
+name: engram-clarify-generate
 description: 在 distill 沉澱之後，於 memories/clarify/asking/ 強制新建 3–5 道釐清題（對齊 Engram runClarifyGenerate 配額）。由 program 在獨立 Pi session 呼叫；不要單獨當日常沉澱入口。
 ---
 
@@ -8,11 +8,11 @@ description: 在 distill 沉澱之後，於 memories/clarify/asking/ 強制新�
 契約：[`docs/roadmap/0.3.0/INDEX.md`](../../../docs/roadmap/0.3.0/INDEX.md) 已定案 #5。  
 調度：[`docs/architecture/orchestration.md`](../../../docs/architecture/orchestration.md)——**program 開獨立 session**；本 skill 只負責判斷「問什麼」。
 
-記憶庫：`ENGRAM_LITE_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-lite-data`）。
+記憶庫：`ENGRAM_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-data`）。
 
 ## 何時跑
 
-- **只**由 `POST /distill` 的 program 編排：在 `engram-lite-distill` **成功且開始前有可沉澱 work** 之後，**另開一次** Pi session 執行。
+- **只**由 `POST /distill` 的 program 編排：在 `engram-distill` **成功且開始前有可沉澱 work** 之後，**另開一次** Pi session 執行。
 - Distill 早退（開始前 pool＋clarify pending 皆空）→ program **整段跳過**本 skill。
 - Server／ingest／`POST /events`／Ask **永不**呼叫本 skill。
 - 若第一次 generate 後 asking ＜ 3，program 會再開一次 session（retry）；prompt 會強調必須湊滿。

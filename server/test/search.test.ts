@@ -13,7 +13,7 @@ test("snippetAround keeps ~40 chars each side, single line", () => {
 });
 
 test("searchMemories hits day md and pending; skips archived and clarify", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-search-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-search-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "chain", "days", "2026-09"), { recursive: true });
   await mkdir(join(vault, "nodes", "acme"), { recursive: true });
@@ -97,7 +97,7 @@ test("searchMemories hits day md and pending; skips archived and clarify", async
 });
 
 test("searchMemories caps at 50", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-search-cap-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-search-cap-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "chain", "days", "2026-09"), { recursive: true });
   for (let i = 0; i < 60; i++) {

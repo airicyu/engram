@@ -1,6 +1,6 @@
 ---
-name: engram-lite-ingest
-description: 把使用者說的事梳理成一筆或多筆事件，append 到 Engram Lite 的暫存 pool（memories/pool/pending.jsonl）。在使用者要記下、capture、ingest、輸入事件時使用。不要寫日記或 nodes。
+name: engram-ingest
+description: 把使用者說的事梳理成一筆或多筆事件，append 到 Engram 的暫存 pool（memories/pool/pending.jsonl）。在使用者要記下、capture、ingest、輸入事件時使用。不要寫日記或 nodes。
 ---
 
 # 輸入事件
@@ -9,7 +9,7 @@ UI／`POST /events` 是**機械寫入**（一筆、現在時間、不拆、不�
 
 契約：[`docs/data-spec.md`](../../../docs/data-spec.md)
 
-記憶庫：環境變數 `ENGRAM_LITE_STORE_DIR`，或倉庫根 `.env` 同名鍵（相對路徑以 engram-lite 為準）。預設 `./demo-engram-lite-data`。
+記憶庫：環境變數 `ENGRAM_STORE_DIR`，或倉庫根 `.env` 同名鍵（相對路徑以 engram 為準）。預設 `./demo-engram-data`。
 
 ## 步驟
 
@@ -22,7 +22,7 @@ UI／`POST /events` 是**機械寫入**（一筆、現在時間、不拆、不�
    - `id`：`evt_YYYYMMDD_` + 6 位小寫字母數字
    - `note`：一句話梳理（主題、誰、結果）；語言跟 `memory_language`
 4. **append** 到記憶庫 `memories/pool/pending.jsonl`（每筆一行 JSON）。目錄不存在就建。
-5. **不要**改 `memories/chain/`、`memories/nodes/`、`archived.jsonl`。**不要**新建 `memories/clarify/` 題目（生題由 program 在 distill 之後另開 `engram-lite-clarify-generate`；本 skill 也不寫 aside）。
+5. **不要**改 `memories/chain/`、`memories/nodes/`、`archived.jsonl`。**不要**新建 `memories/clarify/` 題目（生題由 program 在 distill 之後另開 `engram-clarify-generate`；本 skill 也不寫 aside）。
 6. 若輸入含已落地附圖，embed 與可選 `attachments[]` 須符合 data-spec 對稱規則；不要發明 `_attachments` path。
 
 ## 回覆使用者

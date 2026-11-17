@@ -3,7 +3,7 @@
 ← [changelog](../../../changelog.md) · 上游：[0.3.3](../0.3.3/INDEX.md)（`shipped`）· current: [version.md](../../../version.md) · 寫法：[GUIDELINES](../GUIDELINES.md) · HOW：[docs/how.md](./docs/how.md) · WHY：[docs/reasoning.md](./docs/reasoning.md)
 
 > **狀態：** **shipped**（2026-09-25；產品字串見 [0.5.0](../0.5.0/INDEX.md) 一併出貨）  
-> **產品句：** 用**離線腳本**把既有 Engram 記憶庫**複製並轉形**到新的 Lite store（唯讀來源、只寫目標），讓使用者可切 `ENGRAM_LITE_STORE_DIR` 日常用 Lite，而不共用 `engram-data`。
+> **產品句：** 用**離線腳本**把既有 Engram 記憶庫**複製並轉形**到新的 Lite store（唯讀來源、只寫目標），讓使用者可切 `ENGRAM_STORE_DIR` 日常用 Lite，而不共用 `engram-data`。
 
 ## 文件地圖
 
@@ -56,6 +56,6 @@
 
 ## 錨點（預期）
 
-`scripts/import-from-engram.ts`、`scripts/import-from-engram.test.ts`、`docs/data-spec.md`（匯入說明）、可選 `.agents/skills/engram-lite-import-from-engram/`
+`scripts/import-from-engram.ts`、`scripts/import-from-engram.test.ts`、`docs/data-spec.md`（匯入說明）、可選 `.agents/skills/engram-import-from-engram/`
 
 ← [0.3.3](../0.3.3/INDEX.md) · [backlog](../backlog/INDEX.md)

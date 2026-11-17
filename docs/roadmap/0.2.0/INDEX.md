@@ -73,6 +73,6 @@
 
 ## 錨點
 
-`server/paths.ts`、`server/store.ts`、`.agents/skills/engram-lite-*/SKILL.md`、`.agents/skills/engram-lite-reset/scripts/reset-store.ts`、`docs/data-spec.md`、`demo-engram-lite-data/`。
+`server/paths.ts`、`server/store.ts`、`.agents/skills/engram-*/SKILL.md`、`.agents/skills/engram-reset/scripts/reset-store.ts`、`docs/data-spec.md`、`demo-engram-data/`。
 
 ← [0.1.0](../0.1.0/INDEX.md) · [backlog](../backlog/INDEX.md) · [GUIDELINES](../GUIDELINES.md)

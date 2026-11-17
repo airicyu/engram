@@ -4,7 +4,7 @@
 - 輪次：**初審**
 - 角色：設計審查（不改 INDEX／HOW／reasoning／HANDOFF／程式；不以本檔當已定案）
 - 對照基準：[`../INDEX.md`](../INDEX.md) 已定案＋驗收；[`how.md`](./how.md)、[`reasoning.md`](./reasoning.md)、[`HANDOFF.md`](../HANDOFF.md)
-- 現行程式抽樣：`.agents/skills/engram-lite-distill/SKILL.md`；`docs/data-spec.md`（Memory chain／Pool 段）；`docs/api.md`（`/distill` 202、無文風 API）；`server/clarify-skill.test.ts`（distill 不擁有 asking，無文體字串契約）
+- 現行程式抽樣：`.agents/skills/engram-distill/SKILL.md`；`docs/data-spec.md`（Memory chain／Pool 段）；`docs/api.md`（`/distill` 202、無文風 API）；`server/clarify-skill.test.ts`（distill 不擁有 asking，無文體字串契約）
 - **總評：** **無未關閉 HIGH**；**審查門檻通過，可開工**。本版 INDEX 範圍（skill／data-spec 文案＋字串測）與 AGENTS 警世原則、0.3.0 非目標一致；現碼未達驗收屬預期實作缺口，非提案不可行。
 
 ## Findings（本輪）

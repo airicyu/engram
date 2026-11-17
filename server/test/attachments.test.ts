@@ -33,7 +33,7 @@ test("extractAttachEmbeds exact paths; alias throws", () => {
 });
 
 test("saveAttachmentUpload writes formal day dir (no tmp)", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-att-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-att-"));
   const vault = join(root, "memories");
   await mkdir(vault, { recursive: true });
   try {
@@ -58,7 +58,7 @@ test("saveAttachmentUpload writes formal day dir (no tmp)", async () => {
 });
 
 test("validateEventAttachments symmetry + missing file", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-att-val-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-att-val-"));
   const vault = join(root, "memories");
   const day = "2026-09-20";
   const dir = join(vault, "_attachments", "uploads", day);
@@ -114,7 +114,7 @@ test("validateEventAttachments symmetry + missing file", async () => {
 });
 
 test("appendPendingWithAttachments writes attachments key only when present", async () => {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-att-evt-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-att-evt-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "pool"), { recursive: true });
   await writeFile(join(vault, "pool", "pending.jsonl"), "", "utf8");

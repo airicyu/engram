@@ -7,7 +7,7 @@ import { memoriesDir } from "../../../../server/config/paths.ts";
  * into clarify/history/. A file is considered safe to move when the history
  * copy exists AND its frontmatter has absorbed_at.
  *
- * Run: bun run .agents/skills/engram-lite-distill/scripts/move-absorbed-clarify.ts
+ * Run: bun run .agents/skills/engram-distill/scripts/move-absorbed-clarify.ts
  */
 const vault = memoriesDir();
 const pendingDir = join(vault, "clarify", "pending");

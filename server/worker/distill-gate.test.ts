@@ -2,13 +2,13 @@ import { expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { dayToWeekId } from "../chain/time.ts";
+import { dayToWeekId, weekMonthKey } from "../chain/time.ts";
 import { distillGaps, snapshotDistill } from "./distill-gate.ts";
 
 const today = "2026-10-31";
 
 async function memories(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "engram-lite-gate-"));
+  const root = await mkdtemp(join(tmpdir(), "engram-gate-"));
   const mem = join(root, "memories");
   await mkdir(join(mem, "pool"), { recursive: true });
   await mkdir(join(mem, "clarify", "pending"), { recursive: true });
@@ -54,6 +54,71 @@ test("open week and untouched closed-week days are not gaps", async () => {
     const seen = await snapshotDistill(mem);
     const later = await distillGaps(mem, seen, today);
     expect(later.filter((g) => g.kind === "week")).toEqual([]);
+  } finally {
+    await rm(join(mem, ".."), { recursive: true, force: true });
+  }
+});
+
+test("closed month touched via a week requires a newer month file", async () => {
+  const mem = await memories();
+  const later = "2026-11-08";
+  try {
+    await mkdir(join(mem, "chain", "days", "2026-11"), { recursive: true });
+    await mkdir(join(mem, "chain", "months", "2026"), { recursive: true });
+    const before = await snapshotDistill(mem);
+    const day = join(mem, "chain", "days", "2026-11", "2026-11-01.md");
+    await writeFile(day, "## 一日\n\n正文。\n");
+    await utimes(day, new Date(2_000), new Date(2_000));
+    const week = join(mem, "chain", "weeks", "2026-10", "2026-W44-1026.md");
+    await writeFile(week, "## 一週\n\n正文。\n");
+    await utimes(week, new Date(3_000), new Date(3_000));
+
+    const missing = await distillGaps(mem, before, later);
+    expect(missing.some((g) => g.kind === "week")).toBe(false);
+    expect(missing.some((g) => g.kind === "month" && g.monthId === "2026-10")).toBe(true);
+    expect(missing.some((g) => g.kind === "month" && g.monthId === "2026-11")).toBe(false);
+
+    const month = join(mem, "chain", "months", "2026", "2026-10.md");
+    await writeFile(month, "## 十月\n\n正文。\n");
+    await utimes(month, new Date(4_000), new Date(4_000));
+    const done = await distillGaps(mem, before, later);
+    expect(done.filter((g) => g.kind === "month")).toEqual([]);
+  } finally {
+    await rm(join(mem, ".."), { recursive: true, force: true });
+  }
+});
+
+test("closed year touched this run requires a newer year file", async () => {
+  const mem = await memories();
+  const later = "2027-01-02";
+  try {
+    await mkdir(join(mem, "chain", "days", "2026-12"), { recursive: true });
+    await mkdir(join(mem, "chain", "months", "2026"), { recursive: true });
+    await mkdir(join(mem, "chain", "years"), { recursive: true });
+    const before = await snapshotDistill(mem);
+    const dayId = "2026-12-28";
+    const day = join(mem, "chain", "days", "2026-12", `${dayId}.md`);
+    await writeFile(day, "## 一日\n\n正文。\n");
+    await utimes(day, new Date(2_000), new Date(2_000));
+    const weekId = dayToWeekId(dayId);
+    await mkdir(join(mem, "chain", "weeks", weekMonthKey(weekId)), { recursive: true });
+    const week = join(mem, "chain", "weeks", weekMonthKey(weekId), `${weekId}.md`);
+    await writeFile(week, "## 一週\n\n正文。\n");
+    await utimes(week, new Date(3_000), new Date(3_000));
+    const month = join(mem, "chain", "months", "2026", "2026-12.md");
+    await writeFile(month, "## 十二月\n\n正文。\n");
+    await utimes(month, new Date(4_000), new Date(4_000));
+
+    const missing = await distillGaps(mem, before, later);
+    expect(missing.some((g) => g.kind === "month")).toBe(false);
+    expect(missing.some((g) => g.kind === "year" && g.yearId === "2026")).toBe(true);
+    expect(missing.some((g) => g.kind === "year" && g.yearId === "2027")).toBe(false);
+
+    const year = join(mem, "chain", "years", "2026.md");
+    await writeFile(year, "## 一年\n\n正文。\n");
+    await utimes(year, new Date(5_000), new Date(5_000));
+    const done = await distillGaps(mem, before, later);
+    expect(done.filter((g) => g.kind === "year")).toEqual([]);
   } finally {
     await rm(join(mem, ".."), { recursive: true, force: true });
   }

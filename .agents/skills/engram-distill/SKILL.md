@@ -1,6 +1,6 @@
 ---
-name: engram-lite-distill
-description: 把 Engram Lite 的釐清 pending 與暫存 pool 沉澱成日記／週／月／年記並更新 nodes。**本 skill 不寫 asking**（生題由 program 另行開的 engram-lite-clarify-generate session 負責）。使用者要沉澱、整理記憶、寫日記、distill、consolidate 時使用。
+name: engram-distill
+description: 把 Engram 的釐清 pending 與暫存 pool 沉澱成日記／週／月／年記並更新 nodes。**本 skill 不寫 asking**（生題由 program 另行開的 engram-clarify-generate session 負責）。使用者要沉澱、整理記憶、寫日記、distill、consolidate 時使用。
 ---
 
 # 沉澱記憶
@@ -8,7 +8,7 @@ description: 把 Engram Lite 的釐清 pending 與暫存 pool 沉澱成日記／
 契約：[`docs/data-spec.md`](../../../docs/data-spec.md)（含 chain 分題／文體／海拔）。  
 調度：[`docs/architecture/orchestration.md`](../../../docs/architecture/orchestration.md)——**program 開兩次獨立 Pi session**；本 skill 只負責 Session A。
 
-記憶庫：`ENGRAM_LITE_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-lite-data`）。
+記憶庫：`ENGRAM_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-data`）。
 
 ## 步驟
 
@@ -28,8 +28,10 @@ Vault＝`{store}/memories/`。釐清目錄：`memories/clarify/{asking,pending,h
    - 讀事件 `attachments[].relationship`（無則當「本則附圖」）；與 day 相關則在 chain 插入**同一**精確 `![[_attachments/uploads/{日}/{檔}]]`；**禁止**寫 `![](/api/attachments/file?path=…)` 等 HTTP URL（Obsidian 只認 wikilink）；禁止發明 path；不要當自己看得見像素
 6. **強制新建（create mentions，0.6.1）：** 掃本批 `pool/pending.jsonl` 每則 `raw` 內的 `[@label](node-create:{id})`。對每個去重後的 `id`：**必須**建立（若尚無）`memories/nodes/{id}/{id}.md`（Identity／Relation／Standing facts／Current situation；資訊不足可寫短骨架）。**不得**以「瑣事不開 node」略過 create 意圖。寫入 chain 時，該人物／主題的**第一次**提及用 `[[nodes/{id}/{id}|顯示名]]`（顯示名可用 token 的 label）；不要把 `node-create:` token 原樣抄進 chain。
 6a. 此外，對反覆或重要、但**沒有** create token 的人／專案／概念：仍可新建或更新 node（同結構）。純路過、無 create 意圖的瑣事不開 node。事件細節留在 chain，不要把日記抄進 node。wikilink 相對 vault：`[[nodes/{id}/{id}|顯示名]]`。
+6c. **別名（0.7.0）：** 寫 chain 或新建／更新 node 前，讀已存在主檔的 frontmatter `aliases` 與第一個 H1。已知 id、別名或 H1 顯示名指向該主檔，**不開第二份**。本次使用的顯示名若不在 `aliases`，寫回該主檔。
+6d. **空殼：** 只針對**本批開始前就已存在**的 node。Standing facts 與 Current situation 皆空或只有佔位句，本批又出現該 id，仍寫不出可引用事實 → 呼叫刪除腳本（改成純文字並刪目錄）：`bun run .agents/skills/engram-node/scripts/rewrite-links.ts delete --store "{store}" --id "{id}"`。本批 `node-create` 強制建立的骨架**同一輪不得刪**，即使事實區仍空。不要把這條做成程式分類器；由本 skill 判斷。
 6b. 若本輪事件影響**近端／長期規劃**：讀寫 `memories/future-sight/upcoming.md` 與／或 `longTerm.md`（整檔 zone 格式，見 data-spec「Future-sight」）。無關則不要動。
-7. **不要**在本 skill 寫 `clarify/asking/`。生題由 **另一次** Pi session 跑 `engram-lite-clarify-generate`（program 編排；MIN 3／MAX 5）。若因無事可沉澱而早退，回報即可（program 應跳過 generate）。
+7. **不要**在本 skill 寫 `clarify/asking/`。生題由 **另一次** Pi session 跑 `engram-clarify-generate`（program 編排；MIN 3／MAX 5）。若因無事可沉澱而早退，回報即可（program 應跳過 generate）。
 8. 將**本批已處理**的 pool pending 列 append 到 `memories/pool/archived.jsonl`，並重寫 `pending.jsonl` 只留未處理列。**先寫完 chain／nodes（與釐清吸收），再動 pool。** 這一步必須寫檔；在回覆裡宣稱已清空不算完成。已吸收的釐清檔要移進 `clarify/history/`，不能只在 `pending/` 加上 `absorbed_at`。
 
 ### 釐清 asking 檔格式（僅供 clarify-generate；本 skill 不要新建）
@@ -57,6 +59,8 @@ ts: <RFC3339 當地>
 | week | 該 ISO 週已結束（今天 **>** 該週日）；或使用者這次明說要週記 | 本週尚未過完，且沒人點名 |
 | month | 該月已結束（今天的 `YYYY-MM` **>** 該月）；或明說要月記 | 當月尚未過完，且沒人點名 |
 | year | 該年已結束（今年 **>** 該年）；或明說要年記 | 今年尚未過完，且沒人點名 |
+
+本輪若寫了已結束月份裡的日檔，或重寫了與該月重疊的已結束週記，必須接著寫該月月記（月記晚於週記）。本輪若碰到已結束的年份，必須接著寫該年年記（年記晚於月記）。程式會核對這些檔案是否落地。
 
 通過閘門之後：
 

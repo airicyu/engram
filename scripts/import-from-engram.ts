@@ -1,5 +1,5 @@
 /**
- * Offline Engram store → Engram Lite store import (0.4.0).
+ * Offline import from a previous store into this Engram store (0.4.0).
  * Read-only source; writes only under --to. Default: dry-run.
  */
 

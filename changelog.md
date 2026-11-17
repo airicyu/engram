@@ -4,6 +4,18 @@
 
 ---
 
+## 0.7.0 — 節點別名、合併／刪除、Ask 點名（2026-11-17）
+
+見 [0.7.0](docs/roadmap/0.7.0/INDEX.md)。
+
+### Added
+
+- Skill `engram-node`：使用者指名後合併或刪除 node，腳本改寫 chain／nodes／future-sight／pending 的 wikilink
+- 主檔 frontmatter `aliases:`。Distill 沿用別名；既有空殼再碰到仍無事實則刪檔（本批 node-create 骨架同一輪留下）
+- Ask：唯一命中才讀該主檔；多名只列 id；零命中明說
+
+---
+
 ## 0.6.1 — `@` 新建節點意圖（2026-09-26）
 
 見 [0.6.1](docs/roadmap/0.6.1/INDEX.md)。
@@ -101,13 +113,29 @@
 
 ---
 
+## 0.3.0 — 搜尋、釐清、附圖、節點圖、工作台殼（2026-09-20）
+
+薄工作台用得到的面：關鍵字搜尋、釐清郵箱、一步上傳附圖、節點圖、左欄四景。沉澱仍 202 派 skill，無 dream report。見 [0.3.0](docs/roadmap/0.3.0/INDEX.md)。出貨紀錄補於後續版本已疊上之後；`version.md` 不回寫。
+
+### Added
+
+- `GET /search`；`memories/clarify/{asking,pending,history}`；`POST /distill` 兩次獨立 session（distill → clarify-generate，強制 3–5 題）
+- `POST /attachments` 一步寫 `memories/_attachments/uploads/{日}/`；事件精確 `![[_attachments/uploads/…]]` 與 `attachments[]` 對稱校驗
+- `GET /nodes/graph`；`web/` 左欄 `#/events` `#/seek` `#/clarify` `#/memory`
+
+### Non-goals
+
+- tmp 上傳、vision／HEIC、React／Vite、內建 cron、dream report
+
+---
+
 ## 0.3.1 — Chain 日記文體質感（2026-09-21）
 
 沉澱後的 day／week chain 契約補強：distill skill 獨立「Chain 文體」小節（書面語禁令、虛構 Day／Week 好壞例）、`docs/data-spec.md` 同義對齊、字串契約測。不改 server 文風引擎、不搬 dream 雙檔。見 `docs/roadmap/0.3.1/`。
 
 ### Changed
 
-- `engram-lite-distill` skill：文體規則與好／壞例
+- `engram-distill` skill：文體規則與好／壞例
 - `docs/data-spec.md`：書面語禁令；clarify asking 歸 clarify-generate（與 0.3.0 編排一致）
 
 ### Added

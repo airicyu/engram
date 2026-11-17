@@ -77,8 +77,8 @@ async function mergeStoreGitignore(storeDir: string): Promise<void> {
 function ensureLocalGitIdentity(storeDir: string): void {
   const check = gitRunner(["config", "--get", "user.email"], storeDir);
   if (check.status !== 0) {
-    gitRunner(["config", "user.email", "engram-lite@local"], storeDir);
-    gitRunner(["config", "user.name", "engram-lite"], storeDir);
+    gitRunner(["config", "user.email", "engram@local"], storeDir);
+    gitRunner(["config", "user.name", "engram"], storeDir);
   }
 }
 
@@ -95,21 +95,21 @@ export async function ensureStoreGit(storeDir: string): Promise<void> {
 function formatCommitMessage(payload: StoreGitOp): string {
   switch (payload.op) {
     case "event":
-      return `engram-lite: event ${payload.id}`;
+      return `engram: event ${payload.id}`;
     case "attachment":
-      return `engram-lite: attachment ${payload.id}`;
+      return `engram: attachment ${payload.id}`;
     case "clarify-submit":
-      return `engram-lite: clarify-submit ${payload.id}`;
+      return `engram: clarify-submit ${payload.id}`;
     case "clarify-dismiss":
-      return `engram-lite: clarify-dismiss ${payload.id}`;
+      return `engram: clarify-dismiss ${payload.id}`;
     case "clarify-aside":
-      return `engram-lite: clarify-aside ${payload.id}`;
+      return `engram: clarify-aside ${payload.id}`;
     case "distill":
-      return `engram-lite: distill ${payload.id}`;
+      return `engram: distill ${payload.id}`;
     case "reset":
-      return "engram-lite: reset";
+      return "engram: reset";
     case "future-sight":
-      return "engram-lite: future-sight maintain";
+      return "engram: future-sight maintain";
   }
 }
 

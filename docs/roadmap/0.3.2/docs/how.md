@@ -7,7 +7,7 @@
 新增 `server/store-git.ts`（名稱可調整）：
 
 1. `ensureStoreGit(storeDir)` — 若無 `.git` 則 `git init`；寫入／合併 `.gitignore`（必含 `jobs/` 整目錄、常見 OS 垃圾）。合併時：若缺 `jobs/` 則 append；**不**刪使用者自加條目；可將既有 `jobs/*.json` 條目升級為 `jobs/`。
-2. `commitStore(storeDir, { op, id? })` — `git add -A`（尊重 gitignore）→ 若無 staged 變更則 no-op → `git commit -m "engram-lite: …"`。無開關；server 成功路徑一律呼叫。
+2. `commitStore(storeDir, { op, id? })` — `git add -A`（尊重 gitignore）→ 若無 staged 變更則 no-op → `git commit -m "engram: …"`。無開關；server 成功路徑一律呼叫。
 3. 一律 sync／短 timeout；捕獲錯誤只 `console.warn`／job log。
 
 呼叫點（成功 return 前或 job status→completed 之後）：
@@ -30,4 +30,4 @@ Distill：**一個成功 job = 一次 commit**（內含 distill＋clarify-genera
 
 ## 測試
 
-temp directory；勿碰真人 `ENGRAM_LITE_STORE_DIR`。
+temp directory；勿碰真人 `ENGRAM_STORE_DIR`。

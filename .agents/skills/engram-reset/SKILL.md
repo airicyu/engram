@@ -1,13 +1,13 @@
 ---
-name: engram-lite-reset
-description: 把 Engram Lite 記憶庫重設成初始空狀態（清空 pending／archived／chain／nodes／clarify／attachments uploads／jobs，保留 workspace.yaml 與目錄骨架）。在使用者說 reset、清空記憶、恢復 initial data 時使用。破壞性：先確認再跑 script。
+name: engram-reset
+description: 把 Engram 記憶庫重設成初始空狀態（清空 pending／archived／chain／nodes／clarify／attachments uploads／jobs，保留 workspace.yaml 與目錄骨架）。在使用者說 reset、清空記憶、恢復 initial data 時使用。破壞性：先確認再跑 script。
 ---
 
 # 重設記憶庫
 
 契約：[`docs/data-spec.md`](../../../docs/data-spec.md)
 
-記憶庫：`ENGRAM_LITE_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-lite-data`）。不要用倉庫內舊的 `engram-lite/data/`。
+記憶庫：`ENGRAM_STORE_DIR`（環境變數或倉庫根 `.env`；預設 `./demo-engram-data`）。不要用倉庫內舊的 `engram/data/`。
 
 這是**破壞性**操作。先向使用者確認要清空目前所有事件、日記、節點、釐清檔、附圖、job。沒有明確同意就停止。
 
@@ -33,13 +33,13 @@ description: 把 Engram Lite 記憶庫重設成初始空狀態（清空 pending�
 
 ```bash
 # 在倉庫根目錄
-bun run .agents/skills/engram-lite-reset/scripts/reset-store.ts --yes
+bun run .agents/skills/engram-reset/scripts/reset-store.ts --yes
 ```
 
 自訂記憶庫：
 
 ```bash
-ENGRAM_LITE_STORE_DIR=/path/to/store bun run .agents/skills/engram-lite-reset/scripts/reset-store.ts --yes
+ENGRAM_STORE_DIR=/path/to/store bun run .agents/skills/engram-reset/scripts/reset-store.ts --yes
 ```
 
 沒有 `--yes` 時 script 會拒絕執行。

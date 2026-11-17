@@ -2,7 +2,7 @@
 
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { memoriesDir, workspacePath } from "../config/paths.ts";
+import { memoriesDir, readSetting, workspacePath } from "../config/paths.ts";
 import { stampInTimezone } from "../vault/memories.ts";
 
 export type FutureSightZone = "upcoming" | "longTerm";
@@ -64,8 +64,8 @@ async function readWorkspaceText(storeRoot?: string): Promise<string | null> {
 }
 
 export async function readFutureSightSettings(storeRoot?: string): Promise<FutureSightSettings> {
-  const windowEnv = process.env.ENGRAM_LITE_FUTURE_SIGHT_WINDOW_DAYS?.trim();
-  const upcomingEnv = process.env.ENGRAM_LITE_FUTURE_SIGHT_UPCOMING_DAYS?.trim();
+  const windowEnv = readSetting("ENGRAM_FUTURE_SIGHT_WINDOW_DAYS");
+  const upcomingEnv = readSetting("ENGRAM_FUTURE_SIGHT_UPCOMING_DAYS");
   let windowDays = parsePositiveInt(windowEnv, DEFAULT_WINDOW);
   let upcomingDays = parsePositiveInt(upcomingEnv, DEFAULT_UPCOMING);
   const text = await readWorkspaceText(storeRoot);
@@ -80,7 +80,7 @@ export async function readFutureSightSettings(storeRoot?: string): Promise<Futur
 
 async function timezoneForVault(vaultRoot: string): Promise<string> {
   const text = await readWorkspaceText(storeRootFromVault(vaultRoot));
-  if (!text) return process.env.ENGRAM_LITE_TZ ?? "Asia/Hong_Kong";
+  if (!text) return readSetting("ENGRAM_TZ") ?? "Asia/Hong_Kong";
   return text.match(/^timezone:\s*(.+)$/m)?.[1]?.trim() ?? "Asia/Hong_Kong";
 }
 
