@@ -36,7 +36,7 @@
 | 實作 | 程式＋測試 | 發明 INDEX 未寫的語意；做非目標 |
 | 實作審查 | `docs/implementation-review.md` | 順便加功能 |
 
-出貨門檻：無未關閉 HIGH；驗收全勾；`bun test` 全綠；`version.md` 已改。**不要 git commit，除非使用者明確要求。**
+出貨門檻：無未關閉 HIGH；驗收全勾；`bun test` 全綠；`version.md` 已改。**不要 git commit，除非使用者明確要求。** 不要預先開 `vX.Y.Z` version branch；在 `main` 或 feature branch 開發。版本就緒的 git tag 由使用者手動建立。除非使用者要求，不要 merge、不要打 tag、不要 push、不要開 merge request。
 
 ---
 

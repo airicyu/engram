@@ -108,6 +108,7 @@ UI hashes: `#/events` `#/seek` `#/clarify` `#/memory`.
 ## Working habits
 
 - **Do not commit unless the user asks.** **Do not push unless the user asks.**
+- **Branches.** Do not pre-open a version branch named `vX.Y.Z`. Develop on `main`, or on a feature branch when the work should land later. Commit only when the user asks. Merge a feature branch into `main` only when the user asks. When a version is ready, the user creates the git tag by hand (for example `vX.Y.Z`). Do not create that tag, and do not push, unless the user asks. Open a merge request only when the user asks.
 - Anything discussed in chat but not written into the roadmap or a contract file **does not exist** for the next agent.
 - When a contract changes, update `docs/data-spec.md` and `docs/api.md` in the same work. Change `version.md` and `changelog.md` only when that version ships.
 - Do not reset a real `ENGRAM_STORE_DIR` unless the user asks.

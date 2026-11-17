@@ -15,7 +15,7 @@ disable-model-invocation: true
 
 本技能執行一份 **Engram roadmap 版本**。規範來源：[`docs/roadmap/agent-workflow.md`](../../../docs/roadmap/agent-workflow.md)、[`docs/roadmap/GUIDELINES.md`](../../../docs/roadmap/GUIDELINES.md)、根目錄 `AGENTS.md`。
 
-對使用者：**繁體中文書面語**。**Do not commit unless the user asks.**
+對使用者：**繁體中文書面語**。**Do not commit unless the user asks.** 留在 `main` 或 feature branch。不要預先開名為 `vX.Y.Z` 的 version branch。只有使用者要求才把 feature branch merge 進 `main`、開 merge request，或建立該版 git tag。版本就緒時，tag 由使用者手動建立。
 
 貼用 prompt 與報告骨架見同目錄：[prompts.md](prompts.md)、[review-template.md](review-template.md)。
 
@@ -176,7 +176,7 @@ Findings 分級與出貨門檻同 agent-workflow：HIGH 必須關；MEDIUM 預�
 - [ ] 該構想已出貨則從 `docs/roadmap/backlog/` **刪列＋刪獨立檔**
 - [ ] INDEX 狀態 `shipped` **僅在**驗收與測試通過且使用者同意出貨時改；否則維持 `in progress`
 
-**不要 git commit**，除非使用者明確要求。
+**不要 git commit**，除非使用者明確要求。不要開 `vX.Y.Z` version branch，不要打 tag，不要 push，不要開 merge request，除非使用者要求。
 
 ---
 

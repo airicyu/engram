@@ -76,6 +76,8 @@ Roadmap 是 **跨 agent 交接文件**，不是當下對話的備忘草稿。
 - 清 backlog
 - 若改契約：同步 `docs/data-spec.md`、`docs/api.md`、`AGENTS.md`、相關 skills
 
+**分支。** 不要預先開名為 `vX.Y.Z` 的 version branch。在 `main` 上開發，或在之後才要合進去的 feature branch 上開發。只有使用者要求才 commit。只有使用者要求才把 feature branch merge 進 `main`。版本就緒時，由使用者手動建立 git tag（例如 `vX.Y.Z`）。除非使用者要求，不要建立該 tag，也不要 push。只有使用者要求才開 merge request。
+
 ## 本專案補充
 
 - version／changelog：根目錄 `version.md`、`changelog.md`（對齊 Engram 檔名，不是 `VERSION.md`）
