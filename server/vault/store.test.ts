@@ -66,7 +66,7 @@ test("pi_model default or workspace", async () => {
   const ws = await readWorkspace();
   expect(ws.pi_model.length).toBeGreaterThan(0);
   if (!process.env.ENGRAM_PI_MODEL && !process.env.ENGRAM_LITE_PI_MODEL && !process.env.PI_MODEL) {
-    expect(ws.pi_model).toBe("deepseek/deepseek-v4.1-flash");
+    expect(ws.pi_model).toBe("openrouter/~deepseek/deepseek-flash-latest");
   }
-  expect(defaultPiModel).toBe("deepseek/deepseek-v4.1-flash");
+  expect(defaultPiModel).toBe("openrouter/~deepseek/deepseek-flash-latest");
 });

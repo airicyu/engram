@@ -26,7 +26,7 @@ export OPENROUTER_API_KEY=sk-or-...
 
 之後在**本倉庫根目錄**開 `pi`，它會載入 `.agents/skills/`。Server 用同一套 `ModelRuntime.create()`（預設讀 `~/.pi/agent/` 與上述 API key env）。倉庫根 `.env` 只給 `ENGRAM_STORE_DIR`／`ENGRAM_PORT`，**不要**把模型 token 寫進去。
 
-預設模型 `deepseek/deepseek-v4.1-flash`（`workspace.yaml` 的 `pi_model`）。只影響 Bun server 的 SDK；你在終端機跑 `pi` 仍用 `~/.pi/agent/settings.json`。
+預設模型 `openrouter/~deepseek/deepseek-flash-latest`（`workspace.yaml` 的 `pi_model`）。只影響 Bun server 的 SDK；你在終端機跑 `pi` 仍用 `~/.pi/agent/settings.json`。
 
 只開 UI 翻示範庫可以不呼叫模型；**distill／ask（以及 pi-agent ingest）沒有可用憑證會失敗**。
 
@@ -52,7 +52,7 @@ bun run dev
 
 定時沉澱：系統 crontab 對 `POST /distill` 打一槍即可（與 UI 沉澱按鈕同一 worker；**不**內建 cron daemon）。
 
-設定：`ENGRAM_STORE_DIR`（環境變數覆蓋 `.env`，未設預設 `./demo-engram-data`）、`ENGRAM_PORT`（同樣，預設 `8797`）、`ENGRAM_TZ`、`ENGRAM_PI_MODEL` 或 `PI_MODEL`（覆蓋記憶庫 `workspace.yaml` 的 `pi_model`，預設 `deepseek/deepseek-v4.1-flash`）。
+設定：`ENGRAM_STORE_DIR`（環境變數覆蓋 `.env`，未設預設 `./demo-engram-data`）、`ENGRAM_PORT`（同樣，預設 `8797`）、`ENGRAM_TZ`、`ENGRAM_PI_MODEL` 或 `PI_MODEL`（覆蓋記憶庫 `workspace.yaml` 的 `pi_model`，預設 `openrouter/~deepseek/deepseek-flash-latest`）。
 
 ## 為什麼 API 不會等 Pi 等到 timeout
 

@@ -7,7 +7,7 @@ export const repoRoot = join(import.meta.dir, "../..");
 
 export const defaultStoreDirRel = "./demo-engram-data";
 export const defaultPort = 8797;
-export const defaultPiModel = "deepseek/deepseek-v4.1-flash";
+export const defaultPiModel = "openrouter/~deepseek/deepseek-flash-latest";
 export const projectEnvPath = join(repoRoot, ".env");
 
 function stripQuotes(s: string) {

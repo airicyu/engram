@@ -63,7 +63,7 @@ await emptyDirKeepGitkeep(join(storeDir, "jobs"));
 if (!(await exists(join(storeDir, "workspace.yaml")))) {
   await writeFile(
     join(storeDir, "workspace.yaml"),
-    "timezone: Asia/Hong_Kong\nmemory_language: zh-Hant\npi_model: deepseek/deepseek-v4.1-flash\n",
+    "timezone: Asia/Hong_Kong\nmemory_language: zh-Hant\npi_model: openrouter/~deepseek/deepseek-flash-latest\n",
   );
 }
 

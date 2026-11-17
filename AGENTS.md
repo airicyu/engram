@@ -99,7 +99,7 @@ Chain: first line is a `##` subject title; life-line prose in full sentences. We
 - Mechanical writes: `POST /events`, `POST /attachments`, clarify submit / delete / aside.
 - 202 dispatch: `POST /distill` and `POST /ask`.
 
-No in-process cron. A system crontab may `POST /distill`. Pi model for the server SDK: `ENGRAM_PI_MODEL` / `PI_MODEL`, then `workspace.yaml` `pi_model`, then `deepseek/deepseek-v4.1-flash`. That does not change the interactive `pi` CLI.
+No in-process cron. A system crontab may `POST /distill`. Pi model for the server SDK: `ENGRAM_PI_MODEL` / `PI_MODEL`, then `workspace.yaml` `pi_model`, then `openrouter/~deepseek/deepseek-flash-latest`. That does not change the interactive `pi` CLI.
 
 UI hashes: `#/events` `#/seek` `#/clarify` `#/memory`.
 

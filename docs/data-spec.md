@@ -56,7 +56,7 @@ Obsidian 開 `{store}/memories/`。`[[nodes/…]]` 與 `![[_attachments/uploads/
 ```yaml
 timezone: Asia/Hong_Kong
 memory_language: zh-Hant   # zh-Hant | zh-Hans | en
-pi_model: deepseek/deepseek-v4.1-flash   # server 派 Pi 用；可被 ENGRAM_PI_MODEL／PI_MODEL 覆蓋
+pi_model: openrouter/~deepseek/deepseek-flash-latest   # server 派 Pi 用；可被 ENGRAM_PI_MODEL／PI_MODEL 覆蓋
 future_sight_window_days: 365   # 可省略；可被 ENGRAM_FUTURE_SIGHT_WINDOW_DAYS 覆蓋
 future_sight_upcoming_days: 30  # 可省略；可被 ENGRAM_FUTURE_SIGHT_UPCOMING_DAYS 覆蓋
 ```
