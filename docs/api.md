@@ -22,7 +22,7 @@
 | `GET /pool` | `{ pending, archived }` 各為事件陣列（新→舊） |
 | `GET /chain?level=day\|week\|month\|year` | `{ level, ids, items: [{ id, preview?, start?, end? }] }`（新→舊；`preview` 機械截取正文；週項含 `start`／`end`） |
 | `GET /chain/{level}/{id}` | `{ id, present, markdown, path? }`。`level=week` 時 `id` 須為 `YYYY-Www-MMDD`（`MMDD`＝該 ISO 週週一）；非法 → **400** `invalid_week_id`。週詳情另回 `start`／`end`（`YYYY-MM-DD`，週一～週日），即使 `present: false` |
-| `GET /future-sight` | `{ anchors: [{ id, zone, anchor_start, anchor_end, content }], swept_expired, future_sight_window_days, future_sight_upcoming_days }`。每次 **expire-only** 維護（過期項移除並 append 機械事件到 pending）；檔有變更時 store git commit。UI：`#/memory/future` |
+| `GET /future-sight` | `{ anchors: [{ id, zone, anchor_start, anchor_end, content }], swept_expired, future_sight_window_days, future_sight_upcoming_days }`。只讀 zone 檔，含已過期條目。`swept_expired` 是仍在檔內且 `anchor_end` 早於當地今天的 id。不刪條目、不 append pending、不為這次 GET 做 store git commit。改寫由 distill 做。UI：`#/memory/future` |
 | `GET /nodes` | `{ nodes: [{ id, title, activity_score? }] }`（`activity_score` 0–100，無則省略） |
 | `GET /nodes/{id}` | `{ id, present, markdown, activity_score? }` |
 | `GET /nodes/graph` | `{ nodes: [{ id, title }], edges: [{ from, to }] }`。點＝現有 node；邊＝掃描 node 檔 wikilink，只保留兩邊都存在的點；無向去重（字典序小的當 `from`）。空庫 `{ nodes: [], edges: [] }`。**不**經 Pi |
@@ -68,7 +68,7 @@ Pi 派工成功受理：**202** `{ job_id, status: "queued" }`，再 poll `GET /
   "created_at": "…",
   "updated_at": "…",
   "input": { "raw": "…" },
-  "output": { "text": "…", "missing_days": ["YYYY-MM-DD"] },
+  "output": { "text": "…", "missing_days": ["YYYY-MM-DD"], "clarify_skip_reason": "…" },
   "error": null,
   "log": []
 }
@@ -77,4 +77,4 @@ Pi 派工成功受理：**202** `{ job_id, status: "queued" }`，再 poll `GET /
 `kind`：`distill`｜`ask`。  
 `status`：`queued`｜`running`｜`completed`｜`failed`。  
 `output.text` 始終是該次執行的文字。`ask` 完成時即回答正文。  
-`distill` **成功**時另有 `output.missing_days`：本批 pool 裡可解析 `ts` 的當地日期，從最早到最晚（含首尾）之間、沒有 day 檔的 `YYYY-MM-DD`，升序。沒有可解析日期時為 `[]`。失敗的 job 不寫 `missing_days`。`ask` 沒有這個欄位。尋問 UI 可列近 20 筆 `kind===ask` 且終態的摘要（題目用 `input.q`），點選展示 `output.text`，**不**重跑。
+`distill` **成功**時另有 `output.missing_days`：本批 pool 裡可解析 `ts` 的當地日期，從最早到最晚（含首尾）之間、沒有 day 檔的 `YYYY-MM-DD`，升序。沒有可解析日期時為 `[]`。失敗的 job 不寫 `missing_days`。`ask` 沒有這個欄位。Session B 新建 0 題且回覆非空時，成功的 distill job 另有 `output.clarify_skip_reason`（該回覆 trim 後的整段）。寫了 1–5 題，或蒸餾前沒有 work 而沒跑 Session B 時，不帶這個欄位。尋問 UI 可列近 20 筆 `kind===ask` 且終態的摘要（題目用 `input.q`），點選展示 `output.text`，**不**重跑。

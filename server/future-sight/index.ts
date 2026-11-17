@@ -7,10 +7,14 @@ import { stampInTimezone } from "../vault/memories.ts";
 
 export type FutureSightZone = "upcoming" | "longTerm";
 
+export type FutureSightKind = "dated" | "intent";
+
 export type FutureSightAnchor = {
   id: string;
   anchor_start: string;
   anchor_end: string;
+  /** Absent on files written before kind existed. */
+  kind?: FutureSightKind;
   content: string;
 };
 
@@ -122,7 +126,9 @@ function parseItemFields(meta: Record<string, string>, id: string): FutureSightA
     throw new Error(`invalid anchor dates for ${id}`);
   }
   if (anchor_start > anchor_end) throw new Error(`anchor_start > anchor_end for ${id}`);
-  return { id, anchor_start, anchor_end, content: "" };
+  const kind =
+    meta.kind === "dated" || meta.kind === "intent" ? meta.kind : undefined;
+  return { id, anchor_start, anchor_end, kind, content: "" };
 }
 
 export function parseZoneFile(text: string, expectedZone?: FutureSightZone): FutureSightAnchor[] {
@@ -162,7 +168,8 @@ export function sortAnchors(anchors: FutureSightAnchor[]): FutureSightAnchor[] {
 }
 
 function renderItem(a: FutureSightAnchor): string {
-  const yaml = `anchor_start: ${a.anchor_start}\nanchor_end: ${a.anchor_end}`;
+  const kindLine = a.kind ? `\nkind: ${a.kind}` : "";
+  const yaml = `anchor_start: ${a.anchor_start}\nanchor_end: ${a.anchor_end}${kindLine}`;
   const body = a.content.trim();
   return `## ${a.id}\n\`\`\`yaml\n${yaml}\n\`\`\`\n\n${body}\n`;
 }
@@ -235,11 +242,10 @@ export type SweepFutureSightResult = {
 };
 
 /**
- * Expire-only maintain (GET contract): drop anchors with anchor_end < today;
- * append synthetic events to pool pending. Does not rebucket upcoming↔longTerm.
+ * List anchors. Does not delete expired items and does not append pool lines.
+ * `swept_expired` is ids still in the files with anchor_end before local today.
  */
 export async function sweepFutureSight(
-  appendExpiredToPool: (raw: string) => Promise<void>,
   vaultRoot = memoriesDir(),
 ): Promise<SweepFutureSightResult> {
   await ensureFutureSightFiles(vaultRoot);
@@ -251,44 +257,15 @@ export async function sweepFutureSight(
 
   const beforeUpcoming = await readZoneAnchors("upcoming", vaultRoot);
   const beforeLongTerm = await readZoneAnchors("longTerm", vaultRoot);
-  const swept: string[] = [];
-  const keepUpcoming: FutureSightAnchor[] = [];
-  const keepLongTerm: FutureSightAnchor[] = [];
-
-  for (const a of beforeUpcoming) {
-    if (a.anchor_end < today) {
-      swept.push(a.id);
-      const raw =
-        `Future-sight expired: ${a.id} (${a.anchor_start}→${a.anchor_end}). ` +
-        `${a.content.trim().slice(0, 400)}`;
-      await appendExpiredToPool(raw);
-    } else keepUpcoming.push(a);
-  }
-  for (const a of beforeLongTerm) {
-    if (a.anchor_end < today) {
-      swept.push(a.id);
-      const raw =
-        `Future-sight expired: ${a.id} (${a.anchor_start}→${a.anchor_end}). ` +
-        `${a.content.trim().slice(0, 400)}`;
-      await appendExpiredToPool(raw);
-    } else keepLongTerm.push(a);
-  }
-
-  const changed =
-    swept.length > 0 ||
-    beforeUpcoming.length !== keepUpcoming.length ||
-    beforeLongTerm.length !== keepLongTerm.length;
-
-  if (changed) {
-    await writeZoneAnchors("upcoming", keepUpcoming, vaultRoot, ts);
-    await writeZoneAnchors("longTerm", keepLongTerm, vaultRoot, ts);
-  }
+  const swept = [...beforeUpcoming, ...beforeLongTerm]
+    .filter((a) => a.anchor_end < today)
+    .map((a) => a.id);
 
   const anchors = await listFutureSightAnchors(vaultRoot);
   return {
     anchors,
     swept_expired: swept,
-    changed,
+    changed: false,
     future_sight_window_days: settings.windowDays,
     future_sight_upcoming_days: settings.upcomingDays,
   };

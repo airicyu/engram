@@ -10,23 +10,34 @@ test("distill skill does not own asking generation", async () => {
   expect(md).toMatch(/不寫 asking|不要.*clarify\/asking|engram-clarify-generate/);
 });
 
-test("clarify-generate skill enforces MIN 3 MAX 5", async () => {
+test("clarify-generate skill asks one fact and treats five as a ceiling", async () => {
   const md = await readFile(join(root, ".agents/skills/engram-clarify-generate/SKILL.md"), "utf8");
   expect(md).toContain("clarify/asking");
-  expect(md).toMatch(/MIN 3/);
-  expect(md).toMatch(/MAX 5/);
+  expect(md).toContain("一個");
+  expect(md).toContain("1–5");
+  expect(md).not.toMatch(/MIN 3|至少 3/);
+  expect(md).toContain("不要寫檔");
+  expect(md).toContain("舊題幹");
+});
+
+test("distill skill absorbs or dismisses every pending clarify file", async () => {
+  const md = await readFile(join(root, ".agents/skills/engram-distill/SKILL.md"), "utf8");
+  expect(md).toContain("absorbed_at");
+  expect(md).toContain("dismissed_because");
+  expect(md).toContain("不准留在 `pending/`");
+  expect(md).toContain("不要發明");
 });
 
 test("pi.ts program-orchestrates two independent sessions", async () => {
   const md = await readFile(join(root, "server/worker/pi.ts"), "utf8");
   expect(md).toContain("engram-distill");
   expect(md).toContain("engram-clarify-generate");
-  expect(md).toContain("CLARIFY_GENERATE_MIN");
+  expect(md).toContain("CLARIFY_GENERATE_MAX");
+  expect(md).not.toContain("CLARIFY_GENERATE_MIN");
   expect(md).toContain("runDistillOrchestrated");
   expect(md).toContain("createAgentSession");
-  // must not be single-prompt two-phase
   expect(md).not.toMatch(/Phase 1.*Phase 2|two-phase distill job \(same store\)/s);
-  expect(md).toContain("retry generate");
+  expect(md).not.toContain("retry generate");
 });
 
 test("clarify-generate skill does not ask about empty days", async () => {

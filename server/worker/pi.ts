@@ -18,11 +18,39 @@ import {
 } from "../config/paths.ts";
 import type { Job } from "../jobs/index.ts";
 import { readWorkspace, stampInTimezone } from "../vault/index.ts";
-import { distillGaps, formatDistillGaps, snapshotDistill, type DistillGap } from "./distill-gate.ts";
+import {
+  distillGaps,
+  expiredFutureSightIds,
+  formatDistillGaps,
+  snapshotDistill,
+  type DistillGap,
+} from "./distill-gate.ts";
 
-/** Align Engram CLARIFY_GENERATE_MIN / MAX (engram/server/src/store/memories/clarify.ts). */
-export const CLARIFY_GENERATE_MIN = 3;
+/** Ceiling for new asking files in one clarify-generate session. Zero is allowed. */
 export const CLARIFY_GENERATE_MAX = 5;
+
+/**
+ * Mechanical quota. Does not read the question.
+ * Zero new files succeed only when the assistant reply is non-empty.
+ */
+export function clarifyQuotaResult(
+  newCount: number,
+  reply: string,
+): { skipReason?: string } {
+  if (newCount > CLARIFY_GENERATE_MAX) {
+    throw new Error(
+      `clarify-generate created ${newCount} asking files; max is ${CLARIFY_GENERATE_MAX}`,
+    );
+  }
+  if (newCount === 0) {
+    const skipReason = reply.trim();
+    if (!skipReason) {
+      throw new Error("clarify-generate wrote no questions and no skip reason");
+    }
+    return { skipReason };
+  }
+  return {};
+}
 
 const WRITE_TOOLS = ["read", "grep", "find", "ls", "edit", "write"] as const;
 /** Distill must delete `clarify/pending` after copying into history. write/edit cannot remove a file. */
@@ -107,6 +135,7 @@ function promptDistillOnly(today: string): string {
     `If you create or update a day file in the still-open ISO week, rewrite that same week path with frontmatter open: true before you stop. Do not write an open month or year unless the user asked this run.`,
     `A month is closed when ${today.slice(0, 7)} is after that month. If you create or update a day in a closed month, or a week file that overlaps a closed month, write that month's chain file after the week file and before you stop.`,
     `A year is closed when ${today.slice(0, 4)} is after that year. If this run touches a closed year, write that year's chain file after its month file and before you stop.`,
+    `If a future-sight item has anchor_end before today, rewrite it in this session even when the pool and clarify pending are empty. Dated items end as happened, rescheduled, or dropped. Intent items are not marked done or failed only because the window ended. Do not leave anchor_end before today.`,
     `Absorb clarify/pending, write chain + nodes, archive pool.`,
     `Archive means appending processed lines to memories/pool/archived.jsonl and removing them from pending.jsonl. Move absorbed clarify files from clarify/pending/ to clarify/history/. Saying so in the reply is not enough.`,
     `write and edit cannot delete a file. After the history copy exists, use bash to mv or rm the pending original. Leaving both copies is not done.`,
@@ -118,7 +147,7 @@ function promptDistillContinue(today: string, gaps: DistillGap[]): string {
   const lines = gaps.map((gap) => {
     if (gap.kind === "pool") return `- pool line still not archived: ${gap.id}`;
     if (gap.kind === "clarify") {
-      return `- clarify file still not moved to history/: ${gap.id}.md`;
+      return `- clarify ${gap.id}.md must leave pending/ and sit in history/ with exactly one non-empty absorbed_at or dismissed_because`;
     }
     if (gap.kind === "week" && gap.open) {
       return `- open week file missing, older than its day files, or missing frontmatter open: true: ${gap.weekId} (days ${gap.days.join(", ")})`;
@@ -129,7 +158,10 @@ function promptDistillContinue(today: string, gaps: DistillGap[]): string {
     if (gap.kind === "month") {
       return `- month file missing or older than the day/week files: ${gap.monthId} (days ${gap.days.join(", ")}; this month is closed). Write it after the week file.`;
     }
-    return `- year file missing or older than the day/week/month files: ${gap.yearId} (days ${gap.days.join(", ")}; this year is closed). Write it after the month file.`;
+    if (gap.kind === "year") {
+      return `- year file missing or older than the day/week/month files: ${gap.yearId} (days ${gap.days.join(", ")}; this year is closed). Write it after the month file.`;
+    }
+    return `- future-sight item still has anchor_end before today: ${gap.id}. Rewrite it so the end is today or later, or remove it after writing the day sentence.`;
   });
   return [
     `You stopped before engram-distill finished. Continue in this same session.`,
@@ -143,23 +175,16 @@ function promptDistillContinue(today: string, gaps: DistillGap[]): string {
 }
 
 /** Session B — clarify-generate only. */
-function promptClarifyGenerate(opts: { retry: boolean; askingCount: number }): string {
+export function promptClarifyGenerate(): string {
   const store = storeDir;
-  const lines = [
+  return [
     `Follow the skill engram-clarify-generate.`,
     `Memory store directory (absolute): ${store}`,
-    `Create NEW files under memories/clarify/asking/ only.`,
-    `Quota (hard): MIN ${CLARIFY_GENERATE_MIN}, MAX ${CLARIFY_GENERATE_MAX} new asking files this session (one question per file).`,
+    `Create NEW files under memories/clarify/asking/ only when this distill left an askable gap.`,
+    `Quota: at most ${CLARIFY_GENERATE_MAX} new asking files this session. Zero is allowed. One fact per file.`,
+    `If you write none, reply with one sentence saying why there is nothing to ask.`,
     `Do not ask whether a calendar day with no day file had anything worth recording. Do not read jobs/.`,
-  ];
-  if (opts.retry) {
-    lines.push(
-      `RETRY: currently only ${opts.askingCount} asking file(s) exist after the previous generate session.`,
-      `You MUST bring the total NEW asking count for this distill job to at least ${CLARIFY_GENERATE_MIN} (at most ${CLARIFY_GENERATE_MAX}).`,
-      `Write additional distinct, answerable questions (gaps / relations / time / follow-ups). No synonymous duplicates.`,
-    );
-  }
-  return lines.join("\n\n");
+  ].join("\n\n");
 }
 
 type SessionKind = "ingest" | "ask" | "distill" | "clarify-generate";
@@ -276,22 +301,30 @@ async function countAskingFiles(): Promise<number> {
   }
 }
 
+export type DistillRunResult = { text: string; clarifySkipReason?: string };
+
 /**
  * Program-orchestrated distill (see docs/architecture/orchestration.md):
- * Session A distill-only → (if work) Session B clarify-generate → retry once if asking < MIN → fail if still short.
+ * Session A distill-only → (if work) Session B clarify-generate.
+ * New asking files: 0 with a reason, or 1–5. No minimum and no retry.
  */
-async function runDistillOrchestrated(onLog: (line: string) => void): Promise<string> {
+async function runDistillOrchestrated(onLog: (line: string) => void): Promise<DistillRunResult> {
   const before = await countDistillWork();
   onLog(
     `distill work before: poolLines=${before.poolLines} clarifyPending=${before.clarifyPending} total=${before.total}`,
   );
 
-  if (before.total === 0) {
+  const todayForGate = stampInTimezone((await readWorkspace()).timezone).ts.slice(0, 10);
+  const expiredFuture = await expiredFutureSightIds(memoriesDir(), todayForGate);
+  if (before.total === 0 && expiredFuture.length === 0) {
     onLog("distill early-exit: nothing to distill; skip clarify-generate");
-    return "early-exit: no pending pool or clarify to distill; skipped clarify-generate";
+    return { text: "early-exit: no pending pool or clarify to distill; skipped clarify-generate" };
+  }
+  if (before.total === 0) {
+    onLog(`distill future-sight only: expired=${expiredFuture.length}; skip clarify-generate after session A`);
   }
 
-  const today = stampInTimezone((await readWorkspace()).timezone).ts.slice(0, 10);
+  const today = todayForGate;
   onLog(`distill… (session A: engram-distill; today=${today})`);
   const distillText = await runDistillSession(onLog, today);
 
@@ -300,60 +333,43 @@ async function runDistillOrchestrated(onLog: (line: string) => void): Promise<st
     `distill work after: poolLines=${after.poolLines} clarifyPending=${after.clarifyPending} total=${after.total}`,
   );
 
-  // before.total > 0 (else early-exit above) → always run Session B
+  if (before.total === 0) {
+    return { text: ["## distill", distillText, "", "asking_skipped=future-sight-only"].join("\n") };
+  }
+
   const askingBeforeGenerate = await countAskingFiles();
 
   onLog("clarify-generate… (session B: engram-clarify-generate)");
-  const genText1 = await runOnePiSession({
+  const genText = await runOnePiSession({
     tools: WRITE_TOOLS,
-    prompt: promptClarifyGenerate({ retry: false, askingCount: 0 }),
+    prompt: promptClarifyGenerate(),
     onLog,
     label: "clarify-generate",
   });
 
-  let askingAfter = await countAskingFiles();
-  const createdApprox = Math.max(0, askingAfter - askingBeforeGenerate);
-  onLog(`clarify-generate asking count: total=${askingAfter} new≈${createdApprox}`);
+  const askingAfter = await countAskingFiles();
+  const created = Math.max(0, askingAfter - askingBeforeGenerate);
+  onLog(`clarify-generate asking count: total=${askingAfter} new=${created}`);
+  const quota = clarifyQuotaResult(created, genText);
 
-  let genText2 = "";
-  // Product gate: mailbox must show at least MIN asking after generate (align Engram quota).
-  if (askingAfter < CLARIFY_GENERATE_MIN) {
-    onLog(
-      `retry generate… (asking ${askingAfter} < MIN ${CLARIFY_GENERATE_MIN})`,
-    );
-    genText2 = await runOnePiSession({
-      tools: WRITE_TOOLS,
-      prompt: promptClarifyGenerate({ retry: true, askingCount: askingAfter }),
-      onLog,
-      label: "clarify-generate-retry",
-    });
-    askingAfter = await countAskingFiles();
-    onLog(
-      `retry generate asking count: total=${askingAfter} new≈${Math.max(0, askingAfter - askingBeforeGenerate)}`,
-    );
-  }
-
-  if (askingAfter < CLARIFY_GENERATE_MIN) {
-    throw new Error(
-      `clarify-generate produced ${askingAfter} asking file(s) after retry; need at least ${CLARIFY_GENERATE_MIN} (max ${CLARIFY_GENERATE_MAX})`,
-    );
-  }
-
-  return [
+  const text = [
     "## distill",
     distillText,
     "",
     "## clarify-generate",
-    genText1,
-    genText2 ? "\n## clarify-generate-retry\n" + genText2 : "",
+    genText,
     "",
-    `asking_total=${askingAfter}`,
+    `asking_new=${created}`,
   ]
     .filter(Boolean)
     .join("\n");
+  return quota.skipReason ? { text, clarifySkipReason: quota.skipReason } : { text };
 }
 
-export async function runSkillJob(job: Job, onLog: (line: string) => void): Promise<string> {
+export async function runSkillJob(
+  job: Job,
+  onLog: (line: string) => void,
+): Promise<DistillRunResult> {
   if (job.kind === "distill") {
     return runDistillOrchestrated(onLog);
   }
@@ -361,5 +377,5 @@ export async function runSkillJob(job: Job, onLog: (line: string) => void): Prom
   const tools = job.kind === "ask" ? READ_TOOLS : WRITE_TOOLS;
   const prompt = job.kind === "ingest" ? promptIngest(job) : promptAsk(job);
   const label: SessionKind = job.kind === "ingest" ? "ingest" : "ask";
-  return runOnePiSession({ tools, prompt, onLog, label });
+  return { text: await runOnePiSession({ tools, prompt, onLog, label }) };
 }

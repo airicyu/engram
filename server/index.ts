@@ -15,7 +15,6 @@ import {
   readNode,
   readPool,
   readWorkspace,
-  appendPending,
   appendPendingWithAttachments,
   searchMemories,
   listClarifyAsking,
@@ -95,14 +94,17 @@ async function pump() {
           const zone = (await readWorkspace()).timezone;
           poolDates = poolLocalDates(lines, zone);
         }
-        const text = await runSkillJob(job, (line) => {
+        const result = await runSkillJob(job, (line) => {
           job.log.push(line);
           console.log(`[job ${job.id}] ${line}`);
           // Persist mid-run so GET /jobs/:id shows progress (was only saved at end).
           void saveJob(job);
         });
         job.status = "completed";
-        job.output = { text };
+        job.output = { text: result.text };
+        if (result.clarifySkipReason) {
+          job.output.clarify_skip_reason = result.clarifySkipReason;
+        }
         if (poolDates !== null) {
           job.output.missing_days = await missingDaysInSpan(memoriesDir(), poolDates);
         }
@@ -169,9 +171,7 @@ const server = Bun.serve({
     }
 
     if (req.method === "GET" && pathname === "/future-sight") {
-      const result = await sweepFutureSight(async (raw) => {
-        await appendPending(raw);
-      });
+      const result = await sweepFutureSight();
       if (result.changed) await commitStore(storeDir, { op: "future-sight" });
       return json({
         anchors: result.anchors.map((a) => ({

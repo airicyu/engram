@@ -137,10 +137,85 @@ test("starting pool lines and clarify files must leave pending", async () => {
 
     await writeFile(join(mem, "pool", "pending.jsonl"), "");
     await writeFile(join(mem, "pool", "archived.jsonl"), `${line}\n`);
-    await writeFile(join(mem, "clarify", "history", "cla_test.md"), "---\nid: cla_test\n---\n\n問？\n");
+    await writeFile(
+      join(mem, "clarify", "history", "cla_test.md"),
+      "---\nid: cla_test\nabsorbed_at: 2026-10-31T12:00:00+08:00\n---\n\n問？\n",
+    );
     await rm(join(mem, "clarify", "pending", "cla_test.md"));
     const done = await distillGaps(mem, before, today);
     expect(done).toEqual([]);
+  } finally {
+    await rm(join(mem, ".."), { recursive: true, force: true });
+  }
+});
+
+test("only the pre-run pending id needs exactly one history marker", async () => {
+  const mem = await memories();
+  try {
+    await writeFile(join(mem, "clarify", "pending", "cla_pending.md"), "---\nid: cla_pending\n---\n\n問？\n");
+    await writeFile(
+      join(mem, "clarify", "history", "cla_deleted.md"),
+      "---\nid: cla_deleted\ndismissed: true\n---\n\n舊題。\n",
+    );
+    const before = await snapshotDistill(mem);
+
+    const stillPending = await distillGaps(mem, before, today);
+    expect(stillPending.some((g) => g.kind === "clarify" && g.id === "cla_pending")).toBe(true);
+
+    const history = join(mem, "clarify", "history", "cla_pending.md");
+    await writeFile(history, "---\nid: cla_pending\n---\n\n問？\n");
+    await rm(join(mem, "clarify", "pending", "cla_pending.md"));
+    const neither = await distillGaps(mem, before, today);
+    expect(neither.some((g) => g.kind === "clarify")).toBe(true);
+
+    await writeFile(
+      history,
+      "---\nid: cla_pending\nabsorbed_at: 2026-10-31T12:00:00+08:00\ndismissed_because: no fact\n---\n\n問？\n",
+    );
+    const both = await distillGaps(mem, before, today);
+    expect(both.some((g) => g.kind === "clarify")).toBe(true);
+
+    await writeFile(
+      history,
+      "---\nid: cla_pending\ndismissed_because: '  '\n---\n\n問？\n",
+    );
+    const blank = await distillGaps(mem, before, today);
+    expect(blank.some((g) => g.kind === "clarify")).toBe(true);
+
+    await writeFile(
+      history,
+      "---\nid: cla_pending\ndismissed_because: no fact\n---\n\n問？\n",
+    );
+    const dismissed = await distillGaps(mem, before, today);
+    expect(dismissed.filter((g) => g.kind === "clarify")).toEqual([]);
+  } finally {
+    await rm(join(mem, ".."), { recursive: true, force: true });
+  }
+});
+
+test("an expired future-sight item is a gap until its end is today or later", async () => {
+  const mem = await memories();
+  try {
+    await mkdir(join(mem, "future-sight"), { recursive: true });
+    const zone = join(mem, "future-sight", "upcoming.md");
+    await writeFile(
+      zone,
+      "---\nzone: upcoming\nupdated_at: 2026-01-01T00:00:00+08:00\n---\n\n## fs-past\n```yaml\nanchor_start: 2026-01-01\nanchor_end: 2026-01-02\nkind: dated\n```\n\n虛構過期。\n",
+    );
+    await writeFile(
+      join(mem, "future-sight", "longTerm.md"),
+      "---\nzone: longTerm\nupdated_at: 2026-01-01T00:00:00+08:00\n---\n",
+    );
+    const before = await snapshotDistill(mem);
+    const expired = await distillGaps(mem, before, today);
+    expect(expired.some((g) => g.kind === "future" && g.id === "fs-past")).toBe(true);
+
+    await writeFile(
+      zone,
+      "---\nzone: upcoming\nupdated_at: 2026-10-31T00:00:00+08:00\n---\n\n## fs-past\n```yaml\nanchor_start: 2026-10-31\nanchor_end: 2026-10-31\nkind: dated\n```\n\n改期到今天。\n",
+    );
+    const current = await distillGaps(mem, before, today);
+    expect(current.filter((g) => g.kind === "future")).toEqual([]);
   } finally {
     await rm(join(mem, ".."), { recursive: true, force: true });
   }

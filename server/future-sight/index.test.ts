@@ -21,9 +21,25 @@ test("parse and render zone file", () => {
   expect(parsed).toHaveLength(1);
   expect(parsed[0]!.id).toBe("fs-fixture-a");
   expect(parsed[0]!.content).toBe("虛構截止敘述");
+  expect(parsed[0]!.kind).toBeUndefined();
+
+  const withKind = renderZoneFile(
+    "upcoming",
+    [
+      {
+        id: "fs-fixture-b",
+        anchor_start: "2026-12-01",
+        anchor_end: "2026-12-01",
+        kind: "dated",
+        content: "虛構單日",
+      },
+    ],
+    "2026-09-01T00:00:00+08:00",
+  );
+  expect(parseZoneFile(withKind, "upcoming")[0]!.kind).toBe("dated");
 });
 
-test("sweepFutureSight removes expired and appends pool lines", async () => {
+test("sweepFutureSight lists expired ids and leaves the zone file", async () => {
   const root = await mkdtemp(join(tmpdir(), "engram-fs-"));
   const vault = join(root, "memories");
   await mkdir(join(vault, "pool"), { recursive: true });
@@ -51,15 +67,16 @@ test("sweepFutureSight removes expired and appends pool lines", async () => {
     "utf8",
   );
 
-  const appended: string[] = [];
   try {
-    const result = await sweepFutureSight(async (raw) => {
-      appended.push(raw);
-    }, vault);
+    const before = await readFile(join(vault, "future-sight", "upcoming.md"), "utf8");
+    const result = await sweepFutureSight(vault);
     expect(result.swept_expired).toEqual(["fs-past"]);
-    expect(result.anchors).toHaveLength(0);
-    expect(appended.length).toBe(1);
-    expect(appended[0]).toContain("fs-past");
+    expect(result.anchors.map((a) => a.id)).toEqual(["fs-past"]);
+    expect(result.changed).toBe(false);
+    const pending = await readFile(join(vault, "pool", "pending.jsonl"), "utf8");
+    expect(pending).toBe("");
+    const after = await readFile(join(vault, "future-sight", "upcoming.md"), "utf8");
+    expect(after).toBe(before);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

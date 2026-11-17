@@ -17,8 +17,9 @@ Vault＝`{store}/memories/`。釐清目錄：`memories/clarify/{asking,pending,h
 1. 讀 `{store}/workspace.yaml`。
 2. **先消化釐清 pending（與本場 pool 同一場，且必須在處理 `pool/pending.jsonl` 之前）：**
    - 列讀 `memories/clarify/pending/` 每檔。無檔可跳過此步。
-   - 把答案／順帶補充（含 `kind: aside`）寫進相關 **chain／nodes**（文體規則與下方相同；不要改成 bullet dump）。
-   - 處理完一檔：在 frontmatter 加 `absorbed_at`（RFC3339，當地時區），**移到** `memories/clarify/history/`（不要改 chain 文體規則）。
+   - 答案或 aside 能寫成一個事實：把該事實寫進相關 **chain／nodes**（文體規則與下方相同；不要改成 bullet dump）。只覆蓋題目一部分時，只寫答到的那一事實，其餘不要發明。frontmatter 加 `absorbed_at`（RFC3339，當地時區），不要寫 `dismissed_because`。
+   - 答案無法寫成事實（沒有內容、明確拒絕、或不是事實）：不要發明 chain／node 正文。frontmatter 加 `dismissed_because`（短原因，trim 後非空），不要寫 `absorbed_at`。
+   - 每一檔都要移到 `memories/clarify/history/`。不准留在 `pending/`。半答也算已吸收，不要為了沒答到的子句在這一次補開 asking。
    - **不要**把釐清檔內容寫進 `pool/pending.jsonl` 或 `archived.jsonl`。
 3. 讀 `memories/pool/pending.jsonl`。若 pool pending **與** clarify pending 皆空：說明無事可沉澱，停止（若剛消化過釐清，仍簡短回報已吸收的 id）。
 4. 讀相關已存在的 chain 檔與可能對上的 nodes（用 grep／讀檔）。
@@ -30,8 +31,12 @@ Vault＝`{store}/memories/`。釐清目錄：`memories/clarify/{asking,pending,h
 6a. 此外，對反覆或重要、但**沒有** create token 的人／專案／概念：仍可新建或更新 node（同結構）。純路過、無 create 意圖的瑣事不開 node。事件細節留在 chain，不要把日記抄進 node。wikilink 相對 vault：`[[nodes/{id}/{id}|顯示名]]`。
 6c. **別名（0.7.0）：** 寫 chain 或新建／更新 node 前，讀已存在主檔的 frontmatter `aliases` 與第一個 H1。已知 id、別名或 H1 顯示名指向該主檔，**不開第二份**。本次使用的顯示名若不在 `aliases`，寫回該主檔。
 6d. **空殼：** 只針對**本批開始前就已存在**的 node。Standing facts 與 Current situation 皆空或只有佔位句，本批又出現該 id，仍寫不出可引用事實 → 呼叫刪除腳本（改成純文字並刪目錄）：`bun run .agents/skills/engram-node/scripts/rewrite-links.ts delete --store "{store}" --id "{id}"`。本批 `node-create` 強制建立的骨架**同一輪不得刪**，即使事實區仍空。不要把這條做成程式分類器；由本 skill 判斷。
-6b. 若本輪事件影響**近端／長期規劃**：讀寫 `memories/future-sight/upcoming.md` 與／或 `longTerm.md`（整檔 zone 格式，見 data-spec「Future-sight」）。無關則不要動。
-7. **不要**在本 skill 寫 `clarify/asking/`。生題由 **另一次** Pi session 跑 `engram-clarify-generate`（program 編排；MIN 3／MAX 5）。若因無事可沉澱而早退，回報即可（program 應跳過 generate）。
+6b. **未來視（0.9.0）：** 讀 `upcoming.md` 與 `longTerm.md`。每條 yaml 可有 `kind: dated` 或 `kind: intent`。沒有 `kind` 時，`anchor_start` 等於 `anchor_end` 視為 `dated`，否則視為 `intent`；改寫時把 `kind` 寫回去。`anchor_end` 早於當地今天的每一條都要改寫，pool 與 clarify 都空時也要做：
+   - `dated` 且有證據已發生：在落點那一天的 day 寫一句（沒有檔就新建），然後從 zone 刪掉該條。
+   - 改期，或 `intent` 要續期：條目留在 zone，`anchor_end` 不得早於今天，正文留一句。`intent` 只問要不要繼續，不要寫成已完成或失敗。
+   - 放棄：在今天的 day 寫一句（沒有檔就新建），然後從 zone 刪掉該條。
+   - 沒有證據就不要選「已發生」。不要在 zone 檔加 `## Closed`。條目裡的電話、診間、地址只留在條目內當提醒；刪條目時不要抄進 node 的 Standing facts，除非使用者事件裡本來就寫了同樣的字。
+7. **不要**在本 skill 寫 `clarify/asking/`。生題由 **另一次** Pi session 跑 `engram-clarify-generate`（program 編排；0–5 題，5 是上限）。若因無事可沉澱而早退，回報即可（program 應跳過 generate）。
 8. 將**本批已處理**的 pool pending 列 append 到 `memories/pool/archived.jsonl`，並重寫 `pending.jsonl` 只留未處理列。**先寫完 chain／nodes（與釐清吸收），再動 pool。** 這一步必須寫檔；在回覆裡宣稱已清空不算完成。已吸收的釐清檔要移進 `clarify/history/`，不能只在 `pending/` 加上 `absorbed_at`。
 
 ### 釐清 asking 檔格式（僅供 clarify-generate；本 skill 不要新建）
@@ -47,7 +52,7 @@ ts: <RFC3339 當地>
 
 ### 客觀吸收判準（消化 pending 後）
 
-滿足任一即可視為已吸收：相關 day／node 正文出現答案／aside 的關鍵事實；或該檔已在 `history/` 且 frontmatter 含 `absorbed_at`。
+已吸收：檔在 `history/` 且 frontmatter 的 `absorbed_at` 非空，沒有 `dismissed_because`。已捨棄：檔在 `history/` 且 `dismissed_because` trim 後非空，沒有 `absorbed_at`。兩種都算這題已離開 pending。半答只要求答到的事實出現在 day 或 node。
 
 ## 升層閘門（必須，不要靠「有沒有月度意義」）
 

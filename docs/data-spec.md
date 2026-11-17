@@ -95,7 +95,7 @@ future_sight_upcoming_days: 30  # 可省略；可被 ENGRAM_FUTURE_SIGHT_UPCOMIN
 
 **ingest skill：** 把一次輸入梳理成 1～N 筆，append 到 `memories/pool/pending.jsonl`。不要寫 chain／nodes。**不要**新建釐清題（生題由 program 在 distill 之後另開 session 跑 `engram-clarify-generate`）。
 
-**distill skill：** 每次先讀 `memories/clarify/pending/`，把答案／aside 寫進相關 chain／nodes，再移到 `clarify/history/`（可加 `absorbed_at`）。然後處理 `memories/pool/pending.jsonl`：寫完對應 chain／nodes 後，把那些列移到 `archived.jsonl`。**不要**在本 skill 寫 `clarify/asking/`。讀事件 `attachments[].relationship`（無則當「本則附圖」）；day 相關則插入**同一**精確 embed；禁止發明 path、禁止當自己看得見像素。**Create mentions（0.6.1）：** 本批 pending `raw` 內每個 `[@…](node-create:{id})` **必須**建立（若尚無）對應 node 主檔；寫 chain 時改為 P1 wikilink，不得略過。
+**distill skill：** 每次先讀 `memories/clarify/pending/`。能寫成事實的答案／aside 寫進相關 chain／nodes，frontmatter 加 `absorbed_at` 後移到 `clarify/history/`。不能寫成事實的，不發明正文，只加 `dismissed_because` 後移到 `history/`。半答只寫答到的事實，仍算吸收。然後處理 `memories/pool/pending.jsonl`：寫完對應 chain／nodes 後，把那些列移到 `archived.jsonl`。**不要**在本 skill 寫 `clarify/asking/`。讀事件 `attachments[].relationship`（無則當「本則附圖」）；day 相關則插入**同一**精確 embed；禁止發明 path、禁止當自己看得見像素。**Create mentions（0.6.1）：** 本批 pending `raw` 內每個 `[@…](node-create:{id})` **必須**建立（若尚無）對應 node 主檔；寫 chain 時改為 P1 wikilink，不得略過。
 
 **ask skill：** 讀 `memories/chain/`（日週月年）、`memories/pool/pending.jsonl`、`memories/future-sight/upcoming.md` 與 `longTerm.md`。週檔若有 frontmatter `open: true`，回答須說明那是本週至今的短稿。問題點名節點時，只比對各 node 的 id、frontmatter `aliases` 與第一個 H1：**唯一命中**才讀該主檔全文；多名命中只列 id 並詢問；零命中則說明沒有對上的節點。不讀未命中的 node 正文，不讀 `archived.jsonl`，**不讀 `clarify/`**。已沉澱敘事以鏈為準；被點名的主檔補上鏈會壓掉的穩定事實。
 
@@ -219,12 +219,13 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 | 規則 | 說明 |
 |------|------|
 | `id` | `[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}` |
-| `anchor_start`／`anchor_end` | `YYYY-MM-DD`，含起迄；`anchor_end`＜當地今日 → 過期 |
+| `anchor_start`／`anchor_end` | `YYYY-MM-DD`，含起迄；`anchor_end`＜當地今日 → 過期，留給 distill 改寫 |
+| `kind` | `dated` 或 `intent`。缺欄時：起迄同一天視為 `dated`，否則 `intent`。改寫時寫回 |
 | zone | `upcoming`＝近端檔；`longTerm`＝較遠檔（**不**在 GET 時自動重分桶；distill／skill 依事件改寫整檔） |
 
-**`GET /future-sight`：** expire-only——移除過期項、各寫一筆敘述事件到 `pool/pending.jsonl`（機械文字，非 Pi）；成功後可 store git commit。詳見 `docs/api.md`。
+**`GET /future-sight`：** 只讀。不刪過期條目、不寫 pending。`swept_expired` 是仍在檔內且 `anchor_end` 早於當地今天的 id。詳見 `docs/api.md`。
 
-**ask skill：** 可讀兩個 zone 檔（與 chain、pending 並用）。**distill：** 本輪事件影響近端規劃時，可整檔改寫 `upcoming.md`／`longTerm.md`（勿發明過窗 anchor；窗長見 workspace）。
+**ask skill：** 可讀兩個 zone 檔（與 chain、pending 並用）。**distill：** `anchor_end` 早於今天的條目必須改寫（已發生、改期、或放棄）；`intent` 不因窗口結束而標成完成或失敗。沒有證據不要寫成已發生。句子進 day，不在 zone 留 `## Closed`。
 
 ---
 
@@ -236,9 +237,9 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 |------|------|
 | `id` | `cla_`＋當地 `YYYYMMDD`＋`_`＋6 位小寫字母數字；檔名＝`{id}.md` |
 | frontmatter | 至少 `id`、`ts`（RFC3339）。aside 另必含 `kind: aside` |
-| asking | 待人答；**只** `engram-clarify-generate` skill（program 在 distill 之後另開 session）新建 3–5 題（一事一問）。distill **不**寫 asking |
-| pending | 已答（submit 寫入 `## Answer` 後移入）或 aside 直接新建；等下次 distill 吸收。aside **不是** pool 事件 |
-| history | 已吸收，或 DELETE asking 時標 dismissed 後移入 |
+| asking | 待人答；**只** `engram-clarify-generate` skill（program 在 distill 之後另開 session）新建。一題一個能寫進某個 day 或 node 的事實。有可問缺口時 1–5 題，5 是上限；沒有缺口時 0 題並在 job 寫一句原因。distill **不**寫 asking |
+| pending | 已答（submit 寫入 `## Answer` 後移入）或 aside 直接新建；下一次 distill 必須移走。aside **不是** pool 事件 |
+| history | Distill 吸收：frontmatter `absorbed_at`（RFC3339），沒有 `dismissed_because`。Distill 捨棄：`dismissed_because` 為 trim 後非空的短句，沒有 `absorbed_at`。`DELETE /clarify/asking/{id}` 仍只寫 `dismissed: true`，不走這兩個鍵 |
 
 Ingest／`POST /events`／server **不**生成問題。Ask **不**讀本目錄。Keyword `GET /search` **不**掃 `clarify/`。
 

@@ -9,6 +9,7 @@
     "start": "bun run server/index.ts",
     "reset": "bun run .agents/skills/engram-reset/scripts/reset-store.ts --yes",
     "import:engram": "bun run scripts/import-from-engram.ts",
+    "nodes:sidecars": "bun run scripts/node-sidecars.ts",
     "test": "bun test"
   },
   "packageManager": "bun@1.3.14",

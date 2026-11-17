@@ -4,6 +4,23 @@
 
 ---
 
+## 0.9.0 — 釐清一題一事實、未來視到期改寫、節點旁檔（2026-11-17）
+
+見 [0.9.0](docs/roadmap/0.9.0/INDEX.md)。
+
+### Changed
+
+- 釐清題一題一個事實；有缺口時最多 5 題，沒有缺口則 0 題，並把原因寫進 `output.clarify_skip_reason`。不再為了湊滿 3 題而重跑
+- 下一次 distill 必須把每份 `clarify/pending/` 移入 `history/`：`absorbed_at` 或 `dismissed_because`。半答只寫答到的事實
+- `anchor_end` 早於今天的未來視條目由 distill 改寫（已發生、改期或放棄）；`GET /future-sight` 不再刪過期條目，只在 `swept_expired` 列出仍留在檔內的 id
+- 條目 yaml 可有 `kind: dated | intent`
+
+### Added
+
+- `bun run nodes:sidecars -- --store <dir>`：預設 dry-run。`--yes` 才把缺的 `activity_score` 寫進主檔並刪 `score.yaml`；YAML mapping 的 `node.meta.yaml` 刪除，非 mapping 留下
+
+---
+
 ## 0.8.0 — 進行中的週記，以及日記空洞（2026-11-17）
 
 見 [0.8.0](docs/roadmap/0.8.0/INDEX.md)。

@@ -11,7 +11,7 @@ export type Job = {
   created_at: string;
   updated_at: string;
   input: Record<string, string>;
-  output: { text: string; missing_days?: string[] } | null;
+  output: { text: string; missing_days?: string[]; clarify_skip_reason?: string } | null;
   error: string | null;
   log: string[];
 };

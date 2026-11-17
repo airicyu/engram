@@ -84,7 +84,7 @@ Do not copy a real vault into tests, demos, fixtures, or roadmap prose. If demo 
 |-------|------|
 | `engram-ingest` | Pi-agent turns speech into pending events. UI / `POST /events` does not use this skill and does not create clarify questions |
 | `engram-distill` | Absorb `clarify/pending/`, write chain and nodes, archive the pool. Does **not** write `asking` |
-| `engram-clarify-generate` | Second distill session: create 3–5 questions in `clarify/asking/` (skip if nothing was distilled) |
+| `engram-clarify-generate` | Second distill session: write 0–5 one-fact questions in `clarify/asking/` (skip the session if nothing was distilled; 5 is the ceiling) |
 | `engram-ask` | Read chain, pending, and future-sight. Read one node file only when the question names it |
 | `engram-node` | Merge or delete a node the user named, and rewrite wikilinks. No UI, no HTTP |
 | `engram-reset` | Empty the store after confirmation. Runs the skill script |

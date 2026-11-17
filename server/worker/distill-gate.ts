@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { dayToWeekId, weekDateRange, weekMonthKey } from "../chain/time.ts";
+import { parseZoneFile } from "../future-sight/index.ts";
 
 /** Lines and clarify ids present when Session A starts, plus day mtimes. */
 export type DistillSnapshot = {
@@ -14,7 +15,8 @@ export type DistillGap =
   | { kind: "clarify"; id: string }
   | { kind: "week"; weekId: string; days: string[]; open: boolean }
   | { kind: "month"; monthId: string; days: string[] }
-  | { kind: "year"; yearId: string; days: string[] };
+  | { kind: "year"; yearId: string; days: string[] }
+  | { kind: "future"; id: string };
 
 function poolLineId(line: string): string {
   try {
@@ -99,11 +101,48 @@ function monthPath(memoriesRoot: string, monthId: string): string {
  * Year files follow the same rule for a closed year (today's year is after that year): the year file
  * must be newer than the day, week, and month files this run touched in that year.
  */
-function frontmatterHasOpen(text: string): boolean {
-  if (!text.startsWith("---\n")) return false;
+function frontmatterBlock(text: string): string | null {
+  if (!text.startsWith("---\n")) return null;
   const end = text.indexOf("\n---", 4);
-  if (end < 0) return false;
-  return /^open:\s*true\s*$/m.test(text.slice(4, end));
+  if (end < 0) return null;
+  return text.slice(4, end);
+}
+
+function frontmatterHasOpen(text: string): boolean {
+  const block = frontmatterBlock(text);
+  if (block === null) return false;
+  return /^open:\s*true\s*$/m.test(block);
+}
+
+/** Trimmed scalar, or null when the key is absent. Blank and quoted-blank count as "". */
+function frontmatterScalar(block: string, key: string): string | null {
+  const match = block.match(new RegExp(`^${key}:\\s*(.*)$`, "m"));
+  if (!match) return null;
+  let value = match[1].trim();
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+  return value;
+}
+
+/** History copy of a pre-run pending id: exactly one non-empty absorb or dismiss key. */
+export async function clarifyHistoryMarkerGap(memoriesRoot: string, id: string): Promise<boolean> {
+  let text = "";
+  try {
+    text = await readFile(join(memoriesRoot, "clarify", "history", `${id}.md`), "utf8");
+  } catch {
+    return true;
+  }
+  const block = frontmatterBlock(text);
+  if (block === null) return true;
+  const absorbed = frontmatterScalar(block, "absorbed_at");
+  const dismissed = frontmatterScalar(block, "dismissed_because");
+  const hasAbsorbed = absorbed !== null && absorbed.length > 0;
+  const hasDismissed = dismissed !== null && dismissed.length > 0;
+  return hasAbsorbed === hasDismissed;
 }
 
 async function weekFileGap(
@@ -151,7 +190,7 @@ export async function distillGaps(
   const pendingClarify = new Set(await listMarkdownIds(join(memoriesRoot, "clarify", "pending")));
   const history = new Set(await listMarkdownIds(join(memoriesRoot, "clarify", "history")));
   for (const id of before.clarifyIds) {
-    if (pendingClarify.has(id) || !history.has(id)) {
+    if (pendingClarify.has(id) || !history.has(id) || (await clarifyHistoryMarkerGap(memoriesRoot, id))) {
       gaps.push({ kind: "clarify", id });
     }
   }
@@ -259,6 +298,10 @@ export async function distillGaps(
     for (const id of entry.days) noteYear(monthId.slice(0, 4), id, lower);
     noteYear(monthId.slice(0, 4), null, lower);
   }
+  for (const id of await expiredFutureSightIds(memoriesRoot, today)) {
+    gaps.push({ kind: "future", id });
+  }
+
   for (const [yearId, entry] of years) {
     entry.days.sort();
     let yearMtime = 0;
@@ -284,6 +327,29 @@ async function touchedDayIds(memoriesRoot: string, before: DistillSnapshot): Pro
   return ids;
 }
 
+export async function expiredFutureSightIds(memoriesRoot: string, today: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (const zone of ["upcoming", "longTerm"] as const) {
+    let text = "";
+    try {
+      text = await readFile(join(memoriesRoot, "future-sight", `${zone}.md`), "utf8");
+    } catch {
+      continue;
+    }
+    if (!text.trim()) continue;
+    let anchors;
+    try {
+      anchors = parseZoneFile(text, zone);
+    } catch {
+      continue;
+    }
+    for (const anchor of anchors) {
+      if (anchor.anchor_end < today) ids.push(anchor.id);
+    }
+  }
+  return ids;
+}
+
 export function formatDistillGaps(gaps: DistillGap[]): string {
   if (gaps.length === 0) return "none";
   return gaps
@@ -295,7 +361,8 @@ export function formatDistillGaps(gaps: DistillGap[]): string {
         return `week ${gap.weekId} ${mark} (days ${gap.days.join(", ")})`;
       }
       if (gap.kind === "month") return `month ${gap.monthId} (days ${gap.days.join(", ")})`;
-      return `year ${gap.yearId} (days ${gap.days.join(", ")})`;
+      if (gap.kind === "year") return `year ${gap.yearId} (days ${gap.days.join(", ")})`;
+      return `future ${gap.id}`;
     })
     .join("; ");
 }
