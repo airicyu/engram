@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 const src = readFileSync(join(import.meta.dir, "../../web/ingest-payload.js"), "utf8");
 eval(src);
 
-const buildIngestPayload = globalThis.buildIngestPayload as (
+const buildIngestPayload = (globalThis as Record<string, unknown>).buildIngestPayload as (
   raw: string,
   pendingAttach: { path: string; relationship: string }[],
   defaultRel: string,

@@ -97,7 +97,7 @@ future_sight_upcoming_days: 30  # 可省略；可被 ENGRAM_FUTURE_SIGHT_UPCOMIN
 
 **distill skill：** 每次先讀 `memories/clarify/pending/`，把答案／aside 寫進相關 chain／nodes，再移到 `clarify/history/`（可加 `absorbed_at`）。然後處理 `memories/pool/pending.jsonl`：寫完對應 chain／nodes 後，把那些列移到 `archived.jsonl`。**不要**在本 skill 寫 `clarify/asking/`。讀事件 `attachments[].relationship`（無則當「本則附圖」）；day 相關則插入**同一**精確 embed；禁止發明 path、禁止當自己看得見像素。**Create mentions（0.6.1）：** 本批 pending `raw` 內每個 `[@…](node-create:{id})` **必須**建立（若尚無）對應 node 主檔；寫 chain 時改為 P1 wikilink，不得略過。
 
-**ask skill：** 讀 `memories/chain/`（日週月年）、`memories/pool/pending.jsonl`、`memories/future-sight/upcoming.md` 與 `longTerm.md`。問題點名節點時，只比對各 node 的 id、frontmatter `aliases` 與第一個 H1：**唯一命中**才讀該主檔全文；多名命中只列 id 並詢問；零命中則說明沒有對上的節點。不讀未命中的 node 正文，不讀 `archived.jsonl`，**不讀 `clarify/`**。已沉澱敘事以鏈為準；被點名的主檔補上鏈會壓掉的穩定事實。
+**ask skill：** 讀 `memories/chain/`（日週月年）、`memories/pool/pending.jsonl`、`memories/future-sight/upcoming.md` 與 `longTerm.md`。週檔若有 frontmatter `open: true`，回答須說明那是本週至今的短稿。問題點名節點時，只比對各 node 的 id、frontmatter `aliases` 與第一個 H1：**唯一命中**才讀該主檔全文；多名命中只列 id 並詢問；零命中則說明沒有對上的節點。不讀未命中的 node 正文，不讀 `archived.jsonl`，**不讀 `clarify/`**。已沉澱敘事以鏈為準；被點名的主檔補上鏈會壓掉的穩定事實。
 
 ---
 
@@ -115,7 +115,7 @@ future_sight_upcoming_days: 30  # 可省略；可被 ENGRAM_FUTURE_SIGHT_UPCOMIN
 - **已存在：** 讀舊稿，吸收新事件後**整份取代**（不是檔尾 append 流水帳，也不是把舊文與新句拼接成合訂本）。
 - **不存在：** 新建完整敘事。
 - 正文語言跟 `memory_language`。`zh-Hant`＝**繁體中文書面語**（完整句子、自然日記散文）；**禁止**口語粵語、聊天腔、網路梗寫進 chain 正文。
-- **第一行必須是 `##` 題材標題**。不要用日期／週號當頁脊（禁止 `# 2026-09-16`、禁止週一→週日目錄）。
+- **第一個標題行必須是 `##` 題材**。進行中的週記可以在標題前加 YAML frontmatter（見下）；其餘 chain 檔不要用日期／週號當頁脊（禁止 `# 2026-09-16`、禁止週一→週日目錄）。
 
 ### 分題材、寫成文（對齊 Engram chain 敘事）
 
@@ -155,17 +155,19 @@ wikilink：該 `##` 節**第一次**提到已存在（或本批新建）的 node
 | 層 | 何時寫／整份更新 |
 |----|------------------|
 | **day** | **必寫。** pending 裡每筆事件的當地日期，更新對應日檔。 |
-| **week** | 僅當該 ISO 週**已結束**，或使用者**這次明確要求**寫週記。已結束＝當地今日 **晚於** 該週星期日。 |
-| **month** | 僅當該日曆月**已結束**（當地今日的 `YYYY-MM` **大於** 該月），或使用者這次明確要求寫月記。 |
-| **year** | 僅當該日曆年**已結束**（當地今年 **大於** 該年），或使用者這次明確要求寫年記。 |
+| **week** | 該 ISO 週**已結束**（當地今日 **晚於** 該週星期日）時整份收成。尚未結束、且本批日期落在當週時，寫**同一路徑**的短稿，frontmatter 僅以 `open: true` 為機器標記；第一個標題仍是 `##` 題材。使用者這次明說要寫本週時也是整份取代；週尚未結束則保留 `open: true`。 |
+| **month** | 僅當該日曆月**已結束**（當地今日的 `YYYY-MM` **大於** 該月），或使用者這次明確要求寫月記。寫月記時跳過 `open: true` 的週檔，那些日子改讀 day。 |
+| **year** | 僅當該日曆年**已結束**（當地今年 **大於** 該年），或使用者這次明確要求寫年記。優先讀月記，不讀進行中週稿。 |
 
-順序：先寫本批碰到的 **day** → 再對「已結束或被點名」的週寫 **week**（讀該週**全部**已有日檔，不只本批）→ 同理 **month**（優先讀重疊的週記；沒有週記再靠日檔）→ 同理 **year**（優先月記）。
+順序：先寫本批碰到的 **day** → 再寫碰到的**進行中週**短稿，以及「已結束或被點名」的週（讀該週**全部**已有日檔，不只本批；月記來源要跳過 `open: true` 的週檔）→ 同理 **month**（優先讀已收成的重疊週記；沒有再靠日檔）→ 同理 **year**（優先月記）。
 
-仍在進行中的週／月／年：**不要**為了這次 distill 新建或改更高層。日檔照寫。之後該時段結束，下一次 distill（或使用者點名）再升層。
+進行中的月／年：**不要**為了這次 distill 新建或改寫，除非使用者這次明說。日檔照寫。進行中的週：寫同路徑短稿（`open: true`）。該週結束後，下一次 distill 若碰到該週（或短稿仍帶 `open: true` 且本批寫過其日檔），整份收成並刪掉 `open`，取捨後去掉「至今」與過程旁白。
+
+缺日不進 vault。本批 `pool/pending.jsonl` 可解析 `ts` 的當地日期從最早到最晚，中間沒有 day 檔的日期只出現在該次 distill job 的 `output.missing_days`（見 `docs/api.md`）。不為此新建釐清題。
 
 補洞：讀檔時若發現某**已結束**時段已有下層、卻缺對應週／月／年檔，可以順便補寫；不要為了找洞而掃遍整個 vault。
 
-未結束也要寫時，使用者須明說（例如「連本週週記」「未結束的月也寫」）。沒說就當不寫。
+未結束的週照上表寫短稿。未結束的月、年要寫時，使用者須明說（例如「未結束的月也寫」）。沒說就當不寫。
 
 ---
 

@@ -29,6 +29,21 @@ test("pi.ts program-orchestrates two independent sessions", async () => {
   expect(md).toContain("retry generate");
 });
 
+test("clarify-generate skill does not ask about empty days", async () => {
+  const md = await readFile(join(root, ".agents/skills/engram-clarify-generate/SKILL.md"), "utf8");
+  expect(md).toContain("不要問「某日有沒有值得記的事」");
+  expect(md).toContain("jobs/");
+});
+
+test("distill and ask skills describe the open week marker", async () => {
+  const distill = await readFile(join(root, ".agents/skills/engram-distill/SKILL.md"), "utf8");
+  expect(distill).toContain("open: true");
+  expect(distill).toContain("跳過");
+  const ask = await readFile(join(root, ".agents/skills/engram-ask/SKILL.md"), "utf8");
+  expect(ask).toContain("open: true");
+  expect(ask).toContain("本週至今");
+});
+
 test("orchestration.md documents two sessions", async () => {
   const md = await readFile(join(root, "docs/architecture/orchestration.md"), "utf8");
   expect(md).toContain("兩次獨立 Pi session");

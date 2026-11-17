@@ -90,6 +90,7 @@ function promptAsk(job: Job): string {
     `Follow the skill engram-ask.`,
     `Memory store directory (absolute): ${store}`,
     `Read memories/chain/ (day/week/month/year), memories/pool/pending.jsonl, and memories/future-sight/ (upcoming.md + longTerm.md). Do not read archived.jsonl or memories/nodes/.`,
+    `If a week file has frontmatter open: true, say that week is in progress through today, not a finished week.`,
     `Question:`,
     job.input.q ?? "",
   ].join("\n\n");
@@ -102,7 +103,8 @@ function promptDistillOnly(today: string): string {
     `Follow the skill engram-distill.`,
     `Memory store directory (absolute): ${store}`,
     `Local today is ${today} (workspace timezone). Do not treat an event timestamp or a date inside the note as today.`,
-    `A week is closed when ${today} is after that week's Sunday. If you create or update a day file in a closed week, write that week's chain file before you stop.`,
+    `A week is closed when ${today} is after that week's Sunday. If you create or update a day file in a closed week, rewrite that week's chain file without frontmatter open: true before you stop.`,
+    `If you create or update a day file in the still-open ISO week, rewrite that same week path with frontmatter open: true before you stop. Do not write an open month or year unless the user asked this run.`,
     `A month is closed when ${today.slice(0, 7)} is after that month. If you create or update a day in a closed month, or a week file that overlaps a closed month, write that month's chain file after the week file and before you stop.`,
     `A year is closed when ${today.slice(0, 4)} is after that year. If this run touches a closed year, write that year's chain file after its month file and before you stop.`,
     `Absorb clarify/pending, write chain + nodes, archive pool.`,
@@ -118,8 +120,11 @@ function promptDistillContinue(today: string, gaps: DistillGap[]): string {
     if (gap.kind === "clarify") {
       return `- clarify file still not moved to history/: ${gap.id}.md`;
     }
+    if (gap.kind === "week" && gap.open) {
+      return `- open week file missing, older than its day files, or missing frontmatter open: true: ${gap.weekId} (days ${gap.days.join(", ")})`;
+    }
     if (gap.kind === "week") {
-      return `- week file missing or older than the day files: ${gap.weekId} (days ${gap.days.join(", ")}; this week is closed)`;
+      return `- week file missing, older than its day files, or still marked open: true: ${gap.weekId} (days ${gap.days.join(", ")}; this week is closed)`;
     }
     if (gap.kind === "month") {
       return `- month file missing or older than the day/week files: ${gap.monthId} (days ${gap.days.join(", ")}; this month is closed). Write it after the week file.`;
@@ -145,7 +150,7 @@ function promptClarifyGenerate(opts: { retry: boolean; askingCount: number }): s
     `Memory store directory (absolute): ${store}`,
     `Create NEW files under memories/clarify/asking/ only.`,
     `Quota (hard): MIN ${CLARIFY_GENERATE_MIN}, MAX ${CLARIFY_GENERATE_MAX} new asking files this session (one question per file).`,
-    `Do NOT modify chain, nodes, or pool.`,
+    `Do not ask whether a calendar day with no day file had anything worth recording. Do not read jobs/.`,
   ];
   if (opts.retry) {
     lines.push(

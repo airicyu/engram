@@ -145,3 +145,53 @@ test("starting pool lines and clarify files must leave pending", async () => {
     await rm(join(mem, ".."), { recursive: true, force: true });
   }
 });
+
+test("open week touched this run requires a newer file with open: true", async () => {
+  const mem = await memories();
+  try {
+    const before = await snapshotDistill(mem);
+    const day = join(mem, "chain", "days", "2026-10", "2026-10-28.md");
+    await writeFile(day, "## 一事\n\n正文。\n");
+    await utimes(day, new Date(2_000), new Date(2_000));
+    const weekId = dayToWeekId("2026-10-28");
+    const missing = await distillGaps(mem, before, today);
+    expect(missing.some((g) => g.kind === "week" && g.open && g.weekId === weekId)).toBe(true);
+
+    const week = join(mem, "chain", "weeks", weekMonthKey(weekId), `${weekId}.md`);
+    await mkdir(join(mem, "chain", "weeks", weekMonthKey(weekId)), { recursive: true });
+    await writeFile(week, "## 一週\n\n正文。\n");
+    await utimes(week, new Date(3_000), new Date(3_000));
+    const unmarked = await distillGaps(mem, before, today);
+    expect(unmarked.some((g) => g.kind === "week" && g.weekId === weekId)).toBe(true);
+
+    await writeFile(week, "---\nopen: true\n---\n## 一週\n\n本週至今。\n");
+    await utimes(week, new Date(4_000), new Date(4_000));
+    const done = await distillGaps(mem, before, today);
+    expect(done.some((g) => g.kind === "week")).toBe(false);
+  } finally {
+    await rm(join(mem, ".."), { recursive: true, force: true });
+  }
+});
+
+test("closed week that still has open: true stays a gap", async () => {
+  const mem = await memories();
+  try {
+    const before = await snapshotDistill(mem);
+    const day = join(mem, "chain", "days", "2026-10", "2026-10-19.md");
+    await writeFile(day, "## 一事\n\n正文。\n");
+    await utimes(day, new Date(2_000), new Date(2_000));
+    const weekId = "2026-W43-1019";
+    const week = join(mem, "chain", "weeks", "2026-10", `${weekId}.md`);
+    await writeFile(week, "---\nopen: true\n---\n## 一週\n\n至今。\n");
+    await utimes(week, new Date(3_000), new Date(3_000));
+    const missing = await distillGaps(mem, before, today);
+    expect(missing.some((g) => g.kind === "week" && g.weekId === weekId && g.open === false)).toBe(true);
+
+    await writeFile(week, "## 一週\n\n收成。\n");
+    await utimes(week, new Date(4_000), new Date(4_000));
+    const done = await distillGaps(mem, before, today);
+    expect(done.some((g) => g.kind === "week")).toBe(false);
+  } finally {
+    await rm(join(mem, ".."), { recursive: true, force: true });
+  }
+});

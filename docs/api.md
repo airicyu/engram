@@ -68,7 +68,7 @@ Pi 派工成功受理：**202** `{ job_id, status: "queued" }`，再 poll `GET /
   "created_at": "…",
   "updated_at": "…",
   "input": { "raw": "…" },
-  "output": { "text": "…" },
+  "output": { "text": "…", "missing_days": ["YYYY-MM-DD"] },
   "error": null,
   "log": []
 }
@@ -76,4 +76,5 @@ Pi 派工成功受理：**202** `{ job_id, status: "queued" }`，再 poll `GET /
 
 `kind`：`distill`｜`ask`。  
 `status`：`queued`｜`running`｜`completed`｜`failed`。  
-`ask` 完成時 `output.text`＝回答正文。尋問 UI 可列近 20 筆 `kind===ask` 且終態的摘要（題目用 `input.q`），點選展示 `output.text`，**不**重跑。
+`output.text` 始終是該次執行的文字。`ask` 完成時即回答正文。  
+`distill` **成功**時另有 `output.missing_days`：本批 pool 裡可解析 `ts` 的當地日期，從最早到最晚（含首尾）之間、沒有 day 檔的 `YYYY-MM-DD`，升序。沒有可解析日期時為 `[]`。失敗的 job 不寫 `missing_days`。`ask` 沒有這個欄位。尋問 UI 可列近 20 筆 `kind===ask` 且終態的摘要（題目用 `input.q`），點選展示 `output.text`，**不**重跑。

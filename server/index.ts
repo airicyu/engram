@@ -1,8 +1,10 @@
+import { readFile } from "node:fs/promises";
 import { failStuckRunning, listJobs, loadJob, newJobId, saveJob, type Job, type JobKind } from "./jobs/index.ts";
 import { runSkillJob } from "./worker/pi.ts";
+import { missingDaysInSpan, poolLocalDates } from "./worker/missing-days.ts";
 import { isValidWeekId } from "./chain/time.ts";
 import { countFutureSightAnchors, readFutureSightSettings, sweepFutureSight } from "./future-sight/index.ts";
-import { port, storeDir, type ChainLevel } from "./config/paths.ts";
+import { port, storeDir, poolPendingPath, memoriesDir, type ChainLevel } from "./config/paths.ts";
 import { commitStore } from "./git/store-git.ts";
 import { validateCreateMentionsInRaw } from "./nodes/mentions.ts";
 import {
@@ -81,6 +83,18 @@ async function pump() {
       await saveJob(job);
       try {
         console.log(`[job ${job.id}] start kind=${job.kind}`);
+        let poolDates: string[] | null = null;
+        if (job.kind === "distill") {
+          let raw = "";
+          try {
+            raw = await readFile(poolPendingPath(), "utf8");
+          } catch {
+            raw = "";
+          }
+          const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+          const zone = (await readWorkspace()).timezone;
+          poolDates = poolLocalDates(lines, zone);
+        }
         const text = await runSkillJob(job, (line) => {
           job.log.push(line);
           console.log(`[job ${job.id}] ${line}`);
@@ -89,6 +103,9 @@ async function pump() {
         });
         job.status = "completed";
         job.output = { text };
+        if (poolDates !== null) {
+          job.output.missing_days = await missingDaysInSpan(memoriesDir(), poolDates);
+        }
         job.log.push("completed");
         console.log(`[job ${job.id}] completed`);
         await saveJob(job);

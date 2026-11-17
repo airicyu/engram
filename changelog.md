@@ -4,6 +4,19 @@
 
 ---
 
+## 0.8.0 — 進行中的週記，以及日記空洞（2026-11-17）
+
+見 [0.8.0](docs/roadmap/0.8.0/INDEX.md)。
+
+### Added
+
+- 未結束的當週寫同路徑短稿，frontmatter `open: true`；該週結束後下一次 distill 整份收成並清掉 `open`
+- 已結束月記跳過仍帶 `open: true` 的週稿，那些日子改讀 day
+- Distill job 成功時寫 `output.missing_days`（本批 pool 日期首尾之間缺的 day）；不出釐清題，不進 vault
+- Ask 讀到 `open: true` 的週檔時說明這是本週至今
+
+---
+
 ## 0.7.0 — 節點別名、合併／刪除、Ask 點名（2026-11-17）
 
 見 [0.7.0](docs/roadmap/0.7.0/INDEX.md)。

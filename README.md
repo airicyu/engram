@@ -2,7 +2,7 @@
 
 個人記憶：**skills 寫檔是主體**，Bun server／UI 是輔件。
 
-沒有 dream staging、approve、dream report。釐清是郵箱（distill 出題、HTTP 落答案）。`version.md` 現行 **0.7.0**。**0.3.0**（搜尋／釐清／附圖／節點圖／左欄殼，`shipped`）契約見 [`docs/roadmap/0.3.0/INDEX.md`](docs/roadmap/0.3.0/INDEX.md) 與 [`docs/data-spec.md`](docs/data-spec.md)。版本細節見 [`changelog.md`](changelog.md)、[`docs/roadmap/`](docs/roadmap/)。
+沒有 dream staging、approve、dream report。釐清是郵箱（distill 出題、HTTP 落答案）。`version.md` 現行 **0.8.0**。**0.3.0**（搜尋／釐清／附圖／節點圖／左欄殼，`shipped`）契約見 [`docs/roadmap/0.3.0/INDEX.md`](docs/roadmap/0.3.0/INDEX.md) 與 [`docs/data-spec.md`](docs/data-spec.md)。版本細節見 [`changelog.md`](changelog.md)、[`docs/roadmap/`](docs/roadmap/)。
 
 倉庫內 [`demo-engram-data/`](demo-engram-data/) 是虛構 VIP 示範記憶（已 distill 的 chain／nodes／archived）。未設 `ENGRAM_STORE_DIR` 時預設指這裡。自己的記憶請複製 [`.env.example`](.env.example) 為 `.env` 並改路徑，或設環境變數。若用 Obsidian，請開啟庫內的 **`memories/`**（不要開 store 根；`jobs/` 是派工暫存）。
 

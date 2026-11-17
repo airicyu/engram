@@ -68,7 +68,7 @@ These hold until an INDEX explicitly replaces one.
 2. **Thin pipeline is allowed.** `POST` → job → skill is fine. Putting "how memory understands the world" into TypeScript is not.
 3. **A fixed pipeline needs its own note** (order, why those steps are in the program, what the program must not decide). Authority: [`docs/architecture/orchestration.md`](docs/architecture/orchestration.md).
 4. **No** dream staging, approve/discard, or dream report. Store git is local-only, commits only after a successful server-listed write, and never pushes. A skill run straight from pi-agent does **not** auto-commit.
-5. **Distill gate.** Day is required. Week / month / year are written only when that period has ended, or the user explicitly asks this run. Do not edit an open week, month, or year.
+5. **Distill gate.** Day is required. An open ISO week may have one short file at the normal week path, with frontmatter `open: true`. After that week ends, the next distill that touches it rewrites the file without `open`. Month / year are written only when that period has ended, or the user explicitly asks this run. Do not write an open month or year.
 6. **Nodes.** Do not merge two nodes by name similarity. Merge and delete only when the user names the ids, via `engram-node`. Do not maintain `activity_score` in distill.
 7. **UI** stays static files under `web/`. Do not add React or Vite.
 

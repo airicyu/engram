@@ -12,7 +12,7 @@ export type DistillSnapshot = {
 export type DistillGap =
   | { kind: "pool"; id: string }
   | { kind: "clarify"; id: string }
-  | { kind: "week"; weekId: string; days: string[] }
+  | { kind: "week"; weekId: string; days: string[]; open: boolean }
   | { kind: "month"; monthId: string; days: string[] }
   | { kind: "year"; yearId: string; days: string[] };
 
@@ -90,13 +90,49 @@ function monthPath(memoriesRoot: string, monthId: string): string {
 
 /**
  * Mechanical leftovers after Session A stops.
- * Week files are required only for days created or rewritten in this run whose ISO week has ended
- * (local today is after that week's Sunday).
+ * A day created or rewritten in an open ISO week requires that week's file to be newer and to
+ * carry frontmatter `open: true`.
+ * A day created or rewritten in a closed week (local today is after that week's Sunday) requires
+ * that week's file to be newer and to not carry `open: true`.
  * Month files are required when this run touches a day in a closed month, or rewrites a closed week
  * that overlaps a closed month. The month file must be newer than those day and week files.
  * Year files follow the same rule for a closed year (today's year is after that year): the year file
  * must be newer than the day, week, and month files this run touched in that year.
  */
+function frontmatterHasOpen(text: string): boolean {
+  if (!text.startsWith("---\n")) return false;
+  const end = text.indexOf("\n---", 4);
+  if (end < 0) return false;
+  return /^open:\s*true\s*$/m.test(text.slice(4, end));
+}
+
+async function weekFileGap(
+  memoriesRoot: string,
+  weekId: string,
+  days: string[],
+  wantOpen: boolean,
+): Promise<boolean> {
+  const weekPath = join(memoriesRoot, "chain", "weeks", weekMonthKey(weekId), `${weekId}.md`);
+  let weekMtime = 0;
+  let text = "";
+  try {
+    const info = await stat(weekPath);
+    weekMtime = info.mtimeMs;
+    text = await readFile(weekPath, "utf8");
+  } catch {
+    return true;
+  }
+  let newest = 0;
+  for (const id of days) {
+    const path = join(memoriesRoot, "chain", "days", id.slice(0, 7), `${id}.md`);
+    const mtime = (await stat(path)).mtimeMs;
+    if (mtime > newest) newest = mtime;
+  }
+  if (weekMtime <= newest) return true;
+  const marked = frontmatterHasOpen(text);
+  return wantOpen ? !marked : marked;
+}
+
 export async function distillGaps(
   memoriesRoot: string,
   before: DistillSnapshot,
@@ -121,33 +157,30 @@ export async function distillGaps(
   }
 
   const touchedByWeek = new Map<string, string[]>();
+  const openByWeek = new Map<string, string[]>();
   for (const day of await listDayFiles(memoriesRoot)) {
     const info = await stat(day.path);
     const previous = before.dayMtimes.get(day.id);
     if (previous !== undefined && info.mtimeMs <= previous) continue;
     const weekId = dayToWeekId(day.id);
-    if (!(weekDateRange(weekId).end < today)) continue;
-    const days = touchedByWeek.get(weekId) ?? [];
+    const closed = weekDateRange(weekId).end < today;
+    const bucket = closed ? touchedByWeek : openByWeek;
+    const days = bucket.get(weekId) ?? [];
     days.push(day.id);
-    touchedByWeek.set(weekId, days);
+    bucket.set(weekId, days);
   }
 
   for (const [weekId, days] of touchedByWeek) {
     days.sort();
-    const weekPath = join(memoriesRoot, "chain", "weeks", weekMonthKey(weekId), `${weekId}.md`);
-    let weekMtime = 0;
-    try {
-      weekMtime = (await stat(weekPath)).mtimeMs;
-    } catch {
-      weekMtime = 0;
+    if (await weekFileGap(memoriesRoot, weekId, days, false)) {
+      gaps.push({ kind: "week", weekId, days, open: false });
     }
-    let newest = 0;
-    for (const id of days) {
-      const path = join(memoriesRoot, "chain", "days", id.slice(0, 7), `${id}.md`);
-      const mtime = (await stat(path)).mtimeMs;
-      if (mtime > newest) newest = mtime;
+  }
+  for (const [weekId, days] of openByWeek) {
+    days.sort();
+    if (await weekFileGap(memoriesRoot, weekId, days, true)) {
+      gaps.push({ kind: "week", weekId, days, open: true });
     }
-    if (weekMtime <= newest) gaps.push({ kind: "week", weekId, days });
   }
 
   const touchedDays = await touchedDayIds(memoriesRoot, before);
@@ -257,7 +290,10 @@ export function formatDistillGaps(gaps: DistillGap[]): string {
     .map((gap) => {
       if (gap.kind === "pool") return `pool ${gap.id}`;
       if (gap.kind === "clarify") return `clarify ${gap.id}`;
-      if (gap.kind === "week") return `week ${gap.weekId} (days ${gap.days.join(", ")})`;
+      if (gap.kind === "week") {
+        const mark = gap.open ? "open" : "closed";
+        return `week ${gap.weekId} ${mark} (days ${gap.days.join(", ")})`;
+      }
       if (gap.kind === "month") return `month ${gap.monthId} (days ${gap.days.join(", ")})`;
       return `year ${gap.yearId} (days ${gap.days.join(", ")})`;
     })
